@@ -1,3 +1,11 @@
+# Title: OPERATIONAL Produced Water Optimization Model
+# Date: June 21, 2021
+
+# Notes:
+# - Introduced new completions-to-completions trucking arc (CCT) to account for possible flowback reuse
+# - Implemented a generic OPERATIONAL case study example
+#       - Updated model sets
+
 # Import
 from pyomo.environ import *
 # import gurobipy 
@@ -8,19 +16,19 @@ model = ConcreteModel()
 ## Define sets ##
 
 model.s_T  = Set(initialize=['T1','T2','T3','T4','T5'], doc='Time Periods', ordered=True)
-model.s_PP = Set(initialize=['PP02','PP03'], doc='Production Pads')
+model.s_PP = Set(initialize=['PP01','PP02','PP03','PP04','PP05'], doc='Production Pads')
 model.s_CP = Set(initialize=['CP01'], doc='Completions Pads')
 model.s_P  = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
 model.s_F  = Set(initialize=['F01','F02'], doc='Freshwater Sources')
-model.s_K  = Set(initialize=['K02'], doc='Disposal Sites')
-model.s_S  = Set(initialize=['S01'], doc='Storage Sites')
-model.s_R  = Set(initialize=['R01'], doc='Treatment Sites')
+model.s_K  = Set(initialize=['K01','K02'], doc='Disposal Sites')
+model.s_S  = Set(initialize=[], doc='Storage Sites')
+model.s_R  = Set(initialize=[], doc='Treatment Sites')
 model.s_O  = Set(initialize=[], doc='Reuse Options')
-model.s_N  = Set(initialize=['N02','N03','N04','N05','N06','N07','N08'], doc=['Network Nodes'])
+model.s_N  = Set(initialize=[], doc=['Network Nodes'])
 model.s_L  = Set(initialize=(model.s_P | model.s_F | model.s_K | model.s_S | model.s_R | model.s_O | model.s_N), doc='Locations')
 
 # COMMENT: Remove pipeline diameter, storage capacity and injection capacity sets  
-model.s_D  = Set(initialize=['D0','D2','D4','D6','D8','D12'], doc='Pipeline diameters')
+model.s_D  = Set(initialize=['D0'], doc='Pipeline diameters')
 model.s_C  = Set(initialize=['C0'], doc='Storage capacities')
 model.s_I  = Set(initialize=['I0'], doc='Injection (i.e. disposal) capacities')
 
@@ -93,47 +101,27 @@ PCA_Table = {
 }
 
 PNA_Table = {
-    ('PP02','N05') : 1,
-    ('PP03','N06') : 1,
 }
 
 PPA_Table = {
 }
 
 CNA_Table = {
-    ('CP01','N03') : 1
 }
 
 NNA_Table = {
-    ('N02','N03') : 1,
-    ('N03','N02') : 1,
-    ('N03','N04') : 1,
-    ('N04','N03') : 1,
-    ('N04','N06') : 1,
-    ('N06','N04') : 1,
-    ('N06','N07') : 1,
-    ('N07','N06') : 1,
-    ('N07','N08') : 1,
-    ('N08','N07') : 1,
-    ('N08','N05') : 1,
-    ('N05','N08') : 1,
-    ('N05','N02') : 1,
-    ('N02','N05') : 1
 }
 
 NCA_Table = {
-    ('N03','CP01') : 1
 }
 
 NKA_Table = {
-    ('N04','K02') : 1
 }
 
 NSA_Table = {
 }
 
 NRA_Table = {
-    ('N08','R01') : 1
 }
 
 NOA_Table = {
@@ -145,7 +133,6 @@ FCA_Table = {
 }
 
 RNA_Table = {
-    ('R01','N08') : 1
 }
 
 RKA_Table = {
@@ -167,11 +154,20 @@ SOA_Table = {
 }
 
 PCT_Table = {
+    ('PP01','CP01') : 1,
     ('PP02','CP01') : 1,
-    ('PP03','CP01') : 1
+    ('PP03','CP01') : 1,
+    ('PP04','CP01') : 1,
+    ('PP05','CP01') : 1        
 }
 
 PKT_Table = {
+    ('PP01','K01') : 1,    
+    ('PP02','K01') : 1,
+    ('PP02','K02') : 1,
+    ('PP03','K02') : 1,
+    ('PP04','K02') : 1,
+    ('PP05','K01') : 1,
 }
 
 PST_Table = {
@@ -184,13 +180,16 @@ POT_Table = {
 }
 
 CKT_Table = {
+    ('CP01','K01') : 1,
 }
 
 CST_Table = {
-    ('CP01','S01') : 1
 }
 
 CRT_Table = {
+}
+
+CCT_Table = {
 }
 
 SCT_Table = {
@@ -235,6 +234,7 @@ model.p_POT              = Param(model.s_PP,model.s_O,default=0,initialize=POT_T
 model.p_CKT              = Param(model.s_CP,model.s_K,default=0,initialize=CKT_Table, doc='Valid completions-to-disposal trucking arcs [-]')
 model.p_CST              = Param(model.s_CP,model.s_S,default=0,initialize=CST_Table, doc='Valid completions-to-storage trucking arcs [-]')
 model.p_CRT              = Param(model.s_CP,model.s_R,default=0,initialize=CRT_Table, doc='Valid completions-to-treatment trucking arcs [-]')
+model.p_CCT              = Param(model.s_CP,model.s_CP,default=0,initialize=CCT_Table, doc='Valid completions-to-completions trucking arcs [-]')
 model.p_SCT              = Param(model.s_S,model.s_CP,default=0,initialize=SCT_Table, doc='Valid storage-to-completions trucking arcs [-]')
 model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
 model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
@@ -247,55 +247,49 @@ model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Ta
 ## Define set parameters ##
 
 CompletionsDemandTable = {
-    ('CP01','T1'): 315000, 
-    ('CP01','T2'): 350000, 
-    ('CP01','T3'): 350000,
-    ('CP01','T4'): 280000    
+    ('CP01','T1'): 31500, 
+    ('CP01','T2'): 35000, 
+    ('CP01','T3'): 35000,
+    ('CP01','T4'): 28000    
 }
 
 ProductionTable = {
-    ('PP02','T1') : 14000,
-    ('PP02','T2') : 13800,
-    ('PP02','T3') : 13750,    
-    ('PP02','T4') : 13700,        
-    ('PP02','T5') : 13650,    
-    ('PP03','T1') : 8000,
-    ('PP03','T2') : 7950,
-    ('PP03','T3') : 7900,    
-    ('PP03','T4') : 7850,        
-    ('PP03','T5') : 7800
+    ('PP01','T1') : 2116,
+    ('PP01','T2') : 2058,
+    ('PP01','T3') : 1998,    
+    ('PP01','T4') : 1995,        
+    ('PP01','T5') : 1992,    
+    ('PP02','T1') : 1400,
+    ('PP02','T2') : 1380,
+    ('PP02','T3') : 1375,    
+    ('PP02','T4') : 1370,        
+    ('PP02','T5') : 1365,    
+    ('PP03','T1') : 800,
+    ('PP03','T2') : 795,
+    ('PP03','T3') : 790,    
+    ('PP03','T4') : 785,        
+    ('PP03','T5') : 780,
+    ('PP04','T1') : 993,
+    ('PP04','T2') : 992,
+    ('PP04','T3') : 992,    
+    ('PP04','T4') : 991,        
+    ('PP04','T5') : 991,        
+    ('PP05','T1') : 1789,
+    ('PP05','T2') : 1777,
+    ('PP05','T3') : 1775,    
+    ('PP05','T4') : 1771,        
+    ('PP05','T5') : 1669,        
 }
 
 FlowbackTable = {}
 
-InitialPipelineCapacityTable = {
-    ('PP02','N05') : 20000,
-    ('N05','N08')  : 210000,
-    ('N08','N05')  : 210000,
-    ('N08','R01')  : 210000,
-    ('R01','N08')  : 20000,    
-    ('N08','N07')  : 210000,
-    ('N07','N08')  : 210000,    
-    ('N07','N06')  : 210000,
-    ('N06','N07')  : 210000,    
-    ('PP03','N06') : 20000,    
-    ('N06','N04')  : 210000,    
-    ('N04','N06')  : 210000,    
-    ('N04','K02')  : 210000,    
-    ('N04','N03')  : 210000,        
-    ('N03','N04')  : 210000,            
-    ('N03','CP01') : 400000,    
-    ('CP01','N03') : 400000,
-    ('N03','N02')  : 140000,
-    ('N02','N03')  : 140000,    
-    ('N02','N05')  : 140000,
-    ('N05','N02')  : 140000,    
+InitialPipelineCapacityTable = {  
 }
 
 # COMMENT: For EXISTING/INITAL pipeline capacity (l,l_tilde)=(l_tilde=l); needs implemented!
 
 InitialDisposalCapacityTable = {
-    'K02' :         210000
+    'K02' :         10000
 }
 
 InitialStorageCapacityTable = {
@@ -303,7 +297,6 @@ InitialStorageCapacityTable = {
 }
 
 InitialTreatmentCapacityTable = {
-    'R01' :         50000
 }
 
 InitialReuseCapacityTable = {
@@ -311,20 +304,20 @@ InitialReuseCapacityTable = {
 }
 
 FreshwaterSourcingAvailabilityTable = {
-    ('F01','T1') : 180000,
-    ('F01','T2') : 180000,
-    ('F01','T3') : 180000,    
-    ('F01','T4') : 180000,        
-    ('F01','T5') : 180000,    
-    ('F02','T1') : 160000,
-    ('F02','T2') : 160000,
-    ('F02','T3') : 160000,    
-    ('F02','T4') : 160000,        
-    ('F02','T5') : 160000    
+    ('F01','T1') : 30000,
+    ('F01','T2') : 30000,
+    ('F01','T3') : 30000,    
+    ('F01','T4') : 30000,        
+    ('F01','T5') : 30000,    
+    ('F02','T1') : 20000,
+    ('F02','T2') : 20000,
+    ('F02','T3') : 20000,    
+    ('F02','T4') : 20000,        
+    ('F02','T5') : 20000    
 }
 
 PadOffloadingCapacityTable = {
-    ('CP01') : 210000
+    ('CP01') : 50000
 }
 
 StorageOffloadingCapacityTable = {
@@ -352,8 +345,17 @@ StorageDisposalCapacityIncrementsTable = {
 }
 
 TruckingTimeTable = {
-    ('PP02','CP01') : 3,
-    ('PP03','CP01') : 4    
+    ('PP01','CP01') : 1,
+    ('PP02','CP01') : 1.5,
+    ('PP03','CP01') : 2,
+    ('PP04','CP01') : 2.5,
+    ('PP05','CP01') : 3,
+    ('PP01','K01') : 1.5,    
+    ('PP02','K01') : 1,
+    ('PP02','K02') : 1.5,
+    ('PP03','K02') : 0.5,
+    ('PP04','K02') : 1.5,
+    ('PP05','K01') : 2 
 }
 
 DisposalCapExTable = {
@@ -367,15 +369,15 @@ PipelineCapExTable = {
 }
 
 DisposalOperationalCostTable = {
-    'K02':      0.4
+    'K01':     9,
+    'K02':     8
 }
 
-TreatmentOperationalCostTable = {
-    'R01':      1.0
+TreatmentOperationalCostTable = {   
 }
 
 ReuseOperationalCostTable = {
-    'CP01':     0.7
+    'CP01':     1.2
 }
 
 StorageOperationalCostTable = {
@@ -387,19 +389,20 @@ StorageOperationalCreditTable = {
 }
 
 PipelineOperationalCostTable = {
-    ('PP02','N05') : 1,
-    ('PP03','N06') : 0.8,
-    ('F01','CP01') : 0.25,
-    ('F02','CP01') : 0.3      
 }
 
 TruckingHourlyCostTable = {
-
+    'CP01':     90,
+    'PP01':     95,
+    'PP02':     93,
+    'PP03':     98,
+    'PP04':     99,
+    'PP05':     92
 }
 
 FreshSourcingCostTable = {
     'F01':    0.1,
-    'F02':    0.12
+    'F02':    0.2
 }
 
 model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
@@ -514,7 +517,7 @@ model.p_pi_Pipeline         = Param(model.s_L,model.s_L,default=0,
                             doc='Pipeline operational cost [$/bbl]')
 model.p_pi_Trucking        = Param(model.s_L,default=9999999,
                             initialize=TruckingHourlyCostTable,
-                            doc='Trucking hourly cost (by source) [$/bbl]')  
+                            doc='Trucking hourly cost (by source) [$/hour]')  
 model.p_pi_Sourcing         = Param(model.s_F,default=9999999,
                             initialize=FreshSourcingCostTable,
                             doc='Fresh sourcing cost [$/bbl]')  
