@@ -3,8 +3,8 @@
 
 # Notes:
 # - Introduced new completions-to-completions trucking arc (CCT) to account for possible flowback reuse
-# - Implemented a generic OPERATIONAL case study example
-#       - Updated model sets
+# - Implemented a generic OPERATIONAL case study example (updated model sets, additional input data)
+# - Implemented an initial formulation for production tank modeling (see updated documentation)
 
 # Import
 from pyomo.environ import *
@@ -18,6 +18,7 @@ model = ConcreteModel()
 model.s_T  = Set(initialize=['T1','T2','T3','T4','T5'], doc='Time Periods', ordered=True)
 model.s_PP = Set(initialize=['PP01','PP02','PP03','PP04','PP05'], doc='Production Pads')
 model.s_CP = Set(initialize=['CP01'], doc='Completions Pads')
+model.s_A  = Set(initialize=['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14'], doc='Production Tanks')
 model.s_P  = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
 model.s_F  = Set(initialize=['F01','F02'], doc='Freshwater Sources')
 model.s_K  = Set(initialize=['K01','K02'], doc='Disposal Sites')
@@ -42,8 +43,11 @@ model.v_Z           = Var(within=Reals, doc='Objective funcation variable [$]')
 model.v_F_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity piped from location l to location l [bbl/day]')
 model.v_F_Trucked   = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity trucked from location l to location l [bbl/day]')
 model.v_F_Sourced   = Var(model.s_F,model.s_CP,model.s_T,within=NonNegativeReals, doc='Fresh water sourced from source f to completions pad p [bbl/day]')
+model.v_F_Drain     = Var(model.s_P,model.s_A,model.s_T,within=NonNegativeReals, doc='Produced water drained from production tank [bbl/day]')
+model.v_B_Production= Var(model.s_P,model.s_T,within=NonNegativeReals, doc='Produced water for transport from pad [bbl/day]')
 
 model.v_L_Storage   = Var(model.s_S,model.s_T,within=NonNegativeReals, doc='Water level at storage site [bbl]')
+model.v_L_ProdTank  = Var(model.s_P,model.s_A,model.s_T,within=NonNegativeReals, doc='Water level in production tank [bbl]')
 
 model.v_C_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Cost of piping produced water from location l to location l [$/day]')
 model.v_C_Trucked   = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Cost of trucking produced water from location l to location l [$/day]')
@@ -207,6 +211,23 @@ SKT_Table = {
 RKT_Table = {
 }
 
+PAL_Table = {
+    ('PP01','A01') : 1,
+    ('PP01','A02') : 1,           
+    ('PP02','A03') : 1,
+    ('PP02','A04') : 1,
+    ('PP02','A05') : 1,      
+    ('PP03','A06') : 1,
+    ('PP03','A07') : 1,
+    ('PP03','A08') : 1,
+    ('PP03','A09') : 1,
+    ('PP04','A10') : 1,
+    ('PP04','A11') : 1,
+    ('PP04','A12') : 1,                                            
+    ('PP05','A13') : 1,    
+    ('PP05','A14') : 1,        
+}
+
 model.p_PCA              = Param(model.s_PP,model.s_CP,default=0,initialize=PCA_Table, doc='Valid production-to-completions pipeline arcs [-]')
 model.p_PNA              = Param(model.s_PP,model.s_N,default=0,initialize=PNA_Table, doc='Valid production-to-node pipeline arcs [-]')
 model.p_PPA              = Param(model.s_PP,model.s_PP,default=0,initialize=PPA_Table, doc='Valid production-to-production pipeline arcs [-]')
@@ -239,10 +260,13 @@ model.p_SCT              = Param(model.s_S,model.s_CP,default=0,initialize=SCT_T
 model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
 model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
 
+model.p_PAL              = Param(model.s_P,model.s_A,default=0,initialize=PAL_Table, doc='Valid pad-to-tank links [-]')
+
 # model.p_PCA.pprint()
 # model.p_PNA.pprint()
 # model.p_CNA.pprint()
 # model.p_NNA.pprint()
+# model.p_PAL.pprint()
 
 ## Define set parameters ##
 
@@ -254,31 +278,76 @@ CompletionsDemandTable = {
 }
 
 ProductionTable = {
-    ('PP01','T1') : 2116,
-    ('PP01','T2') : 2058,
-    ('PP01','T3') : 1998,    
-    ('PP01','T4') : 1995,        
-    ('PP01','T5') : 1992,    
-    ('PP02','T1') : 1400,
-    ('PP02','T2') : 1380,
-    ('PP02','T3') : 1375,    
-    ('PP02','T4') : 1370,        
-    ('PP02','T5') : 1365,    
-    ('PP03','T1') : 800,
-    ('PP03','T2') : 795,
-    ('PP03','T3') : 790,    
-    ('PP03','T4') : 785,        
-    ('PP03','T5') : 780,
-    ('PP04','T1') : 993,
-    ('PP04','T2') : 992,
-    ('PP04','T3') : 992,    
-    ('PP04','T4') : 991,        
-    ('PP04','T5') : 991,        
-    ('PP05','T1') : 1789,
-    ('PP05','T2') : 1777,
-    ('PP05','T3') : 1775,    
-    ('PP05','T4') : 1771,        
-    ('PP05','T5') : 1669,        
+    ('PP01','A01','T1') : 1058,
+    ('PP01','A01','T2') : 1029,
+    ('PP01','A01','T3') : 999,
+    ('PP01','A01','T4') : 998,
+    ('PP01','A01','T5') : 996,
+    ('PP01','A02','T1') : 1058,
+    ('PP01','A02','T2') : 1029,
+    ('PP01','A02','T3') : 999,
+    ('PP01','A02','T4') : 998,
+    ('PP01','A02','T5') : 996,
+    ('PP02','A03','T1') : 466,
+    ('PP02','A03','T2') : 460,
+    ('PP02','A03','T3') : 458,
+    ('PP02','A03','T4') : 457,
+    ('PP02','A03','T5') : 455,
+    ('PP02','A04','T1') : 466,
+    ('PP02','A04','T2') : 460,
+    ('PP02','A04','T3') : 458,
+    ('PP02','A04','T4') : 457,
+    ('PP02','A04','T5') : 455,
+    ('PP02','A05','T1') : 466,
+    ('PP02','A05','T2') : 460,
+    ('PP02','A05','T3') : 458,
+    ('PP02','A05','T4') : 457,
+    ('PP02','A05','T5') : 455,
+    ('PP03','A06','T1') : 200,
+    ('PP03','A06','T2') : 199,
+    ('PP03','A06','T3') : 198,
+    ('PP03','A06','T4') : 196,
+    ('PP03','A06','T5') : 195,
+    ('PP03','A07','T1') : 200,
+    ('PP03','A07','T2') : 199,
+    ('PP03','A07','T3') : 198,
+    ('PP03','A07','T4') : 196,
+    ('PP03','A07','T5') : 195,
+    ('PP03','A08','T1') : 200,
+    ('PP03','A08','T2') : 199,
+    ('PP03','A08','T3') : 198,
+    ('PP03','A08','T4') : 196,
+    ('PP03','A08','T5') : 195,
+    ('PP03','A09','T1') : 200,
+    ('PP03','A09','T2') : 199,
+    ('PP03','A09','T3') : 198,
+    ('PP03','A09','T4') : 196,
+    ('PP03','A09','T5') : 195,
+    ('PP04','A10','T1') : 331,
+    ('PP04','A10','T2') : 330,
+    ('PP04','A10','T3') : 330,
+    ('PP04','A10','T4') : 329,
+    ('PP04','A10','T5') : 329,
+    ('PP04','A11','T1') : 331,
+    ('PP04','A11','T2') : 330,
+    ('PP04','A11','T3') : 330,
+    ('PP04','A11','T4') : 329,
+    ('PP04','A11','T5') : 329,
+    ('PP04','A12','T1') : 331,
+    ('PP04','A12','T2') : 330,
+    ('PP04','A12','T3') : 330,
+    ('PP04','A12','T4') : 329,
+    ('PP04','A12','T5') : 329,
+    ('PP05','A13','T1') : 895,
+    ('PP05','A13','T2') : 888,
+    ('PP05','A13','T3') : 887,
+    ('PP05','A13','T4') : 885,
+    ('PP05','A13','T5') : 883,
+    ('PP05','A14','T1') : 895,
+    ('PP05','A14','T2') : 888,
+    ('PP05','A14','T3') : 887,
+    ('PP05','A14','T4') : 885,
+    ('PP05','A14','T5') : 883
 }
 
 FlowbackTable = {}
@@ -405,15 +474,20 @@ FreshSourcingCostTable = {
     'F02':    0.2
 }
 
+InitialTankLevelTable = {  
+}
+
 model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
                             initialize=CompletionsDemandTable, 
                             doc='Completions water demand [bbl/day]')
-model.p_beta_Production    = Param(model.s_P,model.s_T,default=0, 
+model.p_beta_Production    = Param(model.s_P,model.s_A,model.s_T,default=0, 
                             initialize=ProductionTable,
                             doc='Produced water supply forecast [bbl/day]')                            
 model.p_beta_Flowback      = Param(model.s_P,model.s_T,default=0,
                             initialize=FlowbackTable,
                             doc='Flowback supply forecast for a completions bad [bbl/day]')
+model.p_sigma_ProdTank     = Param(model.s_P,model.s_A,default=500,
+                            doc='Production tank capacity [bbl]')
 model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
                             initialize=InitialPipelineCapacityTable,
                             doc='Initial dayly pipeline capacity between two locations [bbl/day]')                        
@@ -479,6 +553,9 @@ model.p_tau_Trucking        = Param(model.s_L,model.s_L,default=9999999,
 
 model.p_lambda_Storage      = Param(model.s_S,default=0,
                             doc='Initial storage level at storage site [bbl]')
+model.p_lambda_ProdTank     = Param(model.s_P,model.s_A,default=0,
+                            initialize=InitialTankLevelTable,
+                            doc='Initial water level in production tank [bbl]')                            
 
 model.p_lambda_Pipeline     = Param(model.s_L,model.s_L,default=9999999,
                             doc='Pipeline segment length [miles]')
@@ -587,8 +664,65 @@ model.StorageSiteProcessingCapacity = Constraint(model.s_S,model.s_T,rule=Storag
 
 # model.StorageSiteProcessingCapacity.pprint()
 
+def ProductionTankBalanceRule(model,p,a,t):
+    if t == 'T1':
+        if p in model.s_P and a in model.s_A:
+                if model.p_PAL[p,a]:
+                    return (model.v_L_ProdTank[p,a,t] == 
+                    model.p_lambda_ProdTank[p,a] + model.p_beta_Production[p,a,t] - model.v_F_Drain[p,a,t])
+                else:
+                    return Constraint.Skip
+        else:
+            return Constraint.Skip
+    else:
+        if p in model.s_P and a in model.s_A:
+                if model.p_PAL[p,a]:
+                    return (model.v_L_ProdTank[p,a,t] == 
+                    model.v_L_ProdTank[p,a,model.s_T.prev(t)] + model.p_beta_Production[p,a,t] - model.v_F_Drain[p,a,t])
+                else:
+                    return Constraint.Skip
+        else:
+            return Constraint.Skip
+model.ProductionTankBalance = Constraint(model.s_P,model.s_A,model.s_T,rule=ProductionTankBalanceRule, doc='Production tank balance')
+
+# model.ProductionTankBalance.pprint()
+
+def ProductionTankCapacityRule(model,p,a,t):
+    if p in model.s_P and a in model.s_A:
+        if model.p_PAL[p,a]:
+            return (model.v_L_ProdTank[p,a,t] <= model.p_sigma_ProdTank[p,a])
+        else:
+            return Constraint.Skip
+    else:
+        return Constrant.Skip
+model.ProductionTankCapacity = Constraint(model.s_P,model.s_A,model.s_T,rule=ProductionTankCapacityRule, doc='Production tank capacity')
+
+# model.ProductionTankCapacity.pprint()
+
+def TankToPadProductionBalanceRule(model,p,t):
+    return (sum(model.v_F_Drain[p,a,t] for a in model.s_A if model.p_PAL[p,a]) == model.v_B_Production[p,t])
+model.TankToPadProductionBalance = Constraint(model.s_P,model.s_T,rule=TankToPadProductionBalanceRule, doc='Tank-to-pad production balance')
+
+# model.TankToPadProductionBalance.pprint()
+
+def TerminalProductionTankLevelBalanceRule(model,p,a,t):
+    if t == model.s_T.last():
+        if p in model.s_P and a in model.s_A:
+            if model.p_PAL[p,a]:
+                return (model.v_L_ProdTank[p,a,t] ==
+                        model.p_lambda_ProdTank[p,a])
+            else:
+                return Constraint.Skip
+        else:
+            return Constraint.Skip
+    else:
+        return Constraint.Skip
+model.TerminalProductionTankLevelBalance = Constraint(model.s_P,model.s_A,model.s_T,rule=TerminalProductionTankLevelBalanceRule,doc='Terminal production tank level balance')
+
+# model.TerminalProductionTankLevelBalance.pprint()
+
 def ProductionPadSupplyBalanceRule(model,p,t):
-    return (model.p_beta_Production[p,t] == sum(model.v_F_Piped[p,n,t] for n in model.s_N if model.p_PNA[p,n]) 
+    return (model.v_B_Production[p,t] == sum(model.v_F_Piped[p,n,t] for n in model.s_N if model.p_PNA[p,n]) 
             + sum(model.v_F_Piped[p,p_tilde,t] for p_tilde in model.s_CP if model.p_PCA[p,p_tilde])
             + sum(model.v_F_Piped[p,p_tilde,t] for p_tilde in model.s_PP if model.p_PPA[p,p_tilde])
             + sum(model.v_F_Trucked[p,p_tilde,t] for p_tilde in model.s_CP if model.p_PCT[p,p_tilde])
@@ -1538,3 +1672,4 @@ for t in model.s_T:
 if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
     print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
+# model.v_L_ProdTank.pprint()
