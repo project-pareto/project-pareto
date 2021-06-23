@@ -1,4 +1,4 @@
-from pareto.utilities.get_data import get_data, df_to_param
+from pareto.utilities.get_data import get_data
 
 from pyomo.environ import Param, Set, ConcreteModel
 
