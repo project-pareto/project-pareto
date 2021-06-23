@@ -11,6 +11,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'pyomo',
+        'pandas==1.2.*',
     ],
     maintainer="Keith Beattie",
     maintainer_email="ksbeattie@lbl.gov",
