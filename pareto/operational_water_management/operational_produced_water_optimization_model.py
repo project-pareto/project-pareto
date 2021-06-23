@@ -490,19 +490,19 @@ model.p_sigma_ProdTank     = Param(model.s_P,model.s_A,default=500,
                             doc='Production tank capacity [bbl]')
 model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
                             initialize=InitialPipelineCapacityTable,
-                            doc='Initial dayly pipeline capacity between two locations [bbl/day]')                        
+                            doc='Initial daily pipeline capacity between two locations [bbl/day]')                        
 model.p_sigma_Disposal     = Param(model.s_K,default=0,
                             initialize=InitialDisposalCapacityTable,
-                            doc='Initial dayly disposal capacity at disposal sites [bbl/day]')
+                            doc='Initial daily disposal capacity at disposal sites [bbl/day]')
 model.p_sigma_Storage      = Param(model.s_S,default=0,
                             initialize=InitialStorageCapacityTable,
                             doc='Initial storage capacity at storage site [bbl]')
 model.p_sigma_Treatment    = Param(model.s_R,default=0,
                             initialize=InitialTreatmentCapacityTable,
-                            doc='Initial dayly treatment capacity at treatment site [bbl/day]') 
+                            doc='Initial daily treatment capacity at treatment site [bbl/day]') 
 model.p_sigma_Reuse        = Param(model.s_O,default=0,
                             initialize=InitialReuseCapacityTable,
-                            doc='Initial dayly reuse capacity at reuse site [bbl/day]')
+                            doc='Initial daily reuse capacity at reuse site [bbl/day]')
 model.p_sigma_Freshwater   = Param(model.s_F,model.s_T,default=0,
                             initialize=FreshwaterSourcingAvailabilityTable,
                             doc='dayly freshwater sourcing capacity at freshwater source [bbl/day]')                                                                                   
