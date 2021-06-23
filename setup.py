@@ -12,6 +12,7 @@ setup(
     install_requires=[
         'pyomo',
         'pandas==1.2.*',
+        'openpyxl',
     ],
     maintainer="Keith Beattie",
     maintainer_email="ksbeattie@lbl.gov",
