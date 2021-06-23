@@ -2,8 +2,8 @@
 # 
 ##############################################################################
 """
-Module to with methods to get data from Excel spreadsheets and convert it in
-a format that Pyomo requires
+Module to read in input data from Excel spreadsheets and convert it into the
+format that Pyomo requires
 
 Authors: Andres Calderon
 """
@@ -38,9 +38,9 @@ def get_data(fname):
     parameter_list = ['DriveTimes', 'CompletionsDemand', 'FlowbackRates']
 
     _df_sets = pd.read_excel(fname, sheet_name = set_list, header=0, index_col=None, usecols='A',
-                        squeeze=True, dtype= "string", keep_default_na=False)
+                                squeeze=True, dtype= "string", keep_default_na=False)
 
-    _df_parameters = pd.read_excel( fname, sheet_name = parameter_list,
+    _df_parameters = pd.read_excel(fname, sheet_name = parameter_list,
                                     header=1, index_col=0, usecols=None,
                                     squeeze=True, keep_default_na=False)
 
@@ -77,8 +77,8 @@ def create_model(_df_sets, _df_parameters):
     print(dict_flowback_rates)
     model.completion_demand = Param(model.c, model.t, initialize=dict_completions_demand,
                                     doc="Water demand for completion operations")
-    model.flowback_rates = Param(   model.c, model.t, initialize=dict_flowback_rates,
-                                    doc="Waer flowback rate")
+    model.flowback_rates = Param(model.c, model.t, initialize=dict_flowback_rates,
+                                 doc="Water flowback rate")
 
     model.p.display()
     model.c.display()
