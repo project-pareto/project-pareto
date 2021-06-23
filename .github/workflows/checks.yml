@@ -1,0 +1,59 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+  repository_dispatch:
+    # to run this, send a POST API call at repos/<user>/<repo>/dispatches with the specified event_type
+    # e.g. `gh repos/CCSI-Toolset/FOQUS/dispatches -F event_type=ci_run_tests`
+    types: [ci_run_tests]
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      # ready_for_review occurs when a draft PR is turned to non-draft
+      - ready_for_review
+      # synchronize occurs whenever commits are pushed to the PR branch
+      - synchronize
+
+defaults:
+  run:
+    # the -l flag is needed for the Conda environment to be activated properly
+    shell: bash -l {0}
+
+jobs:
+  pytest:
+    name: Tests (py${{ matrix.python-version }}/${{ matrix.os }})
+    runs-on: ${{ matrix.os-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          # - '3.6'
+          # - '3.7'
+          - '3.8'
+          # - '3.9'
+        os:
+          # - linux
+          - win64
+          # - macos
+        include:
+          - os: macos
+            os-version: macos-10.15
+          - os: linux
+            os-version: ubuntu-20.04
+          - os: win64
+            os-version: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up package
+        run: |
+          pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
+      - name: Run pytest
+        # TODO: add coverage
+        run: |
+          pytest -v 
