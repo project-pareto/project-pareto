@@ -480,7 +480,7 @@ def create_model(df_sets, df_parameters):
     InitialTankLevelTable = {  
     }
 
-    model.p_gamma_Completions  = Param(model.s_CP,model.s_T,default=0,
+    model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
                                 initialize=df_parameters['CompletionsDemand'], 
                                 doc='Completions water demand [bbl/day]')
     model.p_beta_Production    = Param(model.s_P,model.s_A,model.s_T,default=0, 
