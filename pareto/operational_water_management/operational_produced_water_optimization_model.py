@@ -8,7 +8,7 @@
 
 # Import
 from pyomo.environ import *
-from pareto.utilities.get_data import get_data, _df_to_param
+from pareto.utilities.get_data import get_data
 # import gurobipy 
 
 # Creation of a Concrete Model
@@ -18,13 +18,13 @@ def create_model(df_sets, df_parameters):
     
     ## Define sets ##
 
-    model.s_T  = Set(initialize=['T1','T2','T3','T4','T5'], doc='Time Periods', ordered=True)
-    model.s_PP = Set(initialize=df_sets['ProductionPads'].values, doc='Production Pads')
-    model.s_CP = Set(initialize=df_sets['CompletionsPads'].values, doc='Completions Pads')
+    model.s_T  = Set(initialize=df_sets['TimePeriods'], doc='Time Periods', ordered=True)
+    model.s_PP = Set(initialize=df_sets['ProductionPads'], doc='Production Pads')
+    model.s_CP = Set(initialize=df_sets['CompletionsPads'], doc='Completions Pads')
     model.s_A  = Set(initialize=['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14'], doc='Production Tanks')
     model.s_P  = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
     model.s_F  = Set(initialize=['F01','F02'], doc='Freshwater Sources')
-    model.s_K  = Set(initialize=df_sets['SWDSites'].values, doc='Disposal Sites')
+    model.s_K  = Set(initialize=df_sets['SWDSites'], doc='Disposal Sites')
     model.s_S  = Set(initialize=[], doc='Storage Sites')
     model.s_R  = Set(initialize=[], doc='Treatment Sites')
     model.s_O  = Set(initialize=[], doc='Reuse Options')
@@ -480,9 +480,9 @@ def create_model(df_sets, df_parameters):
     InitialTankLevelTable = {  
     }
 
-    model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
-                                initialize=CompletionsDemandTable, 
-                                doc='Completions water demand [bbl/day]')  
+    model.p_gamma_Completions  = Param(model.s_CP,model.s_T,default=0,
+                                initialize=df_parameters['CompletionsDemand'], 
+                                doc='Completions water demand [bbl/day]')
     model.p_beta_Production    = Param(model.s_P,model.s_A,model.s_T,default=0, 
                                 initialize=ProductionTable,
                                 doc='Produced water supply forecast [bbl/day]')                            
@@ -697,7 +697,7 @@ def create_model(df_sets, df_parameters):
             else:
                 return Constraint.Skip
         else:
-            return Constrant.Skip
+            return Constraint.Skip
     model.ProductionTankCapacity = Constraint(model.s_P,model.s_A,model.s_T,rule=ProductionTankCapacityRule, doc='Production tank capacity')
 
     # model.ProductionTankCapacity.pprint()
@@ -1675,10 +1675,10 @@ def create_model(df_sets, df_parameters):
     if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
-# model.v_L_ProdTank.pprint()
+    # model.v_L_ProdTank.pprint()
 
     return model
 
-[df_sets, df_parameters] = get_data(fname='C:\\Users\\drouvenm\\PARETO\\GitHub\\project-pareto\\pareto\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx')
+[df_sets, df_parameters] = get_data(fname='C:\\Users\\calderoa\\Documents\\KeyLogic\\PARETO\\project-pareto\\pareto\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx')
 
 operational_model = create_model(df_sets, df_parameters)

@@ -50,12 +50,7 @@ def _df_to_param(data_frame):
     """
     _df_parameters ={}
     for i in data_frame:
-        df_param = {}
-        for j in data_frame[i].index:
-            for k in data_frame[i].columns:
-                tuple_index_col = (j, k)
-                df_param[tuple_index_col] = data_frame[i].loc[j,k]
-        _df_parameters[i] = df_param
+        _df_parameters[i] = data_frame[i].stack().to_dict()
 
     return _df_parameters
 
@@ -104,10 +99,10 @@ def get_data(fname):
 
     # Parameters are cleaned up, e.g. blank cells are replaced by zeros
     _df_parameters = _cleanup_data(_df_parameters)
-
+    
     # The set for time periods is defined based on the columns of the parameter for Completions Demand
     # This is done so the user does not have to add an extra tab in the spreadsheet for the time period set
-    _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns
+    _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
     _df_parameters = _df_to_param(_df_parameters)
