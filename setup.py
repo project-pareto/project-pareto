@@ -18,7 +18,7 @@ setup(
     package_data={
         # If any package contains these files, include them:
         "": [
-            "EXAMPLE_INPUT_DATA_FILE*.xlsx",
+            "*.xlsx",
         ]
     },
     maintainer="Keith Beattie",
