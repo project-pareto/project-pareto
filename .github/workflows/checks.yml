@@ -59,10 +59,11 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Set up package (install-mode=${{ matrix.install-variant }})
+      - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
       - name: Run pytest
+        if: contains(matrix.install-mode, 'dev')
         # TODO: add coverage
         run: |
           pytest -v 
