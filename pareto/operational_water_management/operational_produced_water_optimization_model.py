@@ -9,6 +9,7 @@
 # Import
 from pyomo.environ import *
 from pareto.utilities.get_data import get_data
+from importlib import resources
 # import gurobipy 
 
 # Creation of a Concrete Model
@@ -1679,6 +1680,11 @@ def create_model(df_sets, df_parameters):
 
     return model
 
-[df_sets, df_parameters] = get_data(fname='C:\\Users\\calderoa\\Documents\\KeyLogic\\PARETO\\project-pareto\\pareto\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx')
+# Tabs in the input Excel spreadsheet
+set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
+parameter_list = ['FCA','DriveTimes', 'CompletionsDemand','ProductionRates', 'FlowbackRates']
 
+with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        
 operational_model = create_model(df_sets, df_parameters)

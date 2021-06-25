@@ -30,9 +30,9 @@ def _read_data(_fname, _set_list, _parameter_list):
     for i in _df_parameters:
         index_col = []
         for j in _df_parameters[i].columns:
-            if 'Unnamed' in j:
+            if 'Unnamed' in str(j):
                 index_col.append(j)
-        print(index_col)
+
         _df_parameters[i].set_index(index_col, inplace=True)
 
     return [_df_sets, _df_parameters]
@@ -64,7 +64,7 @@ def _df_to_param(data_frame):
     return _df_parameters
 
 
-def get_data(fname):
+def get_data(fname, set_list, parameter_list):
     """
     This module uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -98,12 +98,6 @@ def get_data(fname):
     It is worth highlighting that the Set for time periods "model.t" is derived by the method based on the
     Parameter: CompletionsDemand which is indexed by T
     """
-
-    # Tabs in the input Excel spreadsheet
-    set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-    parameter_list = ['FCA','DriveTimes', 'CompletionsDemand','ProductionRates', 'FlowbackRates']
-    # parameter_list = {'DriveTimes':0, 'CompletionsDemand':0, 'FlowbackRates':0, 'MultiSet':[0,1]}
-
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters] = _read_data(fname, set_list, parameter_list)
 

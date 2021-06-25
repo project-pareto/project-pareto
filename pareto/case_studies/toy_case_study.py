@@ -33,7 +33,10 @@ def create_model(df_sets, df_parameters):
 
 if __name__ == '__main__':
 
+    # Tabs in the input Excel spreadsheet
+    set_list = ['ProductionPads','CompletionsPads', 'SWDSites']
+    parameter_list = ['DriveTimes', 'CompletionsDemand','FlowbackRates']
     with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_mod.xlsx") as fpath:
         print(f'Reading file from {fpath}')
-        [df_sets, df_parameters] = get_data(fpath)
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     strategic_model = create_model(df_sets, df_parameters)
