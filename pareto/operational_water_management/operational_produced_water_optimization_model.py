@@ -21,14 +21,14 @@ def create_model(df_sets, df_parameters):
     model.s_T  = Set(initialize=df_sets['TimePeriods'], doc='Time Periods', ordered=True)
     model.s_PP = Set(initialize=df_sets['ProductionPads'], doc='Production Pads')
     model.s_CP = Set(initialize=df_sets['CompletionsPads'], doc='Completions Pads')
-    model.s_A  = Set(initialize=['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14'], doc='Production Tanks')
+    model.s_A  = Set(initialize=df_sets['ProductionTanks'], doc='Production Tanks')
     model.s_P  = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
-    model.s_F  = Set(initialize=['F01','F02'], doc='Freshwater Sources')
+    model.s_F  = Set(initialize=df_sets['FreshwaterSources'], doc='Freshwater Sources')
     model.s_K  = Set(initialize=df_sets['SWDSites'], doc='Disposal Sites')
-    model.s_S  = Set(initialize=[], doc='Storage Sites')
-    model.s_R  = Set(initialize=[], doc='Treatment Sites')
-    model.s_O  = Set(initialize=[], doc='Reuse Options')
-    model.s_N  = Set(initialize=[], doc=['Network Nodes'])
+    model.s_S  = Set(initialize=df_sets['StorageSites'], doc='Storage Sites')
+    model.s_R  = Set(initialize=df_sets['TreatmentSites'], doc='Treatment Sites')
+    model.s_O  = Set(initialize=df_sets['ReuseOptions'], doc='Reuse Options')
+    model.s_N  = Set(initialize=df_sets['NetworkNodes'], doc=['Network Nodes'])
     model.s_L  = Set(initialize=(model.s_P | model.s_F | model.s_K | model.s_S | model.s_R | model.s_O | model.s_N), doc='Locations')
 
     # COMMENT: Remove pipeline diameter, storage capacity and injection capacity sets  
@@ -241,7 +241,7 @@ def create_model(df_sets, df_parameters):
     model.p_NSA              = Param(model.s_N,model.s_S,default=0,initialize=NSA_Table, doc='Valid node-to-storage pipeline arcs [-]')
     model.p_NRA              = Param(model.s_N,model.s_R,default=0,initialize=NRA_Table, doc='Valid node-to-treatment pipeline arcs [-]')
     model.p_NOA              = Param(model.s_N,model.s_O,default=0,initialize=NOA_Table, doc='Valid node-to-reuse pipeline arcs [-]')
-    model.p_FCA              = Param(model.s_F,model.s_CP,default=0,initialize=FCA_Table, doc='Valid freshwater-to-completions pipeline arcs [-]')
+    model.p_FCA              = Param(model.s_F,model.s_CP,default=0,initialize=df_parameters['FCA'], doc='Valid freshwater-to-completions pipeline arcs [-]')
     model.p_RNA              = Param(model.s_R,model.s_N,default=0,initialize=RNA_Table, doc='Valid treatment-to-node pipeline arcs [-]')
     model.p_RKA              = Param(model.s_R,model.s_K,default=0,initialize=RKA_Table, doc='Valid treatment-to-disposal pipeline arcs [-]')
     model.p_SNA              = Param(model.s_S,model.s_N,default=0,initialize=SNA_Table, doc='Valid storage-to-node pipeline arcs [-]')
@@ -482,9 +482,9 @@ def create_model(df_sets, df_parameters):
 
     model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
                                 initialize=df_parameters['CompletionsDemand'], 
-                                doc='Completions water demand [bbl/day]')
+                                doc='Completions water demand [bbl/day]')                         
     model.p_beta_Production    = Param(model.s_P,model.s_A,model.s_T,default=0, 
-                                initialize=ProductionTable,
+                                initialize=df_parameters['ProductionRates'],
                                 doc='Produced water supply forecast [bbl/day]')                            
     model.p_beta_Flowback      = Param(model.s_P,model.s_T,default=0,
                                 initialize=FlowbackTable,

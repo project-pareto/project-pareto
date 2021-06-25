@@ -18,13 +18,31 @@ def _read_data(_fname, _set_list, _parameter_list):
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
-
+    _df_parameters = {}
+    _temp_df_parameters = {}
     _df_sets = pd.read_excel(_fname, sheet_name = _set_list, header=0, index_col=None, usecols='A',
                                 squeeze=True, dtype= "string", keep_default_na=False)
 
     _df_parameters = pd.read_excel(_fname, sheet_name = _parameter_list,
-                                    header=1, index_col=0, usecols=None,
-                                    squeeze=True, keep_default_na=False)
+                                        header=1, index_col=None, usecols=None,
+                                        squeeze=True, keep_default_na=False)
+
+    for i in _df_parameters:
+        index_col = []
+        for j in _df_parameters[i].columns:
+            if 'Unnamed' in j:
+                index_col.append(j)
+        print(index_col)
+        _df_parameters[i].set_index(index_col, inplace=True)
+        # _df_parameters[i].columns = _df_parameters[i].iloc[0]
+        # _temp_df_parameters[i] = _df_parameters[i][slice(2,2)]
+        # print(_df_parameters[i][:,1:])
+
+        # if len(index_col) ==1:
+        #     _df_parameters[i].index.name=None
+        # else:
+        #     _df_parameters[i].rename_axis(index={'Unnamed: 0':None, 'Unnamed: 1':None})
+        # print(_df_parameters[i])
 
     return [_df_sets, _df_parameters]
 
@@ -91,8 +109,9 @@ def get_data(fname):
     """
 
     # Tabs in the input Excel spreadsheet
-    set_list = ['ProductionPads', 'CompletionsPads', 'SWDSites']
-    parameter_list = ['DriveTimes', 'CompletionsDemand', 'FlowbackRates']
+    set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
+    parameter_list = ['FCA','DriveTimes', 'CompletionsDemand','ProductionRates', 'FlowbackRates']
+    # parameter_list = {'DriveTimes':0, 'CompletionsDemand':0, 'FlowbackRates':0, 'MultiSet':[0,1]}
 
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters] = _read_data(fname, set_list, parameter_list)
