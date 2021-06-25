@@ -5,7 +5,7 @@
 Module to read in input data from Excel spreadsheets and convert it into the
 format that Pyomo requires
 
-Authors: Andres J. Calderon
+Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
 from pyomo.environ import Param, Set, ConcreteModel
