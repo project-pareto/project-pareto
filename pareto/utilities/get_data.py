@@ -91,8 +91,8 @@ def get_data(fname):
     """
 
     # Tabs in the input Excel spreadsheet
-    set_list = ['ProductionPads', 'CompletionsPads', 'SWDSites']
-    parameter_list = ['DriveTimes', 'CompletionsDemand', 'FlowbackRates']
+    set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
+    parameter_list = ['FreshwaterSourcingAvailability','PAL','PKT','TruckingTime', 'CompletionsDemand', 'FlowbackRates']
 
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters] = _read_data(fname, set_list, parameter_list)

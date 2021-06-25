@@ -1,3 +1,12 @@
+# Title: STRATEGIC Produced Water Optimization Model
+# Date: June 25, 2021
+
+# Notes:
+# - Introduced new completions-to-completions trucking arc (CCT) to account for possible flowback reuse
+# - Implemented a generic OPERATIONAL case study example (updated model sets, additional input data)
+# - Implemented an initial formulation for production tank modeling (see updated documentation)
+# - Implemented a correction version of the disposal capacity constraint considering more trucking-to-disposal arcs (PKT, SKT, SKT, RKT)
+
 # Import
 from pyomo.environ import *
 # from gurobipy import *
@@ -1040,7 +1049,10 @@ model.DisposalCapacityExpansion = Constraint(model.s_K,rule=DisposalCapacityExpa
 def DisposalCapacityRule(model,k,t):
     return (sum(model.v_F_Piped[n,k,t] for n in model.s_N if model.p_NKA[n,k]) +
             sum(model.v_F_Piped[s,k,t] for s in model.s_S if model.p_SKA[s,k]) +
-            sum(model.v_F_Trucked[s,k,t] for s in model.s_S if model.p_SKT[s,k])
+            sum(model.v_F_Trucked[s,k,t] for s in model.s_S if model.p_SKT[s,k]) + 
+            sum(model.v_F_Trucked[p,k,t] for p in model.s_PP if model.p_PKT[p,k]) +
+            sum(model.v_F_Trucked[p,k,t] for p in model.s_CP if model.p_CKT[p,k]) +
+            sum(model.v_F_Trucked[r,k,t] for r in model.s_R if model.p_RKT[r,k])            
             <= model.v_D_Capacity[k])
 model.DisposalCapacity = Constraint(model.s_K,model.s_T,rule=DisposalCapacityRule, doc='Disposal capacity')
 
