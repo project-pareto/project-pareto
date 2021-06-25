@@ -2,8 +2,10 @@ name: Checks
 
 on:
   push:
-    branches:
-      - main
+    # FIXME uncomment to restrict workflow to only run on pushes to main
+    # using push rather than pull_request is a workaround needed because PR triggers are not available for private repos on a free plan
+    # branches:
+      # - main
   repository_dispatch:
     # to run this, send a POST API call at repos/<user>/<repo>/dispatches with the specified event_type
     # e.g. `gh repos/project-pareto/project-pareto/dispatches -F event_type=ci_run_checks`
