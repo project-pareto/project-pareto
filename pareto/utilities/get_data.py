@@ -34,15 +34,6 @@ def _read_data(_fname, _set_list, _parameter_list):
                 index_col.append(j)
         print(index_col)
         _df_parameters[i].set_index(index_col, inplace=True)
-        # _df_parameters[i].columns = _df_parameters[i].iloc[0]
-        # _temp_df_parameters[i] = _df_parameters[i][slice(2,2)]
-        # print(_df_parameters[i][:,1:])
-
-        # if len(index_col) ==1:
-        #     _df_parameters[i].index.name=None
-        # else:
-        #     _df_parameters[i].rename_axis(index={'Unnamed: 0':None, 'Unnamed: 1':None})
-        # print(_df_parameters[i])
 
     return [_df_sets, _df_parameters]
 
