@@ -24,7 +24,7 @@ defaults:
 
 jobs:
   pytest:
-    name: Tests (py${{ matrix.python-version }}/${{ matrix.os }})
+    name: Tests (py${{ matrix.python-version }}/${{ matrix.os }}/${{ matrix.install-mode }})
     runs-on: ${{ matrix.os-version }}
     strategy:
       fail-fast: false
@@ -38,6 +38,9 @@ jobs:
           # - linux
           - win64
           # - macos
+        install-mode:
+          - dev
+          - user
         include:
           # - os: macos
           #   os-version: macos-10.15
@@ -45,15 +48,22 @@ jobs:
           #   os-version: ubuntu-20.04
           - os: win64
             os-version: windows-2019
+          - install-mode: dev
+            pip-install-target: -r requirements-dev.txt
+          - install-mode: user
+            pip-install-target: '.'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Set up package
+      - name: Set up package (install-mode=${{ matrix.install-variant }})
         run: |
-          pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
+          pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
       - name: Run pytest
         # TODO: add coverage
         run: |
           pytest -v 
+      - name: Run toy case study
+        run: |
+          python -m pareto.case_studies.toy_case_study
