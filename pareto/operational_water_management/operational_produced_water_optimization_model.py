@@ -1,5 +1,5 @@
 # Title: OPERATIONAL Produced Water Optimization Model
-# Date: June 21, 2021
+# Date: June 28, 2021
 
 # Notes:
 # - Introduced new completions-to-completions trucking arc (CCT) to account for possible flowback reuse
@@ -136,8 +136,6 @@ def create_model(df_sets, df_parameters):
     }
 
     FCA_Table = {
-        ('F01','CP01') : 1,
-        ('F02','CP01') : 1
     }
 
     RNA_Table = {
@@ -162,20 +160,9 @@ def create_model(df_sets, df_parameters):
     }
 
     PCT_Table = {
-        ('PP01','CP01') : 1,
-        ('PP02','CP01') : 1,
-        ('PP03','CP01') : 1,
-        ('PP04','CP01') : 1,
-        ('PP05','CP01') : 1        
     }
 
     PKT_Table = {
-        ('PP01','K01') : 1,    
-        ('PP02','K01') : 1,
-        ('PP02','K02') : 1,
-        ('PP03','K02') : 1,
-        ('PP04','K02') : 1,
-        ('PP05','K01') : 1,
     }
 
     PST_Table = {
@@ -188,7 +175,6 @@ def create_model(df_sets, df_parameters):
     }
 
     CKT_Table = {
-        ('CP01','K01') : 1,
     }
 
     CST_Table = {
@@ -216,20 +202,6 @@ def create_model(df_sets, df_parameters):
     }
 
     PAL_Table = {
-        ('PP01','A01') : 1,
-        ('PP01','A02') : 1,           
-        ('PP02','A03') : 1,
-        ('PP02','A04') : 1,
-        ('PP02','A05') : 1,      
-        ('PP03','A06') : 1,
-        ('PP03','A07') : 1,
-        ('PP03','A08') : 1,
-        ('PP03','A09') : 1,
-        ('PP04','A10') : 1,
-        ('PP04','A11') : 1,
-        ('PP04','A12') : 1,                                            
-        ('PP05','A13') : 1,    
-        ('PP05','A14') : 1,        
     }
 
     model.p_PCA              = Param(model.s_PP,model.s_CP,default=0,initialize=PCA_Table, doc='Valid production-to-completions pipeline arcs [-]')
@@ -251,12 +223,12 @@ def create_model(df_sets, df_parameters):
     model.p_SRA              = Param(model.s_S,model.s_R,default=0,initialize=SRA_Table, doc='Valid storage-to-treatment pipeline arcs [-]')
     model.p_SOA              = Param(model.s_S,model.s_O,default=0,initialize=SOA_Table, doc='Valid storage-to-reuse pipeline arcs [-]')
 
-    model.p_PCT              = Param(model.s_PP,model.s_CP,default=0,initialize=PCT_Table, doc='Valid production-to-completions trucking arcs [-]')
-    model.p_PKT              = Param(model.s_PP,model.s_K,default=0,initialize=PKT_Table, doc='Valid production-to-disposal trucking arcs [-]')
+    model.p_PCT              = Param(model.s_PP,model.s_CP,default=0,initialize=df_parameters['PCT'], doc='Valid production-to-completions trucking arcs [-]')
+    model.p_PKT              = Param(model.s_PP,model.s_K,default=0,initialize=df_parameters['PKT'], doc='Valid production-to-disposal trucking arcs [-]')
     model.p_PST              = Param(model.s_PP,model.s_S,default=0,initialize=PST_Table, doc='Valid production-to-storage trucking arcs [-]')
     model.p_PRT              = Param(model.s_PP,model.s_R,default=0,initialize=PRT_Table, doc='Valid production-to-treatment trucking arcs [-]')
     model.p_POT              = Param(model.s_PP,model.s_O,default=0,initialize=POT_Table, doc='Valid production-to-reuse trucking arcs [-]')
-    model.p_CKT              = Param(model.s_CP,model.s_K,default=0,initialize=CKT_Table, doc='Valid completions-to-disposal trucking arcs [-]')
+    model.p_CKT              = Param(model.s_CP,model.s_K,default=0,initialize=df_parameters['CKT'], doc='Valid completions-to-disposal trucking arcs [-]')
     model.p_CST              = Param(model.s_CP,model.s_S,default=0,initialize=CST_Table, doc='Valid completions-to-storage trucking arcs [-]')
     model.p_CRT              = Param(model.s_CP,model.s_R,default=0,initialize=CRT_Table, doc='Valid completions-to-treatment trucking arcs [-]')
     model.p_CCT              = Param(model.s_CP,model.s_CP,default=0,initialize=CCT_Table, doc='Valid completions-to-completions trucking arcs [-]')
@@ -264,7 +236,7 @@ def create_model(df_sets, df_parameters):
     model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
     model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
 
-    model.p_PAL              = Param(model.s_P,model.s_A,default=0,initialize=PAL_Table, doc='Valid pad-to-tank links [-]')
+    model.p_PAL              = Param(model.s_P,model.s_A,default=0,initialize=df_parameters['PAL'], doc='Valid pad-to-tank links [-]')
 
     # model.p_PCA.pprint()
     # model.p_PNA.pprint()
@@ -496,7 +468,7 @@ def create_model(df_sets, df_parameters):
                                 initialize=InitialPipelineCapacityTable,
                                 doc='Initial dayly pipeline capacity between two locations [bbl/day]')                        
     model.p_sigma_Disposal     = Param(model.s_K,default=0,
-                                initialize=InitialDisposalCapacityTable,
+                                initialize=df_parameters['InitialDisposalCapacity'],
                                 doc='Initial dayly disposal capacity at disposal sites [bbl/day]')
     model.p_sigma_Storage      = Param(model.s_S,default=0,
                                 initialize=InitialStorageCapacityTable,
@@ -550,7 +522,7 @@ def create_model(df_sets, df_parameters):
                                 doc='Pipeline construction/expansion lead time [days')
 
     model.p_tau_Trucking        = Param(model.s_L,model.s_L,default=9999999,
-                                initialize=TruckingTimeTable,
+                                initialize=df_parameters['DriveTimes'],
                                 doc='Drive time between locations [hr]')                              
                             
     # COMMENT: Many more parameters missing. See documentation for details. 
@@ -1682,7 +1654,7 @@ def create_model(df_sets, df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','DriveTimes', 'CompletionsDemand','ProductionRates', 'FlowbackRates']
+parameter_list = ['FCA','PCT','PKT','CKT','PAL','DriveTimes', 'CompletionsDemand','ProductionRates', 'InitialDisposalCapacity', 'DriveTimes', 'FlowbackRates']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
