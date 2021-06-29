@@ -17,20 +17,20 @@ def create_model(df_sets,df_parameters):
     
     ## Define sets ##
 
-    model.s_T  = Set(initialize=['T1','T2','T3','T4','T5'], doc='Time Periods', ordered=True)
-    model.s_PP = Set(initialize=['PP02','PP03'], doc='Production Pads')
-    model.s_CP = Set(initialize=['CP01'], doc='Completions Pads')
+    model.s_T  = Set(initialize=df_sets['TimePeriods'], doc='Time Periods', ordered=True)
+    model.s_PP = Set(initialize=df_sets['ProductionPads'], doc='Production Pads')
+    model.s_CP = Set(initialize=df_sets['CompletionsPads'], doc='Completions Pads')
     model.s_P  = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
-    model.s_F  = Set(initialize=['F01','F02'], doc='Freshwater Sources')
-    model.s_K  = Set(initialize=['K02'], doc='Disposal Sites')
-    model.s_S  = Set(initialize=['S01'], doc='Storage Sites')
-    model.s_R  = Set(initialize=['R01'], doc='Treatment Sites')
-    model.s_O  = Set(initialize=[], doc='Reuse Options')
-    model.s_N  = Set(initialize=['N02','N03','N04','N05','N06','N07','N08'], doc=['Network Nodes'])
+    model.s_F  = Set(initialize=df_sets['FreshwaterSources'], doc='Freshwater Sources')
+    model.s_K  = Set(initialize=df_sets['SWDSites'], doc='Disposal Sites')
+    model.s_S  = Set(initialize=df_sets['StorageSites'], doc='Storage Sites')
+    model.s_R  = Set(initialize=df_sets['TreatmentSites'], doc='Treatment Sites')
+    model.s_O  = Set(initialize=df_sets['ReuseOptions'], doc='Reuse Options')
+    model.s_N  = Set(initialize=df_sets['NetworkNodes'], doc=['Network Nodes'])
     model.s_L  = Set(initialize=(model.s_P | model.s_F | model.s_K | model.s_S | model.s_R | model.s_O | model.s_N), doc='Locations')
-    model.s_D  = Set(initialize=['D0','D2','D4','D6','D8','D12'], doc='Pipeline diameters')
-    model.s_C  = Set(initialize=['C0'], doc='Storage capacities')
-    model.s_I  = Set(initialize=['I0'], doc='Injection (i.e. disposal) capacities')
+    model.s_D  = Set(initialize=df_sets['PipelineDiameters'], doc='Pipeline diameters')
+    model.s_C  = Set(initialize=df_sets['StorageCapacities'], doc='Storage capacities')
+    model.s_I  = Set(initialize=df_sets['InjectionCapacities'], doc='Injection (i.e. disposal) capacities')
 
     # model.s_P.pprint()
     # model.s_L.pprint()
@@ -1687,7 +1687,7 @@ def create_model(df_sets,df_parameters):
     return model
 
 # Tabs in the input Excel spreadsheet
-set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
+set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes','PipelineDiameters','StorageCapacities','InjectionCapacities']
 parameter_list = ['FCA','PCT','PAL','TruckingTime','CompletionsDemand','ProductionRates']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_strategic_model.xlsx") as fpath:
