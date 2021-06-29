@@ -2,6 +2,7 @@
 
 # Notes:
 # - Implemented a corrected version of the disposal capacity constraint considering more trucking-to-disposal arcs (PKT, SKT, SKT, RKT) [June 29]
+# - Implemented an improved slack variable display loop [June 29]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -1657,6 +1658,52 @@ def create_model(df_sets,df_parameters):
 
     if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
+
+        # Frac demand slack variables
+
+        for t in model.s_T:
+            for p in model.s_CP:
+                    if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value > 0:
+                        print(model.v_S_FracDemand[p,t], '=', model.v_S_FracDemand[p,t].value)
+
+        # Production slack variables
+
+        for t in model.s_T:
+            for p in model.s_PP:
+                    if model.v_S_Production[p,t].value != None and model.v_S_Production[p,t].value > 0:
+                        print(model.v_S_Production[p,t], '=', model.v_S_Production[p,t].value)
+        
+        # Flowback slack variables
+
+        for t in model.s_T:
+            for p in model.s_CP:
+                if model.v_S_Flowback[p,t].value != None and model.v_S_Flowback[p,t].value > 0:
+                        print(model.v_S_Flowback[p,t], '=', model.v_S_Flowback[p,t].value)
+
+        # Pipeline capacity slack variables
+
+        for l in model.s_L: 
+            for l_tilde in model.s_L:
+                if model.v_S_PipelineCapacity[l,l_tilde].value != None and model.v_S_PipelineCapacity[l,l_tilde].value > 0:
+                        print(model.v_S_PipelineCapacity[l,l_tilde], '=', model.v_S_PipelineCapacity[l,l_tilde].value)
+        
+        # Storage capacity slack variables
+
+        for s in model.s_S:
+            if model.v_S_StorageCapacity[s].value != None and model.v_S_StorageCapacity[s].value > 0:
+                print(model.v_S_StorageCapacity[s], '=', model.v_S_StorageCapacity[s].value)
+        
+        # Disposal capacity slack variables
+
+        for r in model.s_R:
+            if model.v_S_TreatmentCapacity[r].value != None and model.v_S_TreatmentCapacity[r].value > 0:
+                print(model.v_S_TreatmentCapacity[r], '=', model.v_S_TreatmentCapacity[r].value)
+
+        # Reuse capacity slack variables
+
+        for o in model.s_O:
+            if model.v_S_ReuseCapacity[o].value != None and model.v_S_ReuseCapacity[o].value > 0:
+                print(model.v_S_ReuseCapacity[o], '=', model.v_S_ReuseCapacity[o].value)
 
     return model
 
