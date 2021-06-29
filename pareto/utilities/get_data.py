@@ -5,7 +5,7 @@
 Module to read in input data from Excel spreadsheets and convert it into the
 format that Pyomo requires
 
-Authors: Andres J. Calderon
+Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
 from pyomo.environ import Param, Set, ConcreteModel
@@ -18,13 +18,22 @@ def _read_data(_fname, _set_list, _parameter_list):
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
-
+    _df_parameters = {}
+    _temp_df_parameters = {}
     _df_sets = pd.read_excel(_fname, sheet_name = _set_list, header=0, index_col=None, usecols='A',
                                 squeeze=True, dtype= "string", keep_default_na=False)
 
     _df_parameters = pd.read_excel(_fname, sheet_name = _parameter_list,
-                                    header=1, index_col=0, usecols=None,
-                                    squeeze=True, keep_default_na=False)
+                                        header=1, index_col=None, usecols=None,
+                                        squeeze=True, keep_default_na=False)
+
+    for i in _df_parameters:
+        index_col = []
+        for j in _df_parameters[i].columns:
+            if 'Unnamed' in str(j):
+                index_col.append(j)
+
+        _df_parameters[i].set_index(index_col, inplace=True)
 
     return [_df_sets, _df_parameters]
 
@@ -55,7 +64,7 @@ def _df_to_param(data_frame):
     return _df_parameters
 
 
-def get_data(fname):
+def get_data(fname, set_list, parameter_list):
     """
     This module uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -89,11 +98,6 @@ def get_data(fname):
     It is worth highlighting that the Set for time periods "model.t" is derived by the method based on the
     Parameter: CompletionsDemand which is indexed by T
     """
-
-    # Tabs in the input Excel spreadsheet
-    set_list = ['ProductionPads', 'CompletionsPads', 'SWDSites']
-    parameter_list = ['DriveTimes', 'CompletionsDemand', 'FlowbackRates']
-
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters] = _read_data(fname, set_list, parameter_list)
 
