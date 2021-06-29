@@ -7,7 +7,8 @@
 # - Implemented an initial formulation for production tank modeling (see updated documentation)
 
 # Import
-from pyomo.environ import *
+from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
+                            NonNegativeReals, Reals, Binary)
 from pareto.utilities.get_data import get_data
 from importlib import resources
 # import gurobipy 
@@ -1530,7 +1531,7 @@ def create_model(df_sets, df_parameters):
         # This emulates what the pyomo command-line tools does
         from pyomo.opt import SolverFactory
         import pyomo.environ
-        opt = SolverFactory("gurobi")
+        opt = SolverFactory("gurobi_direct")
         results = opt.solve(model)
         #sends results to stdout
         results.write()
