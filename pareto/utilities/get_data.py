@@ -40,10 +40,7 @@ def _read_data(_fname, _set_list, _parameter_list):
         # the columns of the dataframe except for the last column which contains the data
         if len(index_col) == len(_df_parameters[i].columns):
             data_column = index_col.pop()
-        #     _df_parameters[i].set_index(index_col, inplace=True)
-        #     _temp_df_parameters[i] = _df_parameters[i].to_dict()
-        #     _df_parameters[i] = _temp_df_parameters[i][data_column]
-        # else:
+
         _df_parameters[i].set_index(index_col, inplace=True)
 
     return [_df_sets, _df_parameters]
@@ -72,6 +69,9 @@ def _df_to_param(data_frame):
     _temp_df_parameters={}
     for i in data_frame:
 
+        # If the data frame has one unnamed column it means the dataframe corresponds to
+        # a parameter in column format. In this case, the dataframe is converted directly
+        # to a dictionary.
         if 'Unnamed' in str(data_frame[i].columns[0]):
             data_column = data_frame[i].columns[0]
             _temp_df_parameters[i] = data_frame[i].to_dict()
