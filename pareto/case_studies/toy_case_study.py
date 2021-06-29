@@ -33,6 +33,8 @@ def create_model(df_sets, df_parameters):
                                  doc="Production Rate Forecasts by Tanks and Pads")
     model.p_initial_disposal_capacity = Param(model.d, default=0, initialize=df_parameters['InitialDisposalCapacity'],
                                  doc="Initial disposal capacity")
+    model.p_two_index_column = Param(model.d, model.d, default=0, initialize=df_parameters['TwoIndexColumnParam'],
+                                 doc="Parameter with two indices in column format")
 
     ###############################################################################
     #                           VARIABLES DEFINITION
@@ -42,6 +44,7 @@ def create_model(df_sets, df_parameters):
     model.v_flowback_rates = Var(within=NonNegativeReals, doc="Total water flowback rate")
     model.v_production_rates = Var(within=NonNegativeReals, doc="Total production Rate Forecasts by Tanks and Pads")
     model.v_disposal_capacity = Var(within=NonNegativeReals, doc="Total disposal capacity")
+    model.v_two_index_param = Var(model.d, within=NonNegativeReals, doc="Variable to test two-index column parameters")
 
     ###############################################################################
     #                              TEST EQUATIONS
@@ -66,6 +69,9 @@ def create_model(df_sets, df_parameters):
         return model.v_disposal_capacity == sum(model.p_initial_disposal_capacity[d] for d in model.d)
     model.e_disposal_capacity = Constraint(rule=DisposalCapacityRule, doc='Calculation of total initial disposal capacity')
 
+    def TwoIndexColumnParameterRule(model,d):
+        return model.v_two_index_param[d] == sum(model.p_two_index_column[d,dd] for dd in model.d)
+    model.e_two_index_column_param = Constraint(model.d, rule=TwoIndexColumnParameterRule, doc='Equation to test reading parameters with two indices in column format')
 
 
     return model
@@ -74,7 +80,7 @@ if __name__ == '__main__':
 
     # Tabs in the input Excel spreadsheet
     set_list = ['ProductionPads','CompletionsPads', 'SWDSites', 'ProductionTanks']
-    parameter_list = ['DriveTimes', 'CompletionsDemand','FlowbackRates', 'ProductionRates', 'InitialDisposalCapacity']
+    parameter_list = ['DriveTimes', 'CompletionsDemand','FlowbackRates', 'ProductionRates', 'InitialDisposalCapacity', 'TwoIndexColumnParam']
     with resources.path('pareto.case_studies', "toy_case_study.xlsx") as fpath:
         print(f'Reading file from {fpath}')
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)

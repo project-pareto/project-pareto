@@ -27,12 +27,23 @@ def _read_data(_fname, _set_list, _parameter_list):
                                         header=1, index_col=None, usecols=None,
                                         squeeze=True, keep_default_na=False)
 
+    # Detect unnamed columns which will be used to reshape the dataframe by defining what columns are indices
     for i in _df_parameters:
         index_col = []
         for j in _df_parameters[i].columns:
+            #If the column is unnamed, it is assumed the column is an index and saved in index_col
             if 'Unnamed' in str(j):
                 index_col.append(j)
 
+        # If the number of unnamed columns in idex_col is equal to the total columns of the dataframe
+        # it means that this is a parameter in column format. Therefore, the indices are defined for all
+        # the columns of the dataframe except for the last column which contains the data
+        if len(index_col) == len(_df_parameters[i].columns):
+            data_column = index_col.pop()
+        #     _df_parameters[i].set_index(index_col, inplace=True)
+        #     _temp_df_parameters[i] = _df_parameters[i].to_dict()
+        #     _df_parameters[i] = _temp_df_parameters[i][data_column]
+        # else:
         _df_parameters[i].set_index(index_col, inplace=True)
 
     return [_df_sets, _df_parameters]
@@ -57,9 +68,16 @@ def _df_to_param(data_frame):
     format that Pyomo expects for paramerters:
     Input_parameter = {(column_index, row_header): value}
     """
-    _df_parameters ={}
+    _df_parameters={}
+    _temp_df_parameters={}
     for i in data_frame:
-        _df_parameters[i] = data_frame[i].stack().to_dict()
+
+        if 'Unnamed' in str(data_frame[i].columns[0]):
+            data_column = data_frame[i].columns[0]
+            _temp_df_parameters[i] = data_frame[i].to_dict()
+            _df_parameters[i] = _temp_df_parameters[i][data_column]
+        else:
+            _df_parameters[i] = data_frame[i].stack().to_dict()
 
     return _df_parameters
 
