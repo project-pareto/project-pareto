@@ -13,12 +13,12 @@ def create_model(df_sets, df_parameters):
     ###############################################################################
     #                             SET DEFINITION
     ###############################################################################
-    model.p = Set(initialize=df_sets['ProductionPads'].values,doc='Production Pads')
-    model.c = Set(initialize=df_sets['CompletionsPads'].values,doc='Completions Pads')
-    model.a = Set(initialize=df_sets['ProductionTanks'].values,doc='Production tanks')
-    model.d = Set(initialize=df_sets['SWDSites'].values,doc='Disposal Sites')
-    model.t = Set(initialize=df_sets['TimePeriods'].values, doc='plannning weeks')
-    model.l = Set(initialize=model.p | model.c | model.d, doc='Superset that contains all locations')
+    model.p = Set(initialize=df_sets['ProductionPads'],doc='Production Pads')
+    model.c = Set(initialize=df_sets['CompletionsPads'],doc='Completions Pads')
+    model.a = Set(initialize=df_sets['ProductionTanks'],doc='Production tanks')
+    model.d = Set(initialize=df_sets['SWDSites'],doc='Disposal Sites')
+    model.t = Set(initialize=df_sets['TimePeriods'], doc='plannning weeks')
+    model.l = Set(initialize=model.p | model.c | model.a | model.d, doc='Superset that contains all locations')
 
     ###############################################################################
     #                           PARAMETER DEFINITION
@@ -31,6 +31,8 @@ def create_model(df_sets, df_parameters):
                                  doc="Water flowback rate")
     model.p_production_rates = Param(model.p, model.a, model.t, default=0, initialize=df_parameters['ProductionRates'],
                                  doc="Production Rate Forecasts by Tanks and Pads")
+    model.p_initial_disposal_capacity = Param(model.d, default=0, initialize=df_parameters['InitialDisposalCapacity'],
+                                 doc="Initial disposal capacity")
 
     ###############################################################################
     #                           VARIABLES DEFINITION
@@ -39,6 +41,7 @@ def create_model(df_sets, df_parameters):
     model.v_completion_demand = Var(model.t, within=NonNegativeReals, doc="Total water demand for completion operations")
     model.v_flowback_rates = Var(within=NonNegativeReals, doc="Total water flowback rate")
     model.v_production_rates = Var(within=NonNegativeReals, doc="Total production Rate Forecasts by Tanks and Pads")
+    model.v_disposal_capacity = Var(within=NonNegativeReals, doc="Total disposal capacity")
 
     ###############################################################################
     #                              TEST EQUATIONS
@@ -59,6 +62,11 @@ def create_model(df_sets, df_parameters):
         return model.v_production_rates == sum(sum(sum(model.p_production_rates[p,a,t] for p in model.p) for a in model.a)for t in model.t)
     model.e_production_rates = Constraint(rule=DriveTimesEquationRule, doc='Calculation of total production rates')
 
+    def DisposalCapacityRule(model):
+        return model.v_disposal_capacity == sum(model.p_initial_disposal_capacity[d] for d in model.d)
+    model.e_disposal_capacity = Constraint(rule=DisposalCapacityRule, doc='Calculation of total initial disposal capacity')
+
+
 
     return model
 
@@ -66,7 +74,7 @@ if __name__ == '__main__':
 
     # Tabs in the input Excel spreadsheet
     set_list = ['ProductionPads','CompletionsPads', 'SWDSites', 'ProductionTanks']
-    parameter_list = ['DriveTimes', 'CompletionsDemand','FlowbackRates', 'ProductionRates']
+    parameter_list = ['DriveTimes', 'CompletionsDemand','FlowbackRates', 'ProductionRates', 'InitialDisposalCapacity']
     with resources.path('pareto.case_studies', "toy_case_study.xlsx") as fpath:
         print(f'Reading file from {fpath}')
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
