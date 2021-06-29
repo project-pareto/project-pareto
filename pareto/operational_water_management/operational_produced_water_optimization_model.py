@@ -1,10 +1,11 @@
 # Title: OPERATIONAL Produced Water Optimization Model
-# Date: June 28, 2021
 
 # Notes:
 # - Introduced new completions-to-completions trucking arc (CCT) to account for possible flowback reuse
 # - Implemented a generic OPERATIONAL case study example (updated model sets, additional input data)
 # - Implemented an initial formulation for production tank modeling (see updated documentation)
+# - Implemented a corrected version of the disposal capacity constraint considering more trucking-to-disposal arcs (PKT, SKT, SKT, RKT) [June 28]
+# - Implemented an improved slack variable display loop [June 29]
 
 # Import
 from pyomo.environ import *
@@ -238,6 +239,9 @@ def create_model(df_sets, df_parameters):
 
     model.p_PAL              = Param(model.s_P,model.s_A,default=0,initialize=df_parameters['PAL'], doc='Valid pad-to-tank links [-]')
 
+    # model.p_FCA.pprint()
+    # model.p_PKT.pprint()
+    # model.p_PKT.pprint()
     # model.p_PCA.pprint()
     # model.p_PNA.pprint()
     # model.p_CNA.pprint()
@@ -247,83 +251,9 @@ def create_model(df_sets, df_parameters):
     ## Define set parameters ##
 
     CompletionsDemandTable = {
-        ('CP01','T1'): 31500, 
-        ('CP01','T2'): 35000, 
-        ('CP01','T3'): 35000,
-        ('CP01','T4'): 28000    
     }
 
     ProductionTable = {
-        ('PP01','A01','T1') : 1058,
-        ('PP01','A01','T2') : 1029,
-        ('PP01','A01','T3') : 999,
-        ('PP01','A01','T4') : 998,
-        ('PP01','A01','T5') : 996,
-        ('PP01','A02','T1') : 1058,
-        ('PP01','A02','T2') : 1029,
-        ('PP01','A02','T3') : 999,
-        ('PP01','A02','T4') : 998,
-        ('PP01','A02','T5') : 996,
-        ('PP02','A03','T1') : 466,
-        ('PP02','A03','T2') : 460,
-        ('PP02','A03','T3') : 458,
-        ('PP02','A03','T4') : 457,
-        ('PP02','A03','T5') : 455,
-        ('PP02','A04','T1') : 466,
-        ('PP02','A04','T2') : 460,
-        ('PP02','A04','T3') : 458,
-        ('PP02','A04','T4') : 457,
-        ('PP02','A04','T5') : 455,
-        ('PP02','A05','T1') : 466,
-        ('PP02','A05','T2') : 460,
-        ('PP02','A05','T3') : 458,
-        ('PP02','A05','T4') : 457,
-        ('PP02','A05','T5') : 455,
-        ('PP03','A06','T1') : 200,
-        ('PP03','A06','T2') : 199,
-        ('PP03','A06','T3') : 198,
-        ('PP03','A06','T4') : 196,
-        ('PP03','A06','T5') : 195,
-        ('PP03','A07','T1') : 200,
-        ('PP03','A07','T2') : 199,
-        ('PP03','A07','T3') : 198,
-        ('PP03','A07','T4') : 196,
-        ('PP03','A07','T5') : 195,
-        ('PP03','A08','T1') : 200,
-        ('PP03','A08','T2') : 199,
-        ('PP03','A08','T3') : 198,
-        ('PP03','A08','T4') : 196,
-        ('PP03','A08','T5') : 195,
-        ('PP03','A09','T1') : 200,
-        ('PP03','A09','T2') : 199,
-        ('PP03','A09','T3') : 198,
-        ('PP03','A09','T4') : 196,
-        ('PP03','A09','T5') : 195,
-        ('PP04','A10','T1') : 331,
-        ('PP04','A10','T2') : 330,
-        ('PP04','A10','T3') : 330,
-        ('PP04','A10','T4') : 329,
-        ('PP04','A10','T5') : 329,
-        ('PP04','A11','T1') : 331,
-        ('PP04','A11','T2') : 330,
-        ('PP04','A11','T3') : 330,
-        ('PP04','A11','T4') : 329,
-        ('PP04','A11','T5') : 329,
-        ('PP04','A12','T1') : 331,
-        ('PP04','A12','T2') : 330,
-        ('PP04','A12','T3') : 330,
-        ('PP04','A12','T4') : 329,
-        ('PP04','A12','T5') : 329,
-        ('PP05','A13','T1') : 895,
-        ('PP05','A13','T2') : 888,
-        ('PP05','A13','T3') : 887,
-        ('PP05','A13','T4') : 885,
-        ('PP05','A13','T5') : 883,
-        ('PP05','A14','T1') : 895,
-        ('PP05','A14','T2') : 888,
-        ('PP05','A14','T3') : 887,
-        ('PP05','A14','T4') : 885,
-        ('PP05','A14','T5') : 883
     }
 
     FlowbackTable = {}
@@ -334,6 +264,7 @@ def create_model(df_sets, df_parameters):
     # COMMENT: For EXISTING/INITAL pipeline capacity (l,l_tilde)=(l_tilde=l); needs implemented!
 
     InitialDisposalCapacityTable = {
+        'K01' :         5000,
         'K02' :         10000
     }
 
@@ -348,17 +279,7 @@ def create_model(df_sets, df_parameters):
 
     }
 
-    FreshwaterSourcingAvailabilityTable = {
-        ('F01','T1') : 30000,
-        ('F01','T2') : 30000,
-        ('F01','T3') : 30000,    
-        ('F01','T4') : 30000,        
-        ('F01','T5') : 30000,    
-        ('F02','T1') : 20000,
-        ('F02','T2') : 20000,
-        ('F02','T3') : 20000,    
-        ('F02','T4') : 20000,        
-        ('F02','T5') : 20000    
+    FreshwaterSourcingAvailabilityTable = { 
     }
 
     PadOffloadingCapacityTable = {
@@ -390,17 +311,6 @@ def create_model(df_sets, df_parameters):
     }
 
     TruckingTimeTable = {
-        ('PP01','CP01') : 1,
-        ('PP02','CP01') : 1.5,
-        ('PP03','CP01') : 2,
-        ('PP04','CP01') : 2.5,
-        ('PP05','CP01') : 3,
-        ('PP01','K01') : 1.5,    
-        ('PP02','K01') : 1,
-        ('PP02','K02') : 1.5,
-        ('PP03','K02') : 0.5,
-        ('PP04','K02') : 1.5,
-        ('PP05','K01') : 2 
     }
 
     DisposalCapExTable = {
@@ -466,25 +376,28 @@ def create_model(df_sets, df_parameters):
                                 doc='Production tank capacity [bbl]')
     model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
                                 initialize=InitialPipelineCapacityTable,
-                                doc='Initial dayly pipeline capacity between two locations [bbl/day]')                        
+                                doc='Initial daily pipeline capacity between two locations [bbl/day]')                        
     model.p_sigma_Disposal     = Param(model.s_K,default=0,
-                                initialize=df_parameters['InitialDisposalCapacity'],
-                                doc='Initial dayly disposal capacity at disposal sites [bbl/day]')
+                                initialize=InitialDisposalCapacityTable,
+                                doc='Initial daily disposal capacity at disposal sites [bbl/day]')
     model.p_sigma_Storage      = Param(model.s_S,default=0,
                                 initialize=InitialStorageCapacityTable,
                                 doc='Initial storage capacity at storage site [bbl]')
     model.p_sigma_Treatment    = Param(model.s_R,default=0,
                                 initialize=InitialTreatmentCapacityTable,
-                                doc='Initial dayly treatment capacity at treatment site [bbl/day]') 
+                                doc='Initial daily treatment capacity at treatment site [bbl/day]') 
     model.p_sigma_Reuse        = Param(model.s_O,default=0,
                                 initialize=InitialReuseCapacityTable,
-                                doc='Initial dayly reuse capacity at reuse site [bbl/day]')
+                                doc='Initial daily reuse capacity at reuse site [bbl/day]')
     model.p_sigma_Freshwater   = Param(model.s_F,model.s_T,default=0,
-                                initialize=FreshwaterSourcingAvailabilityTable,
-                                doc='dayly freshwater sourcing capacity at freshwater source [bbl/day]')                                                                                   
+                                initialize=df_parameters['FreshwaterSourcingAvailability'],
+                                doc='daily freshwater sourcing capacity at freshwater source [bbl/day]')                                                                                   
+
+    # model.p_sigma_Disposal.pprint()
+    # model.p_sigma_Freshwater.pprint()
 
     model.p_sigma_OffloadingPad     = Param(model.s_P,default=9999999,
-                                    initialize=PadOffloadingCapacityTable,
+                                    initialize=df_parameters['PadOffloadingCapacity'],
                                     doc='Weekly truck offloading sourcing capacity per pad [bbl/day]')                            
     model.p_sigma_OffloadingStorage = Param(model.s_S,default=9999999,
                                     initialize=StorageOffloadingCapacityTable,
@@ -524,7 +437,9 @@ def create_model(df_sets, df_parameters):
     model.p_tau_Trucking        = Param(model.s_L,model.s_L,default=9999999,
                                 initialize=df_parameters['DriveTimes'],
                                 doc='Drive time between locations [hr]')                              
-                            
+
+    # model.p_tau_Trucking.pprint()
+
     # COMMENT: Many more parameters missing. See documentation for details. 
 
     model.p_lambda_Storage      = Param(model.s_S,default=0,
@@ -574,6 +489,9 @@ def create_model(df_sets, df_parameters):
     model.p_pi_Sourcing         = Param(model.s_F,default=9999999,
                                 initialize=FreshSourcingCostTable,
                                 doc='Fresh sourcing cost [$/bbl]')  
+
+    # model.p_pi_Disposal.pprint()
+    # model.p_pi_Reuse.pprint()
 
     model.p_M_Flow              = Param(default=9999999, doc='Big-M flow parameter [bbl/day]')
 
@@ -1160,7 +1078,10 @@ def create_model(df_sets, df_parameters):
     def DisposalCapacityRule(model,k,t):
         return (sum(model.v_F_Piped[n,k,t] for n in model.s_N if model.p_NKA[n,k]) +
                 sum(model.v_F_Piped[s,k,t] for s in model.s_S if model.p_SKA[s,k]) +
-                sum(model.v_F_Trucked[s,k,t] for s in model.s_S if model.p_SKT[s,k])
+                sum(model.v_F_Trucked[s,k,t] for s in model.s_S if model.p_SKT[s,k]) +
+                sum(model.v_F_Trucked[p,k,t] for p in model.s_PP if model.p_PKT[p,k]) +
+                sum(model.v_F_Trucked[p,k,t] for p in model.s_CP if model.p_CKT[p,k]) +
+                sum(model.v_F_Trucked[r,k,t] for r in model.s_R if model.p_RKT[r,k])
                 <= model.v_D_Capacity[k])
     model.DisposalCapacity = Constraint(model.s_K,model.s_T,rule=DisposalCapacityRule, doc='Disposal capacity')
 
@@ -1592,13 +1513,6 @@ def create_model(df_sets, df_parameters):
     #             if model.vb_y_Flow[l,l_hat,t].value != None and model.vb_y_Flow[l,l_hat,t].value > 0:
     #                 print(model.vb_y_Flow[l,l_hat,t], '=', model.vb_y_Flow[l,l_hat,t].value)
 
-    # Frac demand slack variables
-
-    for t in model.s_T:
-        for p in model.s_CP:
-                if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value > 0:
-                    print(model.v_S_FracDemand[p,t], '=', model.v_S_FracDemand[p,t].value)
-
     # Piping costs 
 
     for t in model.s_T:
@@ -1648,13 +1562,59 @@ def create_model(df_sets, df_parameters):
     if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
+        # Frac demand slack variables
+
+        for t in model.s_T:
+            for p in model.s_CP:
+                    if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value > 0:
+                        print(model.v_S_FracDemand[p,t], '=', model.v_S_FracDemand[p,t].value)
+
+        # Production slack variables
+
+        for t in model.s_T:
+            for p in model.s_PP:
+                    if model.v_S_Production[p,t].value != None and model.v_S_Production[p,t].value > 0:
+                        print(model.v_S_Production[p,t], '=', model.v_S_Production[p,t].value)
+        
+        # Flowback slack variables
+
+        for t in model.s_T:
+            for p in model.s_CP:
+                if model.v_S_Flowback[p,t].value != None and model.v_S_Flowback[p,t].value > 0:
+                        print(model.v_S_Flowback[p,t], '=', model.v_S_Flowback[p,t].value)
+
+        # Pipeline capacity slack variables
+
+        for l in model.s_L: 
+            for l_tilde in model.s_L:
+                if model.v_S_PipelineCapacity[l,l_tilde].value != None and model.v_S_PipelineCapacity[l,l_tilde].value > 0:
+                        print(model.v_S_PipelineCapacity[l,l_tilde], '=', model.v_S_PipelineCapacity[l,l_tilde].value)
+        
+        # Storage capacity slack variables
+
+        for s in model.s_S:
+            if model.v_S_StorageCapacity[s].value != None and model.v_S_StorageCapacity[s].value > 0:
+                print(model.v_S_StorageCapacity[s], '=', model.v_S_StorageCapacity[s].value)
+        
+        # Disposal capacity slack variables
+
+        for r in model.s_R:
+            if model.v_S_TreatmentCapacity[r].value != None and model.v_S_TreatmentCapacity[r].value > 0:
+                print(model.v_S_TreatmentCapacity[r], '=', model.v_S_TreatmentCapacity[r].value)
+
+        # Reuse capacity slack variables
+
+        for o in model.s_O:
+            if model.v_S_ReuseCapacity[o].value != None and model.v_S_ReuseCapacity[o].value > 0:
+                print(model.v_S_ReuseCapacity[o], '=', model.v_S_ReuseCapacity[o].value)
+
     # model.v_L_ProdTank.pprint()
 
     return model
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','PCT','PKT','CKT','PAL','DriveTimes', 'CompletionsDemand','ProductionRates', 'InitialDisposalCapacity', 'DriveTimes', 'FlowbackRates']
+parameter_list = ['FCA','PCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','FlowbackRates']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
