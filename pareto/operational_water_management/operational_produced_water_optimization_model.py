@@ -8,7 +8,8 @@
 # - Implemented an improved slack variable display loop [June 29]
 
 # Import
-from pyomo.environ import *
+from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
+                            NonNegativeReals, Reals, Binary)
 from pareto.utilities.get_data import get_data
 from importlib import resources
 # import gurobipy 
