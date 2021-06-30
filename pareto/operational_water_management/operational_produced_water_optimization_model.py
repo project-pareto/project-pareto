@@ -265,8 +265,6 @@ def create_model(df_sets, df_parameters):
     # COMMENT: For EXISTING/INITAL pipeline capacity (l,l_tilde)=(l_tilde=l); needs implemented!
 
     InitialDisposalCapacityTable = {
-        'K01' :         5000,
-        'K02' :         10000
     }
 
     InitialStorageCapacityTable = {
@@ -284,7 +282,6 @@ def create_model(df_sets, df_parameters):
     }
 
     PadOffloadingCapacityTable = {
-        ('CP01') : 50000
     }
 
     StorageOffloadingCapacityTable = {
@@ -325,15 +322,12 @@ def create_model(df_sets, df_parameters):
     }
 
     DisposalOperationalCostTable = {
-        'K01':     9,
-        'K02':     8
     }
 
     TreatmentOperationalCostTable = {   
     }
 
     ReuseOperationalCostTable = {
-        'CP01':     1.2
     }
 
     StorageOperationalCostTable = {
@@ -348,17 +342,9 @@ def create_model(df_sets, df_parameters):
     }
 
     TruckingHourlyCostTable = {
-        'CP01':     90,
-        'PP01':     95,
-        'PP02':     93,
-        'PP03':     98,
-        'PP04':     99,
-        'PP05':     92
     }
 
     FreshSourcingCostTable = {
-        'F01':    0.1,
-        'F02':    0.2
     }
 
     InitialTankLevelTable = {  
@@ -379,7 +365,7 @@ def create_model(df_sets, df_parameters):
                                 initialize=InitialPipelineCapacityTable,
                                 doc='Initial daily pipeline capacity between two locations [bbl/day]')                        
     model.p_sigma_Disposal     = Param(model.s_K,default=0,
-                                initialize=InitialDisposalCapacityTable,
+                                initialize=df_parameters['InitialDisposalCapacity'],
                                 doc='Initial daily disposal capacity at disposal sites [bbl/day]')
     model.p_sigma_Storage      = Param(model.s_S,default=0,
                                 initialize=InitialStorageCapacityTable,
@@ -467,13 +453,13 @@ def create_model(df_sets, df_parameters):
 
 
     model.p_pi_Disposal         = Param(model.s_K,default=9999999,
-                                initialize=DisposalOperationalCostTable,
+                                initialize=df_parameters['DisposalOperationalCost'],
                                 doc='Disposal operational cost [$/bbl]')
     model.p_pi_Treatment        = Param(model.s_R,default=9999999,
                                 initialize=TreatmentOperationalCostTable,
                                 doc='Treatment operational cost [$/bbl')
     model.p_pi_Reuse            = Param(model.s_CP,default=9999999,
-                                initialize=ReuseOperationalCostTable,
+                                initialize=df_parameters['ReuseOperationalCost'],
                                 doc='Reuse operational cost [$/bbl]')                                                        
     model.p_pi_Storage          = Param(model.s_S,default=9999999,
                                 initialize=StorageOperationalCostTable,
@@ -485,10 +471,10 @@ def create_model(df_sets, df_parameters):
                                 initialize=PipelineOperationalCostTable,
                                 doc='Pipeline operational cost [$/bbl]')
     model.p_pi_Trucking        = Param(model.s_L,default=9999999,
-                                initialize=TruckingHourlyCostTable,
+                                initialize=df_parameters['TruckingHourlyCost'],
                                 doc='Trucking hourly cost (by source) [$/hour]')  
     model.p_pi_Sourcing         = Param(model.s_F,default=9999999,
-                                initialize=FreshSourcingCostTable,
+                                initialize=df_parameters['FreshSourcingCost'],
                                 doc='Fresh sourcing cost [$/bbl]')  
 
     # model.p_pi_Disposal.pprint()
@@ -1452,7 +1438,7 @@ def create_model(df_sets, df_parameters):
         # This emulates what the pyomo command-line tools does
         from pyomo.opt import SolverFactory
         import pyomo.environ
-        opt = SolverFactory("gurobi_direct")
+        opt = SolverFactory("gurobi")
         results = opt.solve(model)
         #sends results to stdout
         results.write()
