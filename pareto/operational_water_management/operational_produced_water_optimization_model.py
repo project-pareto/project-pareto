@@ -1452,7 +1452,7 @@ def create_model(df_sets, df_parameters):
         # This emulates what the pyomo command-line tools does
         from pyomo.opt import SolverFactory
         import pyomo.environ
-        opt = SolverFactory("gurobi")
+        opt = SolverFactory("gurobi_direct")
         results = opt.solve(model)
         #sends results to stdout
         results.write()
