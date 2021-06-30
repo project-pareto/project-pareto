@@ -234,34 +234,12 @@ def create_model(df_sets,df_parameters):
 
     FlowbackTable = {}
 
-    InitialPipelineCapacityTable = {
-        ('PP02','N05') : 20000,
-        ('N05','N08')  : 210000,
-        ('N08','N05')  : 210000,
-        ('N08','R01')  : 210000,
-        ('R01','N08')  : 20000,    
-        ('N08','N07')  : 210000,
-        ('N07','N08')  : 210000,    
-        ('N07','N06')  : 210000,
-        ('N06','N07')  : 210000,    
-        ('PP03','N06') : 20000,    
-        ('N06','N04')  : 210000,    
-        ('N04','N06')  : 210000,    
-        ('N04','K02')  : 210000,    
-        ('N04','N03')  : 210000,        
-        ('N03','N04')  : 210000,            
-        ('N03','CP01') : 400000,    
-        ('CP01','N03') : 400000,
-        ('N03','N02')  : 140000,
-        ('N02','N03')  : 140000,    
-        ('N02','N05')  : 140000,
-        ('N05','N02')  : 140000,    
+    InitialPipelineCapacityTable = {   
     }
 
     # COMMENT: For EXISTING/INITAL pipeline capacity (l,l_tilde)=(l_tilde=l); needs implemented!
 
     InitialDisposalCapacityTable = {
-        'K02' :         210000
     }
 
     InitialStorageCapacityTable = {
@@ -269,28 +247,16 @@ def create_model(df_sets,df_parameters):
     }
 
     InitialTreatmentCapacityTable = {
-        'R01' :         50000
     }
 
     InitialReuseCapacityTable = {
 
     }
 
-    FreshwaterSourcingAvailabilityTable = {
-        ('F01','T1') : 180000,
-        ('F01','T2') : 180000,
-        ('F01','T3') : 180000,    
-        ('F01','T4') : 180000,        
-        ('F01','T5') : 180000,    
-        ('F02','T1') : 160000,
-        ('F02','T2') : 160000,
-        ('F02','T3') : 160000,    
-        ('F02','T4') : 160000,        
-        ('F02','T5') : 160000    
+    FreshwaterSourcingAvailabilityTable = {   
     }
 
     PadOffloadingCapacityTable = {
-        ('CP01') : 210000
     }
 
     StorageOffloadingCapacityTable = {
@@ -317,9 +283,7 @@ def create_model(df_sets,df_parameters):
         ('C0') : 0
     }
 
-    TruckingTimeTable = {
-        ('PP02','CP01') : 3,
-        ('PP03','CP01') : 4    
+    TruckingTimeTable = {   
     }
 
     DisposalCapExTable = {
@@ -333,15 +297,12 @@ def create_model(df_sets,df_parameters):
     }
 
     DisposalOperationalCostTable = {
-        'K02':      0.4
     }
 
     TreatmentOperationalCostTable = {
-        'R01':      1.0
     }
 
     ReuseOperationalCostTable = {
-        'CP01':     0.7
     }
 
     StorageOperationalCostTable = {
@@ -352,20 +313,13 @@ def create_model(df_sets,df_parameters):
 
     }
 
-    PipelineOperationalCostTable = {
-        ('PP02','N05') : 1,
-        ('PP03','N06') : 0.8,
-        ('F01','CP01') : 0.25,
-        ('F02','CP01') : 0.3      
+    PipelineOperationalCostTable = {   
     }
 
     TruckingHourlyCostTable = {
-
     }
 
     FreshSourcingCostTable = {
-        'F01':    0.1,
-        'F02':    0.12
     }
 
     model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
@@ -387,7 +341,7 @@ def create_model(df_sets,df_parameters):
                                 initialize=InitialStorageCapacityTable,
                                 doc='Initial storage capacity at storage site [bbl]')
     model.p_sigma_Treatment    = Param(model.s_R,default=0,
-                                initialize=InitialTreatmentCapacityTable,
+                                initialize=df_parameters['InitialTreatmentCapacity'],
                                 doc='Initial weekly treatment capacity at treatment site [bbl/week]') 
     model.p_sigma_Reuse        = Param(model.s_O,default=0,
                                 initialize=InitialReuseCapacityTable,
@@ -397,7 +351,7 @@ def create_model(df_sets,df_parameters):
                                 doc='Weekly freshwater sourcing capacity at freshwater source [bbl/week]')                                                                                   
 
     model.p_sigma_OffloadingPad     = Param(model.s_P,default=9999999,
-                                    initialize=PadOffloadingCapacityTable,
+                                    initialize=df_parameters['PadOffloadingCapacity'],
                                     doc='Weekly truck offloading sourcing capacity per pad [bbl/week]')                            
     model.p_sigma_OffloadingStorage = Param(model.s_S,default=9999999,
                                     initialize=StorageOffloadingCapacityTable,
@@ -458,13 +412,13 @@ def create_model(df_sets,df_parameters):
 
 
     model.p_pi_Disposal         = Param(model.s_K,default=9999999,
-                                initialize=DisposalOperationalCostTable,
+                                initialize=df_parameters['DisposalOperationalCost'],
                                 doc='Disposal operational cost [$/bbl]')
     model.p_pi_Treatment        = Param(model.s_R,default=9999999,
-                                initialize=TreatmentOperationalCostTable,
+                                initialize=df_parameters['TreatmentOperationalCost'],
                                 doc='Treatment operational cost [$/bbl')
     model.p_pi_Reuse            = Param(model.s_CP,default=9999999,
-                                initialize=ReuseOperationalCostTable,
+                                initialize=df_parameters['ReuseOperationalCost'],
                                 doc='Reuse operational cost [$/bbl]')                                                        
     model.p_pi_Storage          = Param(model.s_S,default=9999999,
                                 initialize=StorageOperationalCostTable,
@@ -479,7 +433,7 @@ def create_model(df_sets,df_parameters):
                                 initialize=TruckingHourlyCostTable,
                                 doc='Trucking hourly cost (by source) [$/bbl]')  
     model.p_pi_Sourcing         = Param(model.s_F,default=9999999,
-                                initialize=FreshSourcingCostTable,
+                                initialize=df_parameters['FreshSourcingCost'],
                                 doc='Fresh sourcing cost [$/bbl]')  
 
     model.p_M_Flow              = Param(default=9999999, doc='Big-M flow parameter [bbl/week]')
@@ -1694,7 +1648,7 @@ def create_model(df_sets,df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes','PipelineDiameters','StorageCapacities','InjectionCapacities']
-parameter_list = ['PNA','CNA','NNA','NCA','NKA','NRA','FCA','RNA','PCT','CST','TruckingTime','CompletionsDemand','PadRates','InitialPipelineCapacity','InitialDisposalCapacity','FreshwaterSourcingAvailability','PipelineOperationalCost']
+parameter_list = ['PNA','CNA','NNA','NCA','NKA','NRA','FCA','RNA','PCT','CST','TruckingTime','CompletionsDemand','PadRates','InitialPipelineCapacity','InitialDisposalCapacity','InitialTreatmentCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DisposalOperationalCost','TreatmentOperationalCost','ReuseOperationalCost','PipelineOperationalCost','FreshSourcingCost']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_strategic_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
