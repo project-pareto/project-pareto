@@ -1601,7 +1601,7 @@ def create_model(df_sets, df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','PCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','FlowbackRates']
+parameter_list = ['FCA','PCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
