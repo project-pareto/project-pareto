@@ -227,23 +227,9 @@ def create_model(df_sets,df_parameters):
     ## Define set parameters ##
 
     CompletionsDemandTable = {
-        ('CP01','T1'): 315000, 
-        ('CP01','T2'): 350000, 
-        ('CP01','T3'): 350000,
-        ('CP01','T4'): 280000    
     }
 
     ProductionTable = {
-        ('PP02','T1') : 14000,
-        ('PP02','T2') : 13800,
-        ('PP02','T3') : 13750,    
-        ('PP02','T4') : 13700,        
-        ('PP02','T5') : 13650,    
-        ('PP03','T1') : 8000,
-        ('PP03','T2') : 7950,
-        ('PP03','T3') : 7900,    
-        ('PP03','T4') : 7850,        
-        ('PP03','T5') : 7800
     }
 
     FlowbackTable = {}
@@ -386,16 +372,16 @@ def create_model(df_sets,df_parameters):
                                 initialize=df_parameters['CompletionsDemand'], 
                                 doc='Completions water demand [bbl/week]')
     model.p_beta_Production    = Param(model.s_P,model.s_T,default=0, 
-                                initialize=ProductionTable,
+                                initialize=df_parameters['PadRates'],
                                 doc='Produced water supply forecast [bbl/week]')                            
     model.p_beta_Flowback      = Param(model.s_P,model.s_T,default=0,
                                 initialize=FlowbackTable,
                                 doc='Flowback supply forecast for a completions bad [bbl/week]')
     model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
-                                initialize=InitialPipelineCapacityTable,
+                                initialize=df_parameters['InitialPipelineCapacity'],
                                 doc='Initial weekly pipeline capacity between two locations [bbl/week]')                        
     model.p_sigma_Disposal     = Param(model.s_K,default=0,
-                                initialize=InitialDisposalCapacityTable,
+                                initialize=df_parameters['InitialDisposalCapacity'],
                                 doc='Initial weekly disposal capacity at disposal sites [bbl/week]')
     model.p_sigma_Storage      = Param(model.s_S,default=0,
                                 initialize=InitialStorageCapacityTable,
@@ -422,8 +408,7 @@ def create_model(df_sets,df_parameters):
     model.p_sigma_ProcessingStorage = Param(model.s_S,default=9999999,
                                     initialize=ProcessingCapacityStorageTable,
                                     doc='Weekly processing (e.g. clarification) capacity per storage site [bbl/week]')  
-
-
+    
     model.p_delta_Pipeline      = Param(model.s_D,default=10,
                                 initialize=PipelineCapacityIncrementsTable,
                                 doc='Pipeline capacity installation/expansion increments [bbl/week]')
@@ -448,7 +433,7 @@ def create_model(df_sets,df_parameters):
                                 doc='Pipeline construction/expansion lead time [weeks')
 
     model.p_tau_Trucking        = Param(model.s_L,model.s_L,default=9999999,
-                                initialize=TruckingTimeTable,
+                                initialize=df_parameters['TruckingTime'],
                                 doc='Drive time between locations [hr]')                              
                             
     # COMMENT: Many more parameters missing. See documentation for details. 
@@ -488,7 +473,7 @@ def create_model(df_sets,df_parameters):
                                 initialize=StorageOperationalCreditTable,
                                 doc='Storage withdrawal operational credit [$/bbl]')
     model.p_pi_Pipeline         = Param(model.s_L,model.s_L,default=0,
-                                initialize=PipelineOperationalCostTable,
+                                initialize=df_parameters['PipelineOperationalCost'],
                                 doc='Pipeline operational cost [$/bbl]')
     model.p_pi_Trucking        = Param(model.s_L,default=9999999,
                                 initialize=TruckingHourlyCostTable,
@@ -1709,7 +1694,7 @@ def create_model(df_sets,df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes','PipelineDiameters','StorageCapacities','InjectionCapacities']
-parameter_list = ['PNA','CNA','NNA','NCA','NKA','NRA','FCA','RNA','PCT','CST','TruckingTime','CompletionsDemand','PadRates','InitialPipelineCapacity','FreshwaterSourcingAvailability']
+parameter_list = ['PNA','CNA','NNA','NCA','NKA','NRA','FCA','RNA','PCT','CST','TruckingTime','CompletionsDemand','PadRates','InitialPipelineCapacity','InitialDisposalCapacity','FreshwaterSourcingAvailability','PipelineOperationalCost']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_strategic_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
