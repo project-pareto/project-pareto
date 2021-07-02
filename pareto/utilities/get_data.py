@@ -130,3 +130,38 @@ def get_data(fname, set_list, parameter_list):
     _df_parameters = _df_to_param(_df_parameters)
 
     return [_df_sets, _df_parameters]
+
+
+def check_data(param, *args):
+
+    # Getting a net list of all the elements that are part of the parameter
+    raw_param_elements=list([*param.keys()])
+    temp_param_elements = []
+    i = []
+    for i in raw_param_elements:
+        #The if condition checks if the parameter has only one index or more. If it is a tuple, it means the 
+        # parameter has 2 indices or more, and the second loop is required. If it is not a tuple,
+        # then the second loop is skipped to avoid looping through the characters of the element i,
+        # which would cause a wrong warning
+        if type(i)==tuple:
+            for j in i:
+                temp_param_elements.append(j)
+        else:
+            temp_param_elements.append(i)
+    net_param_elements = (set(temp_param_elements))
+
+    # Getting a net list of all the elements that are part of the Sets that index the parameter
+    temp_sets_elements = []
+    for i in args:
+        for j in i:
+            temp_sets_elements.append(j)
+    net_sets_elements = (set(temp_sets_elements))
+
+    net_elements = net_param_elements - net_sets_elements
+
+    #If net_elements contains elements, it means the parameter constains elements that have not
+    # been defined as part of its Sets, therefore, an exception is raised
+    if net_elements:
+        raise TypeError(f'The following elements have not been declared as part of a Set: {sorted(net_elements)}')
+    else:
+        return 0

@@ -1,6 +1,6 @@
 from importlib import resources
 
-from pareto.utilities.get_data import get_data
+from pareto.utilities.get_data import get_data, check_data
 
 from pyomo.environ import Var, Param, Set, ConcreteModel, Constraint, NonNegativeReals
 
@@ -84,4 +84,8 @@ if __name__ == '__main__':
     with resources.path('pareto.case_studies', "toy_case_study.xlsx") as fpath:
         print(f'Reading file from {fpath}')
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    
+    check_data(df_parameters['ProductionRates'], df_sets['ProductionPads'], df_sets['ProductionTanks'], df_sets['TimePeriods'])
+    check_data(df_parameters['InitialDisposalCapacity'], df_sets['SWDSites'])
+
     strategic_model = create_model(df_sets, df_parameters)
