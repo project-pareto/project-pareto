@@ -477,7 +477,7 @@ def create_model(df_sets, df_parameters):
                                 doc='Trucking hourly cost (by source) [$/hour]')  
     model.p_pi_Sourcing         = Param(model.s_F,default=9999999,
                                 initialize=df_parameters['FreshSourcingCost'],
-                                doc='Fresh sourcing via piping cost [$/bbl]')             
+                                doc='Fresh sourcing cost [$/bbl]')             
 
     # model.p_pi_Disposal.pprint()
     # model.p_pi_Reuse.pprint()
