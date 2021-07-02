@@ -6,6 +6,7 @@
 # - Implemented an initial formulation for production tank modeling (see updated documentation)
 # - Implemented a corrected version of the disposal capacity constraint considering more trucking-to-disposal arcs (PKT, SKT, SKT, RKT) [June 28]
 # - Implemented an improved slack variable display loop [June 29]
+# - Implemented fresh sourcing via trucking [July 2]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -226,6 +227,7 @@ def create_model(df_sets, df_parameters):
     model.p_SOA              = Param(model.s_S,model.s_O,default=0,initialize=SOA_Table, doc='Valid storage-to-reuse pipeline arcs [-]')
 
     model.p_PCT              = Param(model.s_PP,model.s_CP,default=0,initialize=df_parameters['PCT'], doc='Valid production-to-completions trucking arcs [-]')
+    model.p_FCT              = Param(model.s_F,model.s_CP,default=0,initialize=df_parameters['FCT'], doc='Valid freshwater-to-completions trucking arcs [-]')
     model.p_PKT              = Param(model.s_PP,model.s_K,default=0,initialize=df_parameters['PKT'], doc='Valid production-to-disposal trucking arcs [-]')
     model.p_PST              = Param(model.s_PP,model.s_S,default=0,initialize=PST_Table, doc='Valid production-to-storage trucking arcs [-]')
     model.p_PRT              = Param(model.s_PP,model.s_R,default=0,initialize=PRT_Table, doc='Valid production-to-treatment trucking arcs [-]')
@@ -468,14 +470,14 @@ def create_model(df_sets, df_parameters):
                                 initialize=StorageOperationalCreditTable,
                                 doc='Storage withdrawal operational credit [$/bbl]')
     model.p_pi_Pipeline         = Param(model.s_L,model.s_L,default=0,
-                                initialize=PipelineOperationalCostTable,
+                                initialize=df_parameters['PipingOperationalCost'],
                                 doc='Pipeline operational cost [$/bbl]')
     model.p_pi_Trucking        = Param(model.s_L,default=9999999,
                                 initialize=df_parameters['TruckingHourlyCost'],
                                 doc='Trucking hourly cost (by source) [$/hour]')  
     model.p_pi_Sourcing         = Param(model.s_F,default=9999999,
                                 initialize=df_parameters['FreshSourcingCost'],
-                                doc='Fresh sourcing cost [$/bbl]')  
+                                doc='Fresh sourcing via piping cost [$/bbl]')             
 
     # model.p_pi_Disposal.pprint()
     # model.p_pi_Reuse.pprint()
@@ -512,24 +514,27 @@ def create_model(df_sets, df_parameters):
                                                 + sum(model.v_F_Sourced[f,p,t] for f in model.s_F if model.p_FCA[f,p])
                                                 + sum(model.v_F_Trucked[p_tilde,p,t] for p_tilde in model.s_PP if model.p_PCT[p_tilde,p])
                                                 + sum(model.v_F_Trucked[s,p,t] for s in model.s_S if model.p_SCT[s,p])
+                                                + sum(model.v_F_Trucked[f,p,t] for f in model.s_F if model.p_FCT[f,p])
                                                 + model.v_S_FracDemand[p,t]) 
     model.CompletionsPadDemandBalance = Constraint(model.s_CP,model.s_T,rule=CompletionsPadDemandBalanceRule, doc='Completions pad demand balance')
 
     # model.CompletionsPadDemandBalance.pprint()
 
     def FreshwaterSourcingCapacityRule(model,f,t):
-        return sum(model.v_F_Sourced[f,p,t] for p in model.s_CP if model.p_FCA[f,p]) <= model.p_sigma_Freshwater[f,t]
+        return (sum(model.v_F_Sourced[f,p,t] for p in model.s_CP if model.p_FCA[f,p]) +
+               sum(model.v_F_Trucked[f,p,t] for p in model.s_CP if model.p_FCT[f,p])) <= model.p_sigma_Freshwater[f,t]
     model.FreshwaterSourcingCapacity = Constraint(model.s_F,model.s_T,rule=FreshwaterSourcingCapacityRule, doc='Freshwater sourcing capacity')
 
     # model.FreshwaterSourcingCapacity.pprint()
 
     def CompletionsPadTruckOffloadingCapacityRule(model,p,t):
-        return (sum(model.v_F_Trucked[p_tilde,p,t] for p_tilde in model.s_PP if model.p_PCT[p_tilde,p]) 
-                + sum(model.v_F_Trucked[s,p,t] for s in model.s_S if model.p_SCT[s,p]) <= model.p_sigma_OffloadingPad[p])
+        return (sum(model.v_F_Trucked[p_tilde,p,t] for p_tilde in model.s_PP if model.p_PCT[p_tilde,p]) +
+                sum(model.v_F_Trucked[s,p,t] for s in model.s_S if model.p_SCT[s,p]) + 
+                sum(model.v_F_Trucked[f,p,t] for f in model.s_F if model.p_FCT[f,p])) <= model.p_sigma_OffloadingPad[p]
     model.CompletionsPadTruckOffloadingCapacity = Constraint(model.s_CP,model.s_T,rule=CompletionsPadTruckOffloadingCapacityRule, doc='Completions pad truck offloading capacity')
 
     # model.CompletionsPadTruckOffloadingCapacity.pprint()
-
+   
     def StorageSiteTruckOffloadingCapacityRule(model,s,t):
         return (sum(model.v_F_Trucked[p,s,t] for p in model.s_PP if model.p_PST[p,s]) 
                 + sum(model.v_F_Trucked[p,s,t] for p in model.s_CP if model.p_CST[p,s]) <= model.p_sigma_OffloadingStorage[s])
@@ -1096,7 +1101,7 @@ def create_model(df_sets, df_parameters):
     # COMMENT: Beneficial reuse capacity constraint has not been tested yet 
 
     def FreshSourcingCostRule(model,f,p,t):
-        return (model.v_C_Sourced[f,p,t] == model.v_F_Sourced[f,p,t] * model.p_pi_Sourcing[f])
+        return (model.v_C_Sourced[f,p,t] == (model.v_F_Sourced[f,p,t] + model.v_F_Trucked[f,p,t])* model.p_pi_Sourcing[f])
     model.FreshSourcingCost = Constraint(model.s_F,model.s_CP,model.s_T,rule=FreshSourcingCostRule, doc='Fresh sourcing cost')
 
     # model.FreshSourcingCost.pprint()
@@ -1212,11 +1217,6 @@ def create_model(df_sets, df_parameters):
                 return model.v_C_Piped[l,l_tilde,t] == model.v_F_Piped[l,l_tilde,t] * model.p_pi_Pipeline[l,l_tilde]
             else: 
                 return Constraint.Skip
-        elif l in model.s_F and l_tilde in model.s_CP:
-            if model.p_FCA[l,l_tilde]:
-                return model.v_C_Piped[l,l_tilde,t] == model.v_F_Piped[l,l_tilde,t] * model.p_pi_Pipeline[l,l_tilde]
-            else: 
-                return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l,l_tilde]:
                 return model.v_C_Piped[l,l_tilde,t] == model.v_F_Piped[l,l_tilde,t] * model.p_pi_Pipeline[l,l_tilde]
@@ -1246,7 +1246,12 @@ def create_model(df_sets, df_parameters):
             if model.p_SOA[l,l_tilde]:
                 return model.v_C_Piped[l,l_tilde,t] == model.v_F_Piped[l,l_tilde,t] * model.p_pi_Pipeline[l,l_tilde]
             else: 
-                return Constraint.Skip    
+                return Constraint.Skip
+        elif l in model.s_F and l_tilde in model.s_CP:
+            if model.p_FCA[l,l_tilde]:
+                return model.v_C_Piped[l,l_tilde,t] == model.v_F_Sourced[l,l_tilde,t] * model.p_pi_Pipeline[l,l_tilde]   
+            else:
+                return Constraint.Skip
         else:
             return Constraint.Skip 
     model.PipingCost = Constraint(model.s_L,model.s_L,model.s_T,rule=PipingCostRule, doc='Piping cost')
@@ -1271,6 +1276,7 @@ def create_model(df_sets, df_parameters):
             + sum(sum(model.v_C_Piped[s,n,t] for s in model.s_S if model.p_SNA[s,n]) for n in model.s_N)
             + sum(sum(model.v_C_Piped[s,r,t] for s in model.s_S if model.p_SRA[s,r]) for r in model.s_R)
             + sum(sum(model.v_C_Piped[s,o,t] for s in model.s_S if model.p_SOA[s,o]) for o in model.s_O)
+            + sum(sum(model.v_C_Piped[f,p,t] for f in model.s_F if model.p_FCA[f,p]) for p in model.s_CP)
             for t in model.s_T))
     model.TotalPipingCost = Constraint(rule=TotalPipingCostRule, doc='Total piping cost')
 
@@ -1312,6 +1318,11 @@ def create_model(df_sets, df_parameters):
     def TruckingCostRule(model,l,l_tilde,t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCT[l,l_tilde]:
+                return model.v_C_Trucked[l,l_tilde,t] == model.v_F_Trucked[l,l_tilde,t] * 1/model.p_delta_Truck * model.p_tau_Trucking[l,l_tilde] * model.p_pi_Trucking[l]
+            else:
+                return Constraint.Skip
+        if l in model.s_F and l_tilde in model.s_CP:
+            if model.p_FCT[l,l_tilde]:
                 return model.v_C_Trucked[l,l_tilde,t] == model.v_F_Trucked[l,l_tilde,t] * 1/model.p_delta_Truck * model.p_tau_Trucking[l,l_tilde] * model.p_pi_Trucking[l]
             else:
                 return Constraint.Skip
@@ -1384,6 +1395,7 @@ def create_model(df_sets, df_parameters):
             + sum(sum(model.v_C_Trucked[s,p,t] for s in model.s_S if model.p_SCT[s,p]) for p in model.s_CP)
             + sum(sum(model.v_C_Trucked[s,k,t] for s in model.s_S if model.p_SKT[s,k]) for k in model.s_K)
             + sum(sum(model.v_C_Trucked[r,k,t] for r in model.s_R if model.p_RKT[r,k]) for k in model.s_K)
+            + sum(sum(model.v_C_Trucked[f,p,t] for f in model.s_F if model.p_FCT[f,p]) for p in model.s_CP)
             for t in model.s_T))
     model.TotalTruckingCost = Constraint(rule=TotalTruckingCostRule, doc='Total trucking cost')
 
@@ -1601,7 +1613,7 @@ def create_model(df_sets, df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','PCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost']
+parameter_list = ['FCA','PCT','FCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','PipingOperationalCost']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
