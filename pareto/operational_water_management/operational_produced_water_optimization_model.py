@@ -8,6 +8,7 @@
 # - Implemented an improved slack variable display loop [June 29]
 # - Implemented fresh sourcing via trucking [July 2]
 # - Implemented completions pad storage [July 6]
+# - Implemeted an equalized production tank formulation [July 7]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -55,11 +56,11 @@ def create_model(df_sets, df_parameters):
     model.v_F_PadStorageIn  = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Water put into completions pad storage [bbl/day]')
     model.v_F_PadStorageOut = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Water from completions pad storage used for fracturing [bbl/day]')
 
-    model.v_F_Drain     = Var(model.s_P,model.s_A,model.s_T,within=NonNegativeReals, doc='Produced water drained from production tank [bbl/day]')
+    model.v_F_Drain     = Var(model.s_P,model.s_T,within=NonNegativeReals, doc='Produced water drained from production tank [bbl/day]')
     model.v_B_Production= Var(model.s_P,model.s_T,within=NonNegativeReals, doc='Produced water for transport from pad [bbl/day]')
 
     model.v_L_Storage   = Var(model.s_S,model.s_T,within=NonNegativeReals, doc='Water level at storage site [bbl]')
-    model.v_L_ProdTank  = Var(model.s_P,model.s_A,model.s_T,within=NonNegativeReals, doc='Water level in production tank [bbl]')
+    model.v_L_ProdTank  = Var(model.s_P,model.s_T,within=NonNegativeReals, doc='Water level in production tank [bbl]')
     model.v_L_PadStorage= Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Water level in completions pad storage [bbl]')
 
     model.v_C_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Cost of piping produced water from location l to location l [$/day]')
@@ -361,14 +362,14 @@ def create_model(df_sets, df_parameters):
     model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
                                 initialize=df_parameters['CompletionsDemand'], 
                                 doc='Completions water demand [bbl/day]')                         
-    model.p_beta_Production    = Param(model.s_P,model.s_A,model.s_T,default=0, 
-                                initialize=df_parameters['ProductionRates'],
+    model.p_beta_Production    = Param(model.s_P,model.s_T,default=0, 
+                                initialize=df_parameters['PadRates'],
                                 doc='Produced water supply forecast [bbl/day]')                            
     model.p_beta_Flowback      = Param(model.s_P,model.s_T,default=0,
                                 initialize=FlowbackTable,
                                 doc='Flowback supply forecast for a completions bad [bbl/day]')
-    model.p_sigma_ProdTank     = Param(model.s_P,model.s_A,default=500,
-                                doc='Production tank capacity [bbl]')
+    model.p_sigma_ProdTank     = Param(model.s_P,default=500,
+                                doc='Combined capacity equalized production tanks [bbl]')
     model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
                                 initialize=InitialPipelineCapacityTable,
                                 doc='Initial daily pipeline capacity between two locations [bbl/day]')                        
@@ -444,9 +445,9 @@ def create_model(df_sets, df_parameters):
                                 doc='Initial storage level at storage site [bbl]')
     model.p_lambda_PadStorage   = Param(model.s_CP,default=0,
                                 doc='Initial storage level at completions site [bbl]')                        
-    model.p_lambda_ProdTank     = Param(model.s_P,model.s_A,default=0,
+    model.p_lambda_ProdTank     = Param(model.s_P,default=0,
                                 initialize=InitialTankLevelTable,
-                                doc='Initial water level in production tank [bbl]')                            
+                                doc='Initial water level in equalized production tanks [bbl]')                            
 
     model.p_theta_PadStorage    = Param(model.s_CP,default=0,
                                 doc='Terminal storage level at completions site [bbl]')
@@ -591,60 +592,48 @@ def create_model(df_sets, df_parameters):
 
     # model.StorageSiteProcessingCapacity.pprint()
 
-    def ProductionTankBalanceRule(model,p,a,t):
+    def ProductionTankBalanceRule(model,p,t):
         if t == 'T1':
-            if p in model.s_P and a in model.s_A:
-                    if model.p_PAL[p,a]:
-                        return (model.v_L_ProdTank[p,a,t] == 
-                        model.p_lambda_ProdTank[p,a] + model.p_beta_Production[p,a,t] - model.v_F_Drain[p,a,t])
-                    else:
-                        return Constraint.Skip
+            if p in model.s_P:
+                    return (model.v_L_ProdTank[p,t] == 
+                    model.p_lambda_ProdTank[p] + model.p_beta_Production[p,t] - model.v_F_Drain[p,t])
             else:
                 return Constraint.Skip
         else:
-            if p in model.s_P and a in model.s_A:
-                    if model.p_PAL[p,a]:
-                        return (model.v_L_ProdTank[p,a,t] == 
-                        model.v_L_ProdTank[p,a,model.s_T.prev(t)] + model.p_beta_Production[p,a,t] - model.v_F_Drain[p,a,t])
-                    else:
-                        return Constraint.Skip
+            if p in model.s_P:
+                    return (model.v_L_ProdTank[p,t] == 
+                    model.v_L_ProdTank[p,model.s_T.prev(t)] + model.p_beta_Production[p,t] - model.v_F_Drain[p,t])
             else:
                 return Constraint.Skip
-    model.ProductionTankBalance = Constraint(model.s_P,model.s_A,model.s_T,rule=ProductionTankBalanceRule, doc='Production tank balance')
+    model.ProductionTankBalance = Constraint(model.s_P,model.s_T,rule=ProductionTankBalanceRule, doc='Production tank balance')
 
     # model.ProductionTankBalance.pprint()
 
-    def ProductionTankCapacityRule(model,p,a,t):
-        if p in model.s_P and a in model.s_A:
-            if model.p_PAL[p,a]:
-                return (model.v_L_ProdTank[p,a,t] <= model.p_sigma_ProdTank[p,a])
-            else:
-                return Constraint.Skip
+    def ProductionTankCapacityRule(model,p,t):
+        if p in model.s_P:
+                return (model.v_L_ProdTank[p,t] <= model.p_sigma_ProdTank[p])
         else:
             return Constraint.Skip
-    model.ProductionTankCapacity = Constraint(model.s_P,model.s_A,model.s_T,rule=ProductionTankCapacityRule, doc='Production tank capacity')
+    model.ProductionTankCapacity = Constraint(model.s_P,model.s_T,rule=ProductionTankCapacityRule, doc='Production tank capacity')
 
     # model.ProductionTankCapacity.pprint()
 
     def TankToPadProductionBalanceRule(model,p,t):
-        return (sum(model.v_F_Drain[p,a,t] for a in model.s_A if model.p_PAL[p,a]) == model.v_B_Production[p,t])
+        return (model.v_F_Drain[p,t] == model.v_B_Production[p,t])
     model.TankToPadProductionBalance = Constraint(model.s_P,model.s_T,rule=TankToPadProductionBalanceRule, doc='Tank-to-pad production balance')
 
     # model.TankToPadProductionBalance.pprint()
 
-    def TerminalProductionTankLevelBalanceRule(model,p,a,t):
+    def TerminalProductionTankLevelBalanceRule(model,p,t):
         if t == model.s_T.last():
-            if p in model.s_P and a in model.s_A:
-                if model.p_PAL[p,a]:
-                    return (model.v_L_ProdTank[p,a,t] ==
-                            model.p_lambda_ProdTank[p,a])
-                else:
-                    return Constraint.Skip
+            if p in model.s_P:
+                    return (model.v_L_ProdTank[p,t] ==
+                            model.p_lambda_ProdTank[p])
             else:
                 return Constraint.Skip
         else:
             return Constraint.Skip
-    model.TerminalProductionTankLevelBalance = Constraint(model.s_P,model.s_A,model.s_T,rule=TerminalProductionTankLevelBalanceRule,doc='Terminal production tank level balance')
+    model.TerminalProductionTankLevelBalance = Constraint(model.s_P,model.s_T,rule=TerminalProductionTankLevelBalanceRule,doc='Terminal production tank level balance')
 
     # model.TerminalProductionTankLevelBalance.pprint()
 
@@ -1670,7 +1659,7 @@ def create_model(df_sets, df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','PCT','FCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','CompletionsPadStorage','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','PipingOperationalCost']
+parameter_list = ['FCA','PCT','FCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','PadRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','CompletionsPadStorage','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','PipingOperationalCost']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
