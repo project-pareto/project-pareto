@@ -132,8 +132,18 @@ def get_data(fname, set_list, parameter_list):
     return [_df_sets, _df_parameters]
 
 
-def check_data(param, *args):
+def set_consistency_check(param, *args):
+    """
+    Purpose:    This module checks if the elements included in a table or parameter have been defined as part of the
+                Sets that index such parameter.
 
+    How to use: The method requires one specified parameter (e.g. ProductionRates) AND one OR several sets over which
+                the aforementioned parameter is declared (e.g.ProductionPads, ProductionTanks, TimePeriods). In general,
+                the method can be run as follows: set_consistency_check(Parameter, set_1, set_2, etc)
+                
+    Output:     set_consistency_check() raises a TypeError exception If there are entries in the Parameter that are not 
+                contained in the Sets, and prints out a list with all the entries that require revision
+    """
     # Getting a net list of all the elements that are part of the parameter
     raw_param_elements=list([*param.keys()])
     temp_param_elements = []

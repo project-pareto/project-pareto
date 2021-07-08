@@ -1,6 +1,6 @@
 from importlib import resources
 
-from pareto.utilities.get_data import get_data, check_data
+from pareto.utilities.get_data import get_data, set_consistency_check
 
 from pyomo.environ import Var, Param, Set, ConcreteModel, Constraint, NonNegativeReals
 
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         print(f'Reading file from {fpath}')
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     
-    check_data(df_parameters['ProductionRates'], df_sets['ProductionPads'], df_sets['ProductionTanks'], df_sets['TimePeriods'])
-    check_data(df_parameters['InitialDisposalCapacity'], df_sets['SWDSites'])
+    set_consistency_check(df_parameters['ProductionRates'], df_sets['ProductionPads'], df_sets['ProductionTanks'], df_sets['TimePeriods'])
+    set_consistency_check(df_parameters['InitialDisposalCapacity'], df_sets['SWDSites'])
 
     strategic_model = create_model(df_sets, df_parameters)
