@@ -7,6 +7,7 @@
 # - Implemented a corrected version of the disposal capacity constraint considering more trucking-to-disposal arcs (PKT, SKT, SKT, RKT) [June 28]
 # - Implemented an improved slack variable display loop [June 29]
 # - Implemented fresh sourcing via trucking [July 2]
+# - Implemented completions pad storage [July 6]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -50,11 +51,16 @@ def create_model(df_sets, df_parameters):
     model.v_F_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity piped from location l to location l [bbl/day]')
     model.v_F_Trucked   = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity trucked from location l to location l [bbl/day]')
     model.v_F_Sourced   = Var(model.s_F,model.s_CP,model.s_T,within=NonNegativeReals, doc='Fresh water sourced from source f to completions pad p [bbl/day]')
+
+    model.v_F_PadStorageIn  = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Water put into completions pad storage [bbl/day]')
+    model.v_F_PadStorageOut = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Water from completions pad storage used for fracturing [bbl/day]')
+
     model.v_F_Drain     = Var(model.s_P,model.s_A,model.s_T,within=NonNegativeReals, doc='Produced water drained from production tank [bbl/day]')
     model.v_B_Production= Var(model.s_P,model.s_T,within=NonNegativeReals, doc='Produced water for transport from pad [bbl/day]')
 
     model.v_L_Storage   = Var(model.s_S,model.s_T,within=NonNegativeReals, doc='Water level at storage site [bbl]')
     model.v_L_ProdTank  = Var(model.s_P,model.s_A,model.s_T,within=NonNegativeReals, doc='Water level in production tank [bbl]')
+    model.v_L_PadStorage= Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Water level in completions pad storage [bbl]')
 
     model.v_C_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Cost of piping produced water from location l to location l [$/day]')
     model.v_C_Trucked   = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Cost of trucking produced water from location l to location l [$/day]')
@@ -372,6 +378,9 @@ def create_model(df_sets, df_parameters):
     model.p_sigma_Storage      = Param(model.s_S,default=0,
                                 initialize=InitialStorageCapacityTable,
                                 doc='Initial storage capacity at storage site [bbl]')
+    model.p_sigma_PadStorage   = Param(model.s_CP,default=0,
+                                initialize=df_parameters['CompletionsPadStorage'],
+                                doc='Storage capacity at completions site [bbl]')
     model.p_sigma_Treatment    = Param(model.s_R,default=0,
                                 initialize=InitialTreatmentCapacityTable,
                                 doc='Initial daily treatment capacity at treatment site [bbl/day]') 
@@ -433,9 +442,14 @@ def create_model(df_sets, df_parameters):
 
     model.p_lambda_Storage      = Param(model.s_S,default=0,
                                 doc='Initial storage level at storage site [bbl]')
+    model.p_lambda_PadStorage   = Param(model.s_CP,default=0,
+                                doc='Initial storage level at completions site [bbl]')                        
     model.p_lambda_ProdTank     = Param(model.s_P,model.s_A,default=0,
                                 initialize=InitialTankLevelTable,
                                 doc='Initial water level in production tank [bbl]')                            
+
+    model.p_theta_PadStorage    = Param(model.s_CP,default=0,
+                                doc='Terminal storage level at completions site [bbl]')
 
     model.p_lambda_Pipeline     = Param(model.s_L,model.s_L,default=9999999,
                                 doc='Pipeline segment length [miles]')
@@ -515,10 +529,37 @@ def create_model(df_sets, df_parameters):
                                                 + sum(model.v_F_Trucked[p_tilde,p,t] for p_tilde in model.s_PP if model.p_PCT[p_tilde,p])
                                                 + sum(model.v_F_Trucked[s,p,t] for s in model.s_S if model.p_SCT[s,p])
                                                 + sum(model.v_F_Trucked[f,p,t] for f in model.s_F if model.p_FCT[f,p])
+                                                + model.v_F_PadStorageOut[p,t] - model.v_F_PadStorageIn[p,t]
                                                 + model.v_S_FracDemand[p,t]) 
     model.CompletionsPadDemandBalance = Constraint(model.s_CP,model.s_T,rule=CompletionsPadDemandBalanceRule, doc='Completions pad demand balance')
 
     # model.CompletionsPadDemandBalance.pprint()
+
+    def CompletionsPadStorageBalanceRule(model,p,t):
+        if t == 'T1':
+            return (model.v_L_PadStorage[p,t] == 
+                    model.p_lambda_PadStorage[p] + model.v_F_PadStorageIn[p,t] - model.v_F_PadStorageOut[p,t])
+        else:
+            return (model.v_L_PadStorage[p,t] == 
+                    model.v_L_PadStorage[p,model.s_T.prev(t)] + model.v_F_PadStorageIn[p,t] - model.v_F_PadStorageOut[p,t])
+    model.CompletionsPadStorageBalance = Constraint(model.s_CP,model.s_T,rule=CompletionsPadStorageBalanceRule, doc='Completions pad storage balance')
+
+    # model.CompletionsPadStorageBalance.pprint()
+
+    def CompletionsPadStorageCapacityRule(model,p,t):
+        return (model.v_L_PadStorage[p,t] <= model.p_sigma_PadStorage[p])
+    model.CompletionsPadStorageCapacity = Constraint(model.s_CP,model.s_T,rule=CompletionsPadStorageCapacityRule, doc='Completions pad storage capacity')
+
+    # model.CompletionsPadStorageCapacity.pprint()
+
+    def TerminalCompletionsPadStorageLevelRule(model,p,t):
+        if t == model.s_T.last():
+            return (model.v_L_PadStorage[p,t] <= model.p_theta_PadStorage[p])
+        else:
+            return Constraint.Skip
+    model.TerminalCompletionsPadStorageLevel = Constraint(model.s_CP,model.s_T,rule=TerminalCompletionsPadStorageLevelRule, doc='Terminal completions pad storage level')
+
+    # model.TerminalCompletionsPadStorageLevel.pprint()
 
     def FreshwaterSourcingCapacityRule(model,f,t):
         return (sum(model.v_F_Sourced[f,p,t] for p in model.s_CP if model.p_FCA[f,p]) +
@@ -1436,9 +1477,11 @@ def create_model(df_sets, df_parameters):
 
     ## Fixing Decision Variables ##
 
-    # # model.F_Piped['PP1','SS1'].fix(3500)
+    # # model.v_F_Piped['PP1','SS1'].fix(3500)
 
     # model.vb_y_Disposal['K02','I0'].fix(0)
+
+    # model.v_F_PadStorageIn['CP01','T2'].fix(2000)
 
     ## Define Objective and Solve Statement ##
 
@@ -1503,6 +1546,20 @@ def create_model(df_sets, df_parameters):
             for p in model.s_CP:
                 if model.v_F_Sourced[f,p,t].value != None and model.v_F_Sourced[f,p,t].value > 0:
                     print(model.v_F_Sourced[f,p,t], '=', model.v_F_Sourced[f,p,t].value)
+    
+    # Storage in completions pad
+
+    for t in model.s_T:
+        for p in model.s_CP:
+                if model.v_F_PadStorageIn[p,t].value != None and model.v_F_PadStorageIn[p,t].value > 0:
+                    print(model.v_F_PadStorageIn[p,t], '=', model.v_F_PadStorageIn[p,t].value)
+
+    # Storage out completions pad
+
+    for t in model.s_T:
+            for p in model.s_CP:
+                    if model.v_F_PadStorageOut[p,t].value != None and model.v_F_PadStorageOut[p,t].value > 0:
+                        print(model.v_F_PadStorageOut[p,t], '=', model.v_F_PadStorageOut[p,t].value)                    
 
     # Binary flow directions
 
@@ -1613,7 +1670,7 @@ def create_model(df_sets, df_parameters):
 
 # Tabs in the input Excel spreadsheet
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','PCT','FCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','PipingOperationalCost']
+parameter_list = ['FCA','PCT','FCT','PKT','CKT','PAL','DriveTimes','CompletionsDemand','ProductionRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','CompletionsPadStorage','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','PipingOperationalCost']
 
 with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
