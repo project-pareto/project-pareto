@@ -84,15 +84,23 @@ def _df_to_param(data_frame):
 
 def get_data(fname, set_list, parameter_list):
     """
-    This module uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
+    This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
       should be placed in column A, row 2
-    - Parameters are assumed to have a header and an index column whose elements should be contained
-      in a Set. The header should start in cell B2, and the index column should start in cell A3
+    - Parameters can be in either table or column format. Table format: Requires a header (usually time periods)
+      and an index column whose elements should be contained in a Set. The header should start in row 2,
+      and the index column should start in cell A3. Column format: Does not require a header. Each set should be
+      placed in one column, starting from column A and row 3. Data should be provided in the last column.
+
+    Outputs:
+    The method returns one dictionary that contains a list for each set, and one dictionary that contains parameters
+    in format {‘param1’: {(set1, set2): value}, ‘param1’: {(set1, set2): value}}
 
     To use this method:
 
-    [df_sets, df_parameters] = get_data(fname='path\\to\\excel\\file\\INPUT_DATA.xlsx')
+    set_list = [list of tabs that contain sets]
+    parameter_list = [list of tabs that contain parameters]
+    [df_sets, df_parameters] = get_data(fname='path\\to\\excel\\file\\INPUT_DATA.xlsx', set_list, parameter_list)
 
         ###############################################################################
                                      SET DEFINITION
@@ -134,7 +142,7 @@ def get_data(fname, set_list, parameter_list):
 
 def set_consistency_check(param, *args):
     """
-    Purpose:    This module checks if the elements included in a table or parameter have been defined as part of the
+    Purpose:    This method checks if the elements included in a table or parameter have been defined as part of the
                 Sets that index such parameter.
 
     How to use: The method requires one specified parameter (e.g. ProductionRates) AND one OR several sets over which
