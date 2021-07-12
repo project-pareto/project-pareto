@@ -1,3 +1,5 @@
+![pareto logo](docs/img/logo-print-hd.jpg)
+
 # project-pareto
 An Optimization Framework for Produced Water Management and Beneficial Reuse
 
