@@ -1,5 +1,5 @@
-![pareto logo](docs/img/logo-print-hd.jpg)
-
+<!-- ![pareto logo](docs/img/logo-print-hd.jpg) -->
+<img src="docs/img/logo-print-hd.jpg" width="400px" alg="Project Pareto logo"></img>
 # project-pareto
 An Optimization Framework for Produced Water Management and Beneficial Reuse
 
