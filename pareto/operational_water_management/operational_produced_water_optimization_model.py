@@ -1325,10 +1325,11 @@ def create_model(df_sets, df_parameters):
             + sum(sum(model.v_C_Piped[s,r,t] for s in model.s_S if model.p_SRA[s,r]) for r in model.s_R)
             + sum(sum(model.v_C_Piped[s,o,t] for s in model.s_S if model.p_SOA[s,o]) for o in model.s_O)
             + sum(sum(model.v_C_Piped[f,p,t] for f in model.s_F if model.p_FCA[f,p]) for p in model.s_CP)
+            + sum(sum(model.v_C_Piped[p,p_tilde,t] for p in model.s_CP if model.p_CCA[p,p_tilde]) for p_tilde in model.s_CP)
             for t in model.s_T))
     model.TotalPipingCost = Constraint(rule=TotalPipingCostRule, doc='Total piping cost')
 
-    # model.TotalPipingCost.pprint()
+   # model.TotalPipingCost.pprint()
 
     def StorageDepositCostRule(model,s,t):
         return model.v_C_Storage[s,t] == ((sum(model.v_F_Piped[n,s,t] for n in model.s_N if model.p_NSA[n,s])
@@ -1449,10 +1450,11 @@ def create_model(df_sets, df_parameters):
             + sum(sum(model.v_C_Trucked[s,k,t] for s in model.s_S if model.p_SKT[s,k]) for k in model.s_K)
             + sum(sum(model.v_C_Trucked[r,k,t] for r in model.s_R if model.p_RKT[r,k]) for k in model.s_K)
             + sum(sum(model.v_C_Trucked[f,p,t] for f in model.s_F if model.p_FCT[f,p]) for p in model.s_CP)
+            + sum(sum(model.v_C_Trucked[p,p_tilde,t] for p in model.s_CP if model.p_CCT[p,p_tilde]) for p_tilde in model.s_CP)
             for t in model.s_T))
     model.TotalTruckingCost = Constraint(rule=TotalTruckingCostRule, doc='Total trucking cost')
 
-    # model.TotalTruckingCost.pprint()
+    model.TotalTruckingCost.pprint()
 
     def SlackCostsRule(model):
         return model.v_C_Slack == (
