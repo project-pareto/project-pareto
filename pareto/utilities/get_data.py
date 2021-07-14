@@ -10,6 +10,8 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 
 from pyomo.environ import Param, Set, ConcreteModel
 import pandas as pd
+import requests
+import json
 
 
 def _read_data(_fname, _set_list, _parameter_list):
@@ -183,3 +185,97 @@ def set_consistency_check(param, *args):
         raise TypeError(f'The following elements have not been declared as part of a Set: {sorted(net_elements)}')
     else:
         return 0
+
+
+def od_matrix(origin, destination=None, service=None, api_key=None, output=None, path=None):
+
+    """
+    https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+    """
+    # Check that a valid API service has been selected and make sure an api_key was provided
+    if service == 'open_street_map' or service == None:
+        api_url_base = ''
+    
+    elif service == 'bing_maps':
+        api_url_base = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?'
+        if api_key == None:
+            raise Warning('Please provide a valid api_key')
+    else:
+        raise Warning('{0} API service is not supported'.format(service))
+
+    if destination==None:
+        destination = origin
+
+    origins_loc =[]
+    destination_loc =[]
+    origins_dict = {}
+    destination_dict = {}
+
+    # Check if the input data has a Pyomo format: origin={(origin1,"latitude"): value1, (origin1,"longitude"): value2}
+    # if it does, the input is modified to a Dict format: origin={origin1:{"latitude":value1, "longitude":value2}}
+    if type(list(origin.keys())[0]) == tuple:
+        for i in list(origin.keys()):
+            origins_loc.append(i[0])
+        origins_loc = list(sorted(set(origins_loc)))
+
+        for i in origins_loc:
+            origins_dict[i] = { 'latitude':origin[i,'latitude'],
+                                'longitude': origin[i,'longitude']}
+        origin = origins_dict
+
+    if type(list(destination.keys())[0]) == tuple:
+        for i in list(destination.keys()):
+            destination_loc.append(i[0])
+        destination_loc = list(sorted(set(destination_loc)))
+
+        for i in destination_loc:
+            destination_dict[i] = { 'latitude':destination[i,'latitude'],
+                                    'longitude': destination[i,'longitude']}
+        destination = destination_dict
+
+    # Definition of two empty dataframes to contain drive times and distances. These dataframes wiil be
+    # exported to an Excel workbook
+    df_times = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
+    df_distance = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
+    output_times = {}
+    output_distance = {}
+    
+    # Loop for requesting data from Bing maps
+    header = {'Content-Type': 'application/json'}
+    for o in origin.keys():
+        for d in destination.keys():
+            
+            origin_str = str(origin[o]['latitude']) + "," + str(origin[o]['longitude'])
+            dest_str = str(destination[d]['latitude']) + "," + str(destination[d]['longitude'])
+            response = requests.get(api_url_base + "origins=" + origin_str + "&destinations=" + dest_str + "&travelMode=driving&key=" + api_key, headers=header)
+            response_json = response.json()
+            if response_json['statusDescription'] == 'OK':
+                output_times[(o,d)] = response_json['resourceSets'][0]['resources'][0]['results'][0]['travelDuration']/60
+                output_distance[(o,d)] = response_json['resourceSets'][0]['resources'][0]['results'][0]['travelDistance']*0.621371
+                df_times.loc[o,d] = output_times[(o,d)]
+                df_distance.loc[o,d] = output_distance[(o,d)]
+            else:
+                raise Warning('Error when requesting data for {0}-{1}'.format(o,d))
+
+    # Define the default name of the Excel workbook
+    if path == None:
+        path = 'od_output.xlsx'
+
+    # Dataframes df_times and df_distance are output as sheets in an Exce workbook whose directory and name are defined
+    # by variable 'path'
+    with pd.ExcelWriter(path) as writer:
+        df_times.to_excel(writer, sheet_name='DriveTimes')
+        df_distance.to_excel(writer, sheet_name='DriveDistances')
+
+    # Identify what type of data is returned by the method
+    if output == 'time' or output == None:
+        return_output = output_times
+    elif output == 'distance':
+        return_output = output_distance
+    elif output == 'time_distance':
+        return_output = [output_times, output_distance]
+    else:
+        raise Warning("Provide a valid type of output, valid options are: time, distance, time_distance")
+
+    return return_output
+

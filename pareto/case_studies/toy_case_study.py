@@ -1,6 +1,6 @@
 from importlib import resources
 
-from pareto.utilities.get_data import get_data, set_consistency_check
+from pareto.utilities.get_data import get_data, set_consistency_check, od_matrix
 
 from pyomo.environ import Var, Param, Set, ConcreteModel, Constraint, NonNegativeReals
 
@@ -80,11 +80,18 @@ if __name__ == '__main__':
 
     # Tabs in the input Excel spreadsheet
     set_list = ['ProductionPads','CompletionsPads', 'SWDSites', 'ProductionTanks']
-    parameter_list = ['DriveTimes', 'CompletionsDemand','FlowbackRates', 'ProductionRates', 'InitialDisposalCapacity', 'TwoIndexColumnParam']
+    parameter_list = ['DriveTimes', 'Coordinates', 'CompletionsDemand','FlowbackRates', 'ProductionRates', 'InitialDisposalCapacity', 'TwoIndexColumnParam']
     with resources.path('pareto.case_studies', "toy_case_study.xlsx") as fpath:
         print(f'Reading file from {fpath}')
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     
+    # print(df_parameters['DriveTimes'])
+    # print(df_parameters['Coordinates'])
+
+    path = 'C:\\Users\\calderoa\\Documents\\KeyLogic\\PARETO\\od_output.xlsx'
+    api_key= 'AvPb92_Sl-mGz48LkTiNJgH8eMDTRFB-4thDfW8SMKGbYi9IUGWOdNmpELqtJ2kQ'
+    df_parameters['DriveTimes'] = od_matrix(origin=df_parameters['Coordinates'], service='bing_maps', output='time',api_key=api_key, path=path)
+
     set_consistency_check(df_parameters['ProductionRates'], df_sets['ProductionPads'], df_sets['ProductionTanks'], df_sets['TimePeriods'])
     set_consistency_check(df_parameters['InitialDisposalCapacity'], df_sets['SWDSites'])
 
