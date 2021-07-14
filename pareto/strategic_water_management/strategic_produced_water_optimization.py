@@ -362,20 +362,24 @@ def create_model(df_sets,df_parameters):
                                 doc='Initial weekly reuse capacity at reuse site [bbl/week]')
     model.p_sigma_Freshwater   = Param(model.s_F,model.s_T,default=0,
                                 initialize=df_parameters['FreshwaterSourcingAvailability'],
-                                doc='Weekly freshwater sourcing capacity at freshwater source [bbl/week]')                                                                                   
+                                doc='Weekly freshwater sourcing capacity at freshwater source [bbl/week]',mutable=True)                                                                                   
 
     model.p_sigma_OffloadingPad     = Param(model.s_P,default=9999999,
                                     initialize=df_parameters['PadOffloadingCapacity'],
-                                    doc='Weekly truck offloading sourcing capacity per pad [bbl/week]')                            
+                                    doc='Weekly truck offloading sourcing capacity per pad [bbl/week]',
+                                    mutable=True)                            
     model.p_sigma_OffloadingStorage = Param(model.s_S,default=9999999,
                                     initialize=StorageOffloadingCapacityTable,
-                                    doc='Weekly truck offloading capacity per pad [bbl/week]')                             
+                                    doc='Weekly truck offloading capacity per pad [bbl/week]',
+                                    mutable=True)                             
     model.p_sigma_ProcessingPad     = Param(model.s_P,default=9999999,
                                     initialize=ProcessingCapacityPadTable,
-                                    doc='Weekly processing (e.g. clarification) capacity per pad [bbl/week]')
+                                    doc='Weekly processing (e.g. clarification) capacity per pad [bbl/week]',
+                                    mutable=True)
     model.p_sigma_ProcessingStorage = Param(model.s_S,default=9999999,
                                     initialize=ProcessingCapacityStorageTable,
-                                    doc='Weekly processing (e.g. clarification) capacity per storage site [bbl/week]')  
+                                    doc='Weekly processing (e.g. clarification) capacity per storage site [bbl/week]',
+                                    mutable=True)  
     
     model.p_delta_Pipeline      = Param(model.s_D,default=10,
                                 initialize=PipelineCapacityIncrementsTable,
@@ -1740,7 +1744,7 @@ def create_model(df_sets,df_parameters):
 set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes','PipelineDiameters','StorageCapacities','InjectionCapacities']
 parameter_list = ['PNA','CNA','CCA','NNA','NCA','NKA','NRA','FCA','RNA','PCT','FCT','CST','CCT','TruckingTime','CompletionsDemand','PadRates','FlowbackRates','InitialPipelineCapacity','InitialDisposalCapacity','InitialTreatmentCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity','CompletionsPadStorage','DisposalOperationalCost','TreatmentOperationalCost','ReuseOperationalCost','PipelineOperationalCost','FreshSourcingCost','TruckingHourlyCost']
 
-with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_strategic_model.xlsx") as fpath:
+with resources.path('pareto.case_studies', "input_data_generic_strategic_case_study.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 strategic_model = create_model(df_sets, df_parameters)
