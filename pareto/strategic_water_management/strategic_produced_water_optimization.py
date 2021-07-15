@@ -584,7 +584,7 @@ def create_model(df_sets,df_parameters):
         return (sum(model.v_F_Piped[p,n,t] for p in model.s_PP if model.p_PNA[p,n])
                 + sum(model.v_F_Piped[p,n,t] for p in model.s_CP if model.p_CNA[p,n])
                 + sum(model.v_F_Piped[n_tilde,n,t] for n_tilde in model.s_N if model.p_NNA[n_tilde,n]) ==
-                sum(model.v_F_Piped[n,n_tilde,t] for n_tilde in model.s_N if model.p_NNA[n_tilde,n])
+                sum(model.v_F_Piped[n,n_tilde,t] for n_tilde in model.s_N if model.p_NNA[n,n_tilde])
                 + sum(model.v_F_Piped[n,p,t] for p in model.s_CP if model.p_NCA[n,p])
                 + sum(model.v_F_Piped[n,k,t] for k in model.s_K if model.p_NKA[n,k])
                 + sum(model.v_F_Piped[n,r,t] for r in model.s_R if model.p_NRA[n,r])
