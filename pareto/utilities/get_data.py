@@ -134,7 +134,8 @@ def get_data(fname, set_list, parameter_list):
     
     # The set for time periods is defined based on the columns of the parameter for Completions Demand
     # This is done so the user does not have to add an extra tab in the spreadsheet for the time period set
-    _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
+    if 'CompletionsDemand' in parameter_list:
+        _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
     _df_parameters = _df_to_param(_df_parameters)
