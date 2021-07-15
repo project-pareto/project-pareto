@@ -1,5 +1,5 @@
 ##############################################################################
-# 
+#
 ##############################################################################
 """
 Module to read in input data from Excel spreadsheets and convert it into the
@@ -8,11 +8,8 @@ format that Pyomo requires
 Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
-from pyomo.environ import Param, Set, ConcreteModel
 import pandas as pd
 import requests
-import json
-
 
 def _read_data(_fname, _set_list, _parameter_list):
     """
@@ -29,7 +26,8 @@ def _read_data(_fname, _set_list, _parameter_list):
                                         header=1, index_col=None, usecols=None,
                                         squeeze=True, keep_default_na=False)
 
-    # Detect unnamed columns which will be used to reshape the dataframe by defining what columns are indices
+    # Detect unnamed columns which will be used to reshape the dataframe by defining
+    # what columns are indices
     for i in _df_parameters:
         index_col = []
         for j in _df_parameters[i].columns:
@@ -37,11 +35,12 @@ def _read_data(_fname, _set_list, _parameter_list):
             if 'Unnamed' in str(j):
                 index_col.append(j)
 
-        # If the number of unnamed columns in idex_col is equal to the total columns of the dataframe
-        # it means that this is a parameter in column format. Therefore, the indices are defined for all
-        # the columns of the dataframe except for the last column which contains the data
+        # If the number of unnamed columns in index_col is equal to the total columns of the
+        # dataframe it means that this is a parameter in column format. Therefore, the indices
+        # are defined for all the columns of the dataframe except for the last column which
+        # contains the data
         if len(index_col) == len(_df_parameters[i].columns):
-            data_column = index_col.pop()
+            index_col.pop()
 
         _df_parameters[i].set_index(index_col, inplace=True)
 
@@ -63,7 +62,7 @@ def _cleanup_data(_df_parameters):
 
 def _df_to_param(data_frame):
     """
-    This module converts the data frame that contains Parameters into the adequate 
+    This module converts the data frame that contains Parameters into the adequate
     format that Pyomo expects for paramerters:
     Input_parameter = {(column_index, row_header): value}
     """
@@ -89,51 +88,62 @@ def get_data(fname, set_list, parameter_list):
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
       should be placed in column A, row 2
-    - Parameters can be in either table or column format. Table format: Requires a header (usually time periods)
-      and an index column whose elements should be contained in a Set. The header should start in row 2,
-      and the index column should start in cell A3. Column format: Does not require a header. Each set should be
-      placed in one column, starting from column A and row 3. Data should be provided in the last column.
+    - Parameters can be in either table or column format. Table format: Requires a header
+      (usually time periods) and an index column whose elements should be contained in a Set.
+      The header should start in row 2, and the index column should start in cell A3.
+      Column format: Does not require a header. Each set should be placed in one column,
+      starting from column A and row 3. Data should be provided in the last column.
 
     Outputs:
-    The method returns one dictionary that contains a list for each set, and one dictionary that contains parameters
-    in format {‘param1’: {(set1, set2): value}, ‘param1’: {(set1, set2): value}}
+    The method returns one dictionary that contains a list for each set, and one dictionary that
+    contains parameters in format {‘param1’:{(set1, set2): value}, ‘param1’:{(set1, set2): value}}
 
     To use this method:
 
     set_list = [list of tabs that contain sets]
     parameter_list = [list of tabs that contain parameters]
-    [df_sets, df_parameters] = get_data(fname='path\\to\\excel\\file\\INPUT_DATA.xlsx', set_list, parameter_list)
+    [df_sets, df_parameters] = get_data(fname='path\\to\\excel\\file\\INPUT_DATA.xlsx',
+                                        set_list, parameter_list)
 
         ###############################################################################
                                      SET DEFINITION
         ###############################################################################
-        model.p = Set(initialize=_df_sets['ProductionPads'].values,doc='Production Pads')
-        model.c = Set(initialize=_df_sets['CompletionsPads'].values,doc='Completions Pads')
-        model.d = Set(initialize=_df_sets['SWDSites'].values,doc='SWD Sites')
-        model.t = Set(initialize=_df_sets['TimePeriods'].values, doc='planning weeks')
-        model.l = Set(initialize=model.p | model.c | model.d, doc='Superset that contains all locations')
+        model.p = Set(initialize=_df_sets['ProductionPads'].values,
+                        doc='Production Pads')
+        model.c = Set(initialize=_df_sets['CompletionsPads'].values,
+                        doc='Completions Pads')
+        model.d = Set(initialize=_df_sets['SWDSites'].values,
+                        doc='SWD Sites')
+        model.t = Set(initialize=_df_sets['TimePeriods'].values,
+                        doc='planning weeks')
+        model.l = Set(initialize=model.p | model.c | model.d,
+                        doc='Superset that contains all locations')
 
         ###############################################################################
         #                           PARAMETER DEFINITION
         ###############################################################################
-        model.drive_times = Param(model.l, model.l, initialize=df_parameters['DriveTimes'],
+        model.drive_times = Param(model.l, model.l,
+                                    initialize=df_parameters['DriveTimes'],
                                     doc="Driving times between locations")
-        model.completion_demand = Param(model.c, model.t, initialize=df_parameters['CompletionsDemand'],
+        model.completion_demand = Param(model.c, model.t,
+                                        initialize=df_parameters['CompletionsDemand'],
                                         doc="Water demand for completion operations")
-        model.flowback_rates = Param(model.c, model.t, initialize=df_parameters['FlowbackRates'],
+        model.flowback_rates = Param(model.c, model.t,
+                                        initialize=df_parameters['FlowbackRates'],
                                      doc="Water flowback rate")
 
-    It is worth highlighting that the Set for time periods "model.t" is derived by the method based on the
-    Parameter: CompletionsDemand which is indexed by T
+    It is worth highlighting that the Set for time periods "model.t" is derived by the
+    method based on the Parameter: CompletionsDemand which is indexed by T
     """
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters] = _read_data(fname, set_list, parameter_list)
 
     # Parameters are cleaned up, e.g. blank cells are replaced by zeros
     _df_parameters = _cleanup_data(_df_parameters)
-    
-    # The set for time periods is defined based on the columns of the parameter for Completions Demand
-    # This is done so the user does not have to add an extra tab in the spreadsheet for the time period set
+
+    # The set for time periods is defined based on the columns of the parameter for
+    # Completions Demand. This is done so the user does not have to add an extra tab
+    # in the spreadsheet for the time period set
     if 'CompletionsDemand' in parameter_list:
         _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
 
@@ -145,26 +155,28 @@ def get_data(fname, set_list, parameter_list):
 
 def set_consistency_check(param, *args):
     """
-    Purpose:    This method checks if the elements included in a table or parameter have been defined as part of the
-                Sets that index such parameter.
+    Purpose:    This method checks if the elements included in a table or parameter have been
+                defined as part of the Sets that index such parameter.
 
-    How to use: The method requires one specified parameter (e.g. ProductionRates) AND one OR several sets over which
-                the aforementioned parameter is declared (e.g.ProductionPads, ProductionTanks, TimePeriods). In general,
-                the method can be run as follows: set_consistency_check(Parameter, set_1, set_2, etc)
-                
-    Output:     set_consistency_check() raises a TypeError exception If there are entries in the Parameter that are not 
-                contained in the Sets, and prints out a list with all the entries that require revision
+    How to use: The method requires one specified parameter (e.g. ProductionRates) AND one OR
+                several sets over which the aforementioned parameter is declared,
+                e.g.ProductionPads, ProductionTanks, TimePeriods. In general, the method can be
+                run as follows: set_consistency_check(Parameter, set_1, set_2, etc)
+
+    Output:     set_consistency_check() raises a TypeError exception If there are entries in the
+                Parameter that are not contained in the Sets, and prints out a list with all the
+                entries that require revision
     """
     # Getting a net list of all the elements that are part of the parameter
     raw_param_elements=list([*param.keys()])
     temp_param_elements = []
     i = []
     for i in raw_param_elements:
-        #The if condition checks if the parameter has only one index or more. If it is a tuple, it means the 
-        # parameter has 2 indices or more, and the second loop is required. If it is not a tuple,
-        # then the second loop is skipped to avoid looping through the characters of the element i,
-        # which would cause a wrong warning
-        if type(i)==tuple:
+        #The if condition checks if the parameter has only one index or more. If it is a tuple,
+        # it means the parameter has 2 indices or more, and the second loop is required. If it is
+        # not a tuple, then the second loop is skipped to avoid looping through the characters of
+        # the element i, which would cause a wrong warning
+        if isinstance(i, tuple):
             for j in i:
                 temp_param_elements.append(j)
         else:
@@ -183,28 +195,61 @@ def set_consistency_check(param, *args):
     #If net_elements contains elements, it means the parameter constains elements that have not
     # been defined as part of its Sets, therefore, an exception is raised
     if net_elements:
-        raise TypeError(f'The following elements have not been declared as part of a Set: {sorted(net_elements)}')
-    else:
-        return 0
+        raise TypeError(f'The following elements have not been declared as part of a Set:\
+                            {sorted(net_elements)}')
+
+    return 0
 
 
 def od_matrix(origin, destination=None, service=None, api_key=None, output=None, path=None):
 
     """
-    https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+    This method allows the user to request drive distances and drive times using Bing maps API and
+    Open Street Maps API.
+    The method accept the following input arguments:
+    - origin:   REQUIRED. Data containing information regarding location name, and coordinates
+                latitude and longitude. Two formats are acceptable:
+                {(origin1,"latitude"): value1, (origin1,"longitude"): value2} or
+                {origin1:{"latitude":value1, "longitude":value2}}
+                The first format allows the user to include a tab with the corresponding data
+                in a table format as part of the workbook casestudy.
+
+    - destination:  OPTIONAL. If no data for destination is provided, it is assumed that the
+                    origins are also destinations.
+
+    - service:  OPTIONAL. Specify the type of service, two options are supported:
+                Bing maps: https://docs.microsoft.com/en-us/bingmaps/rest-services/
+                Open Street Maps: https://www.openstreetmap.org/
+                If no service is selected, Open Street Maps is used by default
+
+    - api_key:  An API key should be provided in order to use Bing maps. The key can be obtained at:
+                https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+
+    - output:   OPTIONAL. Define the paramters that the method will output. The user can select:
+                'time': A list containing the drive times between the locations is returned
+                'distance': A list containing the drive distances between the locations is returned
+                'time_distance': Two lists containing the drive times and drive distances betweent
+                the locations is returned
+                If not output is specified, 'time_distance' is the default
+
+    - path:     OPTIONAL. od_matrix() will ALWAYS output an Excel workbook with two tabs, one that
+                contains drive times, and another that contains drive distances. If not path is
+                specified, the excel file is saved with the name 'od_output.xlsx' in the current
+                directory.
     """
     # Check that a valid API service has been selected and make sure an api_key was provided
-    if service == 'open_street_map' or service == None:
+    if service in('open_street_map', None):
         api_url_base = ''
-    
+
     elif service == 'bing_maps':
         api_url_base = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?'
-        if api_key == None:
+        if api_key is None:
             raise Warning('Please provide a valid api_key')
     else:
         raise Warning('{0} API service is not supported'.format(service))
 
-    if destination==None:
+    # If no destinations were provided, it is assumed that the origins are also destinations
+    if destination is None:
         destination = origin
 
     origins_loc =[]
@@ -212,9 +257,11 @@ def od_matrix(origin, destination=None, service=None, api_key=None, output=None,
     origins_dict = {}
     destination_dict = {}
 
-    # Check if the input data has a Pyomo format: origin={(origin1,"latitude"): value1, (origin1,"longitude"): value2}
-    # if it does, the input is modified to a Dict format: origin={origin1:{"latitude":value1, "longitude":value2}}
-    if type(list(origin.keys())[0]) == tuple:
+    # Check if the input data has a Pyomo format:
+    #   origin={(origin1,"latitude"): value1, (origin1,"longitude"): value2}
+    # if it does, the input is modified to a Dict format:
+    #   origin={origin1:{"latitude":value1, "longitude":value2}}
+    if isinstance(list(origin.keys())[0], tuple):
         for i in list(origin.keys()):
             origins_loc.append(i[0])
         origins_loc = list(sorted(set(origins_loc)))
@@ -224,7 +271,7 @@ def od_matrix(origin, destination=None, service=None, api_key=None, output=None,
                                 'longitude': origin[i,'longitude']}
         origin = origins_dict
 
-    if type(list(destination.keys())[0]) == tuple:
+    if isinstance(list(destination.keys())[0], tuple):
         for i in list(destination.keys()):
             destination_loc.append(i[0])
         destination_loc = list(sorted(set(destination_loc)))
@@ -234,49 +281,78 @@ def od_matrix(origin, destination=None, service=None, api_key=None, output=None,
                                     'longitude': destination[i,'longitude']}
         destination = destination_dict
 
-    # Definition of two empty dataframes to contain drive times and distances. These dataframes wiil be
-    # exported to an Excel workbook
+    # Formating origin and destination dicts for POST request, that is, converting this structure:
+    # origin={origin1:{"latitude":value1, "longitude":value2},
+    #           origin2:{"latitude":value3, "longitude":value4}}
+    # destination={destination1:{"latitude":value5, "longitude":value6,
+    #               destination2:{"latitude":value7, "longitude":value8}}
+    # Into the following structure:
+    # data={"origins":[{"latitude":value1, "longitude":value2},
+    #                   {"latitude":value3, "longitude":value4}],
+    #       "destinations":[{"latitude":value5, "longitude":value6},
+    #                       {"latitude":value7, "longitude":value8}]}
+
+    origins_post = []
+    destinations_post = []
+    for i in origin.keys():
+        origins_post.append({"latitude":origin[i]["latitude"],
+                                "longitude":origin[i]["longitude"]})
+
+    for i in destination.keys():
+        destinations_post.append({"latitude":origin[i]["latitude"],
+                                    "longitude":origin[i]["longitude"]})
+
+    # Building the dictionary with the adequate structure compatible with Bing Maps
+    data={"origins":origins_post, "destinations":destinations_post, "travelMode": "driving"}
+
+    # Sending a POST request to the API
+    header = {'Content-Type': 'application/json'}
+    response = requests.post(api_url_base + 'key=' + api_key, headers=header, json=data)
+    response_json = response.json()
+
+    # Definition of two empty dataframes that will contain drive times and distances.
+    # These dataframes wiil be exported to an Excel workbook
     df_times = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
     df_distance = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
     output_times = {}
     output_distance = {}
-    
-    # Loop for requesting data from Bing maps
-    header = {'Content-Type': 'application/json'}
-    for o in origin.keys():
-        for d in destination.keys():
-            
-            origin_str = str(origin[o]['latitude']) + "," + str(origin[o]['longitude'])
-            dest_str = str(destination[d]['latitude']) + "," + str(destination[d]['longitude'])
-            response = requests.get(api_url_base + "origins=" + origin_str + "&destinations=" + dest_str + "&travelMode=driving&key=" + api_key, headers=header)
-            response_json = response.json()
-            if response_json['statusDescription'] == 'OK':
-                output_times[(o,d)] = response_json['resourceSets'][0]['resources'][0]['results'][0]['travelDuration']/60
-                output_distance[(o,d)] = response_json['resourceSets'][0]['resources'][0]['results'][0]['travelDistance']*0.621371
-                df_times.loc[o,d] = output_times[(o,d)]
-                df_distance.loc[o,d] = output_distance[(o,d)]
-            else:
-                raise Warning('Error when requesting data for {0}-{1}'.format(o,d))
+
+    # Loop for reading the output JSON file
+    if response_json['statusDescription'] == 'OK':
+        for i in range(len(response_json['resourceSets'][0]['resources'][0]['results'])):
+            data_temp = response_json['resourceSets'][0]['resources'][0]['results'][i]
+            origin_index = data_temp['originIndex']
+            destination_index = data_temp['destinationIndex']
+
+            o_name = list(origin.keys())[origin_index]
+            d_name = list(destination.keys())[destination_index]
+            output_times[(o_name,d_name)] = data_temp['travelDuration']/60
+            output_distance[(o_name,d_name)] = data_temp['travelDistance']*0.621371
+
+            df_times.loc[o_name,d_name] = output_times[(o_name,d_name)]
+            df_distance.loc[o_name,d_name] = output_distance[(o_name,d_name)]
+    else:
+        raise Warning('Error when requesting data, make sure your API key is valid')
 
     # Define the default name of the Excel workbook
-    if path == None:
+    if path is None:
         path = 'od_output.xlsx'
 
-    # Dataframes df_times and df_distance are output as sheets in an Exce workbook whose directory and name are defined
-    # by variable 'path'
+    # Dataframes df_times and df_distance are output as sheets in an Excel workbook whose directory
+    # and name are defined by variable 'path'
     with pd.ExcelWriter(path) as writer:
         df_times.to_excel(writer, sheet_name='DriveTimes')
         df_distance.to_excel(writer, sheet_name='DriveDistances')
 
     # Identify what type of data is returned by the method
-    if output == 'time' or output == None:
+    if output in ('time', None):
         return_output = output_times
     elif output == 'distance':
         return_output = output_distance
     elif output == 'time_distance':
         return_output = [output_times, output_distance]
     else:
-        raise Warning("Provide a valid type of output, valid options are: time, distance, time_distance")
+        raise Warning("Provide a valid type of output, valid options are:\
+                        time, distance, time_distance")
 
     return return_output
-

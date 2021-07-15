@@ -84,12 +84,12 @@ if __name__ == '__main__':
     with resources.path('pareto.case_studies', "toy_case_study.xlsx") as fpath:
         print(f'Reading file from {fpath}')
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
-    
-    # print(df_parameters['DriveTimes'])
-    # print(df_parameters['Coordinates'])
 
-    path = 'C:\\Users\\calderoa\\Documents\\KeyLogic\\PARETO\\od_output.xlsx'
-    api_key= 'AvPb92_Sl-mGz48LkTiNJgH8eMDTRFB-4thDfW8SMKGbYi9IUGWOdNmpELqtJ2kQ'
+    # Set the path, including the file name, where you would like to save the output excel file that contains drive times and drive distances
+    # If not path is provided, the od_matrix method will save the excel file in the currect directory
+    
+    api_key = "Copy your API key here"
+    path = "od_output.xlsx"
     df_parameters['DriveTimes'] = od_matrix(origin=df_parameters['Coordinates'], service='bing_maps', output='time',api_key=api_key, path=path)
 
     set_consistency_check(df_parameters['ProductionRates'], df_sets['ProductionPads'], df_sets['ProductionTanks'], df_sets['TimePeriods'])
