@@ -16,6 +16,8 @@ from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective
                             NonNegativeReals, Reals, Binary)
 from pareto.utilities.get_data import get_data
 from importlib import resources
+from pyomo.opt import SolverFactory
+import pyomo.environ
 # import gurobipy 
 
 # Creation of a Concrete Model
@@ -1454,7 +1456,7 @@ def create_model(df_sets, df_parameters):
             for t in model.s_T))
     model.TotalTruckingCost = Constraint(rule=TotalTruckingCostRule, doc='Total trucking cost')
 
-    model.TotalTruckingCost.pprint()
+    # model.TotalTruckingCost.pprint()
 
     def SlackCostsRule(model):
         return model.v_C_Slack == (
@@ -1499,20 +1501,15 @@ def create_model(df_sets, df_parameters):
 
     ## Define Objective and Solve Statement ##
 
-    model.objective = Objective(expr=model.v_Z, sense=minimize, doc='Objective function')
+    model.objective = Objective(expr=model.v_Z,
+                                sense=minimize,
+                                doc='Objective function')
 
-    # This is an optional code path that allows the script to be run outside of
-    # pyomo command-line.  For example:  python transport.py
-    if __name__ == '__main__':
-        # This emulates what the pyomo command-line tools does
-        from pyomo.opt import SolverFactory
-        import pyomo.environ
-        opt = SolverFactory("gurobi")
-        results = opt.solve(model)
-        #sends results to stdout
-        results.write()
-        print("\nDisplaying Solution\n" + '-'*60)
-        # pyomo_postprocess(None, model, results)
+    return model
+
+
+def print_results(model):
+    
 
     # ## Printing model sets, parameters, constraints, variable values ##
 
@@ -1682,11 +1679,36 @@ def create_model(df_sets, df_parameters):
 
     return model
 
-# Tabs in the input Excel spreadsheet
-set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads', 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites','ReuseOptions','NetworkNodes']
-parameter_list = ['FCA','PCT','FCT','PKT','CKT','CCT','PAL','DriveTimes','CompletionsDemand','ProductionRates','PadRates','FlowbackRates','InitialDisposalCapacity','FreshwaterSourcingAvailability','CompletionsPadStorage','PadOffloadingCapacity','DriveTimes','DisposalOperationalCost','ReuseOperationalCost','TruckingHourlyCost','FreshSourcingCost','PipingOperationalCost']
 
-with resources.path('pareto.case_studies', "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
-        
-operational_model = create_model(df_sets, df_parameters)
+if __name__ == '__main__':
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = ['ProductionPads', 'ProductionTanks', 'CompletionsPads',
+                'SWDSites', 'FreshwaterSources', 'StorageSites',
+                'TreatmentSites', 'ReuseOptions', 'NetworkNodes']
+    parameter_list = ['FCA', 'PCT', 'FCT', 'PKT', 'CKT', 'CCT',
+                      'PAL', 'DriveTimes', 'CompletionsDemand',
+                      'ProductionRates', 'PadRates', 'FlowbackRates',
+                      'InitialDisposalCapacity',
+                      'FreshwaterSourcingAvailability',
+                      'CompletionsPadStorage',
+                      'PadOffloadingCapacity', 'DriveTimes',
+                      'DisposalOperationalCost', 'ReuseOperationalCost',
+                      'TruckingHourlyCost', 'FreshSourcingCost',
+                      'PipingOperationalCost']
+
+    with resources.path('pareto.case_studies',
+                        "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx") as fpath:
+            [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    operational_model = create_model(df_sets, df_parameters)
+
+    # import pyomo solver
+    opt = SolverFactory("gurobi")
+    # solve mathematical model
+    results = opt.solve(operational_model, tee=True)
+    results.write()
+    print("\nDisplaying Solution\n" + '-'*60)
+    # pyomo_postprocess(None, model, results)
+    # print results
+    print_results(operational_model)
