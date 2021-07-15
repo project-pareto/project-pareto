@@ -26,6 +26,7 @@ parameter_list = ['FCA', 'PCT', 'FCT', 'PKT', 'CKT', 'CCT',
 
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
+# note the double backslashes '\\' in that path reference
 fname = '..\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx'
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
