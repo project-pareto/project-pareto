@@ -10,9 +10,11 @@ setup(
     version=VERSION,
     packages=find_packages(),
     install_requires=[
-        "pyomo",
-        "pandas==1.2.*",
-        "openpyxl",
+        'pyomo',
+        'pandas==1.2.*',
+        'openpyxl',
+        # for the moment mainly for getting solvers with `idaes get-extensions`
+        'idaes-pse',
     ],
     include_package_data=True,
     package_data={
