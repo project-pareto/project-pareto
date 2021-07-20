@@ -24,6 +24,10 @@ defaults:
     # the -l flag is needed for the Conda environment to be activated properly
     shell: bash -l {0}
 
+env:
+  # needed for colorized output to be shown in GHA logs
+  PYTEST_ADDOPTS: "--color=yes"
+
 jobs:
   pytest:
     name: Tests (py${{ matrix.python-version }}/${{ matrix.os }}/${{ matrix.install-mode }})
