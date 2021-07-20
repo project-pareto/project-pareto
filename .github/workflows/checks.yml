@@ -66,6 +66,7 @@ jobs:
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
+          idaes get-extensions --verbose
       - name: Run pytest
         if: contains(matrix.install-mode, 'dev')
         # TODO: add coverage
