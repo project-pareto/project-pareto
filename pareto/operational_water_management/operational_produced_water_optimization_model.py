@@ -377,6 +377,7 @@ def create_model(df_sets, df_parameters):
                                 initialize=df_parameters['FlowbackRates'],
                                 doc='Flowback supply forecast for a completions bad [bbl/day]')
     model.p_sigma_ProdTank     = Param(model.s_P,default=500,
+                                initialize=df_parameters['ProductionTankCapacity'],
                                 doc='Combined capacity equalized production tanks [bbl]')
     model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
                                 initialize=InitialPipelineCapacityTable,
@@ -391,7 +392,7 @@ def create_model(df_sets, df_parameters):
                                 initialize=df_parameters['CompletionsPadStorage'],
                                 doc='Storage capacity at completions site [bbl]')
     model.p_sigma_Treatment    = Param(model.s_R,default=0,
-                                initialize=InitialTreatmentCapacityTable,
+                                initialize=df_parameters['TreatmentCapacity'],
                                 doc='Initial daily treatment capacity at treatment site [bbl/day]') 
     model.p_sigma_Reuse        = Param(model.s_O,default=0,
                                 initialize=InitialReuseCapacityTable,
@@ -465,7 +466,7 @@ def create_model(df_sets, df_parameters):
 
     # COMMENT: Remove disosal/storage/pipeline capital cost parameters
     model.p_kappa_Disposal      = Param(model.s_K,model.s_I,default=9999999,
-                                initialize=DisposalCapExTable,
+                                initialize=df_parameters['DisposalPipeCapEx'],
                                 doc='Disposal construction/expansion capital cost for selected increment [$/bbl]')    
 
     model.p_kappa_Storage       = Param(model.s_S,model.s_C,default=9999999,
@@ -481,7 +482,7 @@ def create_model(df_sets, df_parameters):
                                 initialize=df_parameters['DisposalOperationalCost'],
                                 doc='Disposal operational cost [$/bbl]')
     model.p_pi_Treatment        = Param(model.s_R,default=9999999,
-                                initialize=TreatmentOperationalCostTable,
+                                initialize=df_parameters['TreatmentOperationalCost'],
                                 doc='Treatment operational cost [$/bbl')
     model.p_pi_Reuse            = Param(model.s_CP,default=9999999,
                                 initialize=df_parameters['ReuseOperationalCost'],
@@ -547,7 +548,7 @@ def create_model(df_sets, df_parameters):
     # model.CompletionsPadDemandBalance.pprint()
 
     def CompletionsPadStorageBalanceRule(model,p,t):
-        if t == 'T1':
+        if t == model.s_T.first():
             return (model.v_L_PadStorage[p,t] == 
                     model.p_lambda_PadStorage[p] + model.v_F_PadStorageIn[p,t] - model.v_F_PadStorageOut[p,t])
         else:
@@ -573,6 +574,8 @@ def create_model(df_sets, df_parameters):
     # model.TerminalCompletionsPadStorageLevel.pprint()
 
     def FreshwaterSourcingCapacityRule(model,f,t):
+        if not (any(model.p_FCA[f,p] for p in model.s_CP) or any(model.p_FCT[f,p] for p in model.s_CP)):
+            return Constraint.Skip
         return (sum(model.v_F_Sourced[f,p,t] for p in model.s_CP if model.p_FCA[f,p]) +
                sum(model.v_F_Trucked[f,p,t] for p in model.s_CP if model.p_FCT[f,p])) <= model.p_sigma_Freshwater[f,t]
     model.FreshwaterSourcingCapacity = Constraint(model.s_F,model.s_T,rule=FreshwaterSourcingCapacityRule, doc='Freshwater sourcing capacity')
@@ -604,7 +607,7 @@ def create_model(df_sets, df_parameters):
     # model.StorageSiteProcessingCapacity.pprint()
 
     def ProductionTankBalanceRule(model,p,t):
-        if t == 'T1':
+        if t == model.s_T.first():
             if p in model.s_P:
                     return (model.v_L_ProdTank[p,t] == 
                     model.p_lambda_ProdTank[p] + model.p_beta_Production[p,t] - model.v_F_Drain[p,t])
@@ -868,7 +871,7 @@ def create_model(df_sets, df_parameters):
     # model.BidirectionalFlow2.pprint()
 
     def StorageSiteBalanceRule(model,s,t):
-        if t == 'T1':
+        if t == model.s_T.first():
             return (model.v_L_Storage[s,t] == model.p_lambda_Storage[s] +
                     sum(model.v_F_Piped[n,s,t] for n in model.s_N if model.p_NSA[n,s]) + 
                     sum(model.v_F_Trucked[p,s,t] for p in model.s_PP if model.p_PST[p,s]) + 
