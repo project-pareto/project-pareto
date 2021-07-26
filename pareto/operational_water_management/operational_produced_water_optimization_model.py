@@ -1531,6 +1531,9 @@ def print_results(model):
     # # model.FlowBalance.pprint()
     # # model.CapacityLimit.pprint()
 
+    solution_dict = {}
+    slacks_dict = {}
+    output_dict = {}
     print('The objective function value is ', model.v_Z.value)
 
     # model.pprint()
@@ -1695,18 +1698,19 @@ def print_results(model):
                 v_S_ReuseCapacity_dict.append((o,model.v_S_ReuseCapacity[o].value))
                 print(model.v_S_ReuseCapacity[o], '=', model.v_S_ReuseCapacity[o].value)
 
-    # model.v_L_ProdTank.pprint()
-    results_list = {'v_F_Pipe': v_F_Pipe_dict, 'v_F_Trucked': v_F_Trucked_dict,
-                    'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
-                    'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_C_Piped': v_C_Piped_dict,
-                    'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
-                    'v_C_Disposal': v_C_Disposal_dict, 'v_C_Reuse': v_C_Reuse_dict,
-                    'v_S_FracDemand': v_S_FracDemand_dict, 'v_S_Production': v_S_Production_dict,
+        slacks_dict = {'v_S_FracDemand': v_S_FracDemand_dict, 'v_S_Production': v_S_Production_dict,
                     'v_S_Flowback': v_S_Flowback_dict, 'v_S_PipelineCapacity': v_S_PipelineCapacity_dict,
                     'v_S_StorageCapacity': v_S_StorageCapacity_dict, 'v_S_TreatmentCapacity': v_S_TreatmentCapacity_dict,
                     'v_S_ReuseCapacity': v_S_ReuseCapacity_dict}
+    # model.v_L_ProdTank.pprint()
+    solution_dict = {'v_F_Pipe': v_F_Pipe_dict, 'v_F_Trucked': v_F_Trucked_dict,
+                    'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
+                    'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_C_Piped': v_C_Piped_dict,
+                    'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
+                    'v_C_Disposal': v_C_Disposal_dict, 'v_C_Reuse': v_C_Reuse_dict}
 
-    return model, results_list
+    output_dict = {**solution_dict, **slacks_dict}
+    return model, output_dict
 
 
 if __name__ == '__main__':
