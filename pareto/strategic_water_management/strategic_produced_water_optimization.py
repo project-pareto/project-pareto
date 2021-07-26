@@ -7,6 +7,7 @@
 # - Implemented completions pad storage [July 6]
 # - Implemented changes to flowback processing [July 14]
 # - Implemented correction for pipeline capacity slack penalty [July 19]
+# - Implemented terminal storage level parameters and constraints [July 26]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -352,7 +353,7 @@ def create_model(df_sets,df_parameters):
                                 initialize=df_parameters['InitialDisposalCapacity'],
                                 doc='Initial weekly disposal capacity at disposal sites [bbl/week]')
     model.p_sigma_Storage      = Param(model.s_S,default=0,
-                                initialize=InitialStorageCapacityTable,
+                                initialize=df_parameters['InitialStorageCapacity'],
                                 doc='Initial storage capacity at storage site [bbl]')
     model.p_sigma_PadStorage   = Param(model.s_CP,default=0,
                                 initialize=df_parameters['CompletionsPadStorage'],
@@ -389,7 +390,7 @@ def create_model(df_sets,df_parameters):
                                 doc='Pipeline capacity installation/expansion increments [bbl/week]')
 
     model.p_delta_Disposal      = Param(model.s_I,default=10,
-                                initialize=DisposalCapacityIncrementsTable,
+                                initialize=df_parameters['DisposalCapacityIncrements'],
                                 doc='Disposal capacity installation/expansion increments [bbl/week]')
 
     model.p_delta_Storage       = Param(model.s_C,default=10,
@@ -419,13 +420,16 @@ def create_model(df_sets,df_parameters):
     model.p_lambda_PadStorage   = Param(model.s_CP,default=0,
                                 doc='Initial storage level at completions site [bbl]')                                
 
+    model.p_theta_Storage       = Param(model.s_S,default=0,
+                                doc='Terminal storage level at storage site [bbl]')
+    
     model.p_theta_PadStorage    = Param(model.s_CP,default=0,
                                 doc='Terminal storage level at completions site [bbl]')                        
 
     model.p_lambda_Pipeline     = Param(model.s_L,model.s_L,default=9999999,
                                 doc='Pipeline segment length [miles]')
 
-    model.p_kappa_Disposal      = Param(model.s_K,model.s_I,default=9999999,
+    model.p_kappa_Disposal      = Param(model.s_K,model.s_I,default=100,
                                 initialize=DisposalCapExTable,
                                 doc='Disposal construction/expansion capital cost for selected increment [$/bbl]')    
 
@@ -808,7 +812,16 @@ def create_model(df_sets,df_parameters):
     model.StorageSiteBalance = Constraint(model.s_S,model.s_T,rule=StorageSiteBalanceRule, doc='Storage site balance rule')
 
     # model.StorageSiteBalance.pprint()
-            
+
+    def TerminalStorageLevelRule(model,s,t):
+        if t == model.s_T.last():
+            return (model.v_L_Storage[s,t] <= model.p_theta_Storage[s])
+        else:
+            return Constraint.Skip
+    model.TerminalStorageLevel = Constraint(model.s_S,model.s_T,rule=TerminalStorageLevelRule, doc='Terminal storage site level')
+
+    # model.TerminalStorageLevel.pprint()    
+
     def PipelineCapacityExpansionRule(model,l,l_tilde):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l,l_tilde]:
@@ -1551,13 +1564,13 @@ def create_model(df_sets,df_parameters):
 
     ## Fixing Decision Variables ##
 
-    # model.vb_y_Disposal['K02','I0'].fix(0)
+    # model.vb_y_Disposal['K02','I1'].fix(1)
 
     # model.v_S_ReuseCapacity['O1'].fix(0)
 
     # model.v_S_TreatmentCapacity['R01'].fix(0)
 
-    # model.v_F_Piped['N04','K02','T01'].fix(21000)
+    # model.v_F_Piped['N12','S01','T37'].fix(500)
 
     # model.v_S_FracDemand.fix(0)
     # model.v_S_Production.fix(0)
@@ -1689,6 +1702,13 @@ def print_results(model):
         for p in model.s_CP:
             if model.v_C_Reuse[p,t].value != None and model.v_C_Reuse[p,t].value > 0:
                 print(model.v_C_Reuse[p,t], '=', model.v_C_Reuse[p,t].value)    
+    
+    # Storage levels
+
+    for t in model.s_T:
+        for s in model.s_S:
+            if model.v_L_Storage[s,t].value != None and model.v_L_Storage[s,t].value > 0:
+                print(model.v_L_Storage[s,t], '=', model.v_L_Storage[s,t].value)
 
     # Pipeline expansion
 
@@ -1697,6 +1717,14 @@ def print_results(model):
             for l_hat in model.s_L:
                 if model.vb_y_Pipeline[l,l_hat,d].value != None and model.vb_y_Pipeline[l,l_hat,d].value > 0:
                     print(model.vb_y_Pipeline[l,l_hat,d], '=', model.vb_y_Pipeline[l,l_hat,d].value)
+
+    # Disposal expansion
+
+    for i in model.s_I:
+        for k in model.s_K:
+            if model.vb_y_Disposal[k,i].value != None and model.vb_y_Disposal[k,i].value > 0:
+                print(model.vb_y_Disposal[k,i], '=', model.vb_y_Disposal[k,i].value)
+        
 
     if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
@@ -1762,7 +1790,7 @@ if __name__ == '__main__':
 			          'InitialTreatmentCapacity','FreshwaterSourcingAvailability','PadOffloadingCapacity',
 			          'CompletionsPadStorage','DisposalOperationalCost','TreatmentOperationalCost',
 			          'ReuseOperationalCost','PipelineOperationalCost','FreshSourcingCost','TruckingHourlyCost',
-			          'PipelineCapacityIncrements']
+			          'PipelineCapacityIncrements','DisposalCapacityIncrements']
 
     with resources.path('pareto.case_studies',
                         "input_data_generic_strategic_case_study.xlsx") as fpath:
