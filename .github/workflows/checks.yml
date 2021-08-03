@@ -70,3 +70,18 @@ jobs:
       - name: Run toy case study
         run: |
           python -m pareto.case_studies.toy_case_study
+
+  black:
+    name: Run Black to verify that committed code is formatted
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install (dev mode)
+        run: |
+          pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
+      - name: Run Black to verify that committed code is formatted
+        run: |
+          black --check .
