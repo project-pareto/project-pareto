@@ -3,6 +3,7 @@
 ##############################################################################
 from pareto.operational_water_management.\
     operational_produced_water_optimization_model import (create_model,
+                                                          ProdTank,
                                                           print_results)
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -10,19 +11,20 @@ from pyomo.environ import SolverFactory
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
-set_list = ['ProductionPads', 'ProductionTanks', 'CompletionsPads',
-            'SWDSites', 'FreshwaterSources', 'StorageSites',
-            'TreatmentSites', 'ReuseOptions', 'NetworkNodes']
-parameter_list = ['FCA', 'PCT', 'FCT', 'PKT', 'CKT', 'CCT',
-                  'PAL', 'DriveTimes', 'CompletionsDemand',
-                  'ProductionRates', 'PadRates', 'FlowbackRates',
-                  'InitialDisposalCapacity',
-                  'FreshwaterSourcingAvailability',
-                  'CompletionsPadStorage',
-                  'PadOffloadingCapacity', 'DriveTimes',
-                  'DisposalOperationalCost', 'ReuseOperationalCost',
-                  'TruckingHourlyCost', 'FreshSourcingCost',
-                  'PipingOperationalCost']
+set_list = ['ProductionPads', 'CompletionsPads',
+            'ProductionTanks', 'FreshwaterSources',
+            'StorageSites', 'SWDSites', 'TreatmentSites',
+            'ReuseOptions', 'NetworkNodes']
+parameter_list = ['FCA', 'PCT', 'FCT', 'CCT', 'PKT', 'PRT', 'CKT', 'CRT',
+                  'PAL', 'CompletionsDemand', 'PadRates', 'FlowbackRates',
+                  'ProductionTankCapacity', 'InitialDisposalCapacity',
+                  'CompletionsPadStorage','TreatmentCapacity',
+                  'FreshwaterSourcingAvailability', 'PadOffloadingCapacity',
+                  'DriveTimes', 'DisposalPipeCapEx', 'DisposalOperationalCost',
+                  'TreatmentOperationalCost', 'ReuseOperationalCost',
+                  'PipingOperationalCost', 'TruckingHourlyCost',
+                  'FreshSourcingCost', 'ProductionRates'
+                  ]
 
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
@@ -31,7 +33,9 @@ fname = '..\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xls
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 # create mathematical model
-operational_model = create_model(df_sets, df_parameters)
+operational_model = create_model(df_sets, df_parameters,
+                                 default={"has_pipeline_constraints": True,
+                                          "production_tanks": ProdTank.individual})
 
 # import pyomo solver
 opt = SolverFactory("gurobi")
