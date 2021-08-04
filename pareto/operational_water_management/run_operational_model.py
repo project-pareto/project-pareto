@@ -35,10 +35,10 @@ fname = '..\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xls
 # create mathematical model
 operational_model = create_model(df_sets, df_parameters,
                                  default={"has_pipeline_constraints": True,
-                                          "production_tanks": ProdTank.single})
+                                          "production_tanks": ProdTank.individual})
 
 # import pyomo solver
-opt = SolverFactory("gurobi_direct")
+opt = SolverFactory("gurobi")
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()

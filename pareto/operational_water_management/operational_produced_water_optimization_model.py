@@ -10,6 +10,7 @@
 # - Implemented completions pad storage [July 6]
 # - Implemeted an equalized production tank formulation [July 7]
 # - Implemented changes to flowback processing [July 13]
+# - Implemented production tank config option [August 4]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -24,7 +25,7 @@ from pyomo.opt import SolverFactory
 from enum import Enum
 
 class ProdTank(Enum):
-    single = 0
+    individual = 0
     equalized = 1
 
 # create config dictionary
@@ -39,10 +40,10 @@ CONFIG.declare("has_pipeline_constraints", ConfigValue(
 **True** - construct pipeline constraints,
 **False** - do not construct pipeline constraints}"""))
 CONFIG.declare("production_tanks", ConfigValue(
-    default=ProdTank.single,
+    default=ProdTank.individual,
     domain=In(ProdTank),
-    description='type of storage in each production site',
-    doc='storage tank in production sites'))
+    description='production tank type selection',
+    doc='Type of production tank arrangement (i.e., Individual, Equalized)'))
 
 # Creation of a Concrete Model
 
@@ -90,7 +91,7 @@ def create_model(df_sets, df_parameters, default={}):
                                   ' used for fracturing [bbl/day]')
 
 
-    if model.config.production_tanks == ProdTank.single:
+    if model.config.production_tanks == ProdTank.individual:
         model.v_F_Drain = Var(model.s_P, model.s_A, model.s_T,
                               within=NonNegativeReals,
                               doc='Produced water drained from'
@@ -304,7 +305,17 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
     model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
 
-    model.p_PAL              = Param(model.s_P,model.s_A,default=0,initialize=df_parameters['PAL'], doc='Valid pad-to-tank links [-]')
+    if model.config.production_tanks == ProdTank.individual:
+        model.p_PAL     = Param(model.s_P,model.s_A,
+                                default=0,
+                                initialize=df_parameters['PAL'],
+                                doc='Valid pad-to-tank links [-]')
+    elif model.config.production_tanks == ProdTank.equalized:
+        model.p_PAL     = Param(model.s_P,model.s_A,
+                                default=0,
+                                doc='Valid pad-to-tank links [-]')
+    else:
+        raise Exception('storage type not supported')  
 
     # model.p_FCA.pprint()
     # model.p_PKT.pprint()
@@ -420,7 +431,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
                                 initialize=df_parameters['CompletionsDemand'],
                                 doc='Completions water demand [bbl/day]')
-    if model.config.production_tanks == ProdTank.single:
+    if model.config.production_tanks == ProdTank.individual:
         model.p_beta_Production = Param(model.s_P, model.s_A, model.s_T,
                                         default=0,
                                         initialize=df_parameters['ProductionRates'],
@@ -675,7 +686,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.StorageSiteProcessingCapacity.pprint()
 
-    if model.config.production_tanks == ProdTank.single:
+    if model.config.production_tanks == ProdTank.individual:
         def ProductionTankBalanceRule(model, p, a, t):
             if t == model.s_T.first():
                 if p in model.s_P and a in model.s_A:
@@ -721,7 +732,7 @@ def create_model(df_sets, df_parameters, default={}):
         raise Exception('storage type not supported')
     # model.ProductionTankBalance.pprint()
 
-    if model.config.production_tanks == ProdTank.single:
+    if model.config.production_tanks == ProdTank.individual:
         def ProductionTankCapacityRule(model, p, a, t):
             if p in model.s_P and a in model.s_A:
                 if model.p_PAL[p, a]:
@@ -747,7 +758,7 @@ def create_model(df_sets, df_parameters, default={}):
         raise Exception('storage type not supported')
     # model.ProductionTankCapacity.pprint()
 
-    if model.config.production_tanks == ProdTank.single:
+    if model.config.production_tanks == ProdTank.individual:
         def TankToPadProductionBalanceRule(model, p, t):
             return (sum(model.v_F_Drain[p, a, t] for a in model.s_A
                         if model.p_PAL[p, a]) == model.v_B_Production[p, t])
@@ -764,7 +775,7 @@ def create_model(df_sets, df_parameters, default={}):
         raise Exception('storage type not supported')
     # model.TankToPadProductionBalance.pprint()
 
-    if model.config.production_tanks == ProdTank.single:
+    if model.config.production_tanks == ProdTank.individual:
         def TerminalProductionTankLevelBalanceRule(model, p, a, t):
             if t == model.s_T.last():
                 if p in model.s_P and a in model.s_A:
@@ -1877,10 +1888,10 @@ if __name__ == '__main__':
 
     operational_model = create_model(df_sets, df_parameters,
                                      default={"has_pipeline_constraints": True,
-                                              "production_tanks": ProdTank.single})
+                                              "production_tanks": ProdTank.individual})
 
     # import pyomo solver
-    opt = SolverFactory("gurobi_direct")
+    opt = SolverFactory("gurobi")
     # solve mathematical model
     results = opt.solve(operational_model, tee=True)
     results.write()
