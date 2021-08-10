@@ -495,6 +495,12 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_sigma_OffloadingStorage = Param(model.s_S,default=9999999,
                                     initialize=StorageOffloadingCapacityTable,
                                     doc='Weekly truck offloading capacity per pad [bbl/day]')
+    model.p_sigma_MinTruckFlow      = Param(default=0,
+                                    initialize=df_parameters['MinTruckFlow'],
+                                    doc='Minimum truck capacity [bbl]')     
+    model.p_sigma_MaxTruckFlow      = Param(default=0,
+                                    initialize=df_parameters['MaxTruckFlow'],
+                                    doc='Minimum truck capacity [bbl]')                                                            
     model.p_sigma_ProcessingPad     = Param(model.s_P,default=9999999,
                                     initialize=ProcessingCapacityPadTable,
                                     doc='Weekly processing (e.g. clarification) capacity per pad [bbl/day]')
@@ -674,14 +680,14 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TrucksMaxCapacityRule(model,l,l_tilde,t):
         if model.p_LLT[l,l_tilde]:
-	        return model.v_F_Trucked[l,l_tilde,t] <= 37000*model.vb_y_Truck[l,l_tilde,t]
+	        return model.v_F_Trucked[l,l_tilde,t] <= model.p_sigma_MaxTruckFlow*model.vb_y_Truck[l,l_tilde,t]
         else:
             return Constraint.Skip
     model.TrucksMaxCapacity = Constraint(model.s_L, model.s_L, model.s_T, rule=TrucksMaxCapacityRule, doc='Maximum amount of water that can be transported by trucks')
 
     def TrucksMinCapacityRule(model,l,l_tilde,t):
         if model.p_LLT[l,l_tilde]:
-	        return model.v_F_Trucked[l,l_tilde,t] >= 75*model.vb_y_Truck[l,l_tilde,t]
+	        return model.v_F_Trucked[l,l_tilde,t] >= model.p_sigma_MinTruckFlow*model.vb_y_Truck[l,l_tilde,t]
         else:
             return Constraint.Skip
     model.TrucksMinCapacity = Constraint(model.s_L, model.s_L, model.s_T, rule=TrucksMinCapacityRule, doc='Minimum amount of water that can be transported by trucks')
