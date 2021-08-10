@@ -306,7 +306,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
     model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
     
-    df_parameters['LLT'] =   {**df_parameters['PCT'], **df_parameters['CCT'], **df_parameters['CRT']}
+    df_parameters['LLT'] =   {**df_parameters['PCT'], **df_parameters['CCT'], **df_parameters['CRT'], **df_parameters['CKT'], **df_parameters['FCT']}
     model.p_LLT              = Param(model.s_L, model.s_L, default=0, initialize=df_parameters['LLT'], doc='Valid location-to-location trucking arcs [-]')
     if model.config.production_tanks == ProdTank.individual:
         model.p_PAL     = Param(model.s_P,model.s_A,
@@ -681,7 +681,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TrucksMinCapacityRule(model,l,l_tilde,t):
         if model.p_LLT[l,l_tilde]:
-	        return model.v_F_Trucked[l,l_tilde,t] >= 0*model.vb_y_Truck[l,l_tilde,t]
+	        return model.v_F_Trucked[l,l_tilde,t] >= 75*model.vb_y_Truck[l,l_tilde,t]
         else:
             return Constraint.Skip
     model.TrucksMinCapacity = Constraint(model.s_L, model.s_L, model.s_T, rule=TrucksMinCapacityRule, doc='Minimum amount of water that can be transported by trucks')
@@ -733,13 +733,13 @@ def create_model(df_sets, df_parameters, default={}):
             if t == model.s_T.first():
                 if p in model.s_P:
                         return (model.v_L_ProdTank[p,t] ==
-                        model.p_lambda_ProdTank[p] + model.p_beta_Production[p,t] - model.v_F_Drain[p,t])
+                        model.p_lambda_ProdTank[p] + model.p_beta_Production[p,t] + model.p_beta_Flowback[p,t] - model.v_F_Drain[p,t])
                 else:
                     return Constraint.Skip
             else:
                 if p in model.s_P:
                         return (model.v_L_ProdTank[p,t] ==
-                        model.v_L_ProdTank[p,model.s_T.prev(t)] + model.p_beta_Production[p,t] - model.v_F_Drain[p,t])
+                        model.v_L_ProdTank[p,model.s_T.prev(t)] + model.p_beta_Production[p,t] + model.p_beta_Flowback[p,t] - model.v_F_Drain[p,t])
                 else:
                     return Constraint.Skip
         model.ProductionTankBalance = Constraint(model.s_P, model.s_T,
@@ -839,7 +839,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.ProductionPadSupplyBalance.pprint()
 
     def CompletionsPadSupplyBalanceRule(model,p,t):
-        return (model.p_beta_Flowback[p,t] == sum(model.v_F_Piped[p,n,t] for n in model.s_N if model.p_CNA[p,n])
+        return (model.v_B_Production[p,t] == sum(model.v_F_Piped[p,n,t] for n in model.s_N if model.p_CNA[p,n])
                 + sum(model.v_F_Piped[p,p_tilde,t] for p_tilde in model.s_CP if model.p_CCA[p,p_tilde])
                 + sum(model.v_F_Trucked[p,k,t] for k in model.s_K if model.p_CKT[p,k])
                 + sum(model.v_F_Trucked[p,s,t] for s in model.s_S if model.p_CST[p,s])
@@ -1756,6 +1756,15 @@ def print_results(model):
                     v_F_PadStorageOut_dict.append((p, t, model.v_F_PadStorageOut[p,t].value))
                     print(model.v_F_PadStorageOut[p,t], '=', model.v_F_PadStorageOut[p,t].value)
 
+
+    if model.config.production_tanks == ProdTank.equalized:
+        v_L_ProdTank_dict = [('Pad', 'Time', 'Produced Water')]
+        for t in model.s_T:
+            for p in model.s_P:
+                    if model.v_L_ProdTank[p,t].value != None and model.v_L_ProdTank[p,t].value > 0:
+                        v_L_ProdTank_dict.append((p, t, model.v_L_ProdTank[p,t].value))
+                        print(model.v_L_ProdTank[p,t], '=', model.v_L_ProdTank[p,t].value)
+
     # Binary flow directions
 
     # for t in model.s_T:
@@ -1878,8 +1887,8 @@ def print_results(model):
     # model.v_L_ProdTank.pprint()
     solution_dict = {'v_F_Pipe': v_F_Pipe_dict, 'v_F_Trucked': v_F_Trucked_dict,
                     'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
-                    'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_C_Piped': v_C_Piped_dict,
-                    'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
+                    'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_L_ProdTank': v_L_ProdTank_dict,
+                    'v_C_Piped': v_C_Piped_dict, 'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
                     'v_C_Disposal': v_C_Disposal_dict, 'v_C_Reuse': v_C_Reuse_dict}
 
     output_dict = {**solution_dict, **slacks_dict}
