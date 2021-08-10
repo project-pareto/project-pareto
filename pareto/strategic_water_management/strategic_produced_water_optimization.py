@@ -12,6 +12,7 @@
 # - Implemented bi-directional capacity restriction [July 29]
 # - Implemented KPI constraints (total piped/trucked/sourced/disposed/... volumes) [July 30]
 # - Implemented layflat modifications [August 5]
+# - Implemented treatment capacity expansion [August 10]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -65,6 +66,7 @@ def create_model(df_sets,df_parameters):
     model.s_L  = Set(initialize=(model.s_P | model.s_F | model.s_K | model.s_S | model.s_R | model.s_O | model.s_N), doc='Locations')
     model.s_D  = Set(initialize=df_sets['PipelineDiameters'], doc='Pipeline diameters')
     model.s_C  = Set(initialize=df_sets['StorageCapacities'], doc='Storage capacities')
+    model.s_J  = Set(initialize=df_sets['TreatmentCapacities'], doc='Treatment capacities')
     model.s_I  = Set(initialize=df_sets['InjectionCapacities'], doc='Injection (i.e. disposal) capacities')
 
     # model.s_P.pprint()
@@ -110,11 +112,13 @@ def create_model(df_sets,df_parameters):
 
     model.v_D_Capacity       = Var(model.s_K,within=NonNegativeReals, doc='Disposal capacity at a disposal site [bbl/week]')
     model.v_X_Capacity       = Var(model.s_S,within=NonNegativeReals, doc='Storage capacity at a storage site [bbl/week]')
+    model.v_T_Capacity       = Var(model.s_R,within=NonNegativeReals, doc='Treatment capacity at a treatment site [bbl/week]')
     model.v_F_Capacity       = Var(model.s_L,model.s_L,within=NonNegativeReals, doc='Flow capacity along pipeline arc [bbl/week]')
 
     model.v_C_DisposalCapEx  = Var(within=NonNegativeReals, doc='Capital cost of constructing or expanding disposal capacity [$]')
     model.v_C_PipelineCapEx  = Var(within=NonNegativeReals, doc='Capital cost of constructing or expanding piping capacity [$]')
     model.v_C_StorageCapEx   = Var(within=NonNegativeReals, doc='Capital cost of constructing or expanding storage capacity [$]')
+    model.v_C_TreatmentCapEx = Var(within=NonNegativeReals, doc='Capital cost of constructing or expanding treatment capacity [$]')
 
     model.v_S_FracDemand        = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Slack variable to meet the completions demand [bbl/week]')
     model.v_S_Production        = Var(model.s_PP,model.s_T,within=NonNegativeReals, doc='Slack variable to process the produced water production [bbl/week]')
@@ -128,8 +132,9 @@ def create_model(df_sets,df_parameters):
     ## Define binary variables ##
 
     model.vb_y_Pipeline      = Var(model.s_L,model.s_L,model.s_D,within=Binary, doc='New pipeline installed between one location and another location with specific diameter')
-    model.vb_y_Storage       = Var(model.s_S,model.s_C,within=Binary, doc='New or additional storage facility installed at storage site with specific storage capacity')
-    model.vb_y_Disposal      = Var(model.s_K,model.s_I,within=Binary, doc='New or additional disposal facility installed at disposal site with specific injection capacity')
+    model.vb_y_Storage       = Var(model.s_S,model.s_C,within=Binary, doc='New or additional storage capacity installed at storage site with specific storage capacity')
+    model.vb_y_Treatment     = Var(model.s_R,model.s_J,within=Binary, doc='New or additional treatment capacity installed at treatment site with specific treatment capacity')
+    model.vb_y_Disposal      = Var(model.s_K,model.s_I,within=Binary, doc='New or additional disposal capacity installed at disposal site with specific injection capacity')
     model.vb_y_Flow          = Var(model.s_L,model.s_L,model.s_T,within=Binary, doc='Directional flow between two locations')
 
     # model.vb_z_Pipeline      = Var(model.s_L,model.s_L,model.s_D,model.s_T,within=Binary, doc='Timing of pipeline installation between two locations')
@@ -341,6 +346,9 @@ def create_model(df_sets,df_parameters):
     StorageCapExTable = {
     }
 
+    TreatmentCapExTable = {
+    }
+
     PipelineCapExTable = {
     }
 
@@ -438,7 +446,10 @@ def create_model(df_sets,df_parameters):
 
     model.p_delta_Storage       = Param(model.s_C,default=10,
                                 initialize=df_parameters['StorageCapacityIncrements'],
-                                doc='Storage capacity installation/expansion increments [bbl]')                            
+                                doc='Storage capacity installation/expansion increments [bbl]') 
+    model.p_delta_Treatment     = Param(model.s_J,default=10,
+                                initialize=df_parameters['TreatmentCapacityIncrements'],
+                                doc='Treatment capacity installation/expansion increments [bbl/week]')                           
 
     model.p_delta_Truck         = Param(default=110,doc='Truck capacity [bbl]')
 
@@ -472,13 +483,17 @@ def create_model(df_sets,df_parameters):
     model.p_lambda_Pipeline     = Param(model.s_L,model.s_L,default=9999999,
                                 doc='Pipeline segment length [miles]')
 
-    model.p_kappa_Disposal      = Param(model.s_K,model.s_I,default=100,
+    model.p_kappa_Disposal      = Param(model.s_K,model.s_I,default=20,
                                 initialize=DisposalCapExTable,
                                 doc='Disposal construction/expansion capital cost for selected increment [$/bbl]')    
 
-    model.p_kappa_Storage       = Param(model.s_S,model.s_C,default=0.000000001,
+    model.p_kappa_Storage       = Param(model.s_S,model.s_C,default=0.1,
                                 initialize=StorageCapExTable,
                                 doc='Storage construction/expansion capital cost for selected increment [$/bbl]')
+    
+    model.p_kappa_Treatment     = Param(model.s_R,model.s_J,default=10,
+                                initialize=TreatmentCapExTable,
+                                doc='Treatment construction/expansion capital cost for selected increment [$/bbl]')
 
     model.p_kappa_Pipeline      = Param(model.s_L,model.s_L,model.s_D,default=5,
                                 initialize=PipelineCapExTable,
@@ -528,7 +543,7 @@ def create_model(df_sets,df_parameters):
     def CostObjectiveFunctionRule(model):
         return model.v_Z == (model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
                             + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
-                            + model.v_C_StorageCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
+                            + model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
     model.CostObjectiveFunction = Constraint(rule=CostObjectiveFunctionRule, doc='Cost objective function')
 
     # model.CostObjectiveFunction.pprint()
@@ -1165,12 +1180,19 @@ def create_model(df_sets,df_parameters):
 
     # model.DisposalCapacity.pprint()
 
+    def TreatmentCapacityExpansionRule(model,r):
+        return (model.v_T_Capacity[r] == 
+                model.p_sigma_Treatment[r] + sum(model.p_delta_Treatment[j] * model.vb_y_Treatment[r,j] for j in model.s_J) + model.v_S_TreatmentCapacity[r])
+    model.TreatmentCapacityExpansion = Constraint(model.s_R,rule=TreatmentCapacityExpansionRule, doc='Treatment capacity construction/expansion')
+
+    # model.TreatmentCapacityExpansion.pprint()
+
     def TreatmentCapacityRule(model,r,t):
         return (sum(model.v_F_Piped[n,r,t] for n in model.s_N if model.p_NRA[n,r]) + 
                 sum(model.v_F_Piped[s,r,t] for s in model.s_S if model.p_SRA[s,r]) +
                 sum(model.v_F_Trucked[p,r,t] for p in model.s_PP if model.p_PRT[p,r]) + 
                 sum(model.v_F_Trucked[p,r,t] for p in model.s_CP if model.p_CRT[p,r])
-                <= model.p_sigma_Treatment[r] + model.v_S_TreatmentCapacity[r])
+                <= model.v_T_Capacity[r])
     model.TreatmentCapacity = Constraint(model.s_R,model.s_T,rule=TreatmentCapacityRule, doc='Treatment capacity')
 
     # model.TreatmentCapacity.pprint()
@@ -1182,6 +1204,8 @@ def create_model(df_sets,df_parameters):
                 sum(model.v_F_Trucked[p,r,t] for p in model.s_CP if model.p_CRT[p,r]))
                 == sum(model.v_F_Piped[r,p,t] for p in model.s_CP if model.p_RCA[r,p]))
     model.TreatmentBalance = Constraint(model.s_R,model.s_T,rule=TreatmentBalanceRule, doc='Treatment balance')
+
+    # model.TreatmentBalance.pprint()
 
     def BeneficialReuseCapacityRule(model,o,t):
         return (sum(model.v_F_Piped[n,o,t] for n in model.s_N if model.p_NOA[n,o]) + 
@@ -1582,6 +1606,12 @@ def create_model(df_sets,df_parameters):
 
     # model.StorageExpansionCapEx.pprint()
 
+    def TreatmentExpansionCapExRule(model):
+        return model.v_C_TreatmentCapEx == sum(sum(model.vb_y_Treatment[r,j] * model.p_kappa_Treatment[r,j] * model.p_delta_Treatment[j] for r in model.s_R) for j in model.s_J)
+    model.TreatmentExpansionCapEx = Constraint(rule=TreatmentExpansionCapExRule, doc='Treatment construction or capacity expansion cost')
+
+    # model.TreatmentExpansionCapEx.pprint()
+
     def PipelineExpansionCapExRule(model):
         return model.v_C_PipelineCapEx == (
             sum(sum(sum(model.vb_y_Pipeline[p,p_tilde,d] * model.p_kappa_Pipeline[p,p_tilde,d] * model.p_delta_Pipeline[d] for p in model.s_PP if model.p_PCA[p,p_tilde]) for p_tilde in model.s_CP) for d in model.s_D) + 
@@ -1653,6 +1683,12 @@ def create_model(df_sets,df_parameters):
     model.LogicConstraintStorage = Constraint(model.s_S,rule=LogicConstraintStorageRule,doc='Logic constraint storage')
 
     # model.LogicConstraintStorage.pprint()
+
+    def LogicConstraintTreatmentRule(model,r):
+        return sum(model.vb_y_Treatment[r,j] for j in model.s_J) == 1
+    model.LogicConstraintTreatment = Constraint(model.s_R,rule=LogicConstraintTreatmentRule,doc='Logic constraint treatment')
+
+    # model.LogicConstraintTreatment.pprint()
 
     def LogicConstraintPipelineRule(model,l,l_tilde):
         if l in model.s_PP and l_tilde in model.s_CP:
@@ -1924,6 +1960,13 @@ def print_results(model):
             if model.vb_y_Disposal[k,i].value != None and model.vb_y_Disposal[k,i].value > 0:
                 print(model.vb_y_Disposal[k,i], '=', model.vb_y_Disposal[k,i].value)
     
+    # Treatment expansion
+
+    for r in model.s_R:
+        for j in model.s_J:
+            if model.vb_y_Treatment[r,j].value != None and model.vb_y_Treatment[r,j].value > 0:
+                print(model.vb_y_Treatment[r,j], '=', model.vb_y_Treatment[r,j].value)       
+
     # Storage expansion
 
     for s in model.s_S:
@@ -1931,7 +1974,6 @@ def print_results(model):
             if model.vb_y_Storage[s,c].value != None and model.vb_y_Storage[s,c].value > 0:
                 print(model.vb_y_Storage[s,c], '=', model.vb_y_Storage[s,c].value)
         
-
     if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
@@ -1996,6 +2038,7 @@ def print_results(model):
     print('Total Storage Credit = $', model.v_R_TotalStorage.value, '\n')
 
     print('Total Disposal Capex = $', model.v_C_DisposalCapEx.value)
+    print('Total Treatment Capex = $', model.v_C_TreatmentCapEx.value)
     print('Total Storage Capex = $', model.v_C_StorageCapEx.value)
     print('Total Pipeline Capex = $', model.v_C_PipelineCapEx.value, '\n')
 
@@ -2021,7 +2064,7 @@ if __name__ == '__main__':
     set_list = ['ProductionPads', 'ProductionTanks','CompletionsPads',
 			 'SWDSites','FreshwaterSources','StorageSites','TreatmentSites',
 			 'ReuseOptions','NetworkNodes','PipelineDiameters','StorageCapacities',
-             'InjectionCapacities']
+             'InjectionCapacities','TreatmentCapacities']
     parameter_list = ['PNA','CNA','CCA','NNA','NCA','NKA','NRA','NSA','FCA','RCA','RNA',
 			          'SNA','PCT','PKT','FCT','CST','CCT','CKT','TruckingTime','CompletionsDemand',
 			          'PadRates','FlowbackRates','InitialPipelineCapacity','InitialDisposalCapacity',
@@ -2029,7 +2072,7 @@ if __name__ == '__main__':
 			          'CompletionsPadStorage','DisposalOperationalCost','TreatmentOperationalCost',
 			          'ReuseOperationalCost','PipelineOperationalCost','FreshSourcingCost','TruckingHourlyCost',
 			          'PipelineCapacityIncrements','DisposalCapacityIncrements','InitialStorageCapacity',
-                      'StorageCapacityIncrements','TreatmentEfficiency']
+                      'StorageCapacityIncrements','TreatmentCapacityIncrements','TreatmentEfficiency']
 
     with resources.path('pareto.case_studies',
                         "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx") as fpath:
