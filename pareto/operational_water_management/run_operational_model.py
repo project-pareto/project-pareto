@@ -29,16 +29,18 @@ parameter_list = ['FCA', 'PCT', 'FCT', 'CCT', 'PKT', 'PRT', 'CKT', 'CRT',
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = '..\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx'
+fname = 'pareto\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx'
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
+df_parameters['MinTruckFlow'] = 75
+df_parameters['MaxTruckFlow'] = 37000
 # create mathematical model
 operational_model = create_model(df_sets, df_parameters,
                                  default={"has_pipeline_constraints": True,
                                           "production_tanks": ProdTank.individual})
 
 # import pyomo solver
-opt = SolverFactory("gurobi")
+opt = SolverFactory("cbc")
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()

@@ -1763,13 +1763,22 @@ def print_results(model):
                     print(model.v_F_PadStorageOut[p,t], '=', model.v_F_PadStorageOut[p,t].value)
 
 
-    if model.config.production_tanks == ProdTank.equalized:
+    if model.config.production_tanks == ProdTank.individual:
+        v_L_ProdTank_dict = [('Pad', 'Tank', 'Time', 'Produced Water')]
+        for t in model.s_T:
+            for a in model.s_A:
+                for p in model.s_P:
+                    if model.v_L_ProdTank[p,a,t].value != None and model.v_L_ProdTank[p,a,t].value > 0:
+                        v_L_ProdTank_dict.append((p, a, t, model.v_L_ProdTank[p,a,t].value))
+                        print(model.v_L_ProdTank[p,a,t], '=', model.v_L_ProdTank[p,a,t].value)
+
+    elif model.config.production_tanks == ProdTank.equalized:
         v_L_ProdTank_dict = [('Pad', 'Time', 'Produced Water')]
         for t in model.s_T:
             for p in model.s_P:
-                    if model.v_L_ProdTank[p,t].value != None and model.v_L_ProdTank[p,t].value > 0:
-                        v_L_ProdTank_dict.append((p, t, model.v_L_ProdTank[p,t].value))
-                        print(model.v_L_ProdTank[p,t], '=', model.v_L_ProdTank[p,t].value)
+                if model.v_L_ProdTank[p,t].value != None and model.v_L_ProdTank[p,t].value > 0:
+                    v_L_ProdTank_dict.append((p, t, model.v_L_ProdTank[p,t].value))
+                    print(model.v_L_ProdTank[p,t], '=', model.v_L_ProdTank[p,t].value)
 
     # Binary flow directions
 
