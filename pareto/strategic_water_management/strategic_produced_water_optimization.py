@@ -534,14 +534,14 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_M_Flow              = Param(default=9999999, doc='Big-M flow parameter [bbl/week]')
 
-    model.p_psi_FracDemand          = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_Production          = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_Flowback            = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_PipelineCapacity    = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_StorageCapacity     = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_DisposalCapacity    = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_TreatmentCapacity   = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_ReuseCapacity       = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_FracDemand          = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_Production          = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_Flowback            = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_PipelineCapacity    = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_StorageCapacity     = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_DisposalCapacity    = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_TreatmentCapacity   = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_ReuseCapacity       = Param(default=999999999999, doc='Slack cost parameter [$]')
 
     # model.p_sigma_Freshwater.pprint()
 
