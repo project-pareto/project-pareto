@@ -1873,15 +1873,6 @@ def generate_report(model, is_print=[]):
     slacks_dict = {}
     output_dict = {}
 
-
-    # # print (model.F_Piped['PP1','PP1'].domain)
-    
-    # v_L_ProdTank_dict = [('Pad', 'Time', 'Produced Water')]
-    # for i in model.v_L_ProdTank:
-    #     var_value = model.v_L_ProdTank[i].value
-    #     if var_value != None and var_value > 0:
-    #         v_L_ProdTank_dict.append((*i, var_value))
-
     # Piped water volumes 
     v_F_Pipe_dict = [('Origin', 'destination', 'Time', 'Piped water')]
     for i in model.v_F_Piped:
