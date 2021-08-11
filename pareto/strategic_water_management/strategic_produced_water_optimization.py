@@ -13,6 +13,7 @@
 # - Implemented KPI constraints (total piped/trucked/sourced/disposed/... volumes) [July 30]
 # - Implemented layflat modifications [August 5]
 # - Implemented treatment capacity expansion [August 10]
+# - Implemented alternative objectives (cost vs. reuse) via config argument [August 11]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -48,8 +49,10 @@ CONFIG.declare("alternate_objectives", ConfigValue(
 
 # Creation of a Concrete Model
 
-def create_model(df_sets,df_parameters):
+def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
+    # import config dictionary
+    model.config = CONFIG(default)
     
     ## Define sets ##
 
@@ -544,21 +547,29 @@ def create_model(df_sets,df_parameters):
 
     ## Define cost objective function ##
 
-    def CostObjectiveFunctionRule(model):
-        return model.v_Z == (model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
-                            + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
-                            + model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
-    model.CostObjectiveFunction = Constraint(rule=CostObjectiveFunctionRule, doc='Cost objective function')
+    if model.config.alternate_objectives == AltObjectives.cost:
+        def CostObjectiveFunctionRule(model):
+            return model.v_Z == (model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
+                                + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
+                                + model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
+        model.CostObjectiveFunction = Constraint(rule=CostObjectiveFunctionRule, doc='Cost objective function')
 
-    # model.CostObjectiveFunction.pprint()
+        # model.CostObjectiveFunction.pprint()
 
-    # ## Define reuse objective function ##
+    ## Define reuse objective function ##
 
-    # def ReuseObjectiveFunctionRule(model):
-    #     return model.v_Z == (model.v_F_TotalReused/model.p_beta_TotalProd)
-    # model.ReuseObjectiveFunction = Constraint(rule=ReuseObjectiveFunctionRule, doc='Reuse objective function')
+    elif model.config.alternate_objectives == AltObjectives.reuse:  
+        def ReuseObjectiveFunctionRule(model):
+            return model.v_Z == -(model.v_F_TotalReused/model.p_beta_TotalProd) + 1/38446652 * (
+                               model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
+                               + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
+                               + model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
+        model.ReuseObjectiveFunction = Constraint(rule=ReuseObjectiveFunctionRule, doc='Reuse objective function')
 
-    # model.ReuseObjectiveFunction.pprint()
+        # model.ReuseObjectiveFunction.pprint()
+
+    else:
+        raise Exception('objective not supported')
 
     ## Define constraints ##
 
