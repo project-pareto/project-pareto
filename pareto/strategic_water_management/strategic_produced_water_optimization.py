@@ -484,21 +484,25 @@ def create_model(df_sets,df_parameters):
                                 doc='Pipeline segment length [miles]')
 
     model.p_kappa_Disposal      = Param(model.s_K,model.s_I,default=20,
-                                initialize=DisposalCapExTable,
+                                initialize=df_parameters['DisposalExpansionCost'],
                                 doc='Disposal construction/expansion capital cost for selected increment [$/bbl]')    
 
     model.p_kappa_Storage       = Param(model.s_S,model.s_C,default=0.1,
-                                initialize=StorageCapExTable,
+                                initialize=df_parameters['StorageExpansionCost'],
                                 doc='Storage construction/expansion capital cost for selected increment [$/bbl]')
     
     model.p_kappa_Treatment     = Param(model.s_R,model.s_J,default=10,
-                                initialize=TreatmentCapExTable,
+                                initialize=df_parameters['TreatmentExpansionCost'],
                                 doc='Treatment construction/expansion capital cost for selected increment [$/bbl]')
 
     model.p_kappa_Pipeline      = Param(model.s_L,model.s_L,model.s_D,default=5,
-                                initialize=PipelineCapExTable,
+                                initialize=df_parameters['PipelineExpansionCost'],
                                 doc='Pipeline construction/expansion capital cost for selected increment [$/bbl]')                            
 
+    # model.p_kappa_Disposal.pprint()
+    # model.p_kappa_Storage.pprint()
+    # model.p_kappa_Treatment.pprint()
+    # model.p_kappa_Pipeline.pprint()
 
     model.p_pi_Disposal         = Param(model.s_K,default=9999999,
                                 initialize=df_parameters['DisposalOperationalCost'],
@@ -1845,7 +1849,8 @@ def print_results(model):
 
     # print (model.F_Piped['PP1','PP1'].domain)
 
-    # model.v_F_Capacity.pprint()
+    # model.v_F_Capacity['N23','N24'].pprint()
+    # model.v_F_Capacity['N24','N23'].pprint()
 
     # # Piped water volumes 
 
@@ -2072,7 +2077,8 @@ if __name__ == '__main__':
 			          'CompletionsPadStorage','DisposalOperationalCost','TreatmentOperationalCost',
 			          'ReuseOperationalCost','PipelineOperationalCost','FreshSourcingCost','TruckingHourlyCost',
 			          'PipelineCapacityIncrements','DisposalCapacityIncrements','InitialStorageCapacity',
-                      'StorageCapacityIncrements','TreatmentCapacityIncrements','TreatmentEfficiency']
+                      'StorageCapacityIncrements','TreatmentCapacityIncrements','TreatmentEfficiency',
+                      'DisposalExpansionCost','StorageExpansionCost','TreatmentExpansionCost','PipelineExpansionCost']
 
     with resources.path('pareto.case_studies',
                         "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx") as fpath:
