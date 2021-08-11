@@ -1836,243 +1836,355 @@ def create_model(df_sets, df_parameters, default={}):
                                 doc='Objective function')
 
     return model
+class PrintValues(Enum):
+    Detailed = 0  
+    Nominal = 1  
+    Essential = 2 
 
-def print_results(model):
+    
+
+def generate_report(model, is_print=[]):
 
     # ## Printing model sets, parameters, constraints, variable values ##
+    
+    printing_list = []
 
-    # model.v_Z.pprint()
-    # # model.L.pprint()
-    # # model.F_Piped.pprint()
-    # # model.SpecificManagementCost.pprint()
-    # # model.ManagementCost.pprint()
-    # # model.ReuseCredit.pprint()
-    # # model.TotalCost.pprint()
-    # # model.C_Mgmt.pprint()
-    # # model.R_Reuse.pprint()
-    # # model.TotalCost.pprint()
-    # # model.FlowBalance['TR1'].pprint()
-    # # model.CapacityLimit['DS1'].pprint()
-    # # model.FlowBalance.pprint()
-    # # model.CapacityLimit.pprint()
+    # Detailed: Slacks values included, Same as "All"
+    if PrintValues.Detailed in is_print:
+        printing_list = ['v_F_Piped','v_F_Trucked','v_F_Sourced','v_F_PadStorageIn', 
+                    'v_F_PadStorageOut','v_C_Piped','v_C_Trucked','v_C_Sourced','v_C_Disposal',
+                    'v_C_Reuse','v_L_Storage','vb_y_Pipeline','vb_y_Disposal','vb_y_Storage',
+                    'v_C_TotalSourced','v_C_TotalDisposal','v_C_TotalTreatment','v_C_TotalReuse',
+                    'v_C_TotalPiping','v_C_TotalStorage','v_C_TotalTrucking','v_C_Slack','vb_y_FLow'
+                    'v_R_TotalStorage','v_C_DisposalCapEx','v_C_StorageCapEx','v_C_PipelineCapEx',
+                    'v_F_TotalSourced','v_F_TotalDisposed','p_beta_TotalProd','v_F_TotalReused',
+                    'Overview']
+    
+    # Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
+    if PrintValues.Nominal in is_print:
+        printing_list = ['v_F_Piped','v_F_Trucked','v_F_Sourced','v_C_Piped','v_C_Trucked',
+                    'v_C_Sourced','vb_y_Pipeline','vb_y_Disposal','vb_y_Storage','vb_y_Flow','Overview']
 
-    print('The objective function value is $', model.v_Z.value, '\n')
+     # Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+    if PrintValues.Essential in is_print:
+        printing_list = ['Overview'] 
 
-    # print (model.F_Piped['PP1','PP1'].domain)
+    solution_dict = {}
+    slacks_dict = {}
+    output_dict = {}
 
-    # model.v_F_Capacity['N23','N24'].pprint()
-    # model.v_F_Capacity['N24','N23'].pprint()
 
-    # # Piped water volumes 
+    # # print (model.F_Piped['PP1','PP1'].domain)
+    
+    # v_L_ProdTank_dict = [('Pad', 'Time', 'Produced Water')]
+    # for i in model.v_L_ProdTank:
+    #     var_value = model.v_L_ProdTank[i].value
+    #     if var_value != None and var_value > 0:
+    #         v_L_ProdTank_dict.append((*i, var_value))
 
-    # for t in model.s_T:
-    #     for l in model.s_L:
-    #         for l_hat in model.s_L:
-    #             if model.v_F_Piped[l,l_hat,t].value != None and model.v_F_Piped[l,l_hat,t].value > 0:
-    #                 print(model.v_F_Piped[l,l_hat,t], '=', model.v_F_Piped[l,l_hat,t].value)
+    # Piped water volumes 
+    v_F_Pipe_dict = [('Origin', 'destination', 'Time', 'Piped water')]
+    for i in model.v_F_Piped:
+        var_value = model.v_F_Piped[i].value
+        if var_value != None and var_value > 0:
+            v_F_Pipe_dict.append((*i, var_value))
+
+    # Piping costs 
+    v_C_Piped_dict = [('Origin', 'Destination', 'Time', 'Cost piping')]
+    for i in model.v_C_Piped:
+        var_value = model.v_C_Piped[i].value
+        if var_value != None and var_value > 0:
+            v_C_Piped_dict.append((*i, var_value))
 
     # Trucked water volumes
+    v_F_Trucked_dict = [('Origin', 'Destination', 'Time', 'Trucked water')]
+    for i in model.v_F_Trucked :
+        var_value = model.v_F_Trucked[i].value
+        if var_value != None and var_value > 0:
+            v_F_Trucked_dict.append((*i, var_value))
 
-    for t in model.s_T:
-        for l in model.s_L:
-            for l_hat in model.s_L:
-                if model.v_F_Trucked[l,l_hat,t].value != None and model.v_F_Trucked[l,l_hat,t].value > 0:
-                    print(model.v_F_Trucked[l,l_hat,t], '=', model.v_F_Trucked[l,l_hat,t].value)
+    # Trucking costs 
+    v_C_Trucked_dict = [('Origin', 'Destination', 'Time', 'Cost trucking')]
+    for i in model.v_C_Trucked:
+        var_value = model.v_C_Trucked[i].value
+        if var_value != None and var_value > 0:
+            v_C_Trucked_dict.append((*i, var_value))
 
     # Sourced freshwater volumes
+    v_F_Sourced_dict = [('Fresh water source', 'Completion pad', 'Time', 'Sourced water')]
+    for i in model.v_F_Sourced:
+        var_value = model.v_F_Sourced[i].value
+        if var_value != None and var_value > 0:
+            v_F_Sourced_dict.append((*i, var_value))
 
-    for t in model.s_T:
-        for f in model.s_F:
-            for p in model.s_CP:
-                if model.v_F_Sourced[f,p,t].value != None and model.v_F_Sourced[f,p,t].value > 0:
-                    print(model.v_F_Sourced[f,p,t], '=', model.v_F_Sourced[f,p,t].value)
+    # Sourcing costs 
+    v_C_Sourced_dict = [('Fresh water source', 'Completion pad', 'Time', 'Cost sourced water')]
+    for i in model.v_C_Sourced:
+        var_value = model.v_C_Sourced[i].value
+        if var_value != None and var_value > 0:
+            v_C_Sourced_dict.append((*i, var_value))
 
     # Storage in completions pad
-
-    for t in model.s_T:
-        for p in model.s_CP:
-                if model.v_F_PadStorageIn[p,t].value != None and model.v_F_PadStorageIn[p,t].value > 0:
-                    print(model.v_F_PadStorageIn[p,t], '=', model.v_F_PadStorageIn[p,t].value)
+    v_F_PadStorageIn_dict = [('Completion pad', 'Time', 'StorageIn')]
+    for i in model.v_F_PadStorageIn:
+        var_value = model.v_F_PadStorageIn[i].value
+        if var_value != None and var_value > 0:
+            v_F_PadStorageIn_dict.append((*i, var_value))
 
     # Storage out completions pad
+    v_F_PadStorageOut_dict = [('Completion pad', 'Time', 'StorageOut')]
+    for i in model.v_F_PadStorageOut:
+        var_value = model.v_F_PadStorageOut[i].value
+        if var_value != None and var_value > 0:
+            v_F_PadStorageOut_dict.append((*i, var_value))
 
-    for t in model.s_T:
-            for p in model.s_CP:
-                    if model.v_F_PadStorageOut[p,t].value != None and model.v_F_PadStorageOut[p,t].value > 0:
-                        print(model.v_F_PadStorageOut[p,t], '=', model.v_F_PadStorageOut[p,t].value)
+    # Disposal costs 
+    v_C_Disposal_dict = [('Disposal site', 'Time', 'Cost of disposal')]
+    for i in model.v_C_Disposal:
+        var_value = model.v_C_Disposal[i].value
+        if var_value != None and var_value > 0:
+            v_C_Disposal_dict.append((*i, var_value)) 
 
-    # Binary flow directions
+    # Treatment costs 
+    v_C_Treatment_dict = [('Treatment site', 'Time', 'Cost of Treatment')]
+    for i in model.v_C_Treatment:
+        var_value = model.v_C_Treatment[i].value
+        if var_value != None and var_value > 0:
+            v_C_Treatment_dict.append((*i, var_value)) 
 
-    # for t in model.s_T:
-    #     for l in model.s_L:
-    #         for l_hat in model.s_L:
-    #             if model.vb_y_Flow[l,l_hat,t].value != None and model.vb_y_Flow[l,l_hat,t].value > 0:
-    #                 print(model.vb_y_Flow[l,l_hat,t], '=', model.vb_y_Flow[l,l_hat,t].value)
+    # Reuse costs
+    v_C_Reuse_dict = [('Completion pad', 'Time', 'Cost of reuse')]
+    for i in model.v_C_Reuse:
+        var_value = model.v_C_Reuse[i].value
+        if var_value != None and var_value > 0:
+            v_C_Reuse_dict.append((*i, var_value))  
 
-    # Frac demand slack variables
+    # Storage costs
+    v_C_Storage_dict = [('Storage Site', 'Time', 'Cost of Storage')]
+    for i in model.v_C_Storage:
+        var_value = model.v_C_Storage[i].value
+        if var_value != None and var_value > 0:
+            v_C_Storage_dict.append((*i, var_value)) 
 
-    for t in model.s_T:
-        for p in model.s_CP:
-                if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value > 0:
-                    print(model.v_S_FracDemand[p,t], '=', model.v_S_FracDemand[p,t].value)
+    # Storage costs
+    v_R_Storage_dict = [('Storage Site', 'Time', 'Credit of Retrieving Produced Water')]
+    for i in model.v_R_Storage:
+        var_value = model.v_R_Storage[i].value
+        if var_value != None and var_value > 0:
+            v_R_Storage_dict.append((*i, var_value))
 
-    # # Piping costs 
-
-    # for t in model.s_T:
-    #     for l in model.s_L:
-    #         for l_hat in model.s_L:
-    #             if model.v_C_Piped[l,l_hat,t].value != None and model.v_C_Piped[l,l_hat,t].value > 0:
-    #                 print(model.v_C_Piped[l,l_hat,t], '=', model.v_C_Piped[l,l_hat,t].value)
-
-    # # Trucking costs 
-
-    # for t in model.s_T:
-    #     for l in model.s_L:
-    #         for l_hat in model.s_L:
-    #             if model.v_C_Trucked[l,l_hat,t].value != None and model.v_C_Trucked[l,l_hat,t].value > 0:
-    #                 print(model.v_C_Trucked[l,l_hat,t], '=', model.v_C_Trucked[l,l_hat,t].value)
-
-    # # Sourcing costs 
-
-    # for t in model.s_T:
-    #     for f in model.s_F:
-    #         for p in model.s_CP:
-    #             if model.v_C_Sourced[f,p,t].value != None and model.v_C_Sourced[f,p,t].value > 0:
-    #                 print(model.v_C_Sourced[f,p,t], '=', model.v_C_Sourced[f,p,t].value)  
-
-    # # Disposal costs 
-    
-    # for t in model.s_T:
-    #     for k in model.s_K:
-    #         if model.v_C_Disposal[k,t].value != None and model.v_C_Disposal[k,t].value > 0:
-    #             print(model.v_C_Disposal[k,t], '=', model.v_C_Disposal[k,t].value)   
-
-    # # Reuse costs
-    
-    # for t in model.s_T:
-    #     for p in model.s_CP:
-    #         if model.v_C_Reuse[p,t].value != None and model.v_C_Reuse[p,t].value > 0:
-    #             print(model.v_C_Reuse[p,t], '=', model.v_C_Reuse[p,t].value)    
-    
     # Storage levels
+    v_L_StorageLevels_dict = [('Storage site', 'Time', 'Storage Levels')]
+    for i in model.v_L_Storage:
+        var_value = model.v_L_Storage[i].value
+        if var_value != None and var_value > 0:
+            v_L_StorageLevels_dict.append((*i, var_value))
 
-    for t in model.s_T:
-        for s in model.s_S:
-            if model.v_L_Storage[s,t].value != None and model.v_L_Storage[s,t].value > 0:
-                print(model.v_L_Storage[s,t], '=', model.v_L_Storage[s,t].value)
+    # Pad Storage levels
+    v_L_PadStorage_dict = [('Completion pad', 'Time', 'Storage Levels')]
+    for i in model.v_L_PadStorage:
+        var_value = model.v_L_PadStorage[i].value
+        if var_value != None and var_value > 0:
+            v_L_PadStorage_dict.append((*i, var_value))
 
     # Pipeline expansion
-
-    for d in model.s_D:
-        for l in model.s_L:
-            for l_hat in model.s_L:
-                if model.vb_y_Pipeline[l,l_hat,d].value != None and model.vb_y_Pipeline[l,l_hat,d].value > 0:
-                    print(model.vb_y_Pipeline[l,l_hat,d], '=', model.vb_y_Pipeline[l,l_hat,d].value)
+    vb_y_PipelineExpansion_dict = [('Origin', 'Destination', 'Pipeline Diameter', 'Pipeline Installation')]
+    for i in model.vb_y_Pipeline:
+        var_value = model.vb_y_Pipeline[i].value
+        if var_value != None and var_value > 0:
+            vb_y_PipelineExpansion_dict.append((*i, var_value))
 
     # Disposal expansion
-
-    for i in model.s_I:
-        for k in model.s_K:
-            if model.vb_y_Disposal[k,i].value != None and model.vb_y_Disposal[k,i].value > 0:
-                print(model.vb_y_Disposal[k,i], '=', model.vb_y_Disposal[k,i].value)
+    vb_y_DisposalExpansion_dict = [('Disposal Site', 'Injection Capacity', 'Disposal')]
+    for i in model.vb_y_Disposal:
+        var_value = model.vb_y_Disposal[i].value
+        if var_value != None and var_value > 0:
+            vb_y_DisposalExpansion_dict.append((*i, var_value))
     
-    # Treatment expansion
-
-    for r in model.s_R:
-        for j in model.s_J:
-            if model.vb_y_Treatment[r,j].value != None and model.vb_y_Treatment[r,j].value > 0:
-                print(model.vb_y_Treatment[r,j], '=', model.vb_y_Treatment[r,j].value)       
-
     # Storage expansion
+    vb_y_StorageExpansion_dict = [('Storage Site', 'Storage Capacity', 'Storage Expansion')]
+    for i in model.vb_y_Storage:
+        var_value = model.vb_y_Storage[i].value
+        if var_value != None and var_value > 0:
+            vb_y_StorageExpansion_dict.append((*i, var_value))
 
-    for s in model.s_S:
-        for c in model.s_C:
-            if model.vb_y_Storage[s,c].value != None and model.vb_y_Storage[s,c].value > 0:
-                print(model.vb_y_Storage[s,c], '=', model.vb_y_Storage[s,c].value)
-        
+    # Binary flow directions
+    vb_y_Flow_dict = [('Origin', 'Destination', 'Time', 'Flow')]
+    for i in model.vb_y_Flow:
+        var_value = model.vb_y_Flow[i].value
+        if var_value != None and var_value > 0:
+            vb_y_Flow_dict.append((*i, var_value)) 
+
+    # Disposal Site Capacity
+    v_D_Capacity_dict = [('Disposal Site', 'Disposal Site Capacity')]
+    for i in model.v_D_Capacity:
+        var_value = model.v_D_Capacity[i].value
+        if var_value != None and var_value > 0:
+            v_D_Capacity_dict.append((i, var_value))
+
+    # Storage Site Capacity
+    v_X_Capacity_dict = [('Storage Site', 'Storage Site Capacity')]
+    for i in model.v_X_Capacity:
+        var_value = model.v_X_Capacity[i].value
+        if var_value != None and var_value > 0:
+            v_X_Capacity_dict.append((i, var_value))
+
+    # Storage Site Capacity
+    v_F_Capacity_dict = [('Origin', 'Destination', 'Flow Capacity')]
+    for i in model.v_F_Capacity:
+        var_value = model.v_F_Capacity[i].value
+        if var_value != None and var_value > 0:
+            v_F_Capacity_dict.append((*i, var_value))
+
+    # Economics, Volumes, KPIs Overview Variables
+    v_F_Overview_dict = [('Variable Name', 'Documentation', 'Total')]
+    v_F_Overview_dict.append(('Economics','',''))
+    v_F_Overview_dict.append((model.v_Z.name, model.v_Z.doc, model.v_Z.value))
+    v_F_Overview_dict.append((model.v_C_TotalSourced.name, model.v_C_TotalSourced.doc, model.v_C_TotalSourced.value))
+    v_F_Overview_dict.append((model.v_C_TotalDisposal.name, model.v_C_TotalDisposal.doc, model.v_C_TotalDisposal.value))
+    v_F_Overview_dict.append((model.v_C_TotalTreatment.name, model.v_C_TotalTreatment.doc, model.v_C_TotalTreatment.value))
+    v_F_Overview_dict.append((model.v_C_TotalReuse.name, model.v_C_TotalReuse.doc, model.v_C_TotalReuse.value))
+    v_F_Overview_dict.append((model.v_C_TotalPiping.name, model.v_C_TotalPiping.doc, model.v_C_TotalPiping.value))
+    v_F_Overview_dict.append((model.v_C_TotalStorage.name, model.v_C_TotalStorage.doc, model.v_C_TotalStorage.value))
+    v_F_Overview_dict.append((model.v_C_TotalTrucking.name, model.v_C_TotalTrucking.doc, model.v_C_TotalTrucking.value))
+    v_F_Overview_dict.append((model.v_C_Slack.name, model.v_C_Slack.doc, model.v_C_Slack.value))
+    v_F_Overview_dict.append((model.v_R_TotalStorage.name, model.v_R_TotalStorage.doc, model.v_R_TotalStorage.value))
+
+    # Adding Blank line in between data on excel sheet
+    v_F_Overview_dict.append(('','',''))
+
+    v_F_Overview_dict.append((model.v_C_DisposalCapEx.name,  model.v_C_DisposalCapEx.doc,  model.v_C_DisposalCapEx.value))
+    v_F_Overview_dict.append((model.v_C_StorageCapEx.name,  model.v_C_StorageCapEx.doc,  model.v_C_StorageCapEx.value))
+    v_F_Overview_dict.append((model.v_C_PipelineCapEx.name,  model.v_C_PipelineCapEx.doc,  model.v_C_PipelineCapEx.value))
+
+    # Adding Blank line in between data on excel sheet with heading
+    v_F_Overview_dict.append(('','',''))
+    v_F_Overview_dict.append(('Volumes','',''))
+    v_F_Overview_dict.append((model.v_F_TotalSourced.name,  model.v_F_TotalSourced.doc,  model.v_F_TotalSourced.value))
+    v_F_Overview_dict.append((model.v_F_TotalDisposed.name,  model.v_F_TotalDisposed.doc,  model.v_F_TotalDisposed.value))
+    v_F_Overview_dict.append((model.p_beta_TotalProd.name,  model.p_beta_TotalProd.doc,  model.p_beta_TotalProd.value))
+    v_F_Overview_dict.append((model.v_F_TotalReused.name,  model.v_F_TotalReused.doc,  model.v_F_TotalReused.value))
+    v_F_Overview_dict.append((model.v_F_TotalTrucked.name,  model.v_F_TotalTrucked.doc,  model.v_F_TotalTrucked.value))
+
+    # Adding Blank line in between data on excel sheet with heading
+    v_F_Overview_dict.append(('','',''))
+    v_F_Overview_dict.append(('KPIs','',''))
+
+    reuse_WaterKPI = (model.v_F_TotalReused.value)/(model.p_beta_TotalProd.value)*100
+    v_F_Overview_dict.append(('Reuse Produced Water KPI',  'Reuse Fraction Produced Water = [%]',  reuse_WaterKPI))
+
+    disposal_WaterKPI = (model.v_F_TotalDisposed.value)/(model.p_beta_TotalProd.value)*100
+    v_F_Overview_dict.append(('Disposal Produced Water KPI',  'Disposal Fraction Produced Water = [%]',  disposal_WaterKPI))
+
+    fresh_CompletionsDemandKPI = (model.v_F_TotalSourced.value)/(model.p_gamma_TotalDemand.value)*100
+    v_F_Overview_dict.append(('Fresh Completions Demand KPI',  'Fresh Fraction Completions Demand = [%]',  fresh_CompletionsDemandKPI))
+
+    reuse_CompletionsDemandKPI = (model.v_F_TotalReused.value)/(model.p_gamma_TotalDemand.value)*100
+    v_F_Overview_dict.append(('Reuse Completions Demand KPI',  'Reuse Fraction Completions Demand = [%]',  reuse_CompletionsDemandKPI))
+
+
     if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
         # Frac demand slack variables
-
-        for t in model.s_T:
-            for p in model.s_CP:
-                    if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value > 0:
-                        print(model.v_S_FracDemand[p,t], '=', model.v_S_FracDemand[p,t].value)
+        v_S_FracDemand_dict = [('Completion pad', 'Time', 'Slack FracDemand')]
+        for i in model.v_S_FracDemand:
+            var_value = model.v_S_FracDemand[i].value
+            if var_value != None and var_value > 0:
+                v_S_FracDemand_dict.append((*i, var_value))
 
         # Production slack variables
-
-        for t in model.s_T:
-            for p in model.s_PP:
-                    if model.v_S_Production[p,t].value != None and model.v_S_Production[p,t].value > 0:
-                        print(model.v_S_Production[p,t], '=', model.v_S_Production[p,t].value)
+        v_S_Production_dict = [('Production pad', 'Time', 'Slack Production')]
+        for i in model.v_S_Production:
+            var_value = model.v_S_Production[i].value
+            if var_value != None and var_value > 0:
+                v_S_Production_dict.append((*i, var_value))
         
         # Flowback slack variables
-
-        for t in model.s_T:
-            for p in model.s_CP:
-                if model.v_S_Flowback[p,t].value != None and model.v_S_Flowback[p,t].value > 0:
-                        print(model.v_S_Flowback[p,t], '=', model.v_S_Flowback[p,t].value)
+        v_S_Flowback_dict = [('Completion pad', 'Time', 'Slack Flowback')]
+        for i in model.v_S_Flowback:
+            var_value = model.v_S_Flowback[i].value
+            if var_value != None and var_value > 0:
+                v_S_Flowback_dict.append((*i, var_value))
 
         # Pipeline capacity slack variables
-
-        for l in model.s_L: 
-            for l_tilde in model.s_L:
-                if model.v_S_PipelineCapacity[l,l_tilde].value != None and model.v_S_PipelineCapacity[l,l_tilde].value > 0:
-                        print(model.v_S_PipelineCapacity[l,l_tilde], '=', model.v_S_PipelineCapacity[l,l_tilde].value)
+        v_S_PipelineCapacity_dict = [('Origin', 'Destination', 'Slack Pipeline Capacity')]
+        for i in model.v_S_PipelineCapacity:
+            var_value = model.v_S_PipelineCapacity[i].value
+            if var_value != None and var_value > 0:
+                v_S_PipelineCapacity_dict.append((*i, var_value))
         
         # Storage capacity slack variables
+        v_S_StorageCapacity_dict = [('Storage site', 'Slack Storage Capacity')]
+        for i in model.v_S_StorageCapacity:
+            var_value = model.v_S_StorageCapacity[i].value
+            if var_value != None and var_value > 0:
+                v_S_StorageCapacity_dict.append((i, var_value))
 
-        for s in model.s_S:
-            if model.v_S_StorageCapacity[s].value != None and model.v_S_StorageCapacity[s].value > 0:
-                print(model.v_S_StorageCapacity[s], '=', model.v_S_StorageCapacity[s].value)
+        # Storage capacity slack variables
+        v_S_DisposalCapacity_dict = [('Storage site', 'Slack Disposal Capacity')]
+        for i in model.v_S_DisposalCapacity:
+            var_value = model.v_S_DisposalCapacity[i].value
+            if var_value != None and var_value > 0:
+                v_S_DisposalCapacity_dict.append((i, var_value))
         
-        # Disposal capacity slack variables
-
-        for r in model.s_R:
-            if model.v_S_TreatmentCapacity[r].value != None and model.v_S_TreatmentCapacity[r].value > 0:
-                print(model.v_S_TreatmentCapacity[r], '=', model.v_S_TreatmentCapacity[r].value)
+        # Treatment capacity slack variables
+        v_S_TreatmentCapacity_dict = [('Treatment site', 'Slack Treatment Capacity')]
+        for i in model.v_S_TreatmentCapacity:
+            var_value = model.v_S_TreatmentCapacity[i].value
+            if var_value != None and var_value > 0:
+                v_S_TreatmentCapacity_dict.append((i, var_value))
 
         # Reuse capacity slack variables
+        v_S_ReuseCapacity_dict = [('Reuse site', 'Slack Reuse Capacity')]
+        for i in model.v_S_ReuseCapacity:
+            var_value = model.v_S_ReuseCapacity[i].value
+            if var_value != None and var_value > 0:
+                v_S_ReuseCapacity_dict.append((i, var_value))
 
-        for o in model.s_O:
-            if model.v_S_ReuseCapacity[o].value != None and model.v_S_ReuseCapacity[o].value > 0:
-                print(model.v_S_ReuseCapacity[o], '=', model.v_S_ReuseCapacity[o].value)
+        slacks_dict = {'v_S_FracDemand': v_S_FracDemand_dict, 
+                    'v_S_Production': v_S_Production_dict,
+                    'v_S_Flowback': v_S_Flowback_dict, 
+                    'v_S_PipelineCapacity': v_S_PipelineCapacity_dict,
+                    'v_S_StorageCapacity': v_S_StorageCapacity_dict, 
+                    'v_S_TreatmentCapacity': v_S_TreatmentCapacity_dict,
+                    'v_S_DisposalCapacity': v_S_DisposalCapacity_dict,
+                    'v_S_ReuseCapacity': v_S_ReuseCapacity_dict}
 
-    
-    print('\n Economics, Volumes and KPIs \n')
-
-    # Economics
-    
-    print('Total Disposal Cost = $', model.v_C_TotalDisposal.value)
-    print('Total Treatment Cost = $', model.v_C_TotalTreatment.value)
-    print('Total Reuse Cost = $', model.v_C_TotalReuse.value)
-    print('Total Piping Cost = $', model.v_C_TotalPiping.value)
-    print('Total Storage Cost = $', model.v_C_TotalStorage.value)
-    print('Total Trucking Cost = $', model.v_C_TotalTrucking.value)
-    print('Total Fresh Sourced Cost = $', model.v_C_TotalSourced.value)
-    print('Total Storage Credit = $', model.v_R_TotalStorage.value, '\n')
-
-    print('Total Disposal Capex = $', model.v_C_DisposalCapEx.value)
-    print('Total Treatment Capex = $', model.v_C_TreatmentCapEx.value)
-    print('Total Storage Capex = $', model.v_C_StorageCapEx.value)
-    print('Total Pipeline Capex = $', model.v_C_PipelineCapEx.value, '\n')
+    solution_dict = {'Overview': v_F_Overview_dict, 'v_F_Pipe': v_F_Pipe_dict, 
+                    'v_F_Trucked': v_F_Trucked_dict,
+                    'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
+                    'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_C_Piped': v_C_Piped_dict,
+                    'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
+                    'v_C_Disposal': v_C_Disposal_dict, 'v_C_Reuse': v_C_Reuse_dict,
+                    'v_C_Storage': v_C_Storage_dict, 'v_R_Storage': v_R_Storage_dict,
+                    'v_C_Treatment': v_C_Treatment_dict, 'v_L_Storage': v_L_StorageLevels_dict,
+                    'v_L_PadStorage': v_L_PadStorage_dict,
+                    'vb_y_Pipeline': vb_y_PipelineExpansion_dict, 
+                    'vb_y_Disposal': vb_y_DisposalExpansion_dict, 
+                    'vb_y_Storage': vb_y_StorageExpansion_dict, 'vb_y_Flow': vb_y_Flow_dict,
+                    'v_D_Capacity': v_D_Capacity_dict, 'v_X_Capacity': v_X_Capacity_dict,
+                    'v_F_Capacity': v_F_Capacity_dict}
 
 
-    # Volumes
-    print('Total Fresh Sourced Volume = ', model.v_F_TotalSourced.value, 'bbl')
-    print('Total Disposal Volume = ', model.v_F_TotalDisposed.value, 'bbl')
-    print('Total Produced Volume = ', model.p_beta_TotalProd.value, 'bbl')    
-    print('Total Reused Volume = ', model.v_F_TotalReused.value, 'bbl')
-    print('Total Trucked Volume = ', model.v_F_TotalTrucked.value, 'bbl \n')
+    output_dict = {**solution_dict, **slacks_dict}
 
-    # KPIs
-    print('Reuse Fraction Produced Water = ', (model.v_F_TotalReused.value)/(model.p_beta_TotalProd.value)*100, '%')
-    print('Disposal Fraction Produced Water = ', (model.v_F_TotalDisposed.value)/(model.p_beta_TotalProd.value)*100, '%')
-    print('Fresh Fraction Completions Demand = ', (model.v_F_TotalSourced.value)/(model.p_gamma_TotalDemand.value)*100, '%')
-    print('Reuse Fraction Completions Demand = ', (model.v_F_TotalReused.value)/(model.p_gamma_TotalDemand.value)*100, '%')
+    # Loop for printing Overview Information
+    for i in list(output_dict.items())[:1]:
+            if i[0] in printing_list:
+                    print('\n','='*10, i[0].upper(),'='*10)
+                    print(i[1][0])
+                    for j in i[1][1:]:
+                            print('{0} = {1}'.format(j[:-1], j[-1]))
 
-    return model
+    for i in list(output_dict.items())[1:]:
+        if i[0] in printing_list:
+                print('\n','='*10, i[0].upper(),'='*10)
+                print(i[1][0])
+                for j in i[1][1:]:
+                        print('{0}{1} = {2}'.format(i[0], j[:-1], j[-1]))
+
+    return model, output_dict
 
 if __name__ == '__main__':
     # This emulates what the pyomo command-line tools does
