@@ -26,7 +26,7 @@ import pyomo.environ
 from pyomo.common.config import ConfigBlock, ConfigValue, In
 from enum import Enum
 
-class AltObjectives(Enum):
+class Objectives(Enum):
     cost = 0
     reuse = 1
  
@@ -41,9 +41,9 @@ CONFIG.declare("has_pipeline_constraints", ConfigValue(
 **Valid values:** {
 **True** - construct pipeline constraints,
 **False** - do not construct pipeline constraints}"""))
-CONFIG.declare("alternate_objectives", ConfigValue(
-    default=AltObjectives.cost,
-    domain=In(AltObjectives),
+CONFIG.declare("objective", ConfigValue(
+    default=Objectives.cost,
+    domain=In(Objectives),
     description='alternate objectives selection',
     doc='Alternate objective functions (i.e., minimize cost, maximize reuse)'))
 
@@ -547,7 +547,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define cost objective function ##
 
-    if model.config.alternate_objectives == AltObjectives.cost:
+    if model.config.objective == Objectives.cost:
         def CostObjectiveFunctionRule(model):
             return model.v_Z == (model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
                                 + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
@@ -558,7 +558,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define reuse objective function ##
 
-    elif model.config.alternate_objectives == AltObjectives.reuse:  
+    elif model.config.objective == Objectives.reuse:  
         def ReuseObjectiveFunctionRule(model):
             return model.v_Z == -(model.v_F_TotalReused/model.p_beta_TotalProd) + 1/38446652 * (
                                model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
