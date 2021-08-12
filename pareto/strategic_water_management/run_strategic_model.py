@@ -29,7 +29,7 @@ parameter_list = ['PNA','CNA','CCA','NNA','NCA','NKA','NRA','NSA','FCA','RCA','R
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = 'input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx'
+fname = 'case_studies\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx'
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 # create mathematical model

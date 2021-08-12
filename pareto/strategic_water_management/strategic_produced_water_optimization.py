@@ -77,7 +77,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define continuous variables ##
 
-    model.v_Z           = Var(within=Reals, doc='Objective funcation variable [$]')
+    model.v_Z           = Var(within=Reals, doc='Objective function variable [$]')
 
     model.v_F_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity piped from location l to location l [bbl/week]')
     model.v_F_Trucked   = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity trucked from location l to location l [bbl/week]')
@@ -1843,42 +1843,6 @@ class PrintValues(Enum):
     Essential = 2   
 
 def generate_report(model, is_print=[]):
-
-    print('The objective function value is $', model.v_Z.value, '\n')
-
-    print('\n Economics, Volumes and KPIs \n')
-
-    # Economics
-    
-    print('Total Disposal Cost = $', model.v_C_TotalDisposal.value)
-    print('Total Treatment Cost = $', model.v_C_TotalTreatment.value)
-    print('Total Reuse Cost = $', model.v_C_TotalReuse.value)
-    print('Total Piping Cost = $', model.v_C_TotalPiping.value)
-    print('Total Storage Cost = $', model.v_C_TotalStorage.value)
-    print('Total Trucking Cost = $', model.v_C_TotalTrucking.value)
-    print('Total Fresh Sourced Cost = $', model.v_C_TotalSourced.value)
-    print('Total Storage Credit = $', model.v_R_TotalStorage.value, '\n')
-
-    print('Total Disposal Capex = $', model.v_C_DisposalCapEx.value)
-    print('Total Treatment Capex = $', model.v_C_TreatmentCapEx.value)
-    print('Total Storage Capex = $', model.v_C_StorageCapEx.value)
-    print('Total Pipeline Capex = $', model.v_C_PipelineCapEx.value, '\n')
-
-
-    # Volumes
-    print('Total Fresh Sourced Volume = ', model.v_F_TotalSourced.value, 'bbl')
-    print('Total Disposal Volume = ', model.v_F_TotalDisposed.value, 'bbl')
-    print('Total Produced Volume = ', model.p_beta_TotalProd.value, 'bbl')    
-    print('Total Reused Volume = ', model.v_F_TotalReused.value, 'bbl')
-    print('Total Trucked Volume = ', model.v_F_TotalTrucked.value, 'bbl \n')
-
-    # KPIs
-    print('Reuse Fraction Produced Water = ', (model.v_F_TotalReused.value)/(model.p_beta_TotalProd.value)*100, '%')
-    print('Disposal Fraction Produced Water = ', (model.v_F_TotalDisposed.value)/(model.p_beta_TotalProd.value)*100, '%')
-    print('Fresh Fraction Completions Demand = ', (model.v_F_TotalSourced.value)/(model.p_gamma_TotalDemand.value)*100, '%')
-    print('Reuse Fraction Completions Demand = ', (model.v_F_TotalReused.value)/(model.p_gamma_TotalDemand.value)*100, '%')
-
-    # ## Printing model sets, parameters, constraints, variable values ##
     
     printing_list = []
 
@@ -1891,10 +1855,10 @@ def generate_report(model, is_print=[]):
                     'v_C_TotalSourced','v_C_TotalDisposal','v_C_TotalTreatment','v_C_TotalReuse',
                     'v_C_TotalPiping','v_C_TotalStorage','v_C_TotalTrucking','v_C_Slack','vb_y_FLow'
                     'v_R_TotalStorage','v_C_DisposalCapEx','v_C_StorageCapEx','v_C_PipelineCapEx',
-#                    'v_C_TreatmentCapEx',
+                    'v_C_TreatmentCapEx',
                     'v_F_TotalSourced','v_F_TotalDisposed','p_beta_TotalProd','v_F_TotalReused',
                     'Overview']
-    
+
     # Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
     if PrintValues.Nominal in is_print:
         printing_list = ['v_F_Piped','v_F_Trucked','v_F_Sourced','v_C_Piped','v_C_Trucked',
@@ -2034,12 +1998,12 @@ def generate_report(model, is_print=[]):
         if var_value != None and var_value > 0:
             vb_y_StorageExpansion_dict.append((*i, var_value))
 
-    # # Treatment expansion
-    # vb_y_TreatmentExpansion_dict = [('Treatment Site', 'Treatment Capacity', 'True/False')]
-    # for i in model.vb_y_Treatment:
-    #     var_value = model.vb_y_Storage[i].value
-    #     if var_value != None and var_value > 0:
-    #         vb_y_TreatmentExpansion_dict.append((*i, var_value))
+    # Treatment expansion
+    vb_y_TreatmentExpansion_dict = [('Treatment Site', 'Treatment Capacity', 'True/False')]
+    for i in model.vb_y_Treatment:
+        var_value = model.vb_y_Treatment[i].value
+        if var_value != None and var_value > 0:
+            vb_y_TreatmentExpansion_dict.append((*i, var_value))
 
     # Binary flow directions
     vb_y_Flow_dict = [('Origin', 'Destination', 'Time', 'True/False')]
@@ -2086,7 +2050,7 @@ def generate_report(model, is_print=[]):
     # Adding Blank line in between data on excel sheet
     v_F_Overview_dict.append(('','',''))
     v_F_Overview_dict.append((model.v_C_DisposalCapEx.name,  model.v_C_DisposalCapEx.doc,  model.v_C_DisposalCapEx.value))
-#    v_F_Overview_dict.append((model.v_C_TreatmentCapEx.name, model.v_C_TreatmentCapex.doc, model.v_C_TreatmentCapEx.value))
+    v_F_Overview_dict.append((model.v_C_TreatmentCapEx.name, model.v_C_TreatmentCapEx.doc, model.v_C_TreatmentCapEx.value))
     v_F_Overview_dict.append((model.v_C_StorageCapEx.name,  model.v_C_StorageCapEx.doc,  model.v_C_StorageCapEx.value))
     v_F_Overview_dict.append((model.v_C_PipelineCapEx.name,  model.v_C_PipelineCapEx.doc,  model.v_C_PipelineCapEx.value))
 
@@ -2183,7 +2147,7 @@ def generate_report(model, is_print=[]):
                     'v_S_DisposalCapacity': v_S_DisposalCapacity_dict,
                     'v_S_ReuseCapacity': v_S_ReuseCapacity_dict}
 
-    solution_dict = {'Overview': v_F_Overview_dict, 'v_F_Pipe': v_F_Pipe_dict, 
+    solution_dict = {'Overview': v_F_Overview_dict, 'v_F_Piped': v_F_Pipe_dict, 
                     'v_F_Trucked': v_F_Trucked_dict,
                     'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
                     'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_C_Piped': v_C_Piped_dict,
@@ -2195,18 +2159,12 @@ def generate_report(model, is_print=[]):
                     'vb_y_Pipeline': vb_y_PipelineExpansion_dict, 
                     'vb_y_Disposal': vb_y_DisposalExpansion_dict, 
                     'vb_y_Storage': vb_y_StorageExpansion_dict, 'vb_y_Flow': vb_y_Flow_dict,
+                    'vb_y_Treatment': vb_y_TreatmentExpansion_dict,
                     'v_D_Capacity': v_D_Capacity_dict, 'v_X_Capacity': v_X_Capacity_dict,
                     'v_F_Capacity': v_F_Capacity_dict}
 
     output_dict = {**solution_dict, **slacks_dict}
 
-    # Loop for printing Overview Information
-    for i in list(output_dict.items())[:1]:
-            if i[0] in printing_list:
-                    print('\n','='*10, i[0].upper(),'='*10)
-                    print(i[1][0])
-                    for j in i[1][1:]:
-                            print('{0} = {1}'.format(j[:-1], j[-1]))
 
     for i in list(output_dict.items())[1:]:
         if i[0] in printing_list:
@@ -2214,7 +2172,56 @@ def generate_report(model, is_print=[]):
                 print(i[1][0])
                 for j in i[1][1:]:
                         print('{0}{1} = {2}'.format(i[0], j[:-1], j[-1]))
+    
 
+    # Loop for printing Overview Information
+    for i in list(output_dict.items())[:1]:
+            if i[0] in printing_list:
+                    print('\n','='*10, i[0].upper(),'='*10)
+                    # print(i[1][1][0])
+                    for j in i[1][1:]:
+                        if not j[0]:  # Conditional that checks if a blank line should be added
+                            print()
+                        elif not j[1]:  # Conditional that checks if the header for a section should be added
+                            print(j[0].upper())
+                        else:
+                            print('{0} = {1}'.format(j[1], j[2]))
+
+    # if 'Overview' in printing_list:
+    #     print('\n','='*10, 'OVERVIEW','='*10)
+    #     print('\n Economics, Volumes and KPIs \n')
+
+    #     print('The objective function value is $', model.v_Z.value, '\n')
+
+    #     # Economics
+    #     print('Total Disposal Cost = $', model.v_C_TotalDisposal.value)
+    #     print('Total Treatment Cost = $', model.v_C_TotalTreatment.value)
+    #     print('Total Reuse Cost = $', model.v_C_TotalReuse.value)
+    #     print('Total Piping Cost = $', model.v_C_TotalPiping.value)
+    #     print('Total Storage Cost = $', model.v_C_TotalStorage.value)
+    #     print('Total Trucking Cost = $', model.v_C_TotalTrucking.value)
+    #     print('Total Fresh Sourced Cost = $', model.v_C_TotalSourced.value)
+    #     print('Total Storage Credit = $', model.v_R_TotalStorage.value, '\n')
+
+    #     print('Total Disposal Capex = $', model.v_C_DisposalCapEx.value)
+    #     print('Total Treatment Capex = $', model.v_C_TreatmentCapEx.value)
+    #     print('Total Storage Capex = $', model.v_C_StorageCapEx.value)
+    #     print('Total Pipeline Capex = $', model.v_C_PipelineCapEx.value, '\n')
+
+    #     # Volumes
+    #     print('Total Fresh Sourced Volume = ', model.v_F_TotalSourced.value, 'bbl')
+    #     print('Total Disposal Volume = ', model.v_F_TotalDisposed.value, 'bbl')
+    #     print('Total Produced Volume = ', model.p_beta_TotalProd.value, 'bbl')    
+    #     print('Total Reused Volume = ', model.v_F_TotalReused.value, 'bbl')
+    #     print('Total Trucked Volume = ', model.v_F_TotalTrucked.value, 'bbl \n')
+
+    #     # KPIs
+    #     print('Reuse Fraction Produced Water = ', (model.v_F_TotalReused.value)/(model.p_beta_TotalProd.value)*100, '%')
+    #     print('Disposal Fraction Produced Water = ', (model.v_F_TotalDisposed.value)/(model.p_beta_TotalProd.value)*100, '%')
+    #     print('Fresh Fraction Completions Demand = ', (model.v_F_TotalSourced.value)/(model.p_gamma_TotalDemand.value)*100, '%')
+    #     print('Reuse Fraction Completions Demand = ', (model.v_F_TotalReused.value)/(model.p_gamma_TotalDemand.value)*100, '%')
+
+    # ## Printing model sets, parameters, constraints, variable values ##
     return model, output_dict
 
 if __name__ == '__main__':
