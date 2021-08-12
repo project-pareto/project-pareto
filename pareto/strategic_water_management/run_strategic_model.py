@@ -29,23 +29,23 @@ parameter_list = ['PNA','CNA','CCA','NNA','NCA','NKA','NRA','NSA','FCA','RCA','R
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = 'input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx'
+fname = 'C:\\Users\\drouvenm\\Desktop\\Temp\\PARETO-LOCAL\\Strategic-Case-Study\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx'
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 # create mathematical model
-strategic_model = create_model(df_sets, df_parameters, default={"objective": Objectives.reuse})
+strategic_model = create_model(df_sets, df_parameters, default={"objective": Objectives.cost})
 
 # import pyomo solver
-opt = SolverFactory("cbc")
-opt.options['seconds'] = 60
-# opt.options['tmlim'] = 60
-# opt.options['mipgap'] = 0
+opt = SolverFactory("gurobi")
+# opt.options['seconds'] = 60
+opt.options['timeLimit'] = 60
+opt.options['mipgap'] = 0
 # solve mathematical model
 results = opt.solve(strategic_model, tee=True)
 results.write()
 print("\nDisplaying Solution\n" + '-'*60)
 [model, results_dict] = generate_report(strategic_model, is_print=[PrintValues.Detailed])
-fname = 'strategic_optimization_results.xlsx'
+fname = 'C:\\Users\\drouvenm\\Desktop\\Temp\\PARETO-LOCAL\\Strategic-Case-Study\\strategic_optimization_results.xlsx'
 with pd.ExcelWriter(fname) as writer:
         for i in results_dict:
                 df = pd.DataFrame(results_dict[i][1:], columns = results_dict[i][0])

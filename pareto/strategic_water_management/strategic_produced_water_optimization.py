@@ -14,6 +14,7 @@
 # - Implemented layflat modifications [August 5]
 # - Implemented treatment capacity expansion [August 10]
 # - Implemented alternative objectives (cost vs. reuse) via config argument [August 11]
+# - Implemented reuse/disposal deliveries variables/constraints/results [August 12]
 
 # Import
 from pyomo.environ import (Var, Param, Set, ConcreteModel, Constraint, Objective, minimize,
@@ -112,6 +113,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_TotalTrucking  = Var(within=NonNegativeReals, doc='Total cost of trucking produced water [$]')
     model.v_C_Slack          = Var(within=NonNegativeReals, doc='Total cost of slack variables [$]')
     model.v_R_TotalStorage   = Var(within=NonNegativeReals, doc='Total credit for withdrawing produced water [$]')
+
+    model.v_F_ReuseDestination    = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Total deliveries to completions pad [bbl/week]')
+    model.v_F_DisposalDestination = Var(model.s_K,model.s_T,within=NonNegativeReals, doc='Total deliveries to disposal site [bbl/week]')
 
     model.v_D_Capacity       = Var(model.s_K,within=NonNegativeReals, doc='Disposal capacity at a disposal site [bbl/week]')
     model.v_X_Capacity       = Var(model.s_S,within=NonNegativeReals, doc='Storage capacity at a storage site [bbl/week]')
@@ -534,14 +538,14 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_M_Flow              = Param(default=9999999, doc='Big-M flow parameter [bbl/week]')
 
-    model.p_psi_FracDemand          = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_Production          = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_Flowback            = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_PipelineCapacity    = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_StorageCapacity     = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_DisposalCapacity    = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_TreatmentCapacity   = Param(default=999999999999, doc='Slack cost parameter [$]')
-    model.p_psi_ReuseCapacity       = Param(default=999999999999, doc='Slack cost parameter [$]')
+    model.p_psi_FracDemand          = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_Production          = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_Flowback            = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_PipelineCapacity    = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_StorageCapacity     = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_DisposalCapacity    = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_TreatmentCapacity   = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_ReuseCapacity       = Param(default=999999999, doc='Slack cost parameter [$]')
 
     # model.p_sigma_Freshwater.pprint()
 
@@ -1805,6 +1809,18 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
     model.LogicConstraintPipeline = Constraint(model.s_L,model.s_L,rule=LogicConstraintPipelineRule, doc='Logic constraint pipelines')
 
+    def ReuseDestinationDeliveriesRule(model,p,t):
+        return (model.v_F_ReuseDestination[p,t] == sum(model.v_F_Piped[l,p,t] + model.v_F_Trucked[l,p,t] for l in model.s_L))
+    model.ReuseDestinationDeliveries = Constraint(model.s_CP,model.s_T,rule=ReuseDestinationDeliveriesRule, doc='Reuse destinations volume')
+
+    # model.ReuseDestinationDeliveries.pprint()
+
+    def DisposalDestinationDeliveriesRule(model,k,t):
+        return (model.v_F_DisposalDestination[k,t] == sum(model.v_F_Piped[l,k,t] + model.v_F_Trucked[l,k,t] for l in model.s_L))
+    model.DisposalDestinationDeliveries = Constraint(model.s_K,model.s_T,rule=DisposalDestinationDeliveriesRule, doc='Disposal destinations volume')
+
+    # model.DisposalDestinationDeliveries.pprint()
+
     # model.LogicConstraintPipeline['N17','CP03'].pprint()
 
     ## Fixing Decision Variables ##
@@ -1846,6 +1862,9 @@ def generate_report(model, is_print=[]):
 
     print('The objective function value is $', model.v_Z.value, '\n')
 
+    # model.v_F_ReuseDestination.pprint()
+    # model.v_F_DisposalDestination.pprint()
+
     print('\n Economics, Volumes and KPIs \n')
 
     # Economics
@@ -1885,13 +1904,12 @@ def generate_report(model, is_print=[]):
     # Detailed: Slacks values included, Same as "All"
     if PrintValues.Detailed in is_print:
         printing_list = ['v_F_Piped','v_F_Trucked','v_F_Sourced','v_F_PadStorageIn', 
-                    'v_F_PadStorageOut','v_C_Piped','v_C_Trucked','v_C_Sourced','v_C_Disposal',
+                    'v_F_PadStorageOut','v_F_ReuseDestination','v_F_DisposalDestination','v_C_Piped','v_C_Trucked','v_C_Sourced','v_C_Disposal',
                     'v_C_Reuse','v_L_Storage','vb_y_Pipeline','vb_y_Disposal','vb_y_Storage',
                     'vb_y_Treatment',
                     'v_C_TotalSourced','v_C_TotalDisposal','v_C_TotalTreatment','v_C_TotalReuse',
                     'v_C_TotalPiping','v_C_TotalStorage','v_C_TotalTrucking','v_C_Slack','vb_y_FLow'
-                    'v_R_TotalStorage','v_C_DisposalCapEx','v_C_StorageCapEx','v_C_PipelineCapEx',
-#                    'v_C_TreatmentCapEx',
+                    'v_R_TotalStorage','v_C_DisposalCapEx','v_C_StorageCapEx','v_C_PipelineCapEx','v_C_TreatmentCapEx',
                     'v_F_TotalSourced','v_F_TotalDisposed','p_beta_TotalProd','v_F_TotalReused',
                     'Overview']
     
@@ -1951,18 +1969,32 @@ def generate_report(model, is_print=[]):
             v_C_Sourced_dict.append((*i, var_value))
 
     # Storage in completions pad
-    v_F_PadStorageIn_dict = [('Completion pad', 'Time', 'Storage In')]
+    v_F_PadStorageIn_dict = [('Completions Pad', 'Time', 'Storage In')]
     for i in model.v_F_PadStorageIn:
         var_value = model.v_F_PadStorageIn[i].value
         if var_value != None and var_value > 0:
             v_F_PadStorageIn_dict.append((*i, var_value))
 
     # Storage out completions pad
-    v_F_PadStorageOut_dict = [('Completion pad', 'Time', 'Storage Out')]
+    v_F_PadStorageOut_dict = [('Completions Pad', 'Time', 'Storage Out')]
     for i in model.v_F_PadStorageOut:
         var_value = model.v_F_PadStorageOut[i].value
         if var_value != None and var_value > 0:
             v_F_PadStorageOut_dict.append((*i, var_value))
+
+    # Reuse destination volumes
+    v_F_ReuseDestination_dict = [('Completions Pad', 'Time', 'Volume')]
+    for i in model.v_F_ReuseDestination:
+        var_value = model.v_F_ReuseDestination[i].value
+#        if var_value != None and var_value > 0:
+        v_F_ReuseDestination_dict.append((*i, var_value))
+
+    # Disposal destination volumes
+    v_F_DisposalDestination_dict = [('Disposal Site', 'Time', 'Volume')]
+    for i in model.v_F_DisposalDestination:
+        var_value = model.v_F_DisposalDestination[i].value
+#        if var_value != None and var_value > 0:
+        v_F_DisposalDestination_dict.append((*i, var_value))
 
     # Disposal costs 
     v_C_Disposal_dict = [('Disposal site', 'Time', 'Disposal Costs')]
@@ -1979,7 +2011,7 @@ def generate_report(model, is_print=[]):
             v_C_Treatment_dict.append((*i, var_value)) 
 
     # Reuse costs
-    v_C_Reuse_dict = [('Completion pad', 'Time', 'Reuse Costs')]
+    v_C_Reuse_dict = [('Completions Pad', 'Time', 'Reuse Costs')]
     for i in model.v_C_Reuse:
         var_value = model.v_C_Reuse[i].value
         if var_value != None and var_value > 0:
@@ -2187,6 +2219,7 @@ def generate_report(model, is_print=[]):
                     'v_F_Trucked': v_F_Trucked_dict,
                     'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
                     'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_C_Piped': v_C_Piped_dict,
+                    'v_F_ReuseDestination': v_F_ReuseDestination_dict,'v_F_DisposalDestination': v_F_DisposalDestination_dict,
                     'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
                     'v_C_Disposal': v_C_Disposal_dict, 'v_C_Reuse': v_C_Reuse_dict,
                     'v_C_Storage': v_C_Storage_dict, 'v_R_Storage': v_R_Storage_dict,
