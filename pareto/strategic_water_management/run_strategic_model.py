@@ -33,13 +33,13 @@ fname = 'case_studies\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 # create mathematical model
-strategic_model = create_model(df_sets, df_parameters, default={"objective": Objectives.reuse})
+strategic_model = create_model(df_sets, df_parameters, default={"objective": Objectives.cost})
 
 # import pyomo solver
 opt = SolverFactory("cbc")
 opt.options['seconds'] = 60
-# opt.options['tmlim'] = 60
-# opt.options['mipgap'] = 0
+# opt.options['timeLimit'] = 60
+opt.options['mipgap'] = 0
 # solve mathematical model
 results = opt.solve(strategic_model, tee=True)
 results.write()
