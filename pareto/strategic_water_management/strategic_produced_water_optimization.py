@@ -54,6 +54,7 @@ def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
     # import config dictionary
     model.config = CONFIG(default)
+    model.type = "strategic"
     
     ## Define sets ##
 
@@ -2286,5 +2287,5 @@ if __name__ == '__main__':
     print("\nDisplaying Solution\n" + '-'*60)
     # pyomo_postprocess(None, model, results)
     # print results
-    print_results(strategic_model)
+    generate_report(strategic_model)
 
