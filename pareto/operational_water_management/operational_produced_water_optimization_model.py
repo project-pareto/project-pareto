@@ -305,8 +305,10 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_SCT              = Param(model.s_S,model.s_CP,default=0,initialize=SCT_Table, doc='Valid storage-to-completions trucking arcs [-]')
     model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
     model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
-    
-    df_parameters['LLT'] =   {**df_parameters['PCT'], **df_parameters['CCT'], **df_parameters['CRT'], **df_parameters['CKT'], **df_parameters['FCT']}
+
+    df_parameters['LLT'] =   {**df_parameters['PCT'], **df_parameters['FCT'], **df_parameters['PKT'], **df_parameters['PRT'],
+                                **df_parameters['CKT'], **df_parameters['CRT'], **df_parameters['CCT']}
+
     model.p_LLT              = Param(model.s_L, model.s_L, default=0, initialize=df_parameters['LLT'], doc='Valid location-to-location trucking arcs [-]')
     if model.config.production_tanks == ProdTank.individual:
         model.p_PAL     = Param(model.s_P,model.s_A,
