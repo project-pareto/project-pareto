@@ -2,7 +2,7 @@
 # 
 ##############################################################################
 from pareto.strategic_water_management.\
-    strategic_produced_water_optimization import (create_model,Objectives,
+    strategic_produced_water_optimization import (create_variables,create_model,Objectives,
                                                           generate_report, PrintValues)
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -84,8 +84,10 @@ model.p_sigma_Treatment    = Param(model.s_R,default=0,
 							initialize=df_parameters['InitialTreatmentCapacity'],
 							doc='Initial weekly treatment capacity at treatment site [bbl/week]') 
 
+strategic_model = create_variables(model, df_sets, df_parameters)
+
 # create mathematical model
-strategic_model = create_model(model, df_sets, df_parameters, default={"objective": Objectives.cost})
+strategic_model = create_model(strategic_model, df_sets, df_parameters, default={"objective": Objectives.cost})
 
 # import pyomo solver
 opt = SolverFactory("cbc")

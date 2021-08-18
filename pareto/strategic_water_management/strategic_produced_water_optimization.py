@@ -50,10 +50,7 @@ CONFIG.declare("objective", ConfigValue(
 
 # Creation of a Concrete Model
 
-def create_model(model, df_sets, df_parameters, default={}):
-
-    # import config dictionary
-    model.config = CONFIG(default)
+def create_variables(model, df_sets, df_parameters):
     
 
     # model.s_P.pprint()
@@ -501,7 +498,12 @@ def create_model(model, df_sets, df_parameters, default={}):
     model.p_psi_ReuseCapacity       = Param(default=999999999, doc='Slack cost parameter [$]')
 
     # model.p_sigma_Freshwater.pprint()
+    return model
 
+def create_model(model, df_sets, df_parameters, default={}):
+
+    # import config dictionary
+    model.config = CONFIG(default)
     ## Define cost objective function ##
 
     if model.config.objective == Objectives.cost:
