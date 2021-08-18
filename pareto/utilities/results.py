@@ -36,14 +36,17 @@ def generate_report(model, is_print=[]):
                         'v_S_TreatmentCapacity','v_S_ReuseCapacity']
         
         # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
-        if is_print[0].value == 1:
+        elif is_print[0].value == 1:
             printing_list = ['v_F_Piped','v_F_Trucked','v_F_Sourced','v_C_Piped','v_C_Trucked',
                         'v_C_Sourced','vb_y_Pipeline','vb_y_Disposal','vb_y_Storage','vb_y_Flow',
                         'vb_y_Treatment','v_F_Overview']
 
         # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-        if is_print[0].value == 2:
+        elif is_print[0].value == 2:
             printing_list = ['v_F_Overview'] 
+        
+        else:
+            raise Exception('Report {0} not supported'.format(is_print))
 
         headers = {'v_F_Overview_dict':[('Variable Name', 'Documentation', 'Total')],'v_F_Piped_dict':[('Origin', 'destination', 'Time', 'Piped water')],
                 'v_C_Piped_dict':[('Origin', 'Destination', 'Time', 'Cost piping')],'v_F_Trucked_dict':[('Origin', 'Destination', 'Time', 'Trucked water')],
@@ -93,13 +96,16 @@ def generate_report(model, is_print=[]):
                         'v_D_Capacity','v_X_Capacity','v_F_Capacity']
         
         # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
-        if is_print[0].value == 1:
+        elif is_print[0].value == 1:
             printing_list = ['v_F_Piped','v_F_Trucked','v_F_Sourced','v_C_Piped','v_C_Trucked',
                         'v_C_Sourced','vb_y_Pipeline','vb_y_Disposal','vb_y_Storage','vb_y_Flow','v_F_Overview']
 
         # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-        if is_print[0].value == 2:
+        elif is_print[0].value == 2:
             printing_list = ['v_F_Overview'] 
+        
+        else:
+            raise Exception('Report {0} not supported'.format(is_print))          
 
         headers = {'v_F_Overview_dict':[('Variable Name', 'Documentation', 'Total')],'v_F_Piped_dict':[('Origin', 'destination', 'Time', 'Piped water')],
                 'v_C_Piped_dict':[('Origin', 'Destination', 'Time', 'Cost piping')],'v_F_Trucked_dict':[('Origin', 'Destination', 'Time', 'Trucked water')],

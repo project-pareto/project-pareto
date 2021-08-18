@@ -2,11 +2,11 @@
 # 
 ##############################################################################
 from pareto.operational_water_management.\
-    operational_produced_water_optimization_model import (PrintValues, create_model,
+    operational_produced_water_optimization_model import (create_model,
                                                           ProdTank
                                                           )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report
+from pareto.utilities.results import (generate_report, PrintValues)
 from importlib import resources
 from pyomo.environ import SolverFactory
 

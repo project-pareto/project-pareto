@@ -1667,12 +1667,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     return model
 
-class PrintValues(Enum):
-    Detailed = 0  
-    Nominal = 1  
-    Essential = 2  
-
-
 if __name__ == '__main__':
     # This emulates what the pyomo command-line tools does
     # Tabs in the input Excel spreadsheet
