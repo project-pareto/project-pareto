@@ -504,48 +504,6 @@ def create_demo(model, default={}):
 
     # import config dictionary
     model.config = CONFIG(default)
-    ## Define cost objective function ##
-
-    if model.config.objective == Objectives.cost:
-        def CostObjectiveFunctionRule(model):
-            return model.v_Z == (model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
-                                + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
-                                + model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
-        model.CostObjectiveFunction = Constraint(rule=CostObjectiveFunctionRule, doc='Cost objective function')
-
-        # model.CostObjectiveFunction.pprint()
-
-    ## Define reuse objective function ##
-
-    elif model.config.objective == Objectives.reuse:  
-        def ReuseObjectiveFunctionRule(model):
-            return model.v_Z == -(model.v_F_TotalReused/model.p_beta_TotalProd) + 1/38446652 * (
-                               model.v_C_TotalSourced + model.v_C_TotalDisposal + model.v_C_TotalTreatment + model.v_C_TotalReuse
-                               + model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
-                               + model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
-        model.ReuseObjectiveFunction = Constraint(rule=ReuseObjectiveFunctionRule, doc='Reuse objective function')
-
-        # model.ReuseObjectiveFunction.pprint()
-
-    else:
-        raise Exception('objective not supported')
-
-    ## Define constraints ##
-
-    def CompletionsPadDemandBalanceRule(model,p,t):
-        return model.p_gamma_Completions[p,t] == (sum(model.v_F_Piped[n,p,t] for n in model.s_N if model.p_NCA[n,p])
-                                                + sum(model.v_F_Piped[p_tilde,p,t] for p_tilde in model.s_PP if model.p_PCA[p_tilde,p])
-                                                + sum(model.v_F_Piped[s,p,t] for s in model.s_S if model.p_SCA[s,p])
-                                                + sum(model.v_F_Piped[p_tilde,p,t] for p_tilde in model.s_CP if model.p_CCA[p_tilde,p])
-                                                + sum(model.v_F_Piped[r,p,t] for r in model.s_R if model.p_RCA[r,p])
-                                                + sum(model.v_F_Sourced[f,p,t] for f in model.s_F if model.p_FCA[f,p])
-                                                + sum(model.v_F_Trucked[p_tilde,p,t] for p_tilde in model.s_PP if model.p_PCT[p_tilde,p])
-                                                + sum(model.v_F_Trucked[p_tilde,p,t] for p_tilde in model.s_CP if model.p_CCT[p_tilde,p])
-                                                + sum(model.v_F_Trucked[s,p,t] for s in model.s_S if model.p_SCT[s,p])
-                                                + sum(model.v_F_Trucked[f,p,t] for f in model.s_F if model.p_FCT[f,p])
-                                                + model.v_F_PadStorageOut[p,t] - model.v_F_PadStorageIn[p,t]
-                                                + model.v_S_FracDemand[p,t]) 
-    model.CompletionsPadDemandBalance = Constraint(model.s_CP,model.s_T,rule=CompletionsPadDemandBalanceRule, doc='Completions pad demand balance')
 
     # model.CompletionsPadDemandBalance['CP02','T24'].pprint()
     return model
