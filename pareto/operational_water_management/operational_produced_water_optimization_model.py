@@ -136,6 +136,10 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_Slack          = Var(within=NonNegativeReals, doc='Total cost of slack variables [$')
     model.v_R_TotalStorage   = Var(within=NonNegativeReals, doc='Total credit for withdrawing produced water [$]')
 
+    model.v_F_ReuseDestination     = Var(model.s_CP,model.s_T,within=NonNegativeReals, doc='Total deliveries to completions pad [bbl/week]')
+    model.v_F_DisposalDestination  = Var(model.s_K,model.s_T,within=NonNegativeReals, doc='Total deliveries to disposal site [bbl/week]')
+    model.v_F_TreatmentDestination = Var(model.s_R,model.s_T,within=NonNegativeReals, doc='Total delliveries to treatment site [bbl/week]') 
+
     # COMMENT: Remove the disposal/storage/flow capacity variables
     model.v_D_Capacity       = Var(model.s_K,within=NonNegativeReals, doc='Disposal capacity at a disposal site [bbl/day]')
     model.v_X_Capacity       = Var(model.s_S,within=NonNegativeReals, doc='Storage capacity at a storage site [bbl/day]')
@@ -305,10 +309,8 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_SCT              = Param(model.s_S,model.s_CP,default=0,initialize=SCT_Table, doc='Valid storage-to-completions trucking arcs [-]')
     model.p_SKT              = Param(model.s_S,model.s_K,default=0,initialize=SKT_Table, doc='Valid storage-to-disposal trucking arcs [-]')
     model.p_RKT              = Param(model.s_R,model.s_K,default=0,initialize=RKT_Table, doc='Valid treatment-to-disposal trucking arcs [-]')
-
-    df_parameters['LLT'] =   {**df_parameters['PCT'], **df_parameters['FCT'], **df_parameters['PKT'], **df_parameters['PRT'],
-                                **df_parameters['CKT'], **df_parameters['CRT'], **df_parameters['CCT']}
-
+    
+    df_parameters['LLT'] =   {**df_parameters['PCT'], **df_parameters['CCT'], **df_parameters['CRT'], **df_parameters['CKT'], **df_parameters['FCT'], **df_parameters['PKT'], **df_parameters['PRT']}
     model.p_LLT              = Param(model.s_L, model.s_L, default=0, initialize=df_parameters['LLT'], doc='Valid location-to-location trucking arcs [-]')
     if model.config.production_tanks == ProdTank.individual:
         model.p_PAL     = Param(model.s_P,model.s_A,
@@ -584,7 +586,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_rho_Storage         = Param(model.s_S,default=0,
                                 initialize=StorageOperationalCreditTable,
                                 doc='Storage withdrawal operational credit [$/bbl]')
-    model.p_pi_Pipeline         = Param(model.s_L,model.s_L,default=0,
+    model.p_pi_Pipeline         = Param(model.s_L,model.s_L,default=999,
                                 initialize=df_parameters['PipingOperationalCost'],
                                 doc='Pipeline operational cost [$/bbl]')
     model.p_pi_Trucking        = Param(model.s_L,default=9999999,
@@ -596,6 +598,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.p_pi_Disposal.pprint()
     # model.p_pi_Reuse.pprint()
+    # model.p_pi_Pipeline.pprint()
 
     model.p_M_Flow              = Param(default=9999999, doc='Big-M flow parameter [bbl/day]')
 
@@ -1515,7 +1518,7 @@ def create_model(df_sets, df_parameters, default={}):
             for t in model.s_T))
     model.TotalPipingCost = Constraint(rule=TotalPipingCostRule, doc='Total piping cost')
 
-   # model.TotalPipingCost.pprint()
+    # model.TotalPipingCost.pprint()
 
     def StorageDepositCostRule(model,s,t):
         return model.v_C_Storage[s,t] == ((sum(model.v_F_Piped[n,s,t] for n in model.s_N if model.p_NSA[n,s])
@@ -1674,6 +1677,23 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.SlackCosts.pprint()
 
+    def ReuseDestinationDeliveriesRule(model,p,t):
+        return (model.v_F_ReuseDestination[p,t] == sum(model.v_F_Piped[l,p,t] + model.v_F_Trucked[l,p,t] for l in model.s_L))
+    model.ReuseDestinationDeliveries = Constraint(model.s_CP,model.s_T,rule=ReuseDestinationDeliveriesRule, doc='Reuse destinations volume')
+
+    # model.ReuseDestinationDeliveries.pprint()
+
+    def DisposalDestinationDeliveriesRule(model,k,t):
+        return (model.v_F_DisposalDestination[k,t] == sum(model.v_F_Piped[l,k,t] + model.v_F_Trucked[l,k,t] for l in model.s_L))
+    model.DisposalDestinationDeliveries = Constraint(model.s_K,model.s_T,rule=DisposalDestinationDeliveriesRule, doc='Disposal destinations volume')
+
+    # model.DisposalDestinationDeliveries.pprint()
+
+    def TreatmentDestinationDeliveriesRule(model,r,t):
+        return (model.v_F_TreatmentDestination[r,t] == sum(model.v_F_Piped[l,r,t] + model.v_F_Trucked[l,r,t] for l in model.s_L))
+    model.TreatmentDestinationDeliveries = Constraint(model.s_R,model.s_T,rule=TreatmentDestinationDeliveriesRule, doc='Treatment destinations volume')
+
+    # model.TreatmentDestinationDeliveries.pprint()
 
     ## Fixing Decision Variables ##
 
@@ -1694,6 +1714,7 @@ def create_model(df_sets, df_parameters, default={}):
 
 def print_results(model):
 
+    # model.v_C_Piped.pprint()
 
     # ## Printing model sets, parameters, constraints, variable values ##
 
@@ -1817,6 +1838,27 @@ def print_results(model):
                     v_C_Sourced_dict.append((f,p,t,model.v_C_Sourced[f,p,t].value))
                     print(model.v_C_Sourced[f,p,t], '=', model.v_C_Sourced[f,p,t].value)
 
+    # Reuse destination volumes
+    v_F_ReuseDestination_dict = [('Completions Pad', 'Time', 'Volume')]
+    for i in model.v_F_ReuseDestination:
+        var_value = model.v_F_ReuseDestination[i].value
+#        if var_value != None and var_value > 0:
+        v_F_ReuseDestination_dict.append((*i, var_value))
+
+    # Disposal destination volumes
+    v_F_DisposalDestination_dict = [('Disposal Site', 'Time', 'Volume')]
+    for i in model.v_F_DisposalDestination:
+        var_value = model.v_F_DisposalDestination[i].value
+#        if var_value != None and var_value > 0:
+        v_F_DisposalDestination_dict.append((*i, var_value))
+
+    # Treatment destination volumes
+    v_F_TreatmentDestination_dict = [('Treatment Site', 'Time', 'Volume')]
+    for i in model.v_F_TreatmentDestination:
+        var_value = model.v_F_TreatmentDestination[i].value
+#        if var_value != None and var_value > 0:
+        v_F_TreatmentDestination_dict.append((*i, var_value))        
+
     # Disposal costs
     v_C_Disposal_dict = [('Disposal site', 'Time', 'Cost of disposal')]
     for t in model.s_T:
@@ -1841,14 +1883,14 @@ def print_results(model):
     #             if model.vb_y_Pipeline[l,l_hat,d].value != None and model.vb_y_Pipeline[l,l_hat,d].value > 0:
     #                 print(model.vb_y_Pipeline[l,l_hat,d], '=', model.vb_y_Pipeline[l,l_hat,d].value)
 
-    if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
+    if model.v_C_Slack.value != None and model.v_C_Slack.value != 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
         # Frac demand slack variables
         v_S_FracDemand_dict = [('Completion pad', 'Time', 'Slack FracDemand')]
         for t in model.s_T:
             for p in model.s_CP:
-                if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value > 0:
+                if model.v_S_FracDemand[p,t].value != None and model.v_S_FracDemand[p,t].value != 0:
                     v_S_FracDemand_dict.append((p,t,model.v_S_FracDemand[p,t].value))
                     print(model.v_S_FracDemand[p,t], '=', model.v_S_FracDemand[p,t].value)
 
@@ -1856,7 +1898,7 @@ def print_results(model):
         v_S_Production_dict = [('Production pad', 'Time', 'Slack Production')]
         for t in model.s_T:
             for p in model.s_PP:
-                if model.v_S_Production[p,t].value != None and model.v_S_Production[p,t].value > 0:
+                if model.v_S_Production[p,t].value != None and model.v_S_Production[p,t].value != 0:
                     v_S_Production_dict.append((p,t,model.v_S_Production[p,t].value))
                     print(model.v_S_Production[p,t], '=', model.v_S_Production[p,t].value)
 
@@ -1864,7 +1906,7 @@ def print_results(model):
         v_S_Flowback_dict = [('Completion pad', 'Time', 'Slack Flowback')]
         for t in model.s_T:
             for p in model.s_CP:
-                if model.v_S_Flowback[p,t].value != None and model.v_S_Flowback[p,t].value > 0:
+                if model.v_S_Flowback[p,t].value != None and model.v_S_Flowback[p,t].value != 0:
                     v_S_Flowback_dict.append((p,t,model.v_S_Flowback[p,t].value))
                     print(model.v_S_Flowback[p,t], '=', model.v_S_Flowback[p,t].value)
 
@@ -1872,28 +1914,28 @@ def print_results(model):
         v_S_PipelineCapacity_dict = [('Origin', 'Destination', 'Slack pipeline capacity')]
         for l in model.s_L:
             for l_tilde in model.s_L:
-                if model.v_S_PipelineCapacity[l,l_tilde].value != None and model.v_S_PipelineCapacity[l,l_tilde].value > 0:
+                if model.v_S_PipelineCapacity[l,l_tilde].value != None and model.v_S_PipelineCapacity[l,l_tilde].value != 0:
                     v_S_PipelineCapacity_dict.append((l,l_tilde,model.v_S_PipelineCapacity[l,l_tilde].value))
                     print(model.v_S_PipelineCapacity[l,l_tilde], '=', model.v_S_PipelineCapacity[l,l_tilde].value)
 
         # Storage capacity slack variables
         v_S_StorageCapacity_dict = [('Storage site', 'Slack storage capacity')]
         for s in model.s_S:
-            if model.v_S_StorageCapacity[s].value != None and model.v_S_StorageCapacity[s].value > 0:
+            if model.v_S_StorageCapacity[s].value != None and model.v_S_StorageCapacity[s].value != 0:
                 v_S_StorageCapacity_dict.append((s,model.v_S_StorageCapacity[s].value))
                 print(model.v_S_StorageCapacity[s], '=', model.v_S_StorageCapacity[s].value)
 
         # Disposal capacity slack variables
         v_S_TreatmentCapacity_dict = [('Treatment site', 'Slack treatment capacity')]
         for r in model.s_R:
-            if model.v_S_TreatmentCapacity[r].value != None and model.v_S_TreatmentCapacity[r].value > 0:
+            if model.v_S_TreatmentCapacity[r].value != None and model.v_S_TreatmentCapacity[r].value != 0:
                 v_S_TreatmentCapacity_dict.append((r,model.v_S_TreatmentCapacity[r].value))
                 print(model.v_S_TreatmentCapacity[r], '=', model.v_S_TreatmentCapacity[r].value)
 
         # Reuse capacity slack variables
         v_S_ReuseCapacity_dict = [('Reuse site', 'Slack reuse capacity')]
         for o in model.s_O:
-            if model.v_S_ReuseCapacity[o].value != None and model.v_S_ReuseCapacity[o].value > 0:
+            if model.v_S_ReuseCapacity[o].value != None and model.v_S_ReuseCapacity[o].value != 0:
                 v_S_ReuseCapacity_dict.append((o,model.v_S_ReuseCapacity[o].value))
                 print(model.v_S_ReuseCapacity[o], '=', model.v_S_ReuseCapacity[o].value)
 
@@ -1904,6 +1946,8 @@ def print_results(model):
     # model.v_L_ProdTank.pprint()
     solution_dict = {'v_F_Pipe': v_F_Pipe_dict, 'v_F_Trucked': v_F_Trucked_dict,
                     'v_F_Sourced': v_F_Sourced_dict, 'v_F_PadStorageIn': v_F_PadStorageIn_dict,
+                    'v_F_ReuseDestination': v_F_ReuseDestination_dict,'v_F_DisposalDestination': v_F_DisposalDestination_dict,
+                    'v_F_TreatmentDestination': v_F_TreatmentDestination_dict,                    
                     'v_F_PadStorageOut': v_F_PadStorageOut_dict, 'v_L_ProdTank': v_L_ProdTank_dict,
                     'v_C_Piped': v_C_Piped_dict, 'v_C_Trucked': v_C_Trucked_dict, 'v_C_Sourced': v_C_Sourced_dict,
                     'v_C_Disposal': v_C_Disposal_dict, 'v_C_Reuse': v_C_Reuse_dict}
