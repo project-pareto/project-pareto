@@ -50,28 +50,11 @@ CONFIG.declare("objective", ConfigValue(
 
 # Creation of a Concrete Model
 
-def create_model(df_sets, df_parameters, default={}):
-    model = ConcreteModel()
+def create_model(model, df_sets, df_parameters, default={}):
+
     # import config dictionary
     model.config = CONFIG(default)
     
-    ## Define sets ##
-
-    model.s_T  = Set(initialize=df_sets['TimePeriods'], doc='Time Periods', ordered=True)
-    model.s_PP = Set(initialize=df_sets['ProductionPads'], doc='Production Pads')
-    model.s_CP = Set(initialize=df_sets['CompletionsPads'], doc='Completions Pads')
-    model.s_P  = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
-    model.s_F  = Set(initialize=df_sets['FreshwaterSources'], doc='Freshwater Sources')
-    model.s_K  = Set(initialize=df_sets['SWDSites'], doc='Disposal Sites')
-    model.s_S  = Set(initialize=df_sets['StorageSites'], doc='Storage Sites')
-    model.s_R  = Set(initialize=df_sets['TreatmentSites'], doc='Treatment Sites')
-    model.s_O  = Set(initialize=df_sets['ReuseOptions'], doc='Reuse Options')
-    model.s_N  = Set(initialize=df_sets['NetworkNodes'], doc=['Network Nodes'])
-    model.s_L  = Set(initialize=(model.s_P | model.s_F | model.s_K | model.s_S | model.s_R | model.s_O | model.s_N), doc='Locations')
-    model.s_D  = Set(initialize=df_sets['PipelineDiameters'], doc='Pipeline diameters')
-    model.s_C  = Set(initialize=df_sets['StorageCapacities'], doc='Storage capacities')
-    model.s_J  = Set(initialize=df_sets['TreatmentCapacities'], doc='Treatment capacities')
-    model.s_I  = Set(initialize=df_sets['InjectionCapacities'], doc='Injection (i.e. disposal) capacities')
 
     # model.s_P.pprint()
     # model.s_L.pprint()
@@ -385,36 +368,6 @@ def create_model(df_sets, df_parameters, default={}):
     FreshSourcingCostTable = {
     }
 
-    model.p_gamma_Completions  = Param(model.s_P,model.s_T,default=0,
-                                initialize=df_parameters['CompletionsDemand'], 
-                                doc='Completions water demand [bbl/week]')
-    model.p_gamma_TotalDemand  = Param(default=0,
-                                initialize=sum(sum(model.p_gamma_Completions[p,t] for p in model.s_P) for t in model.s_T),
-                                doc='Total water demand over the planning horizon [bbl]', mutable=True)
-    model.p_beta_Production    = Param(model.s_P,model.s_T,default=0, 
-                                initialize=df_parameters['PadRates'],
-                                doc='Produced water supply forecast [bbl/week]')                            
-    model.p_beta_Flowback      = Param(model.s_P,model.s_T,default=0,
-                                initialize=df_parameters['FlowbackRates'],
-                                doc='Flowback supply forecast for a completions bad [bbl/week]')
-    model.p_beta_TotalProd     = Param(default=0,
-                                initialize=sum(sum(model.p_beta_Production[p,t] + model.p_beta_Flowback[p,t] for p in model.s_P) for t in model.s_T),
-                                doc='Combined water supply forecast (flowback & production) over the planning horizon [bbl]', mutable=True)
-    model.p_sigma_Pipeline     = Param(model.s_L,model.s_L,default=0,
-                                initialize=df_parameters['InitialPipelineCapacity'],
-                                doc='Initial weekly pipeline capacity between two locations [bbl/week]')                        
-    model.p_sigma_Disposal     = Param(model.s_K,default=0,
-                                initialize=df_parameters['InitialDisposalCapacity'],
-                                doc='Initial weekly disposal capacity at disposal sites [bbl/week]')
-    model.p_sigma_Storage      = Param(model.s_S,default=0,
-                                initialize=df_parameters['InitialStorageCapacity'],
-                                doc='Initial storage capacity at storage site [bbl]')
-    model.p_sigma_PadStorage   = Param(model.s_CP,default=0,
-                                initialize=df_parameters['CompletionsPadStorage'],
-                                doc='Storage capacity at completions site [bbl]')                    
-    model.p_sigma_Treatment    = Param(model.s_R,default=0,
-                                initialize=df_parameters['InitialTreatmentCapacity'],
-                                doc='Initial weekly treatment capacity at treatment site [bbl/week]') 
     model.p_sigma_Reuse        = Param(model.s_O,default=0,
                                 initialize=InitialReuseCapacityTable,
                                 doc='Initial weekly reuse capacity at reuse site [bbl/week]')
