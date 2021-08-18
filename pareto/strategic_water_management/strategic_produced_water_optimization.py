@@ -500,7 +500,7 @@ def create_variables(model, df_sets, df_parameters):
     # model.p_sigma_Freshwater.pprint()
     return model
 
-def create_model(model, df_sets, df_parameters, default={}):
+def create_demo(model, default={}):
 
     # import config dictionary
     model.config = CONFIG(default)
@@ -548,7 +548,9 @@ def create_model(model, df_sets, df_parameters, default={}):
     model.CompletionsPadDemandBalance = Constraint(model.s_CP,model.s_T,rule=CompletionsPadDemandBalanceRule, doc='Completions pad demand balance')
 
     # model.CompletionsPadDemandBalance['CP02','T24'].pprint()
+    return model
 
+def create_model(model):
     def CompletionsPadStorageBalanceRule(model,p,t):
         if t == 'T01':
             return (model.v_L_PadStorage[p,t] == 
