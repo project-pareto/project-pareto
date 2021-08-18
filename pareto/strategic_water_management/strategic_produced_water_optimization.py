@@ -50,14 +50,10 @@ CONFIG.declare("objective", ConfigValue(
 
 # Creation of a Concrete Model
 
-def create_variables(model, df_sets, df_parameters):
+def create_variables(model, df_sets, df_parameters, default={}):
     
 
-    # model.s_P.pprint()
-    # model.s_L.pprint()
-
     ## Define continuous variables ##
-
     model.v_Z           = Var(within=Reals, doc='Objective function variable [$]')
 
     model.v_F_Piped     = Var(model.s_L,model.s_L,model.s_T,within=NonNegativeReals, doc='Produced water quantity piped from location l to location l [bbl/week]')
@@ -497,15 +493,8 @@ def create_variables(model, df_sets, df_parameters):
     model.p_psi_TreatmentCapacity   = Param(default=999999999, doc='Slack cost parameter [$]')
     model.p_psi_ReuseCapacity       = Param(default=999999999, doc='Slack cost parameter [$]')
 
-    # model.p_sigma_Freshwater.pprint()
-    return model
-
-def create_demo(model, default={}):
-
-    # import config dictionary
     model.config = CONFIG(default)
-
-    # model.CompletionsPadDemandBalance['CP02','T24'].pprint()
+    # model.p_sigma_Freshwater.pprint()
     return model
 
 def create_model(model):

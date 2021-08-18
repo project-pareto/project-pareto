@@ -2,7 +2,7 @@
 # 
 ##############################################################################
 from pareto.strategic_water_management.\
-    strategic_produced_water_optimization import (create_variables,create_demo,create_model,Objectives,
+    strategic_produced_water_optimization import (create_variables,create_model,Objectives,
                                                           generate_report, PrintValues)
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -84,9 +84,7 @@ model.p_sigma_Treatment    = Param(model.s_R,default=0,
 							initialize=df_parameters['InitialTreatmentCapacity'],
 							doc='Initial weekly treatment capacity at treatment site [bbl/week]') 
 
-strategic_model = create_variables(model, df_sets, df_parameters)
-
-strategic_model = create_demo(strategic_model, default={"objective": Objectives.cost})
+strategic_model = create_variables(model, df_sets, df_parameters, default={"objective": Objectives.cost})
 
 ## Define cost objective function ##
 if strategic_model.config.objective == Objectives.cost:
@@ -96,8 +94,6 @@ if strategic_model.config.objective == Objectives.cost:
 							+ model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
 	strategic_model.CostObjectiveFunction = Constraint(rule=CostObjectiveFunctionRule, doc='Cost objective function')
 
-	# model.CostObjectiveFunction.pprint()
-
 ## Define reuse objective function ##
 elif strategic_model.config.objective == Objectives.reuse:  
 	def ReuseObjectiveFunctionRule(model):
@@ -106,8 +102,6 @@ elif strategic_model.config.objective == Objectives.reuse:
 							+ model.v_C_TotalPiping + model.v_C_TotalStorage + model.v_C_TotalTrucking + model.v_C_DisposalCapEx
 							+ model.v_C_StorageCapEx + + model.v_C_TreatmentCapEx + model.v_C_PipelineCapEx + model.v_C_Slack - model.v_R_TotalStorage)
 	strategic_model.ReuseObjectiveFunction = Constraint(rule=ReuseObjectiveFunctionRule, doc='Reuse objective function')
-
-	# model.ReuseObjectiveFunction.pprint()
 
 else:
 	raise Exception('objective not supported')
