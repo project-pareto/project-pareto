@@ -2013,7 +2013,7 @@ def generate_report(model, is_print=[]):
     reuse_CompletionsDemandKPI = (model.v_F_TotalReused.value)/(model.p_gamma_TotalDemand.value)*100
     v_F_Overview_dict.append(('Reuse Completions Demand KPI',  'Reuse Fraction Completions Demand = [%]',  reuse_CompletionsDemandKPI))
 
-    if model.v_C_Slack.value != None and model.v_C_Slack.value != 0:
+    if model.v_C_Slack.value != None and model.v_C_Slack.value > 0:
         print('!!!ATTENTION!!! One or several slack variables have been triggered!')
 
         # Frac demand slack variables
