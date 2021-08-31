@@ -10,7 +10,7 @@ setup(
     version=VERSION,
     packages=find_packages(),
     install_requires=[
-        "pyomo",
+        "pyomo<6.1",
         "pandas==1.2.*",
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
