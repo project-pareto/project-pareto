@@ -31,5 +31,5 @@ setup(
     ],
     classifiers=[
         # TODO add classifiers
-    ]
+    ],
 )
