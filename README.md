@@ -30,6 +30,12 @@ Install the latest version from the repository's `main` branch:
 pip install 'project_pareto @ https://github.com/project-pareto/project-pareto/archive/main.zip`
 ```
 
+Install the open-source solvers packaged by the IDAES project:
+
+```sh
+idaes get-extensions --verbose
+```
+
 Open a Python shell and test that the `pareto` package was installed correctly:
 
 ```sh
@@ -64,10 +70,16 @@ which means that any modification made to the code in the cloned directory
 (including switching to a different branch with `git switch`/`git checkout`, or updating the directory with `git pull`) will be available when using the package in Python,
 regardless of e.g. the current working directory.
 
+Install the open-source solvers packaged by the IDAES project:
+
+```sh
+idaes get-extensions --verbose
+```
+
 To test that the installation was successful, run the test suite using the `pytest` command:
 
 ```sh
-pytest
+pytest --verbose
 ```
 
 ## Notes for developers
