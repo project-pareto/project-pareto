@@ -64,8 +64,8 @@ CONFIG.declare(
     ConfigValue(
         default=Objectives.cost,
         domain=In(Objectives),
-        description='alternate objectives selection',
-        doc='Alternate objective functions (i.e., minimize cost, maximize reuse)',
+        description="alternate objectives selection",
+        doc="Alternate objective functions (i.e., minimize cost, maximize reuse)",
     ),
 )
 
@@ -80,16 +80,16 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define sets ##
 
-    model.s_T = Set(initialize=df_sets['TimePeriods'], doc='Time Periods', ordered=True)
-    model.s_PP = Set(initialize=df_sets['ProductionPads'], doc='Production Pads')
-    model.s_CP = Set(initialize=df_sets['CompletionsPads'], doc='Completions Pads')
-    model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc='Pads')
-    model.s_F = Set(initialize=df_sets['FreshwaterSources'], doc='Freshwater Sources')
-    model.s_K = Set(initialize=df_sets['SWDSites'], doc='Disposal Sites')
-    model.s_S = Set(initialize=df_sets['StorageSites'], doc='Storage Sites')
-    model.s_R = Set(initialize=df_sets['TreatmentSites'], doc='Treatment Sites')
-    model.s_O = Set(initialize=df_sets['ReuseOptions'], doc='Reuse Options')
-    model.s_N = Set(initialize=df_sets['NetworkNodes'], doc=['Network Nodes'])
+    model.s_T = Set(initialize=df_sets["TimePeriods"], doc="Time Periods", ordered=True)
+    model.s_PP = Set(initialize=df_sets["ProductionPads"], doc="Production Pads")
+    model.s_CP = Set(initialize=df_sets["CompletionsPads"], doc="Completions Pads")
+    model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc="Pads")
+    model.s_F = Set(initialize=df_sets["FreshwaterSources"], doc="Freshwater Sources")
+    model.s_K = Set(initialize=df_sets["SWDSites"], doc="Disposal Sites")
+    model.s_S = Set(initialize=df_sets["StorageSites"], doc="Storage Sites")
+    model.s_R = Set(initialize=df_sets["TreatmentSites"], doc="Treatment Sites")
+    model.s_O = Set(initialize=df_sets["ReuseOptions"], doc="Reuse Options")
+    model.s_N = Set(initialize=df_sets["NetworkNodes"], doc=["Network Nodes"])
     model.s_L = Set(
         initialize=(
             model.s_P
@@ -100,16 +100,16 @@ def create_model(df_sets, df_parameters, default={}):
             | model.s_O
             | model.s_N
         ),
-        doc='Locations',
+        doc="Locations",
     )
-    model.s_D = Set(initialize=df_sets['PipelineDiameters'], doc='Pipeline diameters')
-    model.s_C = Set(initialize=df_sets['StorageCapacities'], doc='Storage capacities')
+    model.s_D = Set(initialize=df_sets["PipelineDiameters"], doc="Pipeline diameters")
+    model.s_C = Set(initialize=df_sets["StorageCapacities"], doc="Storage capacities")
     model.s_J = Set(
-        initialize=df_sets['TreatmentCapacities'], doc='Treatment capacities'
+        initialize=df_sets["TreatmentCapacities"], doc="Treatment capacities"
     )
     model.s_I = Set(
-        initialize=df_sets['InjectionCapacities'],
-        doc='Injection (i.e. disposal) capacities',
+        initialize=df_sets["InjectionCapacities"],
+        doc="Injection (i.e. disposal) capacities",
     )
 
     # model.s_P.pprint()
@@ -117,67 +117,67 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define continuous variables ##
 
-    model.v_Z = Var(within=Reals, doc='Objective function variable [$]')
+    model.v_Z = Var(within=Reals, doc="Objective function variable [$]")
 
     model.v_F_Piped = Var(
         model.s_L,
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
-        doc='Produced water quantity piped from location l to location l [bbl/week]',
+        doc="Produced water quantity piped from location l to location l [bbl/week]",
     )
     model.v_F_Trucked = Var(
         model.s_L,
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
-        doc='Produced water quantity trucked from location l to location l [bbl/week]',
+        doc="Produced water quantity trucked from location l to location l [bbl/week]",
     )
     model.v_F_Sourced = Var(
         model.s_F,
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Fresh water sourced from source f to completions pad p [bbl/week]',
+        doc="Fresh water sourced from source f to completions pad p [bbl/week]",
     )
 
     model.v_F_PadStorageIn = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Water put into completions pad storage [bbl/week]',
+        doc="Water put into completions pad storage [bbl/week]",
     )
     model.v_F_PadStorageOut = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Water from completions pad storage used for fracturing [bbl/week]',
+        doc="Water from completions pad storage used for fracturing [bbl/week]",
     )
 
     model.v_L_Storage = Var(
         model.s_S,
         model.s_T,
         within=NonNegativeReals,
-        doc='Water level at storage site [bbl]',
+        doc="Water level at storage site [bbl]",
     )
     model.v_L_PadStorage = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Water level in completions pad storage [bbl]',
+        doc="Water level in completions pad storage [bbl]",
     )
 
     model.v_F_TotalTrucked = Var(
-        within=NonNegativeReals, doc='Total volume water trucked [bbl]'
+        within=NonNegativeReals, doc="Total volume water trucked [bbl]"
     )
     model.v_F_TotalSourced = Var(
-        within=NonNegativeReals, doc='Total volume freshwater sourced [bbl]'
+        within=NonNegativeReals, doc="Total volume freshwater sourced [bbl]"
     )
     model.v_F_TotalDisposed = Var(
-        within=NonNegativeReals, doc='Total volume of water disposed [bbl]'
+        within=NonNegativeReals, doc="Total volume of water disposed [bbl]"
     )
     model.v_F_TotalReused = Var(
-        within=NonNegativeReals, doc='Total volume of produced water reused [bbl]'
+        within=NonNegativeReals, doc="Total volume of produced water reused [bbl]"
     )
 
     model.v_C_Piped = Var(
@@ -185,176 +185,176 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of piping produced water from location l to location l [$/week]',
+        doc="Cost of piping produced water from location l to location l [$/week]",
     )
     model.v_C_Trucked = Var(
         model.s_L,
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of trucking produced water from location l to location l [$/week]',
+        doc="Cost of trucking produced water from location l to location l [$/week]",
     )
     model.v_C_Sourced = Var(
         model.s_F,
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of sourcing fresh water from source f to completion pad p [$/week]',
+        doc="Cost of sourcing fresh water from source f to completion pad p [$/week]",
     )
     model.v_C_Disposal = Var(
         model.s_K,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of injecting produced water at disposal site [$/week]',
+        doc="Cost of injecting produced water at disposal site [$/week]",
     )
     model.v_C_Treatment = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of treating produced water at treatment site [$/week]',
+        doc="Cost of treating produced water at treatment site [$/week]",
     )
     model.v_C_Reuse = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of reusing produced water at completions site [$/week]',
+        doc="Cost of reusing produced water at completions site [$/week]",
     )
     model.v_C_Storage = Var(
         model.s_S,
         model.s_T,
         within=NonNegativeReals,
-        doc='Cost of storing produced water at storage site [$/week]',
+        doc="Cost of storing produced water at storage site [$/week]",
     )
     model.v_R_Storage = Var(
         model.s_S,
         model.s_T,
         within=NonNegativeReals,
-        doc='Credit for retrieving stored produced water from storage site [$/bbl]',
+        doc="Credit for retrieving stored produced water from storage site [$/bbl]",
     )
 
     model.v_C_TotalSourced = Var(
-        within=NonNegativeReals, doc='Total cost of sourcing freshwater [$]'
+        within=NonNegativeReals, doc="Total cost of sourcing freshwater [$]"
     )
     model.v_C_TotalDisposal = Var(
-        within=NonNegativeReals, doc='Total cost of injecting produced water [$]'
+        within=NonNegativeReals, doc="Total cost of injecting produced water [$]"
     )
     model.v_C_TotalTreatment = Var(
-        within=NonNegativeReals, doc='Total cost of treating produced water [$]'
+        within=NonNegativeReals, doc="Total cost of treating produced water [$]"
     )
     model.v_C_TotalReuse = Var(
-        within=NonNegativeReals, doc='Total cost of reusing produced water [$]'
+        within=NonNegativeReals, doc="Total cost of reusing produced water [$]"
     )
     model.v_C_TotalPiping = Var(
-        within=NonNegativeReals, doc='Total cost of piping produced water [$]'
+        within=NonNegativeReals, doc="Total cost of piping produced water [$]"
     )
     model.v_C_TotalStorage = Var(
-        within=NonNegativeReals, doc='Total cost of storing produced water [$]'
+        within=NonNegativeReals, doc="Total cost of storing produced water [$]"
     )
     model.v_C_TotalTrucking = Var(
-        within=NonNegativeReals, doc='Total cost of trucking produced water [$]'
+        within=NonNegativeReals, doc="Total cost of trucking produced water [$]"
     )
     model.v_C_Slack = Var(
-        within=NonNegativeReals, doc='Total cost of slack variables [$]'
+        within=NonNegativeReals, doc="Total cost of slack variables [$]"
     )
     model.v_R_TotalStorage = Var(
-        within=NonNegativeReals, doc='Total credit for withdrawing produced water [$]'
+        within=NonNegativeReals, doc="Total credit for withdrawing produced water [$]"
     )
 
     model.v_F_ReuseDestination = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Total deliveries to completions pad [bbl/week]',
+        doc="Total deliveries to completions pad [bbl/week]",
     )
     model.v_F_DisposalDestination = Var(
         model.s_K,
         model.s_T,
         within=NonNegativeReals,
-        doc='Total deliveries to disposal site [bbl/week]',
+        doc="Total deliveries to disposal site [bbl/week]",
     )
 
     model.v_D_Capacity = Var(
         model.s_K,
         within=NonNegativeReals,
-        doc='Disposal capacity at a disposal site [bbl/week]',
+        doc="Disposal capacity at a disposal site [bbl/week]",
     )
     model.v_X_Capacity = Var(
         model.s_S,
         within=NonNegativeReals,
-        doc='Storage capacity at a storage site [bbl/week]',
+        doc="Storage capacity at a storage site [bbl/week]",
     )
     model.v_T_Capacity = Var(
         model.s_R,
         within=NonNegativeReals,
-        doc='Treatment capacity at a treatment site [bbl/week]',
+        doc="Treatment capacity at a treatment site [bbl/week]",
     )
     model.v_F_Capacity = Var(
         model.s_L,
         model.s_L,
         within=NonNegativeReals,
-        doc='Flow capacity along pipeline arc [bbl/week]',
+        doc="Flow capacity along pipeline arc [bbl/week]",
     )
 
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
-        doc='Capital cost of constructing or expanding disposal capacity [$]',
+        doc="Capital cost of constructing or expanding disposal capacity [$]",
     )
     model.v_C_PipelineCapEx = Var(
         within=NonNegativeReals,
-        doc='Capital cost of constructing or expanding piping capacity [$]',
+        doc="Capital cost of constructing or expanding piping capacity [$]",
     )
     model.v_C_StorageCapEx = Var(
         within=NonNegativeReals,
-        doc='Capital cost of constructing or expanding storage capacity [$]',
+        doc="Capital cost of constructing or expanding storage capacity [$]",
     )
     model.v_C_TreatmentCapEx = Var(
         within=NonNegativeReals,
-        doc='Capital cost of constructing or expanding treatment capacity [$]',
+        doc="Capital cost of constructing or expanding treatment capacity [$]",
     )
 
     model.v_S_FracDemand = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Slack variable to meet the completions demand [bbl/week]',
+        doc="Slack variable to meet the completions demand [bbl/week]",
     )
     model.v_S_Production = Var(
         model.s_PP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Slack variable to process the produced water production [bbl/week]',
+        doc="Slack variable to process the produced water production [bbl/week]",
     )
     model.v_S_Flowback = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
-        doc='Slack variable to proces flowback water production [bbl/week]',
+        doc="Slack variable to proces flowback water production [bbl/week]",
     )
     model.v_S_PipelineCapacity = Var(
         model.s_L,
         model.s_L,
         within=NonNegativeReals,
-        doc='Slack variable to provide necessary pipeline capacity [bbl]',
+        doc="Slack variable to provide necessary pipeline capacity [bbl]",
     )
     model.v_S_StorageCapacity = Var(
         model.s_S,
         within=NonNegativeReals,
-        doc='Slack variable to provide necessary storage capacity [bbl]',
+        doc="Slack variable to provide necessary storage capacity [bbl]",
     )
     model.v_S_DisposalCapacity = Var(
         model.s_K,
         within=NonNegativeReals,
-        doc='Slack variable to provide necessary disposal capacity [bbl/week]',
+        doc="Slack variable to provide necessary disposal capacity [bbl/week]",
     )
     model.v_S_TreatmentCapacity = Var(
         model.s_R,
         within=NonNegativeReals,
-        doc='Slack variable to provide necessary treatment capacity [bbl/weel]',
+        doc="Slack variable to provide necessary treatment capacity [bbl/weel]",
     )
     model.v_S_ReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
-        doc='Slack variable to provide necessary reuse capacity [bbl/week]',
+        doc="Slack variable to provide necessary reuse capacity [bbl/week]",
     )
 
     ## Define binary variables ##
@@ -364,32 +364,32 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_D,
         within=Binary,
-        doc='New pipeline installed between one location and another location with specific diameter',
+        doc="New pipeline installed between one location and another location with specific diameter",
     )
     model.vb_y_Storage = Var(
         model.s_S,
         model.s_C,
         within=Binary,
-        doc='New or additional storage capacity installed at storage site with specific storage capacity',
+        doc="New or additional storage capacity installed at storage site with specific storage capacity",
     )
     model.vb_y_Treatment = Var(
         model.s_R,
         model.s_J,
         within=Binary,
-        doc='New or additional treatment capacity installed at treatment site with specific treatment capacity',
+        doc="New or additional treatment capacity installed at treatment site with specific treatment capacity",
     )
     model.vb_y_Disposal = Var(
         model.s_K,
         model.s_I,
         within=Binary,
-        doc='New or additional disposal capacity installed at disposal site with specific injection capacity',
+        doc="New or additional disposal capacity installed at disposal site with specific injection capacity",
     )
     model.vb_y_Flow = Var(
         model.s_L,
         model.s_L,
         model.s_T,
         within=Binary,
-        doc='Directional flow between two locations',
+        doc="Directional flow between two locations",
     )
 
     # model.vb_z_Pipeline      = Var(model.s_L,model.s_L,model.s_D,model.s_T,within=Binary, doc='Timing of pipeline installation between two locations')
@@ -465,232 +465,232 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         default=0,
         initialize=PCA_Table,
-        doc='Valid production-to-completions pipeline arcs [-]',
+        doc="Valid production-to-completions pipeline arcs [-]",
     )
     model.p_PNA = Param(
         model.s_PP,
         model.s_N,
         default=0,
-        initialize=df_parameters['PNA'],
-        doc='Valid production-to-node pipeline arcs [-]',
+        initialize=df_parameters["PNA"],
+        doc="Valid production-to-node pipeline arcs [-]",
     )
     model.p_PPA = Param(
         model.s_PP,
         model.s_PP,
         default=0,
         initialize=PPA_Table,
-        doc='Valid production-to-production pipeline arcs [-]',
+        doc="Valid production-to-production pipeline arcs [-]",
     )
     model.p_CNA = Param(
         model.s_CP,
         model.s_N,
         default=0,
-        initialize=df_parameters['CNA'],
-        doc='Valid completion-to-node pipeline arcs [-]',
+        initialize=df_parameters["CNA"],
+        doc="Valid completion-to-node pipeline arcs [-]",
     )
     model.p_CCA = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=df_parameters['CCA'],
-        doc='Valid completions-to-completions pipelin arcs [-]',
+        initialize=df_parameters["CCA"],
+        doc="Valid completions-to-completions pipelin arcs [-]",
     )
     model.p_NNA = Param(
         model.s_N,
         model.s_N,
         default=0,
-        initialize=df_parameters['NNA'],
-        doc='Valid node-to-node pipeline arcs [-]',
+        initialize=df_parameters["NNA"],
+        doc="Valid node-to-node pipeline arcs [-]",
     )
     model.p_NCA = Param(
         model.s_N,
         model.s_CP,
         default=0,
-        initialize=df_parameters['NCA'],
-        doc='Valid node-to-completions pipeline arcs [-]',
+        initialize=df_parameters["NCA"],
+        doc="Valid node-to-completions pipeline arcs [-]",
     )
     model.p_NKA = Param(
         model.s_N,
         model.s_K,
         default=0,
-        initialize=df_parameters['NKA'],
-        doc='Valid node-to-disposal pipeline arcs [-]',
+        initialize=df_parameters["NKA"],
+        doc="Valid node-to-disposal pipeline arcs [-]",
     )
     model.p_NSA = Param(
         model.s_N,
         model.s_S,
         default=0,
-        initialize=df_parameters['NSA'],
-        doc='Valid node-to-storage pipeline arcs [-]',
+        initialize=df_parameters["NSA"],
+        doc="Valid node-to-storage pipeline arcs [-]",
     )
     model.p_NRA = Param(
         model.s_N,
         model.s_R,
         default=0,
-        initialize=df_parameters['NRA'],
-        doc='Valid node-to-treatment pipeline arcs [-]',
+        initialize=df_parameters["NRA"],
+        doc="Valid node-to-treatment pipeline arcs [-]",
     )
     model.p_NOA = Param(
         model.s_N,
         model.s_O,
         default=0,
         initialize=NOA_Table,
-        doc='Valid node-to-reuse pipeline arcs [-]',
+        doc="Valid node-to-reuse pipeline arcs [-]",
     )
     model.p_FCA = Param(
         model.s_F,
         model.s_CP,
         default=0,
-        initialize=df_parameters['FCA'],
-        doc='Valid freshwater-to-completions pipeline arcs [-]',
+        initialize=df_parameters["FCA"],
+        doc="Valid freshwater-to-completions pipeline arcs [-]",
     )
     model.p_RCA = Param(
         model.s_R,
         model.s_CP,
         default=0,
-        initialize=df_parameters['RCA'],
-        doc='Valid treatment-to-completions layflat arcs [-]',
+        initialize=df_parameters["RCA"],
+        doc="Valid treatment-to-completions layflat arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
         model.s_N,
         default=0,
-        initialize=df_parameters['RNA'],
-        doc='Valid treatment-to-node pipeline arcs [-]',
+        initialize=df_parameters["RNA"],
+        doc="Valid treatment-to-node pipeline arcs [-]",
     )
     model.p_RKA = Param(
         model.s_R,
         model.s_K,
         default=0,
         initialize=RKA_Table,
-        doc='Valid treatment-to-disposal pipeline arcs [-]',
+        doc="Valid treatment-to-disposal pipeline arcs [-]",
     )
     model.p_SNA = Param(
         model.s_S,
         model.s_N,
         default=0,
-        initialize=df_parameters['SNA'],
-        doc='Valid storage-to-node pipeline arcs [-]',
+        initialize=df_parameters["SNA"],
+        doc="Valid storage-to-node pipeline arcs [-]",
     )
     model.p_SCA = Param(
         model.s_S,
         model.s_CP,
         default=0,
         initialize=SCA_Table,
-        doc='Valid storage-to-completions pipeline arcs [-]',
+        doc="Valid storage-to-completions pipeline arcs [-]",
     )
     model.p_SKA = Param(
         model.s_S,
         model.s_K,
         default=0,
         initialize=SKA_Table,
-        doc='Valid storage-to-disposal pipeline arcs [-]',
+        doc="Valid storage-to-disposal pipeline arcs [-]",
     )
     model.p_SRA = Param(
         model.s_S,
         model.s_R,
         default=0,
         initialize=SRA_Table,
-        doc='Valid storage-to-treatment pipeline arcs [-]',
+        doc="Valid storage-to-treatment pipeline arcs [-]",
     )
     model.p_SOA = Param(
         model.s_S,
         model.s_O,
         default=0,
         initialize=SOA_Table,
-        doc='Valid storage-to-reuse pipeline arcs [-]',
+        doc="Valid storage-to-reuse pipeline arcs [-]",
     )
 
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
         default=0,
-        initialize=df_parameters['PCT'],
-        doc='Valid production-to-completions trucking arcs [-]',
+        initialize=df_parameters["PCT"],
+        doc="Valid production-to-completions trucking arcs [-]",
     )
     model.p_FCT = Param(
         model.s_F,
         model.s_CP,
         default=0,
-        initialize=df_parameters['FCT'],
-        doc='Valid freshwater-to-completions trucking arcs [-]',
+        initialize=df_parameters["FCT"],
+        doc="Valid freshwater-to-completions trucking arcs [-]",
     )
     model.p_PKT = Param(
         model.s_PP,
         model.s_K,
         default=0,
-        initialize=df_parameters['PKT'],
-        doc='Valid production-to-disposal trucking arcs [-]',
+        initialize=df_parameters["PKT"],
+        doc="Valid production-to-disposal trucking arcs [-]",
     )
     model.p_PST = Param(
         model.s_PP,
         model.s_S,
         default=0,
         initialize=PST_Table,
-        doc='Valid production-to-storage trucking arcs [-]',
+        doc="Valid production-to-storage trucking arcs [-]",
     )
     model.p_PRT = Param(
         model.s_PP,
         model.s_R,
         default=0,
         initialize=PRT_Table,
-        doc='Valid production-to-treatment trucking arcs [-]',
+        doc="Valid production-to-treatment trucking arcs [-]",
     )
     model.p_POT = Param(
         model.s_PP,
         model.s_O,
         default=0,
         initialize=POT_Table,
-        doc='Valid production-to-reuse trucking arcs [-]',
+        doc="Valid production-to-reuse trucking arcs [-]",
     )
     model.p_CKT = Param(
         model.s_CP,
         model.s_K,
         default=0,
-        initialize=df_parameters['CKT'],
-        doc='Valid completions-to-disposal trucking arcs [-]',
+        initialize=df_parameters["CKT"],
+        doc="Valid completions-to-disposal trucking arcs [-]",
     )
     model.p_CST = Param(
         model.s_CP,
         model.s_S,
         default=0,
-        initialize=df_parameters['CST'],
-        doc='Valid completions-to-storage trucking arcs [-]',
+        initialize=df_parameters["CST"],
+        doc="Valid completions-to-storage trucking arcs [-]",
     )
     model.p_CRT = Param(
         model.s_CP,
         model.s_R,
         default=0,
         initialize=CRT_Table,
-        doc='Valid completions-to-treatment trucking arcs [-]',
+        doc="Valid completions-to-treatment trucking arcs [-]",
     )
     model.p_CCT = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=df_parameters['CCT'],
-        doc='Valid completion-to-completion trucking arcs [-]',
+        initialize=df_parameters["CCT"],
+        doc="Valid completion-to-completion trucking arcs [-]",
     )
     model.p_SCT = Param(
         model.s_S,
         model.s_CP,
         default=0,
         initialize=SCT_Table,
-        doc='Valid storage-to-completions trucking arcs [-]',
+        doc="Valid storage-to-completions trucking arcs [-]",
     )
     model.p_SKT = Param(
         model.s_S,
         model.s_K,
         default=0,
         initialize=SKT_Table,
-        doc='Valid storage-to-disposal trucking arcs [-]',
+        doc="Valid storage-to-disposal trucking arcs [-]",
     )
     model.p_RKT = Param(
         model.s_R,
         model.s_K,
         default=0,
         initialize=RKT_Table,
-        doc='Valid treatment-to-disposal trucking arcs [-]',
+        doc="Valid treatment-to-disposal trucking arcs [-]",
     )
 
     # model.p_PCA.pprint()
@@ -729,15 +729,15 @@ def create_model(df_sets, df_parameters, default={}):
 
     ProcessingCapacityStorageTable = {}
 
-    PipelineCapacityIncrementsTable = {('D0'): 0}
+    PipelineCapacityIncrementsTable = {("D0"): 0}
 
-    DisposalCapacityIncrementsTable = {('I0'): 0}
+    DisposalCapacityIncrementsTable = {("I0"): 0}
 
-    StorageDisposalCapacityIncrementsTable = {('C0'): 0}
+    StorageDisposalCapacityIncrementsTable = {("C0"): 0}
 
     TruckingTimeTable = {}
 
-    DisposalCapExTable = {('K02', 'I0'): 0}
+    DisposalCapExTable = {("K02", "I0"): 0}
 
     StorageCapExTable = {}
 
@@ -765,30 +765,30 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_P,
         model.s_T,
         default=0,
-        initialize=df_parameters['CompletionsDemand'],
-        doc='Completions water demand [bbl/week]',
+        initialize=df_parameters["CompletionsDemand"],
+        doc="Completions water demand [bbl/week]",
     )
     model.p_gamma_TotalDemand = Param(
         default=0,
         initialize=sum(
             sum(model.p_gamma_Completions[p, t] for p in model.s_P) for t in model.s_T
         ),
-        doc='Total water demand over the planning horizon [bbl]',
+        doc="Total water demand over the planning horizon [bbl]",
         mutable=True,
     )
     model.p_beta_Production = Param(
         model.s_P,
         model.s_T,
         default=0,
-        initialize=df_parameters['PadRates'],
-        doc='Produced water supply forecast [bbl/week]',
+        initialize=df_parameters["PadRates"],
+        doc="Produced water supply forecast [bbl/week]",
     )
     model.p_beta_Flowback = Param(
         model.s_P,
         model.s_T,
         default=0,
-        initialize=df_parameters['FlowbackRates'],
-        doc='Flowback supply forecast for a completions bad [bbl/week]',
+        initialize=df_parameters["FlowbackRates"],
+        doc="Flowback supply forecast for a completions bad [bbl/week]",
     )
     model.p_beta_TotalProd = Param(
         default=0,
@@ -799,187 +799,187 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for t in model.s_T
         ),
-        doc='Combined water supply forecast (flowback & production) over the planning horizon [bbl]',
+        doc="Combined water supply forecast (flowback & production) over the planning horizon [bbl]",
         mutable=True,
     )
     model.p_sigma_Pipeline = Param(
         model.s_L,
         model.s_L,
         default=0,
-        initialize=df_parameters['InitialPipelineCapacity'],
-        doc='Initial weekly pipeline capacity between two locations [bbl/week]',
+        initialize=df_parameters["InitialPipelineCapacity"],
+        doc="Initial weekly pipeline capacity between two locations [bbl/week]",
     )
     model.p_sigma_Disposal = Param(
         model.s_K,
         default=0,
-        initialize=df_parameters['InitialDisposalCapacity'],
-        doc='Initial weekly disposal capacity at disposal sites [bbl/week]',
+        initialize=df_parameters["InitialDisposalCapacity"],
+        doc="Initial weekly disposal capacity at disposal sites [bbl/week]",
     )
     model.p_sigma_Storage = Param(
         model.s_S,
         default=0,
-        initialize=df_parameters['InitialStorageCapacity'],
-        doc='Initial storage capacity at storage site [bbl]',
+        initialize=df_parameters["InitialStorageCapacity"],
+        doc="Initial storage capacity at storage site [bbl]",
     )
     model.p_sigma_PadStorage = Param(
         model.s_CP,
         default=0,
-        initialize=df_parameters['CompletionsPadStorage'],
-        doc='Storage capacity at completions site [bbl]',
+        initialize=df_parameters["CompletionsPadStorage"],
+        doc="Storage capacity at completions site [bbl]",
     )
     model.p_sigma_Treatment = Param(
         model.s_R,
         default=0,
-        initialize=df_parameters['InitialTreatmentCapacity'],
-        doc='Initial weekly treatment capacity at treatment site [bbl/week]',
+        initialize=df_parameters["InitialTreatmentCapacity"],
+        doc="Initial weekly treatment capacity at treatment site [bbl/week]",
     )
     model.p_sigma_Reuse = Param(
         model.s_O,
         default=0,
         initialize=InitialReuseCapacityTable,
-        doc='Initial weekly reuse capacity at reuse site [bbl/week]',
+        doc="Initial weekly reuse capacity at reuse site [bbl/week]",
     )
     model.p_sigma_Freshwater = Param(
         model.s_F,
         model.s_T,
         default=0,
-        initialize=df_parameters['FreshwaterSourcingAvailability'],
-        doc='Weekly freshwater sourcing capacity at freshwater source [bbl/week]',
+        initialize=df_parameters["FreshwaterSourcingAvailability"],
+        doc="Weekly freshwater sourcing capacity at freshwater source [bbl/week]",
         mutable=True,
     )
 
     model.p_sigma_OffloadingPad = Param(
         model.s_P,
         default=9999999,
-        initialize=df_parameters['PadOffloadingCapacity'],
-        doc='Weekly truck offloading sourcing capacity per pad [bbl/week]',
+        initialize=df_parameters["PadOffloadingCapacity"],
+        doc="Weekly truck offloading sourcing capacity per pad [bbl/week]",
         mutable=True,
     )
     model.p_sigma_OffloadingStorage = Param(
         model.s_S,
         default=9999999,
         initialize=StorageOffloadingCapacityTable,
-        doc='Weekly truck offloading capacity per pad [bbl/week]',
+        doc="Weekly truck offloading capacity per pad [bbl/week]",
         mutable=True,
     )
     model.p_sigma_ProcessingPad = Param(
         model.s_P,
         default=9999999,
         initialize=ProcessingCapacityPadTable,
-        doc='Weekly processing (e.g. clarification) capacity per pad [bbl/week]',
+        doc="Weekly processing (e.g. clarification) capacity per pad [bbl/week]",
         mutable=True,
     )
     model.p_sigma_ProcessingStorage = Param(
         model.s_S,
         default=9999999,
         initialize=ProcessingCapacityStorageTable,
-        doc='Weekly processing (e.g. clarification) capacity per storage site [bbl/week]',
+        doc="Weekly processing (e.g. clarification) capacity per storage site [bbl/week]",
         mutable=True,
     )
 
     model.p_epsilon_Treatment = Param(
         model.s_R,
         default=1.0,
-        initialize=df_parameters['TreatmentEfficiency'],
-        doc='Treatment efficiency [%]',
+        initialize=df_parameters["TreatmentEfficiency"],
+        doc="Treatment efficiency [%]",
     )
 
     model.p_delta_Pipeline = Param(
         model.s_D,
         default=10,
-        initialize=df_parameters['PipelineCapacityIncrements'],
-        doc='Pipeline capacity installation/expansion increments [bbl/week]',
+        initialize=df_parameters["PipelineCapacityIncrements"],
+        doc="Pipeline capacity installation/expansion increments [bbl/week]",
     )
 
     model.p_delta_Disposal = Param(
         model.s_I,
         default=10,
-        initialize=df_parameters['DisposalCapacityIncrements'],
-        doc='Disposal capacity installation/expansion increments [bbl/week]',
+        initialize=df_parameters["DisposalCapacityIncrements"],
+        doc="Disposal capacity installation/expansion increments [bbl/week]",
     )
 
     model.p_delta_Storage = Param(
         model.s_C,
         default=10,
-        initialize=df_parameters['StorageCapacityIncrements'],
-        doc='Storage capacity installation/expansion increments [bbl]',
+        initialize=df_parameters["StorageCapacityIncrements"],
+        doc="Storage capacity installation/expansion increments [bbl]",
     )
     model.p_delta_Treatment = Param(
         model.s_J,
         default=10,
-        initialize=df_parameters['TreatmentCapacityIncrements'],
-        doc='Treatment capacity installation/expansion increments [bbl/week]',
+        initialize=df_parameters["TreatmentCapacityIncrements"],
+        doc="Treatment capacity installation/expansion increments [bbl/week]",
     )
 
-    model.p_delta_Truck = Param(default=110, doc='Truck capacity [bbl]')
+    model.p_delta_Truck = Param(default=110, doc="Truck capacity [bbl]")
 
     model.p_tau_Disposal = Param(
-        model.s_K, default=12, doc='Disposal construction/expansion lead time [weeks]'
+        model.s_K, default=12, doc="Disposal construction/expansion lead time [weeks]"
     )
 
     model.p_tau_Storage = Param(
-        model.s_S, default=12, doc='Storage constructin/expansion lead time [weeks]'
+        model.s_S, default=12, doc="Storage constructin/expansion lead time [weeks]"
     )
 
     model.p_tau_Pipeline = Param(
         model.s_L,
         model.s_L,
         default=12,
-        doc='Pipeline construction/expansion lead time [weeks',
+        doc="Pipeline construction/expansion lead time [weeks",
     )
 
     model.p_tau_Trucking = Param(
         model.s_L,
         model.s_L,
         default=9999999,
-        initialize=df_parameters['TruckingTime'],
-        doc='Drive time between locations [hr]',
+        initialize=df_parameters["TruckingTime"],
+        doc="Drive time between locations [hr]",
     )
 
     # COMMENT: Many more parameters missing. See documentation for details.
 
     model.p_lambda_Storage = Param(
-        model.s_S, default=0, doc='Initial storage level at storage site [bbl]'
+        model.s_S, default=0, doc="Initial storage level at storage site [bbl]"
     )
 
     model.p_lambda_PadStorage = Param(
-        model.s_CP, default=0, doc='Initial storage level at completions site [bbl]'
+        model.s_CP, default=0, doc="Initial storage level at completions site [bbl]"
     )
 
     model.p_theta_Storage = Param(
-        model.s_S, default=0, doc='Terminal storage level at storage site [bbl]'
+        model.s_S, default=0, doc="Terminal storage level at storage site [bbl]"
     )
 
     model.p_theta_PadStorage = Param(
-        model.s_CP, default=0, doc='Terminal storage level at completions site [bbl]'
+        model.s_CP, default=0, doc="Terminal storage level at completions site [bbl]"
     )
 
     model.p_lambda_Pipeline = Param(
-        model.s_L, model.s_L, default=9999999, doc='Pipeline segment length [miles]'
+        model.s_L, model.s_L, default=9999999, doc="Pipeline segment length [miles]"
     )
 
     model.p_kappa_Disposal = Param(
         model.s_K,
         model.s_I,
         default=20,
-        initialize=df_parameters['DisposalExpansionCost'],
-        doc='Disposal construction/expansion capital cost for selected increment [$/bbl]',
+        initialize=df_parameters["DisposalExpansionCost"],
+        doc="Disposal construction/expansion capital cost for selected increment [$/bbl]",
     )
 
     model.p_kappa_Storage = Param(
         model.s_S,
         model.s_C,
         default=0.1,
-        initialize=df_parameters['StorageExpansionCost'],
-        doc='Storage construction/expansion capital cost for selected increment [$/bbl]',
+        initialize=df_parameters["StorageExpansionCost"],
+        doc="Storage construction/expansion capital cost for selected increment [$/bbl]",
     )
 
     model.p_kappa_Treatment = Param(
         model.s_R,
         model.s_J,
         default=10,
-        initialize=df_parameters['TreatmentExpansionCost'],
-        doc='Treatment construction/expansion capital cost for selected increment [$/bbl]',
+        initialize=df_parameters["TreatmentExpansionCost"],
+        doc="Treatment construction/expansion capital cost for selected increment [$/bbl]",
     )
 
     model.p_kappa_Pipeline = Param(
@@ -987,8 +987,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_D,
         default=5,
-        initialize=df_parameters['PipelineExpansionCost'],
-        doc='Pipeline construction/expansion capital cost for selected increment [$/bbl]',
+        initialize=df_parameters["PipelineExpansionCost"],
+        doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
     )
 
     # model.p_kappa_Disposal.pprint()
@@ -999,71 +999,71 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_pi_Disposal = Param(
         model.s_K,
         default=9999999,
-        initialize=df_parameters['DisposalOperationalCost'],
-        doc='Disposal operational cost [$/bbl]',
+        initialize=df_parameters["DisposalOperationalCost"],
+        doc="Disposal operational cost [$/bbl]",
     )
     model.p_pi_Treatment = Param(
         model.s_R,
         default=0,
-        initialize=df_parameters['TreatmentOperationalCost'],
-        doc='Treatment operational cost [$/bbl',
+        initialize=df_parameters["TreatmentOperationalCost"],
+        doc="Treatment operational cost [$/bbl",
     )
     model.p_pi_Reuse = Param(
         model.s_CP,
         default=9999999,
-        initialize=df_parameters['ReuseOperationalCost'],
-        doc='Reuse operational cost [$/bbl]',
+        initialize=df_parameters["ReuseOperationalCost"],
+        doc="Reuse operational cost [$/bbl]",
     )
     model.p_pi_Storage = Param(
         model.s_S,
         default=1,
         initialize=StorageOperationalCostTable,
-        doc='Storage deposit operational cost [$/bbl]',
+        doc="Storage deposit operational cost [$/bbl]",
     )
     model.p_rho_Storage = Param(
         model.s_S,
         default=0.99,
         initialize=StorageOperationalCreditTable,
-        doc='Storage withdrawal operational credit [$/bbl]',
+        doc="Storage withdrawal operational credit [$/bbl]",
     )
     model.p_pi_Pipeline = Param(
         model.s_L,
         model.s_L,
         default=0.01,
-        initialize=df_parameters['PipelineOperationalCost'],
-        doc='Pipeline operational cost [$/bbl]',
+        initialize=df_parameters["PipelineOperationalCost"],
+        doc="Pipeline operational cost [$/bbl]",
     )
     model.p_pi_Trucking = Param(
         model.s_L,
         default=9999999,
-        initialize=df_parameters['TruckingHourlyCost'],
-        doc='Trucking hourly cost (by source) [$/bbl]',
+        initialize=df_parameters["TruckingHourlyCost"],
+        doc="Trucking hourly cost (by source) [$/bbl]",
     )
     model.p_pi_Sourcing = Param(
         model.s_F,
         default=9999999,
-        initialize=df_parameters['FreshSourcingCost'],
-        doc='Fresh sourcing cost [$/bbl]',
+        initialize=df_parameters["FreshSourcingCost"],
+        doc="Fresh sourcing cost [$/bbl]",
     )
 
-    model.p_M_Flow = Param(default=9999999, doc='Big-M flow parameter [bbl/week]')
+    model.p_M_Flow = Param(default=9999999, doc="Big-M flow parameter [bbl/week]")
 
-    model.p_psi_FracDemand = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_Production = Param(default=999999999, doc='Slack cost parameter [$]')
-    model.p_psi_Flowback = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_FracDemand = Param(default=999999999, doc="Slack cost parameter [$]")
+    model.p_psi_Production = Param(default=999999999, doc="Slack cost parameter [$]")
+    model.p_psi_Flowback = Param(default=999999999, doc="Slack cost parameter [$]")
     model.p_psi_PipelineCapacity = Param(
-        default=999999999, doc='Slack cost parameter [$]'
+        default=999999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_StorageCapacity = Param(
-        default=999999999, doc='Slack cost parameter [$]'
+        default=999999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_DisposalCapacity = Param(
-        default=999999999, doc='Slack cost parameter [$]'
+        default=999999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_TreatmentCapacity = Param(
-        default=999999999, doc='Slack cost parameter [$]'
+        default=999999999, doc="Slack cost parameter [$]"
     )
-    model.p_psi_ReuseCapacity = Param(default=999999999, doc='Slack cost parameter [$]')
+    model.p_psi_ReuseCapacity = Param(default=999999999, doc="Slack cost parameter [$]")
 
     # model.p_sigma_Freshwater.pprint()
 
@@ -1089,7 +1089,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
 
         model.CostObjectiveFunction = Constraint(
-            rule=CostObjectiveFunctionRule, doc='Cost objective function'
+            rule=CostObjectiveFunctionRule, doc="Cost objective function"
         )
 
         # model.CostObjectiveFunction.pprint()
@@ -1118,13 +1118,13 @@ def create_model(df_sets, df_parameters, default={}):
             )
 
         model.ReuseObjectiveFunction = Constraint(
-            rule=ReuseObjectiveFunctionRule, doc='Reuse objective function'
+            rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
         )
 
         # model.ReuseObjectiveFunction.pprint()
 
     else:
-        raise Exception('objective not supported')
+        raise Exception("objective not supported")
 
     ## Define constraints ##
 
@@ -1165,13 +1165,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsPadDemandBalanceRule,
-        doc='Completions pad demand balance',
+        doc="Completions pad demand balance",
     )
 
     # model.CompletionsPadDemandBalance['CP02','T24'].pprint()
 
     def CompletionsPadStorageBalanceRule(model, p, t):
-        if t == 'T01':
+        if t == "T01":
             return (
                 model.v_L_PadStorage[p, t]
                 == model.p_lambda_PadStorage[p]
@@ -1190,7 +1190,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsPadStorageBalanceRule,
-        doc='Completions pad storage balance',
+        doc="Completions pad storage balance",
     )
 
     # model.CompletionsPadStorageBalance.pprint()
@@ -1202,7 +1202,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsPadStorageCapacityRule,
-        doc='Completions pad storage capacity',
+        doc="Completions pad storage capacity",
     )
 
     # model.CompletionsPadStorageCapacity.pprint()
@@ -1217,7 +1217,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=TerminalCompletionsPadStorageLevelRule,
-        doc='Terminal completions pad storage level',
+        doc="Terminal completions pad storage level",
     )
 
     # model.TerminalCompletionsPadStorageLevel.pprint()
@@ -1232,7 +1232,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_F,
         model.s_T,
         rule=FreshwaterSourcingCapacityRule,
-        doc='Freshwater sourcing capacity',
+        doc="Freshwater sourcing capacity",
     )
 
     # model.FreshwaterSourcingCapacity.pprint()
@@ -1257,7 +1257,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsPadTruckOffloadingCapacityRule,
-        doc='Completions pad truck offloading capacity',
+        doc="Completions pad truck offloading capacity",
     )
 
     # model.CompletionsPadTruckOffloadingCapacity.pprint()
@@ -1273,7 +1273,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_T,
         rule=StorageSiteTruckOffloadingCapacityRule,
-        doc='Storage site truck offloading capacity',
+        doc="Storage site truck offloading capacity",
     )
 
     # model.StorageSiteTruckOffloadingCapacity.pprint()
@@ -1290,7 +1290,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_T,
         rule=StorageSiteProcessingCapacityRule,
-        doc='Storage site processing capacity',
+        doc="Storage site processing capacity",
     )
 
     # model.StorageSiteProcessingCapacity.pprint()
@@ -1325,7 +1325,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_PP,
         model.s_T,
         rule=ProductionPadSupplyBalanceRule,
-        doc='Production pad supply balance',
+        doc="Production pad supply balance",
     )
 
     # model.ProductionPadSupplyBalance.pprint()
@@ -1354,7 +1354,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsPadSupplyBalanceRule,
-        doc='Completions pad supply balance (i.e. flowback balance',
+        doc="Completions pad supply balance (i.e. flowback balance",
     )
 
     # model.CompletionsPadSupplyBalance.pprint()
@@ -1387,7 +1387,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.NetworkBalance = Constraint(
-        model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc='Network node balance'
+        model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc="Network node balance"
     )
 
     # model.NetworkBalance['N12','T05'].pprint()
@@ -1520,7 +1520,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         rule=BidirectionalFlowRule1,
-        doc='Bi-directional flow',
+        doc="Bi-directional flow",
     )
 
     # model.BidirectionalFlow1.pprint()
@@ -1678,13 +1678,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         rule=BidirectionalFlowRule2,
-        doc='Bi-directional flow',
+        doc="Bi-directional flow",
     )
 
     # model.BidirectionalFlow2.pprint()
 
     def StorageSiteBalanceRule(model, s, t):
-        if t == 'T01':
+        if t == "T01":
             return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
                 model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
             ) + sum(
@@ -1735,7 +1735,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_T,
         rule=StorageSiteBalanceRule,
-        doc='Storage site balance rule',
+        doc="Storage site balance rule",
     )
 
     # model.StorageSiteBalance.pprint()
@@ -1750,7 +1750,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_T,
         rule=TerminalStorageLevelRule,
-        doc='Terminal storage site level',
+        doc="Terminal storage site level",
     )
 
     # model.TerminalStorageLevel.pprint()
@@ -2046,7 +2046,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         rule=PipelineCapacityExpansionRule,
-        doc='Pipeline capacity construction/expansion',
+        doc="Pipeline capacity construction/expansion",
     )
 
     # model.PipelineCapacityExpansion['N03','N04'].pprint()
@@ -2161,7 +2161,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         rule=PipelineCapacityRule,
-        doc='Pipeline capacity',
+        doc="Pipeline capacity",
     )
 
     # model.PipelineCapacity['R01','CP01','T01'].pprint()
@@ -2179,7 +2179,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.StorageCapacityExpansion = Constraint(
         model.s_S,
         rule=StorageCapacityExpansionRule,
-        doc='Storage capacity construction/expansion',
+        doc="Storage capacity construction/expansion",
     )
 
     # model.StorageCapacityExpansion.pprint()
@@ -2188,7 +2188,7 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_L_Storage[s, t] <= model.v_X_Capacity[s]
 
     model.StorageCapacity = Constraint(
-        model.s_S, model.s_T, rule=StorageCapacityRule, doc='Storage capacity'
+        model.s_S, model.s_T, rule=StorageCapacityRule, doc="Storage capacity"
     )
 
     # model.StorageCapacity.pprint()
@@ -2206,7 +2206,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.DisposalCapacityExpansion = Constraint(
         model.s_K,
         rule=DisposalCapacityExpansionRule,
-        doc='Disposal capacity construction/expansion',
+        doc="Disposal capacity construction/expansion",
     )
 
     # model.DisposalCapacityExpansion1.pprint()
@@ -2223,7 +2223,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.DisposalCapacity = Constraint(
-        model.s_K, model.s_T, rule=DisposalCapacityRule, doc='Disposal capacity'
+        model.s_K, model.s_T, rule=DisposalCapacityRule, doc="Disposal capacity"
     )
 
     # model.DisposalCapacity.pprint()
@@ -2242,7 +2242,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
         rule=TreatmentCapacityExpansionRule,
-        doc='Treatment capacity construction/expansion',
+        doc="Treatment capacity construction/expansion",
     )
 
     # model.TreatmentCapacityExpansion.pprint()
@@ -2257,7 +2257,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TreatmentCapacity = Constraint(
-        model.s_R, model.s_T, rule=TreatmentCapacityRule, doc='Treatment capacity'
+        model.s_R, model.s_T, rule=TreatmentCapacityRule, doc="Treatment capacity"
     )
 
     # model.TreatmentCapacity.pprint()
@@ -2271,7 +2271,7 @@ def create_model(df_sets, df_parameters, default={}):
         ) == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
 
     model.TreatmentBalance = Constraint(
-        model.s_R, model.s_T, rule=TreatmentBalanceRule, doc='Treatment balance'
+        model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment balance"
     )
 
     # model.TreatmentBalance.pprint()
@@ -2288,7 +2288,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_O,
         model.s_T,
         rule=BeneficialReuseCapacityRule,
-        doc='Beneficial reuse capacity',
+        doc="Beneficial reuse capacity",
     )
 
     # model.BeneficialReuseCapacity.pprint()
@@ -2320,7 +2320,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=FreshSourcingCostRule,
-        doc='Fresh sourcing cost',
+        doc="Fresh sourcing cost",
     )
 
     # model.FreshSourcingCost.pprint()
@@ -2335,7 +2335,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalFreshSourcingCost = Constraint(
-        rule=TotalFreshSourcingCostRule, doc='Total fresh sourcing cost'
+        rule=TotalFreshSourcingCostRule, doc="Total fresh sourcing cost"
     )
 
     # model.TotalFreshSourcingCost.pprint()
@@ -2356,7 +2356,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalFreshSourcingVolume = Constraint(
-        rule=TotalFreshSourcingVolumeRule, doc='Total fresh sourcing volume'
+        rule=TotalFreshSourcingVolumeRule, doc="Total fresh sourcing volume"
     )
 
     # model.TotalFreshSourcingVolume.pprint()
@@ -2385,7 +2385,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.DisposalCost = Constraint(
-        model.s_K, model.s_T, rule=DisposalCostRule, doc='Disposal cost'
+        model.s_K, model.s_T, rule=DisposalCostRule, doc="Disposal cost"
     )
 
     # model.DisposalCost.pprint()
@@ -2396,7 +2396,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalDisposalCost = Constraint(
-        rule=TotalDisposalCostRule, doc='Total disposal cost'
+        rule=TotalDisposalCostRule, doc="Total disposal cost"
     )
 
     # model.TotalDisposalCost.pprint()
@@ -2417,7 +2417,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalDisposalVolume = Constraint(
-        rule=TotalDisposalVolumeRule, doc='Total disposal volume'
+        rule=TotalDisposalVolumeRule, doc="Total disposal volume"
     )
 
     # model.TotalDisposalVolume.pprint()
@@ -2439,7 +2439,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TreatmentCost = Constraint(
-        model.s_R, model.s_T, rule=TreatmentCostRule, doc='Treatment cost'
+        model.s_R, model.s_T, rule=TreatmentCostRule, doc="Treatment cost"
     )
 
     # model.TreatmentCost.pprint()
@@ -2450,7 +2450,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalTreatmentCost = Constraint(
-        rule=TotalTreatmentCostRule, doc='Total treatment cost'
+        rule=TotalTreatmentCostRule, doc="Total treatment cost"
     )
 
     # model.TotalTreatmentCost.pprint()
@@ -2496,7 +2496,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsReuseCostRule,
-        doc='Reuse completions cost',
+        doc="Reuse completions cost",
     )
 
     # model.CompletionsReuseCost.pprint()
@@ -2507,7 +2507,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalCompletionsReuseCost = Constraint(
-        rule=TotalCompletionsReuseCostRule, doc='Total completions reuse cost'
+        rule=TotalCompletionsReuseCostRule, doc="Total completions reuse cost"
     )
 
     def TotalReuseVolumeRule(model):
@@ -2545,7 +2545,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalReuseVolume = Constraint(
-        rule=TotalReuseVolumeRule, doc='Total reuse volume'
+        rule=TotalReuseVolumeRule, doc="Total reuse volume"
     )
 
     # model.TotalCompletionsReuseCost.pprint()
@@ -2708,7 +2708,7 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
 
     model.PipingCost = Constraint(
-        model.s_L, model.s_L, model.s_T, rule=PipingCostRule, doc='Piping cost'
+        model.s_L, model.s_L, model.s_T, rule=PipingCostRule, doc="Piping cost"
     )
 
     # model.PipingCost.pprint()
@@ -2847,7 +2847,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalPipingCost = Constraint(
-        rule=TotalPipingCostRule, doc='Total piping cost'
+        rule=TotalPipingCostRule, doc="Total piping cost"
     )
 
     # model.TotalPipingCost.pprint()
@@ -2864,7 +2864,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.StorageDepositCost = Constraint(
-        model.s_S, model.s_T, rule=StorageDepositCostRule, doc='Storage deposit cost'
+        model.s_S, model.s_T, rule=StorageDepositCostRule, doc="Storage deposit cost"
     )
 
     # model.StorageDepositCost.pprint()
@@ -2875,7 +2875,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalStorageCost = Constraint(
-        rule=TotalStorageCostRule, doc='Total storage deposit cost'
+        rule=TotalStorageCostRule, doc="Total storage deposit cost"
     )
 
     # model.TotalStorageCost.pprint()
@@ -2902,7 +2902,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_T,
         rule=StorageWithdrawalCreditRule,
-        doc='Storage withdrawal credit',
+        doc="Storage withdrawal credit",
     )
 
     # model.StorageWithdrawalCredit.pprint()
@@ -2913,7 +2913,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalStorageWithdrawalCredit = Constraint(
-        rule=TotalStorageWithdrawalCreditRule, doc='Total storage withdrawal credit'
+        rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
     )
 
     # model.TotalStorageWithdrawalCredit.pprint()
@@ -3079,7 +3079,7 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
 
     model.TruckingCost = Constraint(
-        model.s_L, model.s_L, model.s_T, rule=TruckingCostRule, doc='Trucking cost'
+        model.s_L, model.s_L, model.s_T, rule=TruckingCostRule, doc="Trucking cost"
     )
 
     # model.TruckingCost.pprint()
@@ -3196,7 +3196,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalTruckingCost = Constraint(
-        rule=TotalTruckingCostRule, doc='Total trucking cost'
+        rule=TotalTruckingCostRule, doc="Total trucking cost"
     )
 
     # model.TotalTruckingCost.pprint()
@@ -3267,7 +3267,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalTruckingVolume = Constraint(
-        rule=TotalTruckingVolumeRule, doc='Total trucking volume'
+        rule=TotalTruckingVolumeRule, doc="Total trucking volume"
     )
 
     def DisposalExpansionCapExRule(model):
@@ -3283,7 +3283,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.DisposalExpansionCapEx = Constraint(
         rule=DisposalExpansionCapExRule,
-        doc='Disposal construction or capacity expansion cost',
+        doc="Disposal construction or capacity expansion cost",
     )
 
     # model.DisposalExpansionCapEx.pprint()
@@ -3301,7 +3301,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.StorageExpansionCapEx = Constraint(
         rule=StorageExpansionCapExRule,
-        doc='Storage construction or capacity expansion cost',
+        doc="Storage construction or capacity expansion cost",
     )
 
     # model.StorageExpansionCapEx.pprint()
@@ -3319,7 +3319,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TreatmentExpansionCapEx = Constraint(
         rule=TreatmentExpansionCapExRule,
-        doc='Treatment construction or capacity expansion cost',
+        doc="Treatment construction or capacity expansion cost",
     )
 
     # model.TreatmentExpansionCapEx.pprint()
@@ -3577,7 +3577,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.PipelineExpansionCapEx = Constraint(
         rule=PipelineExpansionCapExRule,
-        doc='Pipeline construction or capacity expansion cost',
+        doc="Pipeline construction or capacity expansion cost",
     )
 
     # model.PipelineExpansionCapEx.pprint()
@@ -3784,7 +3784,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
         )
 
-    model.SlackCosts = Constraint(rule=SlackCostsRule, doc='Slack costs')
+    model.SlackCosts = Constraint(rule=SlackCostsRule, doc="Slack costs")
 
     # model.SlackCosts.pprint()
 
@@ -3792,7 +3792,7 @@ def create_model(df_sets, df_parameters, default={}):
         return sum(model.vb_y_Disposal[k, i] for i in model.s_I) == 1
 
     model.LogicConstraintDisposal = Constraint(
-        model.s_K, rule=LogicConstraintDisposalRule, doc='Logic constraint disposal'
+        model.s_K, rule=LogicConstraintDisposalRule, doc="Logic constraint disposal"
     )
 
     # model.LogicConstraintDisposal.pprint()
@@ -3801,7 +3801,7 @@ def create_model(df_sets, df_parameters, default={}):
         return sum(model.vb_y_Storage[s, c] for c in model.s_C) == 1
 
     model.LogicConstraintStorage = Constraint(
-        model.s_S, rule=LogicConstraintStorageRule, doc='Logic constraint storage'
+        model.s_S, rule=LogicConstraintStorageRule, doc="Logic constraint storage"
     )
 
     # model.LogicConstraintStorage.pprint()
@@ -3810,7 +3810,7 @@ def create_model(df_sets, df_parameters, default={}):
         return sum(model.vb_y_Treatment[r, j] for j in model.s_J) == 1
 
     model.LogicConstraintTreatment = Constraint(
-        model.s_R, rule=LogicConstraintTreatmentRule, doc='Logic constraint treatment'
+        model.s_R, rule=LogicConstraintTreatmentRule, doc="Logic constraint treatment"
     )
 
     # model.LogicConstraintTreatment.pprint()
@@ -3918,7 +3918,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         rule=LogicConstraintPipelineRule,
-        doc='Logic constraint pipelines',
+        doc="Logic constraint pipelines",
     )
 
     def ReuseDestinationDeliveriesRule(model, p, t):
@@ -3930,7 +3930,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=ReuseDestinationDeliveriesRule,
-        doc='Reuse destinations volume',
+        doc="Reuse destinations volume",
     )
 
     # model.ReuseDestinationDeliveries.pprint()
@@ -3944,7 +3944,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_K,
         model.s_T,
         rule=DisposalDestinationDeliveriesRule,
-        doc='Disposal destinations volume',
+        doc="Disposal destinations volume",
     )
 
     # model.DisposalDestinationDeliveries.pprint()
@@ -3976,79 +3976,79 @@ def create_model(df_sets, df_parameters, default={}):
     ## Define Objective and Solve Statement ##
 
     model.objective = Objective(
-        expr=model.v_Z, sense=minimize, doc='Objective function'
+        expr=model.v_Z, sense=minimize, doc="Objective function"
     )
 
     return model
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # This emulates what the pyomo command-line tools does
     # Tabs in the input Excel spreadsheet
     set_list = [
-        'ProductionPads',
-        'ProductionTanks',
-        'CompletionsPads',
-        'SWDSites',
-        'FreshwaterSources',
-        'StorageSites',
-        'TreatmentSites',
-        'ReuseOptions',
-        'NetworkNodes',
-        'PipelineDiameters',
-        'StorageCapacities',
-        'InjectionCapacities',
-        'TreatmentCapacities',
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
     ]
     parameter_list = [
-        'PNA',
-        'CNA',
-        'CCA',
-        'NNA',
-        'NCA',
-        'NKA',
-        'NRA',
-        'NSA',
-        'FCA',
-        'RCA',
-        'RNA',
-        'SNA',
-        'PCT',
-        'PKT',
-        'FCT',
-        'CST',
-        'CCT',
-        'CKT',
-        'TruckingTime',
-        'CompletionsDemand',
-        'PadRates',
-        'FlowbackRates',
-        'InitialPipelineCapacity',
-        'InitialDisposalCapacity',
-        'InitialTreatmentCapacity',
-        'FreshwaterSourcingAvailability',
-        'PadOffloadingCapacity',
-        'CompletionsPadStorage',
-        'DisposalOperationalCost',
-        'TreatmentOperationalCost',
-        'ReuseOperationalCost',
-        'PipelineOperationalCost',
-        'FreshSourcingCost',
-        'TruckingHourlyCost',
-        'PipelineCapacityIncrements',
-        'DisposalCapacityIncrements',
-        'InitialStorageCapacity',
-        'StorageCapacityIncrements',
-        'TreatmentCapacityIncrements',
-        'TreatmentEfficiency',
-        'DisposalExpansionCost',
-        'StorageExpansionCost',
-        'TreatmentExpansionCost',
-        'PipelineExpansionCost',
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineCapacityIncrements",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineExpansionCost",
     ]
 
     with resources.path(
-        'pareto.case_studies',
+        "pareto.case_studies",
         "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
@@ -4060,5 +4060,5 @@ if __name__ == '__main__':
     # solve mathematical model
     results = opt.solve(strategic_model, tee=True)
     results.write()
-    print("\nDisplaying Solution\n" + '-' * 60)
+    print("\nDisplaying Solution\n" + "-" * 60)
     # pyomo_postprocess(None, model, results)

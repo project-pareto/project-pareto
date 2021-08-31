@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 
-NAME = 'project_pareto'
-VERSION = '0.1.0dev'
+NAME = "project_pareto"
+VERSION = "0.1.0dev"
 
 
 setup(
@@ -10,9 +10,9 @@ setup(
     version=VERSION,
     packages=find_packages(),
     install_requires=[
-        'pyomo',
-        'pandas==1.2.*',
-        'openpyxl',
+        "pyomo",
+        "pandas==1.2.*",
+        "openpyxl",
     ],
     include_package_data=True,
     package_data={

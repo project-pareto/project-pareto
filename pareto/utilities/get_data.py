@@ -25,7 +25,7 @@ def _read_data(_fname, _set_list, _parameter_list):
         sheet_name=_set_list,
         header=0,
         index_col=None,
-        usecols='A',
+        usecols="A",
         squeeze=True,
         dtype="string",
         keep_default_na=False,
@@ -46,7 +46,7 @@ def _read_data(_fname, _set_list, _parameter_list):
         index_col = []
         for j in _df_parameters[i].columns:
             # If the column is unnamed, it is assumed the column is an index and saved in index_col
-            if 'Unnamed' in str(j):
+            if "Unnamed" in str(j):
                 index_col.append(j)
 
         # If the number of unnamed columns in idex_col is equal to the total columns of the dataframe
@@ -68,7 +68,7 @@ def _cleanup_data(_df_parameters):
     2) It formats the headers and column names as strings
     """
     for i in _df_parameters:
-        _df_parameters[i].replace('', 0, inplace=True)
+        _df_parameters[i].replace("", 0, inplace=True)
         _df_parameters[i].columns = _df_parameters[i].columns.astype(str)
 
     return _df_parameters
@@ -90,7 +90,7 @@ def _df_to_param(data_frame):
         if data_frame[i].empty:
             _df_parameters[i] = data_frame[i].to_dict()
 
-        elif 'Unnamed' in str(data_frame[i].columns[0]):
+        elif "Unnamed" in str(data_frame[i].columns[0]):
             data_column = data_frame[i].columns[0]
             _temp_df_parameters[i] = data_frame[i].to_dict()
             _df_parameters[i] = _temp_df_parameters[i][data_column]
@@ -151,7 +151,7 @@ def get_data(fname, set_list, parameter_list):
 
     # The set for time periods is defined based on the columns of the parameter for Completions Demand
     # This is done so the user does not have to add an extra tab in the spreadsheet for the time period set
-    _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
+    _df_sets["TimePeriods"] = _df_parameters["CompletionsDemand"].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
     _df_parameters = _df_to_param(_df_parameters)
@@ -200,7 +200,7 @@ def set_consistency_check(param, *args):
     # been defined as part of its Sets, therefore, an exception is raised
     if net_elements:
         raise TypeError(
-            f'The following elements have not been declared as part of a Set: {sorted(net_elements)}'
+            f"The following elements have not been declared as part of a Set: {sorted(net_elements)}"
         )
     else:
         return 0

@@ -14,14 +14,14 @@ def create_model(df_sets, df_parameters):
     ###############################################################################
     #                             SET DEFINITION
     ###############################################################################
-    model.p = Set(initialize=df_sets['ProductionPads'], doc='Production Pads')
-    model.c = Set(initialize=df_sets['CompletionsPads'], doc='Completions Pads')
-    model.a = Set(initialize=df_sets['ProductionTanks'], doc='Production tanks')
-    model.d = Set(initialize=df_sets['SWDSites'], doc='Disposal Sites')
-    model.t = Set(initialize=df_sets['TimePeriods'], doc='plannning weeks')
+    model.p = Set(initialize=df_sets["ProductionPads"], doc="Production Pads")
+    model.c = Set(initialize=df_sets["CompletionsPads"], doc="Completions Pads")
+    model.a = Set(initialize=df_sets["ProductionTanks"], doc="Production tanks")
+    model.d = Set(initialize=df_sets["SWDSites"], doc="Disposal Sites")
+    model.t = Set(initialize=df_sets["TimePeriods"], doc="plannning weeks")
     model.l = Set(
         initialize=model.p | model.c | model.a | model.d,
-        doc='Superset that contains all locations',
+        doc="Superset that contains all locations",
     )
 
     ###############################################################################
@@ -31,21 +31,21 @@ def create_model(df_sets, df_parameters):
         model.l,
         model.l,
         default=0,
-        initialize=df_parameters['DriveTimes'],
+        initialize=df_parameters["DriveTimes"],
         doc="Driving times between locations",
     )
     model.p_completion_demand = Param(
         model.c,
         model.t,
         default=0,
-        initialize=df_parameters['CompletionsDemand'],
+        initialize=df_parameters["CompletionsDemand"],
         doc="Water demand for completion operations",
     )
     model.p_flowback_rates = Param(
         model.c,
         model.t,
         default=0,
-        initialize=df_parameters['FlowbackRates'],
+        initialize=df_parameters["FlowbackRates"],
         doc="Water flowback rate",
     )
     model.p_production_rates = Param(
@@ -53,20 +53,20 @@ def create_model(df_sets, df_parameters):
         model.a,
         model.t,
         default=0,
-        initialize=df_parameters['ProductionRates'],
+        initialize=df_parameters["ProductionRates"],
         doc="Production Rate Forecasts by Tanks and Pads",
     )
     model.p_initial_disposal_capacity = Param(
         model.d,
         default=0,
-        initialize=df_parameters['InitialDisposalCapacity'],
+        initialize=df_parameters["InitialDisposalCapacity"],
         doc="Initial disposal capacity",
     )
     model.p_two_index_column = Param(
         model.d,
         model.d,
         default=0,
-        initialize=df_parameters['TwoIndexColumnParam'],
+        initialize=df_parameters["TwoIndexColumnParam"],
         doc="Parameter with two indices in column format",
     )
 
@@ -105,7 +105,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_drive_times = Constraint(
-        rule=DriveTimesEquationRule, doc='Calculation of total drive times'
+        rule=DriveTimesEquationRule, doc="Calculation of total drive times"
     )
 
     def CompletionDemandRule(model, t):
@@ -114,7 +114,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_completion_demand = Constraint(
-        model.t, rule=DriveTimesEquationRule, doc='Calculation of total water demand'
+        model.t, rule=DriveTimesEquationRule, doc="Calculation of total water demand"
     )
 
     def FlowBackRatesRule(model):
@@ -123,7 +123,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_flowback_rates = Constraint(
-        rule=DriveTimesEquationRule, doc='Calculation of total flowback'
+        rule=DriveTimesEquationRule, doc="Calculation of total flowback"
     )
 
     def ProductionRatesRule(model):
@@ -135,7 +135,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_production_rates = Constraint(
-        rule=DriveTimesEquationRule, doc='Calculation of total production rates'
+        rule=DriveTimesEquationRule, doc="Calculation of total production rates"
     )
 
     def DisposalCapacityRule(model):
@@ -144,7 +144,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_disposal_capacity = Constraint(
-        rule=DisposalCapacityRule, doc='Calculation of total initial disposal capacity'
+        rule=DisposalCapacityRule, doc="Calculation of total initial disposal capacity"
     )
 
     def TwoIndexColumnParameterRule(model, d):
@@ -155,34 +155,34 @@ def create_model(df_sets, df_parameters):
     model.e_two_index_column_param = Constraint(
         model.d,
         rule=TwoIndexColumnParameterRule,
-        doc='Equation to test reading parameters with two indices in column format',
+        doc="Equation to test reading parameters with two indices in column format",
     )
 
     return model
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # Tabs in the input Excel spreadsheet
-    set_list = ['ProductionPads', 'CompletionsPads', 'SWDSites', 'ProductionTanks']
+    set_list = ["ProductionPads", "CompletionsPads", "SWDSites", "ProductionTanks"]
     parameter_list = [
-        'DriveTimes',
-        'CompletionsDemand',
-        'FlowbackRates',
-        'ProductionRates',
-        'InitialDisposalCapacity',
-        'TwoIndexColumnParam',
+        "DriveTimes",
+        "CompletionsDemand",
+        "FlowbackRates",
+        "ProductionRates",
+        "InitialDisposalCapacity",
+        "TwoIndexColumnParam",
     ]
-    with resources.path('pareto.case_studies', "toy_case_study.xlsx") as fpath:
-        print(f'Reading file from {fpath}')
+    with resources.path("pareto.case_studies", "toy_case_study.xlsx") as fpath:
+        print(f"Reading file from {fpath}")
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     set_consistency_check(
-        df_parameters['ProductionRates'],
-        df_sets['ProductionPads'],
-        df_sets['ProductionTanks'],
-        df_sets['TimePeriods'],
+        df_parameters["ProductionRates"],
+        df_sets["ProductionPads"],
+        df_sets["ProductionTanks"],
+        df_sets["TimePeriods"],
     )
-    set_consistency_check(df_parameters['InitialDisposalCapacity'], df_sets['SWDSites'])
+    set_consistency_check(df_parameters["InitialDisposalCapacity"], df_sets["SWDSites"])
 
     strategic_model = create_model(df_sets, df_parameters)
