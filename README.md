@@ -69,3 +69,37 @@ To test that the installation was successful, run the test suite using the `pyte
 ```sh
 pytest
 ```
+
+## Notes for developers
+
+### Formatting code with Black
+
+Black (https://black.readthedocs.io) is the code formatter used by Pareto to ensure that the codebase is formatted consistently.
+
+#### Installation
+
+Black is part of the Pareto developer dependencies and it is installed alongside the other dependencies when running `pip install -r requirements-dev.txt` in the Conda environment used for development.
+
+To verify that Black is installed correctly, run e.g.:
+
+```sh
+black --version
+```
+
+#### Usage
+
+Before committing code to the Pareto repository, run `black` locally (i.e. on your development machine) with the default options from the repository root:
+
+```sh
+black .
+```
+
+#### Automated check
+
+When a PR is created or updated, as part of the automated check suite running on GitHub, Black will run in "check mode": rather than formatting files, it will check if any file would need to be formatted, and exiting with an error if this is the case.
+
+To reproduce this check locally (e.g. to verify that your code would pass this check when enforced on the GitHub side), from the root of the repository, run:
+
+```sh
+black --check .
+```
