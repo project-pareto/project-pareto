@@ -2259,10 +2259,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalFreshSourcingCostRule(model):
         return model.v_C_TotalSourced == sum(
-            sum(
-                sum(model.v_C_Sourced[f, p, t] for f in model.s_F)
-                for p in model.s_CP
-            )
+            sum(sum(model.v_C_Sourced[f, p, t] for f in model.s_F) for p in model.s_CP)
             for t in model.s_T
         )
 
