@@ -343,7 +343,7 @@ def generate_report(model, is_print=[]):
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
 
     for i in list(headers.items())[1:]:
-        dict_name = i[0][:-len("_dict")]
+        dict_name = i[0][: -len("_dict")]
         if dict_name in printing_list:
             print("\n", "=" * 10, dict_name.upper(), "=" * 10)
             print(i[1][0])
@@ -352,7 +352,7 @@ def generate_report(model, is_print=[]):
 
     # Loop for printing Overview Information
     for i in list(headers.items())[:1]:
-        dict_name = i[0][:-len("_dict")]
+        dict_name = i[0][: -len("_dict")]
         if dict_name in printing_list:
             print("\n", "=" * 10, dict_name.upper(), "=" * 10)
             # print(i[1][1][0])
