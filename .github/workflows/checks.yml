@@ -24,6 +24,10 @@ defaults:
     # the -l flag is needed for the Conda environment to be activated properly
     shell: bash -l {0}
 
+env:
+  # needed for colorized output to be shown in GHA logs
+  PYTEST_ADDOPTS: "--color=yes"
+
 jobs:
   pytest:
     name: Tests (py${{ matrix.python-version }}/${{ matrix.os }}/${{ matrix.install-mode }})
@@ -62,6 +66,7 @@ jobs:
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
+          idaes get-extensions --verbose
       - name: Run pytest
         if: contains(matrix.install-mode, 'dev')
         # TODO: add coverage
@@ -70,3 +75,18 @@ jobs:
       - name: Run toy case study
         run: |
           python -m pareto.case_studies.toy_case_study
+
+  black:
+    name: Run Black to verify that committed code is formatted
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install (dev mode)
+        run: |
+          pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
+      - name: Run Black to verify that committed code is formatted
+        run: |
+          black --check .
