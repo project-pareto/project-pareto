@@ -252,10 +252,12 @@ def od_matrix(inputs):
                 the locations is returned
                 If not output is specified, 'time_distance' is the default
 
-    - path:     OPTIONAL. od_matrix() will ALWAYS output an Excel workbook with two tabs, one that
+    - fpath:    OPTIONAL. od_matrix() will ALWAYS output an Excel workbook with two tabs, one that
                 contains drive times, and another that contains drive distances. If not path is
                 specified, the excel file is saved with the name 'od_output.xlsx' in the current
                 directory.
+
+    - create_report OPTIONAL. if True an Excel report with drive distances and drive times is created
     """
     # Information for origing should be provided
     if "origin" not in inputs.keys():
@@ -268,7 +270,8 @@ def od_matrix(inputs):
         "api": None,
         "api_key": None,
         "output": None,
-        "path": None,
+        "fpath": None,
+        "create_report": True,
     }
 
     for i in inputs_default.keys():
@@ -279,7 +282,8 @@ def od_matrix(inputs):
     api = inputs["api"]
     api_key = inputs["api_key"]
     output = inputs["output"]
-    path = inputs["path"]
+    fpath = inputs["fpath"]
+    create_report = inputs["create_report"]
 
     # Check that a valid API service has been selected and make sure an api_key was provided
     if api in ("open_street_map", None):
@@ -336,7 +340,7 @@ def od_matrix(inputs):
     #                           SELECTING API
     # =======================================================================
 
-    if api == "open_street_map":
+    if api in (None, "open_street_map"):
         # This API works with GET requests. The general format is:
         # https://router.project-osrm.org/table/v1/driving/Lat1,Long1;Lat2,Long2?sources=index1;index2&destinations=index1;index2&annotations=[duration|distance|duration,distance]
         coordinates = ""
@@ -475,14 +479,15 @@ def od_matrix(inputs):
             raise Warning("Error when requesting data, make sure your API key is valid")
 
     # Define the default name of the Excel workbook
-    if path is None:
-        path = "od_output.xlsx"
+    if fpath is None:
+        fpath = "od_output.xlsx"
 
-    # Dataframes df_times and df_distance are output as sheets in an Excel workbook whose directory
-    # and name are defined by variable 'path'
-    with pd.ExcelWriter(path) as writer:
-        df_times.to_excel(writer, sheet_name="DriveTimes")
-        df_distance.to_excel(writer, sheet_name="DriveDistances")
+    if create_report is True:
+        # Dataframes df_times and df_distance are output as sheets in an Excel workbook whose directory
+        # and name are defined by variable 'fpath'
+        with pd.ExcelWriter(fpath) as writer:
+            df_times.to_excel(writer, sheet_name="DriveTimes")
+            df_distance.to_excel(writer, sheet_name="DriveDistances")
 
     # Identify what type of data is returned by the method
     if output in ("time", None):

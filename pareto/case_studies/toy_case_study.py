@@ -185,7 +185,7 @@ if __name__ == "__main__":
         "api": "open_street_map",
         "output": "time",
         "api_key": None,
-        "path": "test_od.xlsx",
+        "fpath": "test_od.xlsx",
     }
 
     df_parameters["DriveTimes"] = od_matrix(od_matrix_input)
