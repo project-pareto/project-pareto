@@ -1,5 +1,5 @@
 ##############################################################################
-# 
+#
 ##############################################################################
 """
 Module to read in input data from Excel spreadsheets and convert it into the
@@ -20,19 +20,33 @@ def _read_data(_fname, _set_list, _parameter_list):
     """
     _df_parameters = {}
     _temp_df_parameters = {}
-    _df_sets = pd.read_excel(_fname, sheet_name = _set_list, header=0, index_col=None, usecols='A',
-                                squeeze=True, dtype= "string", keep_default_na=False)
+    _df_sets = pd.read_excel(
+        _fname,
+        sheet_name=_set_list,
+        header=0,
+        index_col=None,
+        usecols="A",
+        squeeze=True,
+        dtype="string",
+        keep_default_na=False,
+    )
 
-    _df_parameters = pd.read_excel(_fname, sheet_name = _parameter_list,
-                                        header=1, index_col=None, usecols=None,
-                                        squeeze=True, keep_default_na=False)
+    _df_parameters = pd.read_excel(
+        _fname,
+        sheet_name=_parameter_list,
+        header=1,
+        index_col=None,
+        usecols=None,
+        squeeze=True,
+        keep_default_na=False,
+    )
 
     # Detect unnamed columns which will be used to reshape the dataframe by defining what columns are indices
     for i in _df_parameters:
         index_col = []
         for j in _df_parameters[i].columns:
-            #If the column is unnamed, it is assumed the column is an index and saved in index_col
-            if 'Unnamed' in str(j):
+            # If the column is unnamed, it is assumed the column is an index and saved in index_col
+            if "Unnamed" in str(j):
                 index_col.append(j)
 
         # If the number of unnamed columns in idex_col is equal to the total columns of the dataframe
@@ -54,7 +68,7 @@ def _cleanup_data(_df_parameters):
     2) It formats the headers and column names as strings
     """
     for i in _df_parameters:
-        _df_parameters[i].replace('', 0, inplace=True)
+        _df_parameters[i].replace("", 0, inplace=True)
         _df_parameters[i].columns = _df_parameters[i].columns.astype(str)
 
     return _df_parameters
@@ -62,12 +76,12 @@ def _cleanup_data(_df_parameters):
 
 def _df_to_param(data_frame):
     """
-    This module converts the data frame that contains Parameters into the adequate 
+    This module converts the data frame that contains Parameters into the adequate
     format that Pyomo expects for paramerters:
     Input_parameter = {(column_index, row_header): value}
     """
-    _df_parameters={}
-    _temp_df_parameters={}
+    _df_parameters = {}
+    _temp_df_parameters = {}
     for i in data_frame:
 
         # If the data frame has one unnamed column it means the dataframe corresponds to
@@ -76,7 +90,7 @@ def _df_to_param(data_frame):
         if data_frame[i].empty:
             _df_parameters[i] = data_frame[i].to_dict()
 
-        elif 'Unnamed' in str(data_frame[i].columns[0]):
+        elif "Unnamed" in str(data_frame[i].columns[0]):
             data_column = data_frame[i].columns[0]
             _temp_df_parameters[i] = data_frame[i].to_dict()
             _df_parameters[i] = _temp_df_parameters[i][data_column]
@@ -134,10 +148,10 @@ def get_data(fname, set_list, parameter_list):
 
     # Parameters are cleaned up, e.g. blank cells are replaced by zeros
     _df_parameters = _cleanup_data(_df_parameters)
-    
+
     # The set for time periods is defined based on the columns of the parameter for Completions Demand
     # This is done so the user does not have to add an extra tab in the spreadsheet for the time period set
-    _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
+    _df_sets["TimePeriods"] = _df_parameters["CompletionsDemand"].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
     _df_parameters = _df_to_param(_df_parameters)
@@ -153,38 +167,40 @@ def set_consistency_check(param, *args):
     How to use: The method requires one specified parameter (e.g. ProductionRates) AND one OR several sets over which
                 the aforementioned parameter is declared (e.g.ProductionPads, ProductionTanks, TimePeriods). In general,
                 the method can be run as follows: set_consistency_check(Parameter, set_1, set_2, etc)
-                
-    Output:     set_consistency_check() raises a TypeError exception If there are entries in the Parameter that are not 
+
+    Output:     set_consistency_check() raises a TypeError exception If there are entries in the Parameter that are not
                 contained in the Sets, and prints out a list with all the entries that require revision
     """
     # Getting a net list of all the elements that are part of the parameter
-    raw_param_elements=list([*param.keys()])
+    raw_param_elements = list([*param.keys()])
     temp_param_elements = []
     i = []
     for i in raw_param_elements:
-        #The if condition checks if the parameter has only one index or more. If it is a tuple, it means the 
+        # The if condition checks if the parameter has only one index or more. If it is a tuple, it means the
         # parameter has 2 indices or more, and the second loop is required. If it is not a tuple,
         # then the second loop is skipped to avoid looping through the characters of the element i,
         # which would cause a wrong warning
-        if type(i)==tuple:
+        if type(i) == tuple:
             for j in i:
                 temp_param_elements.append(j)
         else:
             temp_param_elements.append(i)
-    net_param_elements = (set(temp_param_elements))
+    net_param_elements = set(temp_param_elements)
 
     # Getting a net list of all the elements that are part of the Sets that index the parameter
     temp_sets_elements = []
     for i in args:
         for j in i:
             temp_sets_elements.append(j)
-    net_sets_elements = (set(temp_sets_elements))
+    net_sets_elements = set(temp_sets_elements)
 
     net_elements = net_param_elements - net_sets_elements
 
-    #If net_elements contains elements, it means the parameter constains elements that have not
+    # If net_elements contains elements, it means the parameter constains elements that have not
     # been defined as part of its Sets, therefore, an exception is raised
     if net_elements:
-        raise TypeError(f'The following elements have not been declared as part of a Set: {sorted(net_elements)}')
+        raise TypeError(
+            f"The following elements have not been declared as part of a Set: {sorted(net_elements)}"
+        )
     else:
         return 0
