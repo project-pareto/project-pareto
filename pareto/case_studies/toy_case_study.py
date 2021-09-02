@@ -179,15 +179,17 @@ if __name__ == "__main__":
 
     # Set the path, including the file name, where you would like to save the output excel file that contains drive times and drive distances
     # If not path is provided, the od_matrix method will save the excel file in the currect directory
-    
-    od_matrix_input = { 'origin': df_parameters['Coordinates'],
-                    'api': 'open_street_map',
-                    'output': 'time',
-                    'api_key': None,
-                    'path': 'test_od.xlsx'}
-    
-    df_parameters['DriveTimes'] = od_matrix(od_matrix_input)
-    
+
+    od_matrix_input = {
+        "origin": df_parameters["Coordinates"],
+        "api": "open_street_map",
+        "output": "time",
+        "api_key": None,
+        "path": "test_od.xlsx",
+    }
+
+    df_parameters["DriveTimes"] = od_matrix(od_matrix_input)
+
     set_consistency_check(
         df_parameters["ProductionRates"],
         df_sets["ProductionPads"],

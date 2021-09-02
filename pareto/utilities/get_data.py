@@ -11,6 +11,7 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 
+
 def _read_data(_fname, _set_list, _parameter_list):
     """
     This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
@@ -162,8 +163,10 @@ def get_data(fname, set_list, parameter_list):
     # The set for time periods is defined based on the columns of the parameter for
     # Completions Demand. This is done so the user does not have to add an extra tab
     # in the spreadsheet for the time period set
-    if 'CompletionsDemand' in parameter_list:
-        _df_sets['TimePeriods'] = _df_parameters['CompletionsDemand'].columns.to_series()
+    if "CompletionsDemand" in parameter_list:
+        _df_sets["TimePeriods"] = _df_parameters[
+            "CompletionsDemand"
+        ].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
     _df_parameters = _df_to_param(_df_parameters)
@@ -255,46 +258,46 @@ def od_matrix(inputs):
                 directory.
     """
     # Information for origing should be provided
-    if 'origin' not in inputs.keys():
-        raise Exception('The input dictionary must contain the key *origin*')
+    if "origin" not in inputs.keys():
+        raise Exception("The input dictionary must contain the key *origin*")
     else:
-        origin = inputs['origin']
+        origin = inputs["origin"]
 
     inputs_default = {
-                        'destination': None,
-                        'api': None,
-                        'api_key': None,
-                        'output': None,
-                        'path': None
-                        }
+        "destination": None,
+        "api": None,
+        "api_key": None,
+        "output": None,
+        "path": None,
+    }
 
     for i in inputs_default.keys():
         if i not in list(inputs.keys()):
             inputs[i] = inputs_default[i]
 
-    destination = inputs['destination']
-    api = inputs['api']
-    api_key = inputs['api_key']
-    output = inputs['output']
-    path = inputs['path']
+    destination = inputs["destination"]
+    api = inputs["api"]
+    api_key = inputs["api_key"]
+    output = inputs["output"]
+    path = inputs["path"]
 
     # Check that a valid API service has been selected and make sure an api_key was provided
-    if api in('open_street_map', None):
-        api_url_base = 'https://router.project-osrm.org/table/v1/driving/'
+    if api in ("open_street_map", None):
+        api_url_base = "https://router.project-osrm.org/table/v1/driving/"
 
-    elif api == 'bing_maps':
-        api_url_base = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?'
+    elif api == "bing_maps":
+        api_url_base = "https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?"
         if api_key is None:
-            raise Warning('Please provide a valid api_key')
+            raise Warning("Please provide a valid api_key")
     else:
-        raise Warning('{0} API service is not supported'.format(api))
+        raise Warning("{0} API service is not supported".format(api))
 
     # If no destinations were provided, it is assumed that the origins are also destinations
     if destination is None:
         destination = origin
 
-    origins_loc =[]
-    destination_loc =[]
+    origins_loc = []
+    destination_loc = []
     origins_dict = {}
     destination_dict = {}
 
@@ -311,8 +314,10 @@ def od_matrix(inputs):
         origins_loc = list(sorted(set(origins_loc)))
 
         for i in origins_loc:
-            origins_dict[i] = { 'latitude':origin[i,'latitude'],
-                                'longitude': origin[i,'longitude']}
+            origins_dict[i] = {
+                "latitude": origin[i, "latitude"],
+                "longitude": origin[i, "longitude"],
+            }
         origin = origins_dict
 
     if isinstance(list(destination.keys())[0], tuple):
@@ -321,55 +326,83 @@ def od_matrix(inputs):
         destination_loc = list(sorted(set(destination_loc)))
 
         for i in destination_loc:
-            destination_dict[i] = { 'latitude':destination[i,'latitude'],
-                                    'longitude': destination[i,'longitude']}
+            destination_dict[i] = {
+                "latitude": destination[i, "latitude"],
+                "longitude": destination[i, "longitude"],
+            }
         destination = destination_dict
 
     # =======================================================================
     #                           SELECTING API
     # =======================================================================
 
-    if api == 'open_street_map':
+    if api == "open_street_map":
         # This API works with GET requests. The general format is:
         # https://router.project-osrm.org/table/v1/driving/Lat1,Long1;Lat2,Long2?sources=index1;index2&destinations=index1;index2&annotations=[duration|distance|duration,distance]
-        coordinates = ''
-        origin_index = ''
-        destination_index = ''
+        coordinates = ""
+        origin_index = ""
+        destination_index = ""
         # Building strings for coordinates, source indices, and destination indices
         for index, location in enumerate(origin.keys()):
-            coordinates += str(origin[location]['longitude']) + ',' + str(origin[location]['latitude']) + ';'
-            origin_index += str(index) +';'
-        
-        for index, location in enumerate(destination.keys()):
-            coordinates += str(destination[location]['longitude']) + ',' + str(destination[location]['latitude']) + ';'
-            destination_index += str(index +len(origin)) +';'
+            coordinates += (
+                str(origin[location]["longitude"])
+                + ","
+                + str(origin[location]["latitude"])
+                + ";"
+            )
+            origin_index += str(index) + ";"
 
-        # Dropping the last character ";" of each string so the API get request is valid 
+        for index, location in enumerate(destination.keys()):
+            coordinates += (
+                str(destination[location]["longitude"])
+                + ","
+                + str(destination[location]["latitude"])
+                + ";"
+            )
+            destination_index += str(index + len(origin)) + ";"
+
+        # Dropping the last character ";" of each string so the API get request is valid
         coordinates = coordinates[:-1]
         origin_index = origin_index[:-1]
         destination_index = destination_index[:-1]
-        response = requests.get(api_url_base + coordinates + '?sources=' + origin_index + '&destinations=' + destination_index + '&annotations=duration,distance')
+        response = requests.get(
+            api_url_base
+            + coordinates
+            + "?sources="
+            + origin_index
+            + "&destinations="
+            + destination_index
+            + "&annotations=duration,distance"
+        )
         response_json = response.json()
 
-        df_times = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
-        df_distance = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
+        df_times = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
+        df_distance = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
         output_times = {}
         output_distance = {}
 
         # Loop for reading the output JSON file
-        if response_json['code'].lower() == 'ok':
+        if response_json["code"].lower() == "ok":
             for index_i, o_name in enumerate(origin):
                 for index_j, d_name in enumerate(destination):
 
-                    output_times[(o_name,d_name)] = response_json['durations'][index_i][index_j]/3600
-                    output_distance[(o_name,d_name)] = (response_json['distances'][index_i][index_j]/1000)*0.621371
+                    output_times[(o_name, d_name)] = (
+                        response_json["durations"][index_i][index_j] / 3600
+                    )
+                    output_distance[(o_name, d_name)] = (
+                        response_json["distances"][index_i][index_j] / 1000
+                    ) * 0.621371
 
-                    df_times.loc[o_name,d_name] = output_times[(o_name,d_name)]
-                    df_distance.loc[o_name,d_name] = output_distance[(o_name,d_name)]
+                    df_times.loc[o_name, d_name] = output_times[(o_name, d_name)]
+                    df_distance.loc[o_name, d_name] = output_distance[(o_name, d_name)]
         else:
-            raise Warning('Error when requesting data, make sure your API key is valid')
+            raise Warning("Error when requesting data, make sure your API key is valid")
 
-    elif api == 'bing_maps':
+    elif api == "bing_maps":
         # Formating origin and destination dicts for Bing Maps POST request, that is, converting this structure:
         # origin={origin1:{"latitude":value1, "longitude":value2},
         #           origin2:{"latitude":value3, "longitude":value4}}
@@ -384,64 +417,84 @@ def od_matrix(inputs):
         origins_post = []
         destinations_post = []
         for i in origin.keys():
-            origins_post.append({"latitude":origin[i]["latitude"],
-                                    "longitude":origin[i]["longitude"]})
+            origins_post.append(
+                {"latitude": origin[i]["latitude"], "longitude": origin[i]["longitude"]}
+            )
 
         for i in destination.keys():
-            destinations_post.append({"latitude":origin[i]["latitude"],
-                                        "longitude":origin[i]["longitude"]})
+            destinations_post.append(
+                {"latitude": origin[i]["latitude"], "longitude": origin[i]["longitude"]}
+            )
 
         # Building the dictionary with the adequate structure compatible with Bing Maps
-        data={"origins":origins_post, "destinations":destinations_post, "travelMode": "driving"}
+        data = {
+            "origins": origins_post,
+            "destinations": destinations_post,
+            "travelMode": "driving",
+        }
 
         # Sending a POST request to the API
-        header = {'Content-Type': 'application/json'}
-        response = requests.post(api_url_base + 'key=' + api_key, headers=header, json=data)
+        header = {"Content-Type": "application/json"}
+        response = requests.post(
+            api_url_base + "key=" + api_key, headers=header, json=data
+        )
         response_json = response.json()
 
         # Definition of two empty dataframes that will contain drive times and distances.
         # These dataframes wiil be exported to an Excel workbook
-        df_times = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
-        df_distance = pd.DataFrame(index=list(origin.keys()), columns=list(destination.keys()))
+        df_times = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
+        df_distance = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
         output_times = {}
         output_distance = {}
 
         # Loop for reading the output JSON file
-        if response_json['statusDescription'].lower() == 'ok':
-            for i in range(len(response_json['resourceSets'][0]['resources'][0]['results'])):
-                data_temp = response_json['resourceSets'][0]['resources'][0]['results'][i]
-                origin_index = data_temp['originIndex']
-                destination_index = data_temp['destinationIndex']
+        if response_json["statusDescription"].lower() == "ok":
+            for i in range(
+                len(response_json["resourceSets"][0]["resources"][0]["results"])
+            ):
+                data_temp = response_json["resourceSets"][0]["resources"][0]["results"][
+                    i
+                ]
+                origin_index = data_temp["originIndex"]
+                destination_index = data_temp["destinationIndex"]
 
                 o_name = list(origin.keys())[origin_index]
                 d_name = list(destination.keys())[destination_index]
-                output_times[(o_name,d_name)] = data_temp['travelDuration']/60
-                output_distance[(o_name,d_name)] = data_temp['travelDistance']*0.621371
+                output_times[(o_name, d_name)] = data_temp["travelDuration"] / 60
+                output_distance[(o_name, d_name)] = (
+                    data_temp["travelDistance"] * 0.621371
+                )
 
-                df_times.loc[o_name,d_name] = output_times[(o_name,d_name)]
-                df_distance.loc[o_name,d_name] = output_distance[(o_name,d_name)]
+                df_times.loc[o_name, d_name] = output_times[(o_name, d_name)]
+                df_distance.loc[o_name, d_name] = output_distance[(o_name, d_name)]
         else:
-            raise Warning('Error when requesting data, make sure your API key is valid')
+            raise Warning("Error when requesting data, make sure your API key is valid")
 
     # Define the default name of the Excel workbook
     if path is None:
-        path = 'od_output.xlsx'
+        path = "od_output.xlsx"
 
     # Dataframes df_times and df_distance are output as sheets in an Excel workbook whose directory
     # and name are defined by variable 'path'
     with pd.ExcelWriter(path) as writer:
-        df_times.to_excel(writer, sheet_name='DriveTimes')
-        df_distance.to_excel(writer, sheet_name='DriveDistances')
+        df_times.to_excel(writer, sheet_name="DriveTimes")
+        df_distance.to_excel(writer, sheet_name="DriveDistances")
 
     # Identify what type of data is returned by the method
-    if output in ('time', None):
+    if output in ("time", None):
         return_output = output_times
-    elif output == 'distance':
+    elif output == "distance":
         return_output = output_distance
-    elif output == 'time_distance':
+    elif output == "time_distance":
         return_output = [output_times, output_distance]
     else:
-        raise Warning("Provide a valid type of output, valid options are:\
-                        time, distance, time_distance")
+        raise Warning(
+            "Provide a valid type of output, valid options are:\
+                        time, distance, time_distance"
+        )
 
     return return_output
