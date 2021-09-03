@@ -61,6 +61,8 @@ parameter_list = [
 fname = "case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
+df_parameters["MinTruckFlow"] = 75
+df_parameters["MaxTruckFlow"] = 37000
 # create mathematical model
 operational_model = create_model(
     df_sets,

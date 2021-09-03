@@ -192,6 +192,7 @@ def generate_report(model, is_print=[]):
                 "vb_y_Pipeline",
                 "vb_y_Disposal",
                 "vb_y_Storage",
+                "vb_y_Truck",
                 "v_F_Drain",
                 "v_B_Production",
                 "vb_y_FLow",
@@ -226,6 +227,7 @@ def generate_report(model, is_print=[]):
                 "vb_y_Disposal",
                 "vb_y_Storage",
                 "vb_y_Flow",
+                "vb_y_Truck",
                 "v_F_Overview",
             ]
 
@@ -267,6 +269,7 @@ def generate_report(model, is_print=[]):
                 ("Storage Site", "Storage Capacity", "Storage Expansion")
             ],
             "vb_y_Flow_dict": [("Origin", "Destination", "Time", "Flow")],
+            "vb_y_Truck_dict": [("Origin", "Destination", "Time", "Truck")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
             "v_F_Capacity_dict": [("Origin", "Destination", "Flow Capacity")],
@@ -282,6 +285,15 @@ def generate_report(model, is_print=[]):
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_F_ReuseDestination_dict": [
+                ("Completion Pad", "Time", "Total Deliveries to Completion Pad")
+            ],
+            "v_F_DisposalDestination_dict": [
+                ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
+            ],
+            "v_F_TreatmentDestination_dict": [
+                ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
+            ],
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
             ],

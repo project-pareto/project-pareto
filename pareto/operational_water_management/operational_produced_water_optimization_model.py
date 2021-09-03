@@ -279,6 +279,25 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals, doc="Total credit for withdrawing produced water [$]"
     )
 
+    model.v_F_ReuseDestination = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total deliveries to completions pad [bbl/week]",
+    )
+    model.v_F_DisposalDestination = Var(
+        model.s_K,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total deliveries to disposal site [bbl/week]",
+    )
+    model.v_F_TreatmentDestination = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total delliveries to treatment site [bbl/week]",
+    )
+
     # COMMENT: Remove the disposal/storage/flow capacity variables
     model.v_D_Capacity = Var(
         model.s_K,
@@ -384,6 +403,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=Binary,
         doc="Directional flow between two locations",
+    )
+    model.vb_y_Truck = Var(
+        model.s_L,
+        model.s_L,
+        model.s_T,
+        within=Binary,
+        doc="Trucking between two locations",
     )
 
     # model.vb_z_Pipeline      = Var(model.s_L,model.s_L,model.s_D,model.s_T,within=Binary, doc='Timing of pipeline installation between two locations')
@@ -685,6 +711,22 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=RKT_Table,
         doc="Valid treatment-to-disposal trucking arcs [-]",
     )
+    df_parameters["LLT"] = {
+        **df_parameters["PCT"],
+        **df_parameters["CCT"],
+        **df_parameters["CRT"],
+        **df_parameters["CKT"],
+        **df_parameters["FCT"],
+        **df_parameters["PKT"],
+        **df_parameters["PRT"],
+    }
+    model.p_LLT = Param(
+        model.s_L,
+        model.s_L,
+        default=0,
+        initialize=df_parameters["LLT"],
+        doc="Valid location-to-location trucking arcs [-]",
+    )
 
     if model.config.production_tanks == ProdTank.individual:
         model.p_PAL = Param(
@@ -889,6 +931,16 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=StorageOffloadingCapacityTable,
         doc="Weekly truck offloading capacity per pad [bbl/day]",
     )
+    model.p_sigma_MinTruckFlow = Param(
+        default=0,
+        initialize=df_parameters["MinTruckFlow"],
+        doc="Minimum truck capacity [bbl]",
+    )
+    model.p_sigma_MaxTruckFlow = Param(
+        default=0,
+        initialize=df_parameters["MaxTruckFlow"],
+        doc="Minimum truck capacity [bbl]",
+    )
     model.p_sigma_ProcessingPad = Param(
         model.s_P,
         default=9999999,
@@ -1047,6 +1099,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.p_pi_Disposal.pprint()
     # model.p_pi_Reuse.pprint()
+    # model.p_pi_Pipeline.pprint()
 
     model.p_M_Flow = Param(default=9999999, doc="Big-M flow parameter [bbl/day]")
 
@@ -1229,7 +1282,41 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Completions pad truck offloading capacity",
     )
 
-    # model.CompletionsPadTruckOffloadingCapacity.pprint()
+    def TrucksMaxCapacityRule(model, l, l_tilde, t):
+        if model.p_LLT[l, l_tilde]:
+            return (
+                model.v_F_Trucked[l, l_tilde, t]
+                <= model.p_sigma_MaxTruckFlow * model.vb_y_Truck[l, l_tilde, t]
+            )
+        else:
+            return Constraint.Skip
+
+    model.TrucksMaxCapacity = Constraint(
+        model.s_L,
+        model.s_L,
+        model.s_T,
+        rule=TrucksMaxCapacityRule,
+        doc="Maximum amount of water that can be transported by trucks",
+    )
+
+    def TrucksMinCapacityRule(model, l, l_tilde, t):
+        if model.p_LLT[l, l_tilde]:
+            return (
+                model.v_F_Trucked[l, l_tilde, t]
+                >= model.p_sigma_MinTruckFlow * model.vb_y_Truck[l, l_tilde, t]
+            )
+        else:
+            return Constraint.Skip
+
+    model.TrucksMinCapacity = Constraint(
+        model.s_L,
+        model.s_L,
+        model.s_T,
+        rule=TrucksMinCapacityRule,
+        doc="Minimum amount of water that can be transported by trucks",
+    )
+
+    #  model.CompletionsPadTruckOffloadingCapacity.pprint()
 
     def StorageSiteTruckOffloadingCapacityRule(model, s, t):
         return (
@@ -1311,6 +1398,7 @@ def create_model(df_sets, df_parameters, default={}):
                         model.v_L_ProdTank[p, t]
                         == model.p_lambda_ProdTank[p]
                         + model.p_beta_Production[p, t]
+                        + model.p_beta_Flowback[p, t]
                         - model.v_F_Drain[p, t]
                     )
                 else:
@@ -1321,6 +1409,7 @@ def create_model(df_sets, df_parameters, default={}):
                         model.v_L_ProdTank[p, t]
                         == model.v_L_ProdTank[p, model.s_T.prev(t)]
                         + model.p_beta_Production[p, t]
+                        + model.p_beta_Flowback[p, t]
                         - model.v_F_Drain[p, t]
                     )
                 else:
@@ -1482,7 +1571,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadSupplyBalanceRule(model, p, t):
         return (
-            model.p_beta_Flowback[p, t]
+            model.v_B_Production[p, t]
             == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_CNA[p, n])
             + sum(
                 model.v_F_Piped[p, p_tilde, t]
@@ -1504,7 +1593,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         rule=CompletionsPadSupplyBalanceRule,
-        doc="Completions pad supply balance (i.e. flowback balance",
+        doc="Completions pad supply balance (i.e. flowback balance)",
     )
 
     # model.CompletionsPadSupplyBalance.pprint()
@@ -2259,10 +2348,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalFreshSourcingCostRule(model):
         return model.v_C_TotalSourced == sum(
-            sum(
-                sum(model.v_C_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
-                for p in model.s_CP
-            )
+            sum(sum(model.v_C_Sourced[f, p, t] for f in model.s_F) for p in model.s_CP)
             for t in model.s_T
         )
 
@@ -3222,7 +3308,47 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.SlackCosts = Constraint(rule=SlackCostsRule, doc="Slack costs")
 
-    # model.SlackCosts.pprint()
+    def ReuseDestinationDeliveriesRule(model, p, t):
+        return model.v_F_ReuseDestination[p, t] == sum(
+            model.v_F_Piped[l, p, t] + model.v_F_Trucked[l, p, t] for l in model.s_L
+        )
+
+    model.ReuseDestinationDeliveries = Constraint(
+        model.s_CP,
+        model.s_T,
+        rule=ReuseDestinationDeliveriesRule,
+        doc="Reuse destinations volume",
+    )
+
+    # model.ReuseDestinationDeliveries.pprint()
+
+    def DisposalDestinationDeliveriesRule(model, k, t):
+        return model.v_F_DisposalDestination[k, t] == sum(
+            model.v_F_Piped[l, k, t] + model.v_F_Trucked[l, k, t] for l in model.s_L
+        )
+
+    model.DisposalDestinationDeliveries = Constraint(
+        model.s_K,
+        model.s_T,
+        rule=DisposalDestinationDeliveriesRule,
+        doc="Disposal destinations volume",
+    )
+
+    # model.DisposalDestinationDeliveries.pprint()
+
+    def TreatmentDestinationDeliveriesRule(model, r, t):
+        return model.v_F_TreatmentDestination[r, t] == sum(
+            model.v_F_Piped[l, r, t] + model.v_F_Trucked[l, r, t] for l in model.s_L
+        )
+
+    model.TreatmentDestinationDeliveries = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=TreatmentDestinationDeliveriesRule,
+        doc="Treatment destinations volume",
+    )
+
+    # model.TreatmentDestinationDeliveries.pprint()
 
     ## Fixing Decision Variables ##
 
