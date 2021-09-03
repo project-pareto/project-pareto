@@ -1,6 +1,6 @@
 from importlib import resources
 
-from pareto.utilities.get_data import get_data, set_consistency_check
+from pareto.utilities.get_data import get_data, set_consistency_check, od_matrix
 
 from pyomo.environ import Var, Param, Set, ConcreteModel, Constraint, NonNegativeReals
 
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     # Tabs in the input Excel spreadsheet
     set_list = ["ProductionPads", "CompletionsPads", "SWDSites", "ProductionTanks"]
     parameter_list = [
-        "DriveTimes",
+        "Coordinates",
         "CompletionsDemand",
         "FlowbackRates",
         "ProductionRates",
@@ -176,6 +176,19 @@ if __name__ == "__main__":
     with resources.path("pareto.case_studies", "toy_case_study.xlsx") as fpath:
         print(f"Reading file from {fpath}")
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    # Set the path, including the file name, where you would like to save the output excel file that contains drive times and drive distances
+    # If not path is provided, the od_matrix method will save the excel file in the currect directory
+
+    od_matrix_input = {
+        "origin": df_parameters["Coordinates"],
+        "api": "open_street_map",
+        "output": "time",
+        "api_key": None,
+        "fpath": "test_od.xlsx",
+    }
+
+    df_parameters["DriveTimes"] = od_matrix(od_matrix_input)
 
     set_consistency_check(
         df_parameters["ProductionRates"],

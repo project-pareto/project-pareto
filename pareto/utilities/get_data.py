@@ -8,8 +8,8 @@ format that Pyomo requires
 Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
-from pyomo.environ import Param, Set, ConcreteModel
 import pandas as pd
+import requests
 
 
 def _read_data(_fname, _set_list, _parameter_list):
@@ -41,7 +41,8 @@ def _read_data(_fname, _set_list, _parameter_list):
         keep_default_na=False,
     )
 
-    # Detect unnamed columns which will be used to reshape the dataframe by defining what columns are indices
+    # Detect unnamed columns which will be used to reshape the dataframe by defining
+    # what columns are indices
     for i in _df_parameters:
         index_col = []
         for j in _df_parameters[i].columns:
@@ -106,42 +107,52 @@ def get_data(fname, set_list, parameter_list):
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
       should be placed in column A, row 2
-    - Parameters can be in either table or column format. Table format: Requires a header (usually time periods)
-      and an index column whose elements should be contained in a Set. The header should start in row 2,
-      and the index column should start in cell A3. Column format: Does not require a header. Each set should be
-      placed in one column, starting from column A and row 3. Data should be provided in the last column.
+    - Parameters can be in either table or column format. Table format: Requires a header
+      (usually time periods) and an index column whose elements should be contained in a Set.
+      The header should start in row 2, and the index column should start in cell A3.
+      Column format: Does not require a header. Each set should be placed in one column,
+      starting from column A and row 3. Data should be provided in the last column.
 
     Outputs:
-    The method returns one dictionary that contains a list for each set, and one dictionary that contains parameters
-    in format {‘param1’: {(set1, set2): value}, ‘param1’: {(set1, set2): value}}
+    The method returns one dictionary that contains a list for each set, and one dictionary that
+    contains parameters in format {‘param1’:{(set1, set2): value}, ‘param1’:{(set1, set2): value}}
 
     To use this method:
 
     set_list = [list of tabs that contain sets]
     parameter_list = [list of tabs that contain parameters]
-    [df_sets, df_parameters] = get_data(fname='path\\to\\excel\\file\\INPUT_DATA.xlsx', set_list, parameter_list)
+    [df_sets, df_parameters] = get_data(fname='path\\to\\excel\\file\\INPUT_DATA.xlsx',
+                                        set_list, parameter_list)
 
         ###############################################################################
                                      SET DEFINITION
         ###############################################################################
-        model.p = Set(initialize=_df_sets['ProductionPads'].values,doc='Production Pads')
-        model.c = Set(initialize=_df_sets['CompletionsPads'].values,doc='Completions Pads')
-        model.d = Set(initialize=_df_sets['SWDSites'].values,doc='SWD Sites')
-        model.t = Set(initialize=_df_sets['TimePeriods'].values, doc='planning weeks')
-        model.l = Set(initialize=model.p | model.c | model.d, doc='Superset that contains all locations')
+        model.p = Set(initialize=_df_sets['ProductionPads'].values,
+                        doc='Production Pads')
+        model.c = Set(initialize=_df_sets['CompletionsPads'].values,
+                        doc='Completions Pads')
+        model.d = Set(initialize=_df_sets['SWDSites'].values,
+                        doc='SWD Sites')
+        model.t = Set(initialize=_df_sets['TimePeriods'].values,
+                        doc='planning weeks')
+        model.l = Set(initialize=model.p | model.c | model.d,
+                        doc='Superset that contains all locations')
 
         ###############################################################################
         #                           PARAMETER DEFINITION
         ###############################################################################
-        model.drive_times = Param(model.l, model.l, initialize=df_parameters['DriveTimes'],
+        model.drive_times = Param(model.l, model.l,
+                                    initialize=df_parameters['DriveTimes'],
                                     doc="Driving times between locations")
-        model.completion_demand = Param(model.c, model.t, initialize=df_parameters['CompletionsDemand'],
+        model.completion_demand = Param(model.c, model.t,
+                                        initialize=df_parameters['CompletionsDemand'],
                                         doc="Water demand for completion operations")
-        model.flowback_rates = Param(model.c, model.t, initialize=df_parameters['FlowbackRates'],
+        model.flowback_rates = Param(model.c, model.t,
+                                        initialize=df_parameters['FlowbackRates'],
                                      doc="Water flowback rate")
 
-    It is worth highlighting that the Set for time periods "model.t" is derived by the method based on the
-    Parameter: CompletionsDemand which is indexed by T
+    It is worth highlighting that the Set for time periods "model.t" is derived by the
+    method based on the Parameter: CompletionsDemand which is indexed by T
     """
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters] = _read_data(fname, set_list, parameter_list)
@@ -149,9 +160,13 @@ def get_data(fname, set_list, parameter_list):
     # Parameters are cleaned up, e.g. blank cells are replaced by zeros
     _df_parameters = _cleanup_data(_df_parameters)
 
-    # The set for time periods is defined based on the columns of the parameter for Completions Demand
-    # This is done so the user does not have to add an extra tab in the spreadsheet for the time period set
-    _df_sets["TimePeriods"] = _df_parameters["CompletionsDemand"].columns.to_series()
+    # The set for time periods is defined based on the columns of the parameter for
+    # Completions Demand. This is done so the user does not have to add an extra tab
+    # in the spreadsheet for the time period set
+    if "CompletionsDemand" in parameter_list:
+        _df_sets["TimePeriods"] = _df_parameters[
+            "CompletionsDemand"
+        ].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
     _df_parameters = _df_to_param(_df_parameters)
@@ -204,3 +219,287 @@ def set_consistency_check(param, *args):
         )
     else:
         return 0
+
+
+def od_matrix(inputs):
+
+    """
+    This method allows the user to request drive distances and drive times using Bing maps API and
+    Open Street Maps API.
+    The method accept the following input arguments:
+    - origin:   REQUIRED. Data containing information regarding location name, and coordinates
+                latitude and longitude. Two formats are acceptable:
+                {(origin1,"latitude"): value1, (origin1,"longitude"): value2} or
+                {origin1:{"latitude":value1, "longitude":value2}}
+                The first format allows the user to include a tab with the corresponding data
+                in a table format as part of the workbook casestudy.
+
+    - destination:  OPTIONAL. If no data for destination is provided, it is assumed that the
+                    origins are also destinations.
+
+    - api:  OPTIONAL. Specify the type of API service, two options are supported:
+                Bing maps: https://docs.microsoft.com/en-us/bingmaps/rest-services/
+                Open Street Maps: https://www.openstreetmap.org/
+                If no API is selected, Open Street Maps is used by default
+
+    - api_key:  An API key should be provided in order to use Bing maps. The key can be obtained at:
+                https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+
+    - output:   OPTIONAL. Define the paramters that the method will output. The user can select:
+                'time': A list containing the drive times between the locations is returned
+                'distance': A list containing the drive distances between the locations is returned
+                'time_distance': Two lists containing the drive times and drive distances betweent
+                the locations is returned
+                If not output is specified, 'time_distance' is the default
+
+    - fpath:    OPTIONAL. od_matrix() will ALWAYS output an Excel workbook with two tabs, one that
+                contains drive times, and another that contains drive distances. If not path is
+                specified, the excel file is saved with the name 'od_output.xlsx' in the current
+                directory.
+
+    - create_report OPTIONAL. if True an Excel report with drive distances and drive times is created
+    """
+    # Information for origing should be provided
+    if "origin" not in inputs.keys():
+        raise Exception("The input dictionary must contain the key *origin*")
+    else:
+        origin = inputs["origin"]
+
+    inputs_default = {
+        "destination": None,
+        "api": None,
+        "api_key": None,
+        "output": None,
+        "fpath": None,
+        "create_report": True,
+    }
+
+    for i in inputs_default.keys():
+        if i not in list(inputs.keys()):
+            inputs[i] = inputs_default[i]
+
+    destination = inputs["destination"]
+    api = inputs["api"]
+    api_key = inputs["api_key"]
+    output = inputs["output"]
+    fpath = inputs["fpath"]
+    create_report = inputs["create_report"]
+
+    # Check that a valid API service has been selected and make sure an api_key was provided
+    if api in ("open_street_map", None):
+        api_url_base = "https://router.project-osrm.org/table/v1/driving/"
+
+    elif api == "bing_maps":
+        api_url_base = "https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?"
+        if api_key is None:
+            raise Warning("Please provide a valid api_key")
+    else:
+        raise Warning("{0} API service is not supported".format(api))
+
+    # If no destinations were provided, it is assumed that the origins are also destinations
+    if destination is None:
+        destination = origin
+
+    origins_loc = []
+    destination_loc = []
+    origins_dict = {}
+    destination_dict = {}
+
+    # =======================================================================
+    #                          PREPARING DATA FORMAT
+    # =======================================================================
+    # Check if the input data has a Pyomo format:
+    #   origin={(origin1,"latitude"): value1, (origin1,"longitude"): value2}
+    # if it does, the input is modified to a Dict format:
+    #   origin={origin1:{"latitude":value1, "longitude":value2}}
+    if isinstance(list(origin.keys())[0], tuple):
+        for i in list(origin.keys()):
+            origins_loc.append(i[0])
+        origins_loc = list(sorted(set(origins_loc)))
+
+        for i in origins_loc:
+            origins_dict[i] = {
+                "latitude": origin[i, "latitude"],
+                "longitude": origin[i, "longitude"],
+            }
+        origin = origins_dict
+
+    if isinstance(list(destination.keys())[0], tuple):
+        for i in list(destination.keys()):
+            destination_loc.append(i[0])
+        destination_loc = list(sorted(set(destination_loc)))
+
+        for i in destination_loc:
+            destination_dict[i] = {
+                "latitude": destination[i, "latitude"],
+                "longitude": destination[i, "longitude"],
+            }
+        destination = destination_dict
+
+    # =======================================================================
+    #                           SELECTING API
+    # =======================================================================
+
+    if api in (None, "open_street_map"):
+        # This API works with GET requests. The general format is:
+        # https://router.project-osrm.org/table/v1/driving/Lat1,Long1;Lat2,Long2?sources=index1;index2&destinations=index1;index2&annotations=[duration|distance|duration,distance]
+        coordinates = ""
+        origin_index = ""
+        destination_index = ""
+        # Building strings for coordinates, source indices, and destination indices
+        for index, location in enumerate(origin.keys()):
+            coordinates += (
+                str(origin[location]["longitude"])
+                + ","
+                + str(origin[location]["latitude"])
+                + ";"
+            )
+            origin_index += str(index) + ";"
+
+        for index, location in enumerate(destination.keys()):
+            coordinates += (
+                str(destination[location]["longitude"])
+                + ","
+                + str(destination[location]["latitude"])
+                + ";"
+            )
+            destination_index += str(index + len(origin)) + ";"
+
+        # Dropping the last character ";" of each string so the API get request is valid
+        coordinates = coordinates[:-1]
+        origin_index = origin_index[:-1]
+        destination_index = destination_index[:-1]
+        response = requests.get(
+            api_url_base
+            + coordinates
+            + "?sources="
+            + origin_index
+            + "&destinations="
+            + destination_index
+            + "&annotations=duration,distance"
+        )
+        response_json = response.json()
+
+        df_times = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
+        df_distance = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
+        output_times = {}
+        output_distance = {}
+
+        # Loop for reading the output JSON file
+        if response_json["code"].lower() == "ok":
+            for index_i, o_name in enumerate(origin):
+                for index_j, d_name in enumerate(destination):
+
+                    output_times[(o_name, d_name)] = (
+                        response_json["durations"][index_i][index_j] / 3600
+                    )
+                    output_distance[(o_name, d_name)] = (
+                        response_json["distances"][index_i][index_j] / 1000
+                    ) * 0.621371
+
+                    df_times.loc[o_name, d_name] = output_times[(o_name, d_name)]
+                    df_distance.loc[o_name, d_name] = output_distance[(o_name, d_name)]
+        else:
+            raise Warning("Error when requesting data, make sure your API key is valid")
+
+    elif api == "bing_maps":
+        # Formating origin and destination dicts for Bing Maps POST request, that is, converting this structure:
+        # origin={origin1:{"latitude":value1, "longitude":value2},
+        #           origin2:{"latitude":value3, "longitude":value4}}
+        # destination={destination1:{"latitude":value5, "longitude":value6,
+        #               destination2:{"latitude":value7, "longitude":value8}}
+        # Into the following structure:
+        # data={"origins":[{"latitude":value1, "longitude":value2},
+        #                   {"latitude":value3, "longitude":value4}],
+        #       "destinations":[{"latitude":value5, "longitude":value6},
+        #                       {"latitude":value7, "longitude":value8}]}
+
+        origins_post = []
+        destinations_post = []
+        for i in origin.keys():
+            origins_post.append(
+                {"latitude": origin[i]["latitude"], "longitude": origin[i]["longitude"]}
+            )
+
+        for i in destination.keys():
+            destinations_post.append(
+                {"latitude": origin[i]["latitude"], "longitude": origin[i]["longitude"]}
+            )
+
+        # Building the dictionary with the adequate structure compatible with Bing Maps
+        data = {
+            "origins": origins_post,
+            "destinations": destinations_post,
+            "travelMode": "driving",
+        }
+
+        # Sending a POST request to the API
+        header = {"Content-Type": "application/json"}
+        response = requests.post(
+            api_url_base + "key=" + api_key, headers=header, json=data
+        )
+        response_json = response.json()
+
+        # Definition of two empty dataframes that will contain drive times and distances.
+        # These dataframes wiil be exported to an Excel workbook
+        df_times = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
+        df_distance = pd.DataFrame(
+            index=list(origin.keys()), columns=list(destination.keys())
+        )
+        output_times = {}
+        output_distance = {}
+
+        # Loop for reading the output JSON file
+        if response_json["statusDescription"].lower() == "ok":
+            for i in range(
+                len(response_json["resourceSets"][0]["resources"][0]["results"])
+            ):
+                data_temp = response_json["resourceSets"][0]["resources"][0]["results"][
+                    i
+                ]
+                origin_index = data_temp["originIndex"]
+                destination_index = data_temp["destinationIndex"]
+
+                o_name = list(origin.keys())[origin_index]
+                d_name = list(destination.keys())[destination_index]
+                output_times[(o_name, d_name)] = data_temp["travelDuration"] / 60
+                output_distance[(o_name, d_name)] = (
+                    data_temp["travelDistance"] * 0.621371
+                )
+
+                df_times.loc[o_name, d_name] = output_times[(o_name, d_name)]
+                df_distance.loc[o_name, d_name] = output_distance[(o_name, d_name)]
+        else:
+            raise Warning("Error when requesting data, make sure your API key is valid")
+
+    # Define the default name of the Excel workbook
+    if fpath is None:
+        fpath = "od_output.xlsx"
+
+    if create_report is True:
+        # Dataframes df_times and df_distance are output as sheets in an Excel workbook whose directory
+        # and name are defined by variable 'fpath'
+        with pd.ExcelWriter(fpath) as writer:
+            df_times.to_excel(writer, sheet_name="DriveTimes")
+            df_distance.to_excel(writer, sheet_name="DriveDistances")
+
+    # Identify what type of data is returned by the method
+    if output in ("time", None):
+        return_output = output_times
+    elif output == "distance":
+        return_output = output_distance
+    elif output == "time_distance":
+        return_output = [output_times, output_distance]
+    else:
+        raise Warning(
+            "Provide a valid type of output, valid options are:\
+                        time, distance, time_distance"
+        )
+
+    return return_output
