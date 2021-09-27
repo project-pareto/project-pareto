@@ -385,8 +385,10 @@ def generate_report(model, is_print=[], fname=None):
                     print("{0} = {1}".format(j[1], j[2]))
 
     # Printing warning if "proprietary_data" is True
-    if len(printing_list) >0 and model.proprietary_data is True:
-        print("\n**********************************************************************")
+    if len(printing_list) > 0 and model.proprietary_data is True:
+        print(
+            "\n**********************************************************************"
+        )
         print("            WARNING: This report contains Proprietary Data            ")
         print("**********************************************************************")
 
@@ -403,7 +405,7 @@ def generate_report(model, is_print=[], fname=None):
     with pd.ExcelWriter(fname) as writer:
         for i in headers:
             df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
-            df.fillna('')
-            df.to_excel(writer, sheet_name=i[:-len('_dict')], index=False, startrow=1)
+            df.fillna("")
+            df.to_excel(writer, sheet_name=i[: -len("_dict")], index=False, startrow=1)
 
     return model, headers

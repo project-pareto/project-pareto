@@ -21,7 +21,7 @@ def _read_data(_fname, _set_list, _parameter_list):
     """
     _df_parameters = {}
     _temp_df_parameters = {}
-    _data_column = ['value']
+    _data_column = ["value"]
     proprietary_data = False
     _df_sets = pd.read_excel(
         _fname,
@@ -69,9 +69,13 @@ def _read_data(_fname, _set_list, _parameter_list):
     keyword_strings = ["PROPRIETARY DATA", "proprietary data", "Proprietary Data"]
     for i in _df_parameters:
         if proprietary_data is False:
-            proprietary_data = any(x in _df_parameters[i].values for x in keyword_strings)
+            proprietary_data = any(
+                x in _df_parameters[i].values for x in keyword_strings
+            )
             if proprietary_data is False:
-                proprietary_data = any(x in _df_parameters[i].columns for x in keyword_strings)
+                proprietary_data = any(
+                    x in _df_parameters[i].columns for x in keyword_strings
+                )
         # Checking for tabs, new lines and entries with the keyword "PROPRIETARY DATA" and replacing them for an empty string
         _df_parameters[i].replace(
             to_replace=keyword_strings,
@@ -114,9 +118,11 @@ def _read_data(_fname, _set_list, _parameter_list):
         if len(index_col) != 0:
             _df_parameters[i].set_index(index_col, inplace=True)
 
-    # Creating a DataFrame that contains a boolean for proprietary_data. This is used as a "flag" in 
+    # Creating a DataFrame that contains a boolean for proprietary_data. This is used as a "flag" in
     # generate_report() to output warnings if the report contains proprietary data.
-    _df_parameters['proprietary_data'] = pd.DataFrame([proprietary_data], columns=["Value"])
+    _df_parameters["proprietary_data"] = pd.DataFrame(
+        [proprietary_data], columns=["Value"]
+    )
 
     return [_df_sets, _df_parameters, _data_column]
 
@@ -151,7 +157,9 @@ def _df_to_param(data_frame, data_column):
         # If the data frame has one column named "value", it means the dataframe corresponds to
         # a parameter in column format. In this case, the dataframe is converted directly
         # to a dictionary and the column name is used as the key of said dictionary
-        elif str(data_frame[i].columns[0]).split(".")[0].lower() in [i.lower() for i in data_column]:
+        elif str(data_frame[i].columns[0]).split(".")[0].lower() in [
+            i.lower() for i in data_column
+        ]:
             data_column_key = data_frame[i].columns[0]
             _temp_df_parameters[i] = data_frame[i].to_dict()
             _df_parameters[i] = _temp_df_parameters[i][data_column_key]
@@ -215,7 +223,9 @@ def get_data(fname, set_list, parameter_list):
     method based on the Parameter: CompletionsDemand which is indexed by T
     """
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
-    [_df_sets, _df_parameters, data_column] = _read_data(fname, set_list, parameter_list)
+    [_df_sets, _df_parameters, data_column] = _read_data(
+        fname, set_list, parameter_list
+    )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
     _df_parameters = _cleanup_data(_df_parameters)

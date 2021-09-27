@@ -97,12 +97,13 @@ results = opt.solve(strategic_model, tee=True)
 results.write()
 print("\nDisplaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
-    strategic_model, is_print=[PrintValues.Detailed],
-    fname = '..\\..\\strategic_optimization_results.xlsx'
+    strategic_model,
+    is_print=[PrintValues.Detailed],
+    fname="..\\..\\strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
-parameter_list = ["v_F_Trucked","v_C_Trucked"]
+parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "..\\..\\strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
