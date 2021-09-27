@@ -20,72 +20,74 @@ class PrintValues(Enum):
     Essential = 2
 
 
-def generate_report(model, is_print=[]):
+def generate_report(model, is_print=[], fname=None):
     # ## Printing model sets, parameters, constraints, variable values ##
 
     printing_list = []
 
     if model.type == "strategic":
-
-        # PrintValues.Detailed: Slacks values included, Same as "All"
-        if is_print[0].value == 0:
-            printing_list = [
-                "v_F_Piped",
-                "v_F_Trucked",
-                "v_F_Sourced",
-                "v_F_PadStorageIn",
-                "v_F_ReuseDestination",
-                "v_X_Capacity",
-                "v_T_Capacity",
-                "v_F_Capacity",
-                "v_D_Capacity",
-                "v_F_DisposalDestination",
-                "v_F_PadStorageOut",
-                "v_C_Piped",
-                "v_C_Trucked",
-                "v_C_Sourced",
-                "v_C_Disposal",
-                "v_C_Reuse",
-                "v_L_Storage",
-                "vb_y_Pipeline",
-                "vb_y_Disposal",
-                "vb_y_Storage",
-                "vb_y_Treatment",
-                "vb_y_FLow",
-                "v_F_Overview",
-                "v_S_FracDemand",
-                "v_S_Production",
-                "v_S_Flowback",
-                "v_S_PipelineCapacity",
-                "v_S_StorageCapacity",
-                "v_S_DisposalCapacity",
-                "v_S_TreatmentCapacity",
-                "v_S_ReuseCapacity",
-            ]
-
-        # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
-        elif is_print[0].value == 1:
-            printing_list = [
-                "v_F_Piped",
-                "v_F_Trucked",
-                "v_F_Sourced",
-                "v_C_Piped",
-                "v_C_Trucked",
-                "v_C_Sourced",
-                "vb_y_Pipeline",
-                "vb_y_Disposal",
-                "vb_y_Storage",
-                "vb_y_Flow",
-                "vb_y_Treatment",
-                "v_F_Overview",
-            ]
-
-        # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-        elif is_print[0].value == 2:
-            printing_list = ["v_F_Overview"]
-
+        if len(is_print) == 0:
+            printing_list = []
         else:
-            raise Exception("Report {0} not supported".format(is_print))
+            # PrintValues.Detailed: Slacks values included, Same as "All"
+            if is_print[0].value == 0:
+                printing_list = [
+                    "v_F_Piped",
+                    "v_F_Trucked",
+                    "v_F_Sourced",
+                    "v_F_PadStorageIn",
+                    "v_F_ReuseDestination",
+                    "v_X_Capacity",
+                    "v_T_Capacity",
+                    "v_F_Capacity",
+                    "v_D_Capacity",
+                    "v_F_DisposalDestination",
+                    "v_F_PadStorageOut",
+                    "v_C_Piped",
+                    "v_C_Trucked",
+                    "v_C_Sourced",
+                    "v_C_Disposal",
+                    "v_C_Reuse",
+                    "v_L_Storage",
+                    "vb_y_Pipeline",
+                    "vb_y_Disposal",
+                    "vb_y_Storage",
+                    "vb_y_Treatment",
+                    "vb_y_FLow",
+                    "v_F_Overview",
+                    "v_S_FracDemand",
+                    "v_S_Production",
+                    "v_S_Flowback",
+                    "v_S_PipelineCapacity",
+                    "v_S_StorageCapacity",
+                    "v_S_DisposalCapacity",
+                    "v_S_TreatmentCapacity",
+                    "v_S_ReuseCapacity",
+                ]
+
+            # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
+            elif is_print[0].value == 1:
+                printing_list = [
+                    "v_F_Piped",
+                    "v_F_Trucked",
+                    "v_F_Sourced",
+                    "v_C_Piped",
+                    "v_C_Trucked",
+                    "v_C_Sourced",
+                    "vb_y_Pipeline",
+                    "vb_y_Disposal",
+                    "vb_y_Storage",
+                    "vb_y_Flow",
+                    "vb_y_Treatment",
+                    "v_F_Overview",
+                ]
+
+            # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+            elif is_print[0].value == 2:
+                printing_list = ["v_F_Overview"]
+
+            else:
+                raise Exception("Report {0} not supported".format(is_print))
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
@@ -145,6 +147,7 @@ def generate_report(model, is_print=[]):
             ],
         }
 
+        # Defining KPIs for strategic model
         model.reuse_WaterKPI = Var(doc="Reuse Fraction Produced Water = [%]")
         reuseWater_value = (
             (model.v_F_TotalReused.value) / (model.p_beta_TotalProd.value) * 100
@@ -174,69 +177,72 @@ def generate_report(model, is_print=[]):
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
 
     elif model.type == "operational":
-        # PrintValues.Detailed: Slacks values included, Same as "All"
-        if is_print[0].value == 0:
-            printing_list = [
-                "v_F_Piped",
-                "v_F_Trucked",
-                "v_F_Sourced",
-                "v_F_PadStorageIn",
-                "v_L_ProdTank",
-                "v_F_PadStorageOut",
-                "v_C_Piped",
-                "v_C_Trucked",
-                "v_C_Sourced",
-                "v_C_Disposal",
-                "v_C_Reuse",
-                "v_L_Storage",
-                "vb_y_Pipeline",
-                "vb_y_Disposal",
-                "vb_y_Storage",
-                "vb_y_Truck",
-                "v_F_Drain",
-                "v_B_Production",
-                "vb_y_FLow",
-                "v_F_Overview",
-                "v_L_PadStorage",
-                "v_C_Treatment",
-                "v_C_Storage",
-                "v_R_Storage",
-                "v_S_FracDemand",
-                "v_S_Production",
-                "v_S_Flowback",
-                "v_S_PipelineCapacity",
-                "v_S_StorageCapacity",
-                "v_S_DisposalCapacity",
-                "v_S_TreatmentCapacity",
-                "v_S_ReuseCapacity",
-                "v_D_Capacity",
-                "v_X_Capacity",
-                "v_F_Capacity",
-            ]
-
-        # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
-        elif is_print[0].value == 1:
-            printing_list = [
-                "v_F_Piped",
-                "v_F_Trucked",
-                "v_F_Sourced",
-                "v_C_Piped",
-                "v_C_Trucked",
-                "v_C_Sourced",
-                "vb_y_Pipeline",
-                "vb_y_Disposal",
-                "vb_y_Storage",
-                "vb_y_Flow",
-                "vb_y_Truck",
-                "v_F_Overview",
-            ]
-
-        # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-        elif is_print[0].value == 2:
-            printing_list = ["v_F_Overview"]
-
+        if len(is_print) == 0:
+            printing_list = []
         else:
-            raise Exception("Report {0} not supported".format(is_print))
+            # PrintValues.Detailed: Slacks values included, Same as "All"
+            if is_print[0].value == 0:
+                printing_list = [
+                    "v_F_Piped",
+                    "v_F_Trucked",
+                    "v_F_Sourced",
+                    "v_F_PadStorageIn",
+                    "v_L_ProdTank",
+                    "v_F_PadStorageOut",
+                    "v_C_Piped",
+                    "v_C_Trucked",
+                    "v_C_Sourced",
+                    "v_C_Disposal",
+                    "v_C_Reuse",
+                    "v_L_Storage",
+                    "vb_y_Pipeline",
+                    "vb_y_Disposal",
+                    "vb_y_Storage",
+                    "vb_y_Truck",
+                    "v_F_Drain",
+                    "v_B_Production",
+                    "vb_y_FLow",
+                    "v_F_Overview",
+                    "v_L_PadStorage",
+                    "v_C_Treatment",
+                    "v_C_Storage",
+                    "v_R_Storage",
+                    "v_S_FracDemand",
+                    "v_S_Production",
+                    "v_S_Flowback",
+                    "v_S_PipelineCapacity",
+                    "v_S_StorageCapacity",
+                    "v_S_DisposalCapacity",
+                    "v_S_TreatmentCapacity",
+                    "v_S_ReuseCapacity",
+                    "v_D_Capacity",
+                    "v_X_Capacity",
+                    "v_F_Capacity",
+                ]
+
+            # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
+            elif is_print[0].value == 1:
+                printing_list = [
+                    "v_F_Piped",
+                    "v_F_Trucked",
+                    "v_F_Sourced",
+                    "v_C_Piped",
+                    "v_C_Trucked",
+                    "v_C_Sourced",
+                    "vb_y_Pipeline",
+                    "vb_y_Disposal",
+                    "vb_y_Storage",
+                    "vb_y_Flow",
+                    "vb_y_Truck",
+                    "v_F_Overview",
+                ]
+
+            # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+            elif is_print[0].value == 2:
+                printing_list = ["v_F_Overview"]
+
+            else:
+                raise Exception("Report {0} not supported".format(is_print))
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
@@ -377,5 +383,27 @@ def generate_report(model, is_print=[]):
                     print(j[0].upper())
                 else:
                     print("{0} = {1}".format(j[1], j[2]))
+
+    # Printing warning if "proprietary_data" is True
+    if len(printing_list) >0 and model.proprietary_data is True:
+        print("\n**********************************************************************")
+        print("            WARNING: This report contains Proprietary Data            ")
+        print("**********************************************************************")
+
+    # Adding a footnote to the each dictionary indicating if the report contains Prorpietary Data
+    if model.proprietary_data is True:
+        for report in headers:
+            if len(headers[report]) > 1:
+                headers[report].append(("PROPRIETARY DATA",))
+
+    # Creating the Excel report
+    if fname is None:
+        fname = "PARETO_report.xlsx"
+
+    with pd.ExcelWriter(fname) as writer:
+        for i in headers:
+            df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
+            df.fillna('')
+            df.to_excel(writer, sheet_name=i[:-len('_dict')], index=False, startrow=1)
 
     return model, headers

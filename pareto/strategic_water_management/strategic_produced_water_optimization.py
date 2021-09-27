@@ -77,6 +77,7 @@ def create_model(df_sets, df_parameters, default={}):
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
+    model.proprietary_data = df_parameters["proprietary_data"][0]
 
     ## Define sets ##
 

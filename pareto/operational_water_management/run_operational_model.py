@@ -67,7 +67,7 @@ df_parameters["MaxTruckFlow"] = 37000
 operational_model = create_model(
     df_sets,
     df_parameters,
-    default={"has_pipeline_constraints": True, "production_tanks": ProdTank.individual},
+    default={"has_pipeline_constraints": True, "production_tanks": ProdTank.equalized},
 )
 
 # import pyomo solver
@@ -80,10 +80,12 @@ print("\nDisplaying Solution\n" + "-" * 60)
 # pyomo_postprocess(None, model, results)
 # print results
 [model, results_dict] = generate_report(
-    operational_model, is_print=[PrintValues.Detailed]
+    operational_model, is_print=[PrintValues.Nominal],
+    fname = '..\\..\\PARETO_report.xlsx'
 )
-fname = "generic_operational_optimization_results.xlsx"
-with pd.ExcelWriter(fname) as writer:
-    for i in results_dict:
-        df = pd.DataFrame(results_dict[i][1:], columns=results_dict[i][0])
-        df.to_excel(writer, sheet_name=i)
+
+# This shows how to read data from PARETO reports
+set_list = []
+parameter_list = ["v_F_Trucked","v_C_Trucked"]
+fname = "..\\..\\PARETO_report.xlsx"
+[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
