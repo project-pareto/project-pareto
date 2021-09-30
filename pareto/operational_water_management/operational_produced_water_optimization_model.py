@@ -74,6 +74,7 @@ def create_model(df_sets, df_parameters, default={}):
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "operational"
+    model.proprietary_data = df_parameters["proprietary_data"][0]
     ## Define sets ##
 
     model.s_T = Set(initialize=df_sets["TimePeriods"], doc="Time Periods", ordered=True)
