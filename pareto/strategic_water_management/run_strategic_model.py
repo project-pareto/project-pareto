@@ -3,7 +3,8 @@
 ##############################################################################
 from pareto.strategic_water_management.\
     strategic_produced_water_optimization import (create_variables,create_model,Objectives,
-                                                          generate_report, PrintValues)
+                                                        )
+from pareto.utilities.results import (generate_report, PrintValues)
 from pareto.utilities.get_data import get_data
 from importlib import resources
 from pyomo.environ import SolverFactory
@@ -123,7 +124,7 @@ def CompletionsPadDemandBalanceRule(model,p,t):
 strategic_model.CompletionsPadDemandBalance = Constraint(strategic_model.s_CP,strategic_model.s_T,rule=CompletionsPadDemandBalanceRule, doc='Completions pad demand balance')
 
 # create mathematical model
-strategic_model = create_model(strategic_model)
+# strategic_model = create_model(strategic_model)
 
 # import pyomo solver
 opt = SolverFactory("cbc")
@@ -131,12 +132,28 @@ opt.options['seconds'] = 60
 # opt.options['timeLimit'] = 60
 opt.options['mipgap'] = 0
 # solve mathematical model
-results = opt.solve(strategic_model, tee=True)
-results.write()
+# results = opt.solve(strategic_model, tee=True)
+# results.write()
 print("\nDisplaying Solution\n" + '-'*60)
-[model, results_dict] = generate_report(strategic_model, is_print=[PrintValues.Detailed])
-fname = 'strategic_optimization_results.xlsx'
-with pd.ExcelWriter(fname) as writer:
-        for i in results_dict:
-                df = pd.DataFrame(results_dict[i][1:], columns = results_dict[i][0])
-                df.to_excel(writer, sheet_name=i)
+# [model, results_dict] = generate_report(strategic_model, is_print=[PrintValues.Detailed], fname='..\\..\\strategic_optimization_results_demo.xlsx')
+
+fname = '..\\examples\\example-1\\strategic_optimization_results.xlsx'
+set_list = []
+parameter_list = ['v_F_Piped','v_F_Sourced']
+[df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
+
+from pareto.utilities.results import plot_sankey
+args = {'font_size': 15, 'plot_title': 'FRESH WATER'}
+input_data = {'pareto_var': df_parameters["v_F_Sourced"], 'labels':[('Origin', 'Destination', 'Time', 'Value')]} 
+plot_sankey(input_data, args)
+
+args = {'font_size': 15, 'plot_title': 'PIPED WATER'}
+input_data = {'pareto_var': df_parameters["v_F_Piped"], 'labels':[('Origin', 'Destination', 'Time', 'Value')], 'time_period':['T01']} 
+plot_sankey(input_data, args)
+
+input_data = {'pareto_var': df_parameters["v_F_Piped"], 'labels':[('Origin', 'Destination', 'Time', 'Value')], 'time_period':['T01','T02','T03']} 
+plot_sankey(input_data, args)
+
+# args = {'font_size': 15, 'plot_title': 'CAPACITY'}
+# input_data = {'pareto_var': df_parameters["v_F_Capacity"], 'labels':[('Origin', 'Destination', 'Capacity')]} 
+# plot_sankey(input_data, args)

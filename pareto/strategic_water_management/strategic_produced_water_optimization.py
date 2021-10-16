@@ -498,6 +498,8 @@ def create_variables(model, df_sets, df_parameters, default={}):
     return model
 
 def create_model(model):
+    model.type = "strategic"
+    model.proprietary_data = False
     def CompletionsPadStorageBalanceRule(model,p,t):
         if t == 'T01':
             return (model.v_L_PadStorage[p,t] == 
