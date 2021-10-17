@@ -9,12 +9,13 @@ Authors: PARETO Team
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
 )
+
 from pyomo.environ import Var
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.offline import (init_notebook_mode, iplot)
 import pandas as pd
 from enum import Enum
-
 
 class PrintValues(Enum):
     Detailed = 0
@@ -710,7 +711,7 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
     )
 
     fig.write_html("first_figure.html", auto_open=True)
-
+    iplot({"data": data, "layout": fig.layout})
 
 def plot_bars(variable, args):
 
@@ -817,7 +818,7 @@ def plot_bars(variable, args):
 
         # with pd.option_context('display.max_rows', None, 'display.max_columns', None,'display.precision', 1):  
         #     print(df_time_sort)
-
+        iplot({"data": fig, "layout":fig.layout})
         fig.write_html('first_bar.html', auto_open=True, auto_play=False)
     else:
 
