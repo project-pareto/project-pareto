@@ -310,7 +310,7 @@ print("\nDisplaying Solution\n" + "-" * 60)
 
 fname = "..\\examples\\example-1\\strategic_optimization_results.xlsx"
 set_list = []
-parameter_list = ["v_F_Piped", "v_F_Sourced"]
+parameter_list = ["v_F_Piped", "v_F_Sourced", "v_L_PadStorage"]
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 from pareto.utilities.results import plot_sankey
@@ -337,6 +337,7 @@ input_data = {
 }
 plot_sankey(input_data, args)
 
-# args = {'font_size': 15, 'plot_title': 'CAPACITY'}
-# input_data = {'pareto_var': df_parameters["v_F_Capacity"], 'labels':[('Origin', 'Destination', 'Capacity')]}
-# plot_sankey(input_data, args)
+from pareto.utilities.results import plot_bars
+
+args={'chart_title': 'Storage Levels', 'labels': [('Wellpads', 'Time', 'Storage Level')]}
+plot_bars(df_parameters["v_L_PadStorage"], args=args)
