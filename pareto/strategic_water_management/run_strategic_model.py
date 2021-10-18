@@ -291,7 +291,7 @@ strategic_model.CompletionsPadDemandBalance = Constraint(
 )
 
 # create mathematical model
-# strategic_model = create_model(strategic_model)
+strategic_model = create_model(strategic_model)
 
 # import pyomo solver
 opt = SolverFactory("cbc")
@@ -299,14 +299,14 @@ opt.options["seconds"] = 60
 # opt.options['timeLimit'] = 60
 opt.options["mipgap"] = 0
 # solve mathematical model
-# results = opt.solve(strategic_model, tee=True)
-# results.write()
-# print("\nDisplaying Solution\n" + "-" * 60)
-# [model, results_dict] = generate_report(
-#     strategic_model,
-#     is_print=[PrintValues.Detailed],
-#     fname="..\\..\\strategic_optimization_results_demo.xlsx",
-# )
+results = opt.solve(strategic_model, tee=True)
+results.write()
+print("\nDisplaying Solution\n" + "-" * 60)
+[model, results_dict] = generate_report(
+    strategic_model,
+    is_print=[PrintValues.Detailed],
+    fname="..\\..\\strategic_optimization_results_demo.xlsx",
+)
 
 fname = "..\\examples\\example-1\\strategic_optimization_results.xlsx"
 set_list = []
@@ -339,5 +339,8 @@ plot_sankey(input_data, args)
 
 from pareto.utilities.results import plot_bars
 
-args={'chart_title': 'Storage Levels', 'labels': [('Wellpads', 'Time', 'Storage Level')]}
+args = {
+    "chart_title": "Storage Levels",
+    "labels": [("Wellpads", "Time", "Storage Level")],
+}
 plot_bars(df_parameters["v_L_PadStorage"], args=args)
