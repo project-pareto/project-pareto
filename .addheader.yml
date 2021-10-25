@@ -5,4 +5,4 @@ text: header_text.txt
 patterns:
   - "*.py"
 verbose: 1
-sep-len: 80
+sep-len: 100
