@@ -10,5 +10,14 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
-def test_import_main_package():
-    import pareto
+from pyomo.environ import SolverFactory
+
+
+def get_solver(solver_name: str):
+    # importing idaes is required to apply the necessary modification to the environment
+    # so that IDAES solvers (i.e. those installed with `idaes get-extensions`) can be used
+    import idaes
+
+    solver = SolverFactory(solver_name)
+    # TODO add solver validation/error handling
+    return solver
