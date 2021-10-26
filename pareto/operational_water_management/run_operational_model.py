@@ -8,7 +8,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pyomo.environ import SolverFactory
+from idaes.core.util.misc import get_solver
 
 import pandas as pd
 
@@ -58,8 +58,11 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = "case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
-[df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
+
+with resources.path(
+    "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+) as fpath:
+    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 df_parameters["MinTruckFlow"] = 75
 df_parameters["MaxTruckFlow"] = 37000
@@ -71,8 +74,18 @@ operational_model = create_model(
 )
 
 # import pyomo solver
-opt = SolverFactory("cbc")
-opt.options["seconds"] = 60
+try:
+    opt = get_solver("gurobi_direct")
+    opt.options["timeLimit"] = 60
+
+except:
+    opt = get_solver("gurobi")
+    opt.options["timeLimit"] = 60
+
+else:
+    opt = get_solver("cbc")
+    opt.options["seconds"] = 60
+
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()
