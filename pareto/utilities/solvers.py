@@ -16,7 +16,7 @@ from pyomo.environ import SolverFactory
 def _enable_idaes_ext_solvers():
     """
     Apply the steps required to be able to use the IDAES-EXT solvers, i.e. the solvers installed by the `idaes get-extensions` command, within the current Python process.
-    
+
     Currently, importing the top-level `idaes` module is enough, as the necessary environment modifications
     are applied as an import side-effect.
     Additionally, since the standard Python import mechanism is used, calling this function again after the first time
