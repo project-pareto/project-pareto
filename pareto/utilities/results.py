@@ -717,12 +717,19 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
     iplot({"data": data, "layout": fig.layout})
 
 
-def plot_bars(variable, args):
+def plot_bars(input_data, args):
 
     y_range = []
     tick_text = []
     time_list = []
     indexed_by_time = False
+
+    if "pareto_var" in input_data.keys():
+        variable = input_data["pareto_var"]
+    else:
+        raise Exception(
+            "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
+        )
 
     if "group_by" not in args.keys():
         args["group_by"] = None
@@ -733,13 +740,15 @@ def plot_bars(variable, args):
         chart_title = args["chart_title"]
 
     if "y_axis" not in args.keys():
+        log_y = False
         yaxis_type = "linear"
     elif args["y_axis"] == "log":
+        log_y = True
         yaxis_type = "log"
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
 
-    if args["labels"] is None:
+    if isinstance(variable, list):
         for i in variable[:1]:
             i = [j.title() for j in i]
             if args["group_by"] == "" or args["group_by"] is None:
@@ -755,21 +764,30 @@ def plot_bars(variable, args):
                     indexed_by_time = True
                     time = "Time"
         formatted_variable = variable[1:]
-    else:
+    elif isinstance(variable, dict):
         formatted_list = []
 
         for v in variable:
             formatted_list.append((*v, variable[v]))
 
-        for i in args["labels"]:
-            i = [j.title() for j in i]
-            x_title = i[0]
-            y_title = i[-1]
-            if "Time" in i:
-                indexed_by_time = True
-                time = "Time"
+        if args["labels"] is not None:
+            for i in args["labels"]:
+                i = [j.title() for j in i]
+                x_title = i[0]
+                y_title = i[-1]
+                if "Time" in i:
+                    indexed_by_time = True
+                    time = "Time"
+        else:
+            raise Exception("User must provide labels when using Get_data format.")
 
         formatted_variable = formatted_list
+    else:
+        raise Exception(
+            "Type of data {0} is not supported. Valid data formats are list and dictionary".format(
+                type(variable)
+            )
+        )
 
     if indexed_by_time:
 
@@ -790,7 +808,7 @@ def plot_bars(variable, args):
             time_value = df_modified.loc[df_modified[x_title] == x[x_title], time]
             for t in time_loop:
                 if t not in time_value.values:
-                    df_modified.loc[len(df_modified.index)] = [x[x_title], t, 0.0]
+                    df_modified.loc[len(df_modified.index)] = [x[x_title], t, 1e-10]
 
         df_dup = df_modified[df_modified.duplicated(subset=[x_title, time], keep=False)]
         df_dup = df_dup.drop_duplicates(subset=[x_title, time], keep="first")
@@ -822,8 +840,9 @@ def plot_bars(variable, args):
             y=y_title,
             color=x_title,
             animation_frame=time,
-            range_y=[0, max_y * 1.02],
+            range_y=[1, max_y * 1.02],
             title=chart_title,
+            log_y=log_y,
         )
 
         # fig.update_traces(texttemplate='%{text:.2s}', textposition='outside', textfont_color='black', textfont_size=16)
@@ -832,7 +851,7 @@ def plot_bars(variable, args):
             font_color="#fff",
             paper_bgcolor="#333",
             plot_bgcolor="#ccc",
-            yaxis_type=yaxis_type,
+            # yaxis_type=yaxis_type,
         )
 
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
