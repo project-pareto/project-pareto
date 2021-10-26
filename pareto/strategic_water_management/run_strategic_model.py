@@ -8,7 +8,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pyomo.environ import SolverFactory
+from idaes.core.util.misc import get_solver
 
 import pandas as pd
 
@@ -79,7 +79,7 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = "case_studies\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+fname = "..\\case_studies\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 # create mathematical model
@@ -88,7 +88,7 @@ strategic_model = create_model(
 )
 
 # import pyomo solver
-opt = SolverFactory("cbc")
+opt = get_solver("cbc")
 opt.options["seconds"] = 60
 # opt.options['timeLimit'] = 60
 opt.options["mipgap"] = 0
