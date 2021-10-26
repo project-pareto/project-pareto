@@ -15,7 +15,6 @@ setup(
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
         "idaes-pse",
-        "resources",
         "requests",
     ],
     include_package_data=True,
