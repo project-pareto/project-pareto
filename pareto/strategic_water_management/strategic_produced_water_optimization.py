@@ -43,12 +43,13 @@ from pyomo.environ import (
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
-from pyomo.opt import SolverFactory
 import pyomo.environ
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In
 from enum import Enum
+
+from pareto.utilities.solvers import get_solver
 
 
 class Objectives(Enum):
@@ -4069,7 +4070,7 @@ if __name__ == "__main__":
     strategic_model = create_model(df_sets, df_parameters)
 
     # import pyomo solver
-    opt = SolverFactory("gurobi")
+    opt = get_solver("gurobi")
     # solve mathematical model
     results = opt.solve(strategic_model, tee=True)
     results.write()

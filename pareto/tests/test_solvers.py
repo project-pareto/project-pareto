@@ -11,9 +11,10 @@
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
 import pyomo.environ as pyo
-import idaes
 
 import pytest
+
+from pareto.utilities.solvers import get_solver
 
 
 def lp():
@@ -79,7 +80,7 @@ def solver_name(request):
     scope="class",
 )
 def solver(solver_name):
-    return pyo.SolverFactory(solver_name)
+    return get_solver(solver_name)
 
 
 @pytest.fixture(scope="class")
