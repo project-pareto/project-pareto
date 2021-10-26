@@ -96,3 +96,14 @@ class TestSolver:
         m, x = problem()
         solver.solve(m)
         assert pytest.approx(x) == pyo.value(m.x)
+
+
+@pytest.fixture
+def nonexisting_solver_name():
+    return "bogus"
+
+
+@pytest.mark.skip("Solver validation and handling of non-existing solvers not yet implemented")
+def test_nonexisting_solver_raises_error(nonexisting_solver_name):
+    with pytest.raises(Exception, match=nonexisting_solver_name):
+        solver = get_solver(nonexisting_solver_name)

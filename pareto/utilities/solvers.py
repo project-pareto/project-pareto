@@ -17,4 +17,7 @@ def get_solver(solver_name: str):
     # importing idaes is required to apply the necessary modification to the environment
     # so that IDAES solvers (i.e. those installed with `idaes get-extensions`) can be used
     import idaes
-    return SolverFactory(solver_name)
+
+    solver = SolverFactory(solver_name)
+    # TODO add solver validation/error handling
+    return solver
