@@ -1,5 +1,5 @@
 import pyomo.environ as pyo
-import idaes
+from idaes.core.util.misc import get_solver
 
 import pytest
 
@@ -67,7 +67,7 @@ def solver_name(request):
     scope="class",
 )
 def solver(solver_name):
-    return pyo.SolverFactory(solver_name)
+    return get_solver(solver_name)
 
 
 @pytest.fixture(scope="class")
