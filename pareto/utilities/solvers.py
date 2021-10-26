@@ -13,10 +13,26 @@
 from pyomo.environ import SolverFactory
 
 
-def get_solver(solver_name: str):
-    # importing idaes is required to apply the necessary modification to the environment
-    # so that IDAES solvers (i.e. those installed with `idaes get-extensions`) can be used
+def _enable_idaes_ext_solvers():
+    """
+    Apply the steps required to be able to use the IDAES-EXT solvers, i.e. the solvers installed by the `idaes get-extensions` command, within the current Python process.
+    
+    Currently, importing the top-level `idaes` module is enough, as the necessary environment modifications
+    are applied as an import side-effect.
+    Additionally, since the standard Python import mechanism is used, calling this function again after the first time
+    has no effect (and no impact on performance).
+    """
     import idaes
+
+
+def get_solver(solver_name: str):
+    """
+    Return a solver object from its name.
+
+    This is a minimal wrapper around pyomo's SolverFactory, and all solver-related functionality is currently delegated to it.
+    """
+
+    _enable_idaes_ext_solvers()
 
     solver = SolverFactory(solver_name)
     # TODO add solver validation/error handling
