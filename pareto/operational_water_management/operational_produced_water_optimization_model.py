@@ -39,13 +39,13 @@ from pyomo.environ import (
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
-from pyomo.opt import SolverFactory
 import pyomo.environ
 
 # import gurobipy
 from pyomo.common.config import ConfigBlock, ConfigValue, In
-from pyomo.opt import SolverFactory
 from enum import Enum
+
+from pareto.utilities.solvers import get_solver
 
 
 class ProdTank(Enum):
@@ -3438,7 +3438,7 @@ if __name__ == "__main__":
     )
 
     # import pyomo solver
-    opt = SolverFactory("gurobi")
+    opt = get_solver("gurobi")
     # solve mathematical model
     results = opt.solve(operational_model, tee=True)
     results.write()

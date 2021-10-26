@@ -17,7 +17,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pyomo.environ import SolverFactory
+from pareto.utilities.solvers import get_solver
 
 import pandas as pd
 
@@ -97,7 +97,7 @@ strategic_model = create_model(
 )
 
 # import pyomo solver
-opt = SolverFactory("cbc")
+opt = get_solver("cbc")
 opt.options["seconds"] = 60
 # opt.options['timeLimit'] = 60
 opt.options["mipgap"] = 0

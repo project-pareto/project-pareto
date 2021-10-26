@@ -16,8 +16,8 @@ from pareto.operational_water_management.operational_produced_water_optimization
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.solvers import get_solver
 from importlib import resources
-from pyomo.environ import SolverFactory
 
 import pandas as pd
 
@@ -80,7 +80,7 @@ operational_model = create_model(
 )
 
 # import pyomo solver
-opt = SolverFactory("cbc")
+opt = get_solver("cbc")
 opt.options["seconds"] = 60
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
