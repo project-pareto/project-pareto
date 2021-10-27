@@ -95,11 +95,11 @@ print("\nDisplaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     operational_model,
     is_print=[PrintValues.Nominal],
-    fname="..\\..\\PARETO_report.xlsx",
+    fname="PARETO_report.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "..\\..\\PARETO_report.xlsx"
+fname = "PARETO_report.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
