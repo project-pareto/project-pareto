@@ -89,12 +89,12 @@ set_timeout(opt, timeout_s=60)
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()
-print("\nDisplaying Solution\n" + "-" * 60)
+
 # pyomo_postprocess(None, model, results)
-# print results
+# set is_print=[PrintValues.Nominal] in generate_report() below to print results
 [model, results_dict] = generate_report(
     operational_model,
-    is_print=[PrintValues.Nominal],
+    is_print=[],
     fname="PARETO_report.xlsx",
 )
 
