@@ -30,7 +30,6 @@ import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
 
 __author__ = "Pareto Team (Andres Calderon, M. Zamarripa)"
-__version__ = "1.0.0"
 
 # -----------------------------------------------------------------------------
 # Get default solver for testing
@@ -83,12 +82,8 @@ def build_operational_model():
         "ProductionRates",
     ]
 
-    # user needs to provide the path to the case study data file
-    # for example: 'C:\\user\\Documents\\myfile.xlsx'
-    # note the double backslashes '\\' in that path reference
-    fname = "..\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
-    [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
-
+    with resources.path("pareto.case_studies", 'EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx') as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     df_parameters["MinTruckFlow"] = 75
     df_parameters["MaxTruckFlow"] = 37000
     # create mathematical model

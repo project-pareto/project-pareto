@@ -29,7 +29,6 @@ import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
 
 __author__ = "Pareto Team (Andres Calderon, M. Zamarripa)"
-__version__ = "1.0.0"
 
 # -----------------------------------------------------------------------------
 # Get default solver for testing
@@ -104,10 +103,8 @@ def build_strategic_model():
     ]
 
     # note the double backslashes '\\' in that path reference
-    fname = (
-        "..\\case_studies\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
-    )
-    [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
+    with resources.path("pareto.case_studies", 'input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx') as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     # create mathematical model
     strategic_model = create_model(
@@ -137,6 +134,7 @@ def test_run_operational_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
+    # ToDo: add lines once we reduce the size of the case study used for testing
     # assert results.solver.termination_condition == \
     #     pyo.TerminationCondition.optimal
     # assert results.solver.status == pyo.SolverStatus.ok
