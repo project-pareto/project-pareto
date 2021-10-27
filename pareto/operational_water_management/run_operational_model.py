@@ -16,7 +16,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
-from pareto.utilities.solvers import get_solver
+from pareto.utilities.solvers import get_solver, set_timeout
 from importlib import resources
 
 import pandas as pd
@@ -82,18 +82,9 @@ operational_model = create_model(
     default={"has_pipeline_constraints": True, "production_tanks": ProdTank.equalized},
 )
 
-# import pyomo solver
-try:
-    opt = get_solver("gurobi_direct")
-    opt.options["timeLimit"] = 60
-
-except:
-    opt = get_solver("gurobi")
-    opt.options["timeLimit"] = 60
-
-else:
-    opt = get_solver("cbc")
-    opt.options["seconds"] = 60
+# initialize pyomo solver
+opt = get_solver("gurobi_direct", "gurobi", "cbc")
+set_timeout(opt, timeout_s=60)
 
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)

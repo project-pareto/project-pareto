@@ -17,7 +17,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pareto.utilities.solvers import get_solver
+from pareto.utilities.solvers import get_solver, set_timeout
 
 import pandas as pd
 
@@ -98,20 +98,11 @@ strategic_model = create_model(
     df_sets, df_parameters, default={"objective": Objectives.cost}
 )
 
-# import pyomo solver
-try:
-    opt = get_solver("gurobi_direct")
-    opt.options["timeLimit"] = 60
-
-except:
-    opt = get_solver("gurobi")
-    opt.options["timeLimit"] = 60
-
-else:
-    opt = get_solver("cbc")
-    opt.options["seconds"] = 60
-
+# initialize pyomo solver
+opt = get_solver("gurobi_direct", "gurobi", "cbc")
+set_timeout(opt, timeout_s=60)
 opt.options["mipgap"] = 0
+
 # solve mathematical model
 results = opt.solve(strategic_model, tee=True)
 results.write()
