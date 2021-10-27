@@ -17,7 +17,7 @@ from typing import Iterable
 
 class SolverError(ValueError):
     "Base exception for solver-related errors"
-    
+
 
 class NoAvailableSolver(SolverError):
     def __init__(self, *choices: Iterable[str]):
@@ -86,6 +86,8 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
     }
     option_key = name_key_mapping.get(solver.name, None)
     if option_key is None:
-        raise SolverError(f"No timeout option mapping found for {solver}: {name_key_mapping}")
+        raise SolverError(
+            f"No timeout option mapping found for {solver}: {name_key_mapping}"
+        )
     solver.options[option_key] = float(timeout_s)
     return solver

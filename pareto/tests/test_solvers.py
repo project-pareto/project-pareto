@@ -108,12 +108,12 @@ class TestMultipleSolverChoices:
     _VALID_NAME = "ipopt"
 
     @pytest.mark.parametrize(
-        'names,expectation',
+        "names,expectation",
         [
-            (('bogus1', _VALID_NAME, "bogus2"), does_not_raise()),
-            (('bogus1', "bogus2"), pytest.raises(SolverError)),
+            (("bogus1", _VALID_NAME, "bogus2"), does_not_raise()),
+            (("bogus1", "bogus2"), pytest.raises(SolverError)),
         ],
-        ids=get_readable_param
+        ids=get_readable_param,
     )
     def test_valid_choice_is_instantiated(self, names, expectation):
         with expectation:
