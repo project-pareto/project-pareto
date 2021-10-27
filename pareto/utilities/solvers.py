@@ -10,10 +10,24 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
-from pyomo.environ import SolverFactory
+from pyomo.opt.base.solvers import SolverFactory, OptSolver, check_available_solvers
+from numbers import Number
+from typing import Iterable
 
 
-def _enable_idaes_ext_solvers():
+class SolverError(ValueError):
+    "Base exception for solver-related errors"
+    
+
+class NoAvailableSolver(SolverError):
+    def __init__(self, *choices: Iterable[str]):
+        self.choices = choices
+
+    def __str__(self):
+        return f"No available solver found among choices: {self.choices}"
+
+
+def _enable_idaes_ext_solvers() -> None:
     """
     Apply the steps required to be able to use the IDAES-EXT solvers, i.e. the solvers installed by the `idaes get-extensions` command, within the current Python process.
 
@@ -25,15 +39,53 @@ def _enable_idaes_ext_solvers():
     import idaes
 
 
-def get_solver(solver_name: str):
+def get_solver(*solver_names: Iterable[str]) -> OptSolver:
     """
-    Return a solver object from its name.
+    Return a solver object from one or more names.
 
-    This is a minimal wrapper around pyomo's SolverFactory, and all solver-related functionality is currently delegated to it.
+    This is a thin wrapper around pyomo's SolverFactory; apart from basic validation to check if a solver is available, all functionality is currently delegated to it.
+
+    Args:
+        solver_names: one or more solver names to attempt for instantiating the solver object. If multiple names are given, the first available solver will be returned.
+
+    Returns:
+        The instantiated solver object.
+
+    Raises:
+        NoAvailableSolver if none of the choices succeed.
     """
 
     _enable_idaes_ext_solvers()
 
-    solver = SolverFactory(solver_name)
-    # TODO add solver validation/error handling
+    for name in solver_names:
+        solver = SolverFactory(name)
+        if solver.available(exception_flag=False):
+            break
+    else:
+        raise NoAvailableSolver(solver_names)
+    # TODO add extra solver validation, logging, etc
+    return solver
+
+
+def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
+    """
+    Set timeout (time limit) for solver in a solver-indipendent way.
+
+    Args:
+        solver: the solver object to which the option will be applied.
+        timeout_s: the timeout, in seconds, to be applied as a solver option.
+    Returns:
+        The same solver object.
+    Raises:
+        SolverError if no mapping for the option key is found for the given solver.
+    """
+    name_key_mapping = {
+        "gurobi": "timeLimit",
+        "gurobi_direct": "timeLimit",
+        "cbc": "seconds",
+    }
+    option_key = name_key_mapping.get(solver.name, None)
+    if option_key is None:
+        raise SolverError(f"No timeout option mapping found for {solver}: {name_key_mapping}")
+    solver.options[option_key] = float(timeout_s)
     return solver
