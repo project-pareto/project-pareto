@@ -17,7 +17,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pareto.utilities.solvers import get_solver
+from pareto.utilities.solvers import get_solver, set_timeout
 
 import pandas as pd
 
@@ -88,19 +88,21 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = "case_studies\\input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
-[df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
+with resources.path(
+    "pareto.case_studies", "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+) as fpath:
+    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 # create mathematical model
 strategic_model = create_model(
     df_sets, df_parameters, default={"objective": Objectives.cost}
 )
 
-# import pyomo solver
-opt = get_solver("cbc")
-opt.options["seconds"] = 60
-# opt.options['timeLimit'] = 60
+# initialize pyomo solver
+opt = get_solver("gurobi_direct", "gurobi", "cbc")
+set_timeout(opt, timeout_s=60)
 opt.options["mipgap"] = 0
+
 # solve mathematical model
 results = opt.solve(strategic_model, tee=True)
 results.write()
@@ -108,11 +110,11 @@ print("\nDisplaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     is_print=[PrintValues.Detailed],
-    fname="..\\..\\strategic_optimization_results.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "..\\..\\strategic_optimization_results.xlsx"
+fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
