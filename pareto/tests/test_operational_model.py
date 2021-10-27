@@ -82,7 +82,9 @@ def build_operational_model():
         "ProductionRates",
     ]
 
-    with resources.path("pareto.case_studies", 'EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx') as fpath:
+    with resources.path(
+        "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+    ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     df_parameters["MinTruckFlow"] = 75
     df_parameters["MaxTruckFlow"] = 37000
