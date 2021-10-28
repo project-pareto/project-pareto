@@ -243,6 +243,7 @@ def generate_report(model, is_print=[], fname=None):
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Truck",
+                    "vb_z_PadStorage",
                     "v_F_Overview",
                 ]
 
@@ -255,7 +256,7 @@ def generate_report(model, is_print=[], fname=None):
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
-            "v_F_Piped_dict": [("Origin", "destination", "Time", "Piped water")],
+            "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
@@ -283,6 +284,7 @@ def generate_report(model, is_print=[], fname=None):
             "vb_y_Storage_dict": [
                 ("Storage Site", "Storage Capacity", "Storage Expansion")
             ],
+            "vb_z_PadStorage_dict": [("Completions Pad", "Time","Storage Use")],
             "vb_y_Flow_dict": [("Origin", "Destination", "Time", "Flow")],
             "vb_y_Truck_dict": [("Origin", "Destination", "Time", "Truck")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
