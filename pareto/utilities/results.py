@@ -284,7 +284,7 @@ def generate_report(model, is_print=[], fname=None):
             "vb_y_Storage_dict": [
                 ("Storage Site", "Storage Capacity", "Storage Expansion")
             ],
-            "vb_z_PadStorage_dict": [("Completions Pad", "Time","Storage Use")],
+            "vb_z_PadStorage_dict": [("Completions Pad", "Time", "Storage Use")],
             "vb_y_Flow_dict": [("Origin", "Destination", "Time", "Flow")],
             "vb_y_Truck_dict": [("Origin", "Destination", "Time", "Truck")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],

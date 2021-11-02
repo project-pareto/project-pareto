@@ -283,7 +283,8 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals, doc="Total cost of storing produced water [$]"
     )
     model.v_C_TotalPadStorage = Var(
-        within=NonNegativeReals, doc="Total cost of storing produced water at completions site [$]"
+        within=NonNegativeReals,
+        doc="Total cost of storing produced water at completions site [$]",
     )
     model.v_C_TotalTrucking = Var(
         within=NonNegativeReals, doc="Total cost of trucking produced water [$]"
@@ -421,10 +422,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Directional flow between two locations",
     )
     model.vb_z_PadStorage = Var(
-        model.s_CP,
-        model.s_T,
-        within=Binary,
-        doc='Completions pad storage use'
+        model.s_CP, model.s_T, within=Binary, doc="Completions pad storage use"
     )
     model.vb_y_Truck = Var(
         model.s_L,
@@ -1099,7 +1097,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=df_parameters["PadStorageCost"],
-        doc="Completions pad storage operational cost [$]"
+        doc="Completions pad storage operational cost [$]",
     )
     model.p_rho_Storage = Param(
         model.s_S,
@@ -1244,7 +1242,10 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadStorageBalance.pprint()
 
     def CompletionsPadStorageCapacityRule(model, p, t):
-        return model.v_L_PadStorage[p, t] <= model.vb_z_PadStorage[p, t] * model.p_sigma_PadStorage[p, t]
+        return (
+            model.v_L_PadStorage[p, t]
+            <= model.vb_z_PadStorage[p, t] * model.p_sigma_PadStorage[p, t]
+        )
 
     model.CompletionsPadStorageCapacity = Constraint(
         model.s_CP,
@@ -2874,13 +2875,17 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalPadStorageCostRule(model):
         return model.v_C_TotalPadStorage == sum(
-            sum(model.vb_z_PadStorage[p, t] * model.p_pi_PadStorage[p,t] for p in model.s_CP) for t in model.s_T
+            sum(
+                model.vb_z_PadStorage[p, t] * model.p_pi_PadStorage[p, t]
+                for p in model.s_CP
+            )
+            for t in model.s_T
         )
-    
+
     model.TotalPadStorageCost = Constraint(
         rule=TotalPadStorageCostRule, doc="Total completions pad storage cost"
     )
-    
+
     def TruckingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCT[l, l_tilde]:
