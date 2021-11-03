@@ -73,7 +73,7 @@ parameter_list = [
     "PipelineOperationalCost",
     "FreshSourcingCost",
     "TruckingHourlyCost",
-    "PipelineCapacityIncrements",
+    "PipelineDiameterValues",
     "DisposalCapacityIncrements",
     "InitialStorageCapacity",
     "StorageCapacityIncrements",
@@ -83,6 +83,8 @@ parameter_list = [
     "StorageExpansionCost",
     "TreatmentExpansionCost",
     "PipelineExpansionCost",
+    "PipelineExpansionDistance",
+    "Hydraulics",
 ]
 
 # user needs to provide the path to the case study data file
@@ -100,7 +102,7 @@ strategic_model = create_model(
 
 # initialize pyomo solver
 opt = get_solver("gurobi_direct", "gurobi", "cbc")
-set_timeout(opt, timeout_s=60)
+set_timeout(opt, timeout_s=5 * 60)
 opt.options["mipgap"] = 0
 
 # solve mathematical model

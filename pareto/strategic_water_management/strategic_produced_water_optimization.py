@@ -27,6 +27,7 @@
 # - Implemented treatment capacity expansion [August 10]
 # - Implemented alternative objectives (cost vs. reuse) via config argument [August 11]
 # - Implemented reuse/disposal deliveries variables/constraints/results [August 12]
+# - Implemented calculation of maximum flows based on pipeline diameters
 
 # Import
 from pyomo.environ import (
@@ -409,6 +410,9 @@ def create_model(df_sets, df_parameters, default={}):
     # model.vb_z_Pipeline      = Var(model.s_L,model.s_L,model.s_D,model.s_T,within=Binary, doc='Timing of pipeline installation between two locations')
     # model.vb_z_Storage       = Var(model.s_S,model.s_C,model.s_T,within=Binary, doc='Timing of storage facility installation at storage site')
     # model.vb_z_Disposal      = Var(model.s_K,model.s_I,model.s_T,within=Binary, doc='Timing of disposal facility installation at disposal site')
+
+    ## Pre-process Data ##
+    df_parameters = _preprocess_data(df_parameters)
 
     ## Define set parameters ##
 
@@ -900,9 +904,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_delta_Pipeline = Param(
         model.s_D,
-        default=10,
-        initialize=df_parameters["PipelineCapacityIncrements"],
-        doc="Pipeline capacity installation/expansion increments [bbl/week]",
+        default=20,
+        initialize=df_parameters["PipelineDiameterValues"],
+        doc="Pipeline capacity installation/expansion increments [inch]",
     )
 
     model.p_delta_Disposal = Param(
@@ -969,7 +973,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_lambda_Pipeline = Param(
-        model.s_L, model.s_L, default=9999999, doc="Pipeline segment length [miles]"
+        model.s_L,
+        model.s_L,
+        default=9999999,
+        initialize=df_parameters["PipelineExpansionDistance"],
+        doc="Pipeline segment length [miles]",
     )
 
     model.p_kappa_Disposal = Param(
@@ -997,12 +1005,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_kappa_Pipeline = Param(
-        model.s_L,
-        model.s_L,
-        model.s_D,
-        default=5,
-        initialize=df_parameters["PipelineExpansionCost"],
-        doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
+        default=120000,
+        initialize=df_parameters["PipelineExpansionCost"]["pipeline_expansion_cost"],
+        doc="Pipeline construction/expansion capital cost for selected increment [$/inchmile]",
     )
 
     # model.p_kappa_Disposal.pprint()
@@ -2871,6 +2876,9 @@ def create_model(df_sets, df_parameters, default={}):
             (
                 sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
                 + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                )
+                + sum(
                     model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
                 )
             )
@@ -3344,8 +3352,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[p, p_tilde]
                         for p in model.s_PP
                         if model.p_PCA[p, p_tilde]
                     )
@@ -3357,8 +3366,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[p, n]
                         for p in model.s_PP
                         if model.p_PNA[p, n]
                     )
@@ -3370,8 +3380,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[p, p_tilde]
                         for p in model.s_PP
                         if model.p_PPA[p, p_tilde]
                     )
@@ -3383,8 +3394,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[p, n]
                         for p in model.s_CP
                         if model.p_CNA[p, n]
                     )
@@ -3396,8 +3408,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline[n, n_tilde, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, n_tilde]
                         for n in model.s_N
                         if model.p_NNA[n, n_tilde]
                     )
@@ -3409,8 +3422,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline[n, p, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, p]
                         for n in model.s_N
                         if model.p_NCA[n, p]
                     )
@@ -3422,8 +3436,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline[n, k, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, k]
                         for n in model.s_N
                         if model.p_NKA[n, k]
                     )
@@ -3435,8 +3450,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline[n, s, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, s]
                         for n in model.s_N
                         if model.p_NSA[n, s]
                     )
@@ -3448,8 +3464,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline[n, r, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, r]
                         for n in model.s_N
                         if model.p_NRA[n, r]
                     )
@@ -3461,8 +3478,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline[n, o, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, o]
                         for n in model.s_N
                         if model.p_NOA[n, o]
                     )
@@ -3474,8 +3492,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline[f, p, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[f, p]
                         for f in model.s_F
                         if model.p_FCA[f, p]
                     )
@@ -3487,8 +3506,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline[r, n, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[r, n]
                         for r in model.s_R
                         if model.p_RNA[r, n]
                     )
@@ -3500,8 +3520,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline[r, p, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[r, p]
                         for r in model.s_R
                         if model.p_RCA[r, p]
                     )
@@ -3513,8 +3534,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline[r, k, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[r, k]
                         for r in model.s_R
                         if model.p_RKA[r, k]
                     )
@@ -3526,8 +3548,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline[s, n, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[s, n]
                         for s in model.s_S
                         if model.p_SNA[s, n]
                     )
@@ -3539,8 +3562,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, p, d]
-                        * model.p_kappa_Pipeline[s, p, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[s, p]
                         for s in model.s_S
                         if model.p_SCA[s, p]
                     )
@@ -3552,8 +3576,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline[s, k, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[s, k]
                         for s in model.s_S
                         if model.p_SKA[s, k]
                     )
@@ -3565,8 +3590,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline[s, r, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[s, r]
                         for s in model.s_S
                         if model.p_SRA[s, r]
                     )
@@ -3578,8 +3604,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline[s, o, d]
+                        * model.p_kappa_Pipeline
                         * model.p_delta_Pipeline[d]
+                        * model.p_lambda_Pipeline[s, o]
                         for s in model.s_S
                         if model.p_SOA[s, o]
                     )
@@ -3593,8 +3620,6 @@ def create_model(df_sets, df_parameters, default={}):
         rule=PipelineExpansionCapExRule,
         doc="Pipeline construction or capacity expansion cost",
     )
-
-    # model.PipelineExpansionCapEx.pprint()
 
     def SlackCostsRule(model):
         return model.v_C_Slack == (
@@ -3937,7 +3962,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ReuseDestinationDeliveriesRule(model, p, t):
         return model.v_F_ReuseDestination[p, t] == sum(
-            model.v_F_Piped[l, p, t] + model.v_F_Trucked[l, p, t] for l in model.s_L
+            model.v_F_Piped[l, p, t] + model.v_F_Trucked[l, p, t]
+            for l in model.s_L
+            if (l not in model.s_F)
         )
 
     model.ReuseDestinationDeliveries = Constraint(
@@ -3994,6 +4021,47 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     return model
+
+
+def _preprocess_data(_df_parameters):
+    """
+    This module pre-processess data to fit the optimization format.
+    In this module the following data is preprocessed:
+    - Pipeline Diameters [inch] are converted to flow rate [bbl/week]
+    - Pipeline Expension Cost is converted to [$/bbl]
+    parameter_list = [list of tabs that contain parameters]
+    """
+
+    # Pipeline Capacity
+    # Pipeline diameter is converted to pipeline capacity (bbl/week) using
+    # Hazen-Williams equation.
+    # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
+    # Required inputs are:
+    # - pipeline diameter [inch]
+    # - pipe roughness []
+    # - max head loss
+
+    # retrieve roughness and max head loss
+    roughness = _df_parameters["Hydraulics"]["roughness"]
+    max_head_loss = _df_parameters["Hydraulics"]["max_head_loss"]
+
+    _df_parameters["PipelineCapacityIncrements"] = {}
+    for key in _df_parameters["PipelineDiameterValues"]:
+        diameter = _df_parameters["PipelineDiameterValues"][key]
+        flow_rate = (
+            (1 / 10.67) ** (1 / 1.852)
+            * roughness
+            * (max_head_loss ** 0.54)
+            * (diameter * 0.0254) ** 2.63
+        )
+
+        # convert to bbl/week:
+        flow_rate *= 6.28981 * (3600 * 24 * 7)
+
+        # add to parameter df.
+        _df_parameters["PipelineCapacityIncrements"][key] = flow_rate
+
+    return _df_parameters
 
 
 if __name__ == "__main__":
