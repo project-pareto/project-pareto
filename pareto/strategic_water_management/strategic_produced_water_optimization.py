@@ -906,7 +906,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_D,
         default=0,
         initialize=df_parameters["PipelineCapacityIncrements"],
-        doc="Pipeline capacity installation/expansion increments [inch]",
+        doc="Pipeline capacity installation/expansion increments [bbl/week]",
     )
 
     model.p_pipeline_diameter = Param(
