@@ -19,6 +19,8 @@ from pareto.operational_water_management.operational_produced_water_optimization
     ProdTank,
 )
 from pyomo.environ import Var
+import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
 from enum import Enum
 
@@ -418,3 +420,302 @@ def generate_report(model, is_print=[], fname=None):
             df.to_excel(writer, sheet_name=i[: -len("_dict")], index=False, startrow=1)
 
     return model, headers
+
+
+def plot_sankey(input_data={}, args=None):
+
+    """
+    This method receives data in the form of 3 seperate lists (origin, destination, value lists), generate_report dictionary
+    output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
+    proper indexes can be assigned for each list so that the elements will correspond with each other based off of the indexes.
+    These lists are then passed into the outlet_flow method which gives an output which is passed into the method to generate the
+    sankey diagram.
+    """
+    label = []
+    check_list = ["source", "destination", "value"]
+    if all(x in input_data.keys() for x in check_list):
+        input_data["type_of_data"] = "Labels"
+
+    elif "pareto_var" in input_data.keys():
+        input_data["type_of_data"] = None
+        variable = input_data["pareto_var"]
+
+    else:
+        raise Exception(
+            "Input data is not valid. Either provide source, destination, value, or a pareto_var assigned to the key pareto_var"
+        )
+
+    # if "plot_title" in args.keys():
+    #     if "time_period" in input_data.keys():
+    #         args["plot_title"] = "{0} for {1}".format(
+    #             args["plot_title"], input_data["time_period"]
+    #         )
+
+    # Taking in the lists and assigning them to list variables to be used in the method
+    if input_data["type_of_data"] == "Labels":
+        source = input_data["source"]
+        destination = input_data["destination"]
+        value = input_data["value"]
+
+        # Checking if a source and destination are the same and giving the destination a new name for uniqueness
+        for n in range(len(source)):
+            if source[n] == destination[n]:
+                destination[n] = "{0}{1}".format(destination[n], "_TILDE")
+
+    elif input_data["type_of_data"] is None and isinstance(variable, list):
+
+        source = []
+        destination = []
+        value = []
+        temp_variable = []
+        temp_variable.append(variable[0])
+
+        # Searching for the keyword "PROPRIETARY DATA"
+        if "PROPRIETARY DATA" in variable[-1]:
+            variable.pop()
+
+        # Deleting zero values
+        for i in variable[1:]:
+            if i[-1] > 0:
+                temp_variable.append(i)
+
+        variable = temp_variable
+
+        # # Calling handle_time method handles user input for specific time_periods and if the variable is indexed by time
+        variable_updated = handle_time(variable, input_data)
+
+        # Loop through dictionaries to be included in sankey diagrams
+        for i in variable_updated[1:]:
+            source.append(i[0])  # Add sources, values, and destinations to lists
+            value.append(i[-1])
+            if i[0] == i[1]:
+                destination.append(
+                    "{0}{1}".format(i[1], "_TILDE")
+                )  # Add onto duplicate names so that they can be given a unique index
+
+            else:
+                destination.append(i[1])
+
+    elif input_data["type_of_data"] is None and isinstance(variable, dict):
+        source = []
+        destination = []
+        value = []
+
+        formatted_list = []
+        temp_variable = {}
+
+        # Deleting zero values
+        for key, val in variable.items():
+            if val > 0:
+                temp_variable.update({key: val})
+
+        variable = temp_variable
+
+        # Calling handle_time method handles user input for specific time_periods and if the variable is indexed by time
+        variable_updated = handle_time(variable, input_data)
+
+        # Formatting data into a list of tuples
+        for v in variable_updated:
+            formatted_list.append((*v, variable_updated[v]))
+
+        if "PROPRIETARY DATA" in formatted_list[-1]:
+            formatted_list.pop()
+
+        # Adding sources, destinations, and values to respective lists from tuples
+        for i in formatted_list:
+            source.append(i[0])
+            value.append(i[-1])
+            if i[0] == i[1]:
+                destination.append(
+                    "{0}{1}".format(i[1], "_TILDE")
+                )  # Add onto duplicate names so that they can be given a unique index
+            else:
+                destination.append(i[1])
+
+    else:
+        raise Exception(
+            "Type of data {0} is not supported. Available options are Labels, get_data format, and generate_report format".format(
+                type(variable)
+            )
+        )
+
+    # Combine locations and cut out duplicates while maintaining same order
+    total_labels = source + destination
+    label = sorted(set(total_labels), key=total_labels.index)
+
+    # Loop through source and destination lists and replace values with proper index indicated from the label list
+    for s in source:
+        for d in destination:
+            for l in label:
+                if s == l:
+                    s_index = label.index(l)
+                    for n, k in enumerate(source):
+                        if k == s:
+                            source[n] = s_index
+                if d == l:
+                    d_index = label.index(l)
+                    for m, j in enumerate(destination):
+                        if j == d:
+                            destination[m] = d_index
+
+    # Remove added string from affected names before passing them into sankey method
+    for t, x in enumerate(label):
+        if x.endswith("_TILDE"):
+            label[t] = x[: -len("_TILDE")]
+
+    sum_dict = {"source": source, "destination": destination, "value": value}
+    sum_df = pd.DataFrame(sum_dict)
+    # Finding duplicates in dataframe and dropping them
+    df_dup = sum_df[sum_df.duplicated(subset=["source", "destination"], keep=False)]
+    df_dup = df_dup.drop_duplicates(subset=["source", "destination"], keep="first")
+    # Looping through dataframe and summing the total values of each node and assigning it to its instance
+    for index, row in df_dup.iterrows():
+        new_value = 0
+        new_value = sum_df.loc[
+            (sum_df["source"] == row["source"])
+            & (sum_df["destination"] == row["destination"]),
+            "value",
+        ].sum()
+        sum_df.at[index, "value"] = new_value
+
+    df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
+
+    source = df_updated["source"].to_list()
+    destination = df_updated["destination"].to_list()
+    value = df_updated["value"].to_list()
+
+    updated_label = outlet_flow(source, destination, label, value)
+
+    generate_sankey(source, destination, value, updated_label, args)
+
+
+def handle_time(variable, input_data):
+    """
+    The handle_time method checks if a variable is indexed by time and checks if a user
+    has passed in certain time periods they would like to use for the data. It then appends
+    those rows of data with the specified time value to a new list which is returned in the
+    plot_sankey method.
+    """
+    # Checks the type of data that is passed in and if it is indexed by time
+    indexed_by_time = False
+    if isinstance(variable, list):
+        time_var = []
+        for i in variable[:1]:
+            i = [j.title() for j in i]
+            if "Time" in i:
+                indexed_by_time = True
+        if indexed_by_time == True:
+            if (
+                "time_period" in input_data.keys()
+            ):  # Checks if user passes in specific time periods they want used in the diagram, if none passed in then it returns original list
+                for y in variable[1:]:
+                    if y[-2] in input_data["time_period"]:
+                        time_var.append((y))
+                if len(time_var) == 0:
+                    raise Exception(
+                        "The time period the user provided does not exist in the data"
+                    )
+                else:
+                    return time_var
+            else:
+                return variable
+        else:
+            return variable
+    else:
+        time_var = {}
+        if "labels" in input_data:
+            for i in input_data["labels"]:
+                i = [j.title() for j in i]
+                if "Time" in i:
+                    indexed_by_time = True
+            if indexed_by_time == True:
+                if (
+                    "time_period" in input_data.keys()
+                ):  # Checks if user passes in specific time periods they want used in the diagram, if none passed in then it returns original dictionary
+                    for key, y in variable.items():
+                        if key[-1] in input_data["time_period"]:
+                            time_var.update({key: y})
+                    if len(time_var) == 0:
+                        raise Exception(
+                            "The time period the user provided does not exist in the data"
+                        )
+                    else:
+                        return time_var
+                else:
+                    return variable
+            else:
+                return variable
+        else:
+            raise Exception("User must provide labels when using Get_data format.")
+
+
+def outlet_flow(source=[], destination=[], label=[], value=[]):
+    """
+    The outlet_flow method receives source, destination, label, and value lists and
+    sums the total value for each label. This value is then added to the label string and
+    updated label lists so that it can be displayed on each node as "label:value". This updated label
+    list is output to be used in the generate_sankey method.
+    """
+    # Loop through each list finding where labels match sources and destination and totaling/rounding their values to be used in updated label list
+    for x, l in enumerate(label):
+        output = 0
+        v_count = []
+        for s, g in enumerate(source):
+            if g == x:
+                v_count.append(s)
+        if len(v_count) == 0:
+            for d, h in enumerate(destination):
+                if h == x:
+                    v_count.append(d)
+        for v in v_count:
+            output = output + float(value[v])
+            rounded_output = round(output, 0)
+            integer_output = int(rounded_output)
+
+        value_length = len(str(integer_output))
+        if value_length >= 4 and value_length <= 7:
+            integer_output = str(int(integer_output / 1000)) + "k"
+        elif value_length >= 8:
+            integer_output = str(int(integer_output / 1000000)) + "M"
+
+        label[x] = "{0}:{1}".format(l, integer_output)
+
+    return label
+
+
+def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
+    """
+    This method receives the final lists for source, destination, value, and labels to be used
+    in generating the plotly sankey diagram. It also receives arguments that determine font size and
+    plot titles. It outputs the sankey diagram in an html format that is automatically opened
+    in a browser.
+    """
+    # Checking arguments and assigning appropriate values
+    if args is None:
+        font_size = 20
+        plot_title = "Sankey Diagram"
+    elif args["font_size"] is None:
+        font_size = 20
+    elif args["plot_title"] is None:
+        plot_title = "Sankey Diagram"
+    else:
+        font_size = args["font_size"]
+        plot_title = args["plot_title"]
+
+    # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
+    link = dict(source=source, target=destination, value=value)
+    node = dict(label=label, pad=30, thickness=15, line=dict(color="black", width=0.5))
+    data = go.Sankey(link=link, node=node)
+
+    # Assigning sankey diagram to fig variable
+    fig = go.Figure(data)
+
+    # Updating the layout of the sankey and formatting based on user passed in arguments
+    fig.update_layout(
+        title_font_size=font_size * 2,
+        title_text=plot_title,
+        title_x=0.5,
+        font_size=font_size,
+    )
+
+    fig.write_html("first_figure.html", auto_open=True)
