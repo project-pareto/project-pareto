@@ -19,6 +19,8 @@ from pareto.operational_water_management.operational_produced_water_optimization
     ProdTank,
 )
 from pyomo.environ import Var
+import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
 from enum import Enum
 
@@ -418,3 +420,185 @@ def generate_report(model, is_print=[], fname=None):
             df.to_excel(writer, sheet_name=i[: -len("_dict")], index=False, startrow=1)
 
     return model, headers
+
+
+def plot_bars(input_data, args):
+
+    y_range = []
+    tick_text = []
+    time_list = []
+    indexed_by_time = False
+
+    if "pareto_var" in input_data.keys():
+        variable = input_data["pareto_var"]
+    else:
+        raise Exception(
+            "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
+        )
+
+    if "group_by" not in args.keys():
+        args["group_by"] = None
+
+    if args["chart_title"] == "" or args["group_by"] is None:
+        chart_title = ""
+    else:
+        chart_title = args["chart_title"]
+
+    if "y_axis" not in args.keys():
+        log_y = False
+        yaxis_type = "linear"
+    elif args["y_axis"] == "log":
+        log_y = True
+        yaxis_type = "log"
+    else:
+        raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
+
+    if isinstance(variable, list):
+        for i in variable[:1]:
+            i = [j.title() for j in i]
+            if args["group_by"] == "" or args["group_by"] is None:
+                x_title = i[0]
+                y_title = i[-1]
+                if "Time" in i:
+                    indexed_by_time = True
+                    time = "Time"
+            elif args["group_by"].title() in i:  # add default group_by as first column
+                y_title = i[-1]
+                x_title = args["group_by"].title()
+                if "Time" in i:
+                    indexed_by_time = True
+                    time = "Time"
+        formatted_variable = variable[1:]
+    elif isinstance(variable, dict):
+        formatted_list = []
+
+        for v in variable:
+            formatted_list.append((*v, variable[v]))
+
+        if args["labels"] is not None:
+            for i in args["labels"]:
+                i = [j.title() for j in i]
+                x_title = i[0]
+                y_title = i[-1]
+                if "Time" in i:
+                    indexed_by_time = True
+                    time = "Time"
+        else:
+            raise Exception("User must provide labels when using Get_data format.")
+
+        formatted_variable = formatted_list
+    else:
+        raise Exception(
+            "Type of data {0} is not supported. Valid data formats are list and dictionary".format(
+                type(variable)
+            )
+        )
+
+    if indexed_by_time:
+
+        df = pd.DataFrame(columns=i)
+        df_bar = df[[x_title, time, y_title]]
+
+        df_new = pd.DataFrame(formatted_variable, columns=i)
+        df_new = df_new.round(0)
+        df_modified = df_new[[x_title, time, y_title]]
+
+        for d, y in df_new.iterrows():
+            time_list.append(y[time])
+        time_loop = set(time_list)
+        time_loop = sorted(time_loop)
+
+        # Loop through time list and give any nodes without a value for that time a 0
+        for ind, x in df_modified.iterrows():
+            time_value = df_modified.loc[df_modified[x_title] == x[x_title], time]
+            for t in time_loop:
+                if t not in time_value.values:
+                    df_modified.loc[len(df_modified.index)] = [x[x_title], t, 1e-10]
+
+        df_dup = df_modified[df_modified.duplicated(subset=[x_title, time], keep=False)]
+        df_dup = df_dup.drop_duplicates(subset=[x_title, time], keep="first")
+        for index, row in df_dup.iterrows():
+            new_value = 0
+            new_value = df_modified.loc[
+                (df_modified[x_title] == row[x_title])
+                & (df_modified[time] == row[time]),
+                y_title,
+            ].sum()
+            df_modified.at[index, y_title] = new_value
+
+        df_bar = df_modified.drop_duplicates(subset=[x_title, time], keep="first")
+
+        for a, b in df_bar.iterrows():
+            y_range.append(b[y_title])
+            tick_text.append(b[x_title])
+
+        for y, x in enumerate(y_range):
+            y_range[y] = float(x)
+
+        max_y = max(y_range)
+
+        df_time_sort = df_bar.sort_values(by=[time, x_title])
+
+        fig = px.bar(
+            df_time_sort,
+            x=x_title,
+            y=y_title,
+            color=x_title,
+            animation_frame=time,
+            range_y=[1, max_y * 1.02],
+            title=chart_title,
+            log_y=log_y,
+        )
+
+        fig.update_layout(
+            font_color="#fff",
+            paper_bgcolor="#333",
+            plot_bgcolor="#ccc",
+        )
+
+        fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
+        fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["redraw"] = False
+        fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["duration"] = 1000
+        fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["easing"] = "linear"
+
+        fig.write_html("first_bar.html", auto_open=True, auto_play=False)
+    else:
+
+        df_new = pd.DataFrame(variable[1:], columns=i)
+
+        df_modified = df_new[df_new.duplicated(subset=[x_title], keep=False)]
+        for index, row in df_modified.iterrows():
+            new_value = 0
+            new_value = df_modified.loc[
+                df_modified[x_title] == row[x_title], y_title
+            ].sum()
+            df_new.at[index, y_title] = new_value
+
+        df_new_updated = df_new.drop_duplicates(subset=[x_title], keep="first")
+
+        for a, b in df_new_updated.iterrows():
+            y_range.append(b[y_title])
+
+        for y, x in enumerate(y_range):
+            y_range[y] = float(x)
+
+        max_y = max(y_range)
+
+        fig = px.bar(
+            df_new_updated,
+            x=x_title,
+            y=y_title,
+            range_y=[0, max_y * 1.02],
+            color=x_title,
+            title=chart_title,
+            text=y_title,
+        )
+
+        fig.update_layout(
+            font_color="#fff",
+            paper_bgcolor="#333",
+            plot_bgcolor="#ccc",
+            yaxis_type=yaxis_type,
+        )
+
+        fig.write_html("first_bar.html", auto_open=True)
