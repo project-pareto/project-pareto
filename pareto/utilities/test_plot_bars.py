@@ -15,7 +15,7 @@ from pareto.utilities.results import plot_bars
 from importlib import resources
 
 set_list = []
-parameter_list = ['test_plot_bar']
+parameter_list = ["test_plot_bar"]
 
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
@@ -24,8 +24,9 @@ with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fp
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 # Calling plot_bars using the get_data format
-args={'chart_title': 'Test Data',
-      'labels': [('Origin', 'Destination', 'Time', 'Value')]}
-input_data = {
-    "pareto_var": df_parameters["test_plot_bar"]}
+args = {
+    "chart_title": "Test Data",
+    "labels": [("Origin", "Destination", "Time", "Value")],
+}
+input_data = {"pareto_var": df_parameters["test_plot_bar"]}
 plot_bars(input_data, args=args)
