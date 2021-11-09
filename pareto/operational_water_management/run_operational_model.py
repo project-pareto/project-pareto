@@ -16,7 +16,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
-from pareto.utilities.solvers import get_solver
+from pareto.utilities.solvers import get_solver, set_timeout
 from importlib import resources
 
 import pandas as pd
@@ -83,23 +83,24 @@ operational_model = create_model(
     default={"has_pipeline_constraints": True, "production_tanks": ProdTank.equalized},
 )
 
-# import pyomo solver
-opt = get_solver("cbc")
-opt.options["seconds"] = 60
+# initialize pyomo solver
+opt = get_solver("gurobi_direct", "gurobi", "cbc")
+set_timeout(opt, timeout_s=60)
+
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()
-print("\nDisplaying Solution\n" + "-" * 60)
+
 # pyomo_postprocess(None, model, results)
-# print results
+# set is_print=[PrintValues.Nominal] in generate_report() below to print results
 [model, results_dict] = generate_report(
     operational_model,
-    is_print=[PrintValues.Nominal],
-    fname="..\\..\\PARETO_report.xlsx",
+    is_print=[],
+    fname="PARETO_report.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "..\\..\\PARETO_report.xlsx"
+fname = "PARETO_report.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
