@@ -264,6 +264,10 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Credit for retrieving stored produced water from storage site [$/bbl]",
     )
 
+    model.v_F_TotalSourced = Var(
+        within=NonNegativeReals, doc="Total volume freshwater sourced [bbl]"
+    )
+
     model.v_C_TotalSourced = Var(
         within=NonNegativeReals, doc="Total cost of sourcing freshwater [$]"
     )
@@ -2388,7 +2392,24 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalFreshSourcingCostRule, doc="Total fresh sourcing cost"
     )
 
-    # model.TotalFreshSourcingCost.pprint()
+    def TotalFreshSourcingVolumeRule(model):
+        return model.v_F_TotalSourced == sum(
+            sum(
+                sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
+                for p in model.s_CP
+            )
+            for t in model.s_T
+        ) + sum(
+            sum(
+                sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+                for p in model.s_CP
+            )
+            for t in model.s_T
+        )
+
+    model.TotalFreshSourcingVolume = Constraint(
+        rule=TotalFreshSourcingVolumeRule, doc="Total fresh sourcing volume"
+    )
 
     def DisposalCostRule(model, k, t):
         return (
