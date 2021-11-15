@@ -2343,16 +2343,18 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentBalanceRule(model, r, t):
         return model.p_epsilon_Treatment[r] * (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-                + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
+            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
         ) == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
 
     model.TreatmentBalance = Constraint(
-        model.s_R, model.s_T, rule= simple_constraint_rule(TreatmentBalanceRule), doc="Treatment balance"
+        model.s_R,
+        model.s_T,
+        rule=simple_constraint_rule(TreatmentBalanceRule),
+        doc="Treatment balance",
     )
-
 
     def BeneficialReuseCapacityRule(model, o, t):
         return (
@@ -2824,7 +2826,9 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_Storage[s, t] == (
             (
                 sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-                + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                )
                 + sum(
                     model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
                 )

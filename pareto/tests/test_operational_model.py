@@ -53,6 +53,7 @@ def build_operational_model():
         "NetworkNodes",
     ]
     parameter_list = [
+        "RCA",
         "FCA",
         "PCT",
         "FCT",
@@ -80,6 +81,7 @@ def build_operational_model():
         "TruckingHourlyCost",
         "FreshSourcingCost",
         "ProductionRates",
+        "TreatmentEfficiency",
     ]
 
     with resources.path(
