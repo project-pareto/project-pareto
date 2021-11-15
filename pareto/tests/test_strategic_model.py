@@ -103,7 +103,14 @@ def build_strategic_model():
     ]
 
     # note the double backslashes '\\' in that path reference
+<<<<<<< HEAD
     with resources.path("pareto.case_studies", 'input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx') as fpath:
+=======
+    with resources.path(
+        "pareto.case_studies",
+        "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+    ) as fpath:
+>>>>>>> 74cd19a69f9fbaf074148eb4f7031b09aa06ab26
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     # create mathematical model

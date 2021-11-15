@@ -14,7 +14,8 @@ import pyomo.environ as pyo
 
 import pytest
 
-from pareto.utilities.solvers import get_solver
+from pareto.utilities.solvers import get_solver, SolverError
+from pareto.utilities.testing import does_not_raise, get_readable_param
 
 
 def lp():
@@ -103,9 +104,18 @@ def nonexisting_solver_name():
     return "bogus"
 
 
-@pytest.mark.skip(
-    "Solver validation and handling of non-existing solvers not yet implemented"
-)
-def test_nonexisting_solver_raises_error(nonexisting_solver_name):
-    with pytest.raises(Exception, match=nonexisting_solver_name):
-        solver = get_solver(nonexisting_solver_name)
+class TestMultipleSolverChoices:
+    _VALID_NAME = "ipopt"
+
+    @pytest.mark.parametrize(
+        "names,expectation",
+        [
+            (("bogus1", _VALID_NAME, "bogus2"), does_not_raise()),
+            (("bogus1", "bogus2"), pytest.raises(SolverError)),
+        ],
+        ids=get_readable_param,
+    )
+    def test_valid_choice_is_instantiated(self, names, expectation):
+        with expectation:
+            # using the name to compare since different solver objects for the same name are not considered equal
+            assert get_solver(*names).name == self._VALID_NAME
