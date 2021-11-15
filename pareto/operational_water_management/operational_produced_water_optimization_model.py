@@ -29,6 +29,7 @@ from pareto.utilities.get_data import get_data
 from importlib import resources
 from pyomo.opt import SolverFactory
 import pyomo.environ
+from pyomo.core.base.constraint import simple_constraint_rule
 
 # import gurobipy
 from pyomo.common.config import ConfigBlock, ConfigValue, In
@@ -441,6 +442,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     NOA_Table = {}
 
+    RCA_Table = {}
+
     FCA_Table = {}
 
     RNA_Table = {}
@@ -563,6 +566,13 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=NOA_Table,
         doc="Valid node-to-reuse pipeline arcs [-]",
+    )
+    model.p_RCA = Param(
+        model.s_R,
+        model.s_CP,
+        default=0,
+        initialize=df_parameters["RCA"],
+        doc="Valid treatment-to-completions pipeline arcs [-]",
     )
     model.p_FCA = Param(
         model.s_F,
@@ -954,7 +964,12 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=ProcessingCapacityStorageTable,
         doc="Weekly processing (e.g. clarification) capacity per storage site [bbl/day]",
     )
-
+    model.p_epsilon_Treatment = Param(
+        model.s_R,
+        default=1.0,
+        initialize=df_parameters["TreatmentEfficiency"],
+        doc="Treatment efficiency [%]",
+    )
     # COMMENT: Remove pipeline/disposal/storage capacity expansion increment parameters
     model.p_delta_Pipeline = Param(
         model.s_D,
@@ -1161,6 +1176,7 @@ def create_model(df_sets, df_parameters, default={}):
                 for p_tilde in model.s_CP
                 if model.p_CCA[p_tilde, p]
             )
+            + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
             + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
             + sum(
                 model.v_F_Trucked[p_tilde, p, t]
@@ -1604,6 +1620,8 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n]
         ) + sum(
             model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n]
+        ) + sum(
+            model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
         ) + sum(
             model.v_F_Piped[n_tilde, n, t]
             for n_tilde in model.s_N
@@ -2311,6 +2329,19 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.TreatmentCapacity.pprint()
 
+    def TreatmentBalanceRule(model, r, t):
+        return model.p_epsilon_Treatment[r] * (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
+                + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+        ) == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+
+    model.TreatmentBalance = Constraint(
+        model.s_R, model.s_T, rule= simple_constraint_rule(TreatmentBalanceRule), doc="Treatment balance"
+    )
+
+
     def BeneficialReuseCapacityRule(model, o, t):
         return (
             sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
@@ -2445,6 +2476,7 @@ def create_model(df_sets, df_parameters, default={}):
                     for p_tilde in model.s_PP
                     if model.p_PCA[p_tilde, p]
                 )
+                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
                 + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
                 + sum(
                     model.v_F_Piped[p_tilde, p, t]
@@ -2780,6 +2812,7 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_Storage[s, t] == (
             (
                 sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
                 + sum(
                     model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
                 )

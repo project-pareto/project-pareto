@@ -26,6 +26,7 @@ set_list = [
     "NetworkNodes",
 ]
 parameter_list = [
+    "RCA",
     "FCA",
     "PCT",
     "FCT",
@@ -53,12 +54,13 @@ parameter_list = [
     "TruckingHourlyCost",
     "FreshSourcingCost",
     "ProductionRates",
+    "TreatmentEfficiency",
 ]
 
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-fname = "case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+fname = "..\\case_studies\\EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
 [df_sets, df_parameters] = get_data(fname, set_list, parameter_list)
 
 df_parameters["MinTruckFlow"] = 75
