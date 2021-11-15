@@ -17,9 +17,6 @@ from importlib import resources
 set_list = []
 parameter_list = ["test_plot_bar"]
 
-# user needs to provide the path to the case study data file
-# for example: 'C:\\user\\Documents\\myfile.xlsx'
-# note the double backslashes '\\' in that path reference
 with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 

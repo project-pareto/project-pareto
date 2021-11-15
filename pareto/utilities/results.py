@@ -32,6 +32,12 @@ class PrintValues(Enum):
 
 
 def generate_report(model, is_print=[], fname=None):
+    """
+    This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
+    and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
+    IMPORTANT: If a variable is added or removed from a model, the printint lists and headers should be updated
+    accrodingly.
+    """
     # ## Printing model sets, parameters, constraints, variable values ##
 
     printing_list = []
@@ -315,7 +321,7 @@ def generate_report(model, is_print=[], fname=None):
                 ("Pads", "Time", "Produced Water For Transport From Pad")
             ],
         }
-
+        # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
             headers.update(
                 {"v_L_ProdTank_dict": [("Pads", "Time", "Production Tank Water Level")]}
@@ -355,14 +361,20 @@ def generate_report(model, is_print=[], fname=None):
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
+    # Loop through all the variables in the model
     for variable in model.component_objects(Var):
         if variable._data is not None:
+            # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
                 var_value = variable._data[i].value
                 if i is None:
+                    # Create the overview report with variables that are not indexed, e.g.:
+                    # total piped water, total trucked water, total fresh water, etc.
                     headers["v_F_Overview_dict"].append(
                         (variable.name, variable.doc, var_value)
                     )
+                # if a variable contains only one index, then "i" is recognized as a string and not a tupel,
+                # in that case, "i" is redefined by adding a comma so that it becomes a tuple
                 elif i is not None and isinstance(i, str):
                     i = (i,)
                 if i is not None and var_value is not None and var_value > 0:
@@ -371,6 +383,7 @@ def generate_report(model, is_print=[], fname=None):
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
 
+    # Loop for printing information on the command prompt
     for i in list(headers.items())[1:]:
         dict_name = i[0][: -len("_dict")]
         if dict_name in printing_list:
@@ -379,7 +392,7 @@ def generate_report(model, is_print=[], fname=None):
             for j in i[1][1:]:
                 print("{0}{1} = {2}".format(dict_name, j[:-1], j[-1]))
 
-    # Loop for printing Overview Information
+    # Loop for printing Overview Information on the command prompt
     for i in list(headers.items())[:1]:
         dict_name = i[0][: -len("_dict")]
         if dict_name in printing_list:
@@ -429,6 +442,7 @@ def plot_bars(input_data, args):
     time_list = []
     indexed_by_time = False
 
+    # Check for variable data and throw exception if no data is provided
     if "pareto_var" in input_data.keys():
         variable = input_data["pareto_var"]
     else:
@@ -436,6 +450,7 @@ def plot_bars(input_data, args):
             "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
         )
 
+    # Give group_by and chart_title a value of None/"" if it is not provided
     if "group_by" not in args.keys():
         args["group_by"] = None
 
@@ -444,6 +459,7 @@ def plot_bars(input_data, args):
     else:
         chart_title = args["chart_title"]
 
+    # Check if log was passed in as an option for the y axis and create a boolean for it
     if "y_axis" not in args.keys():
         log_y = False
         yaxis_type = "linear"
@@ -453,6 +469,7 @@ def plot_bars(input_data, args):
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
 
+    # Check the type of variable passed in and assign labels/Check for time indexing
     if isinstance(variable, list):
         for i in variable[:1]:
             i = [j.title() for j in i]
@@ -495,7 +512,7 @@ def plot_bars(input_data, args):
         )
 
     if indexed_by_time:
-
+        # Create dataframes for use in the method
         df = pd.DataFrame(columns=i)
         df_bar = df[[x_title, time, y_title]]
 
@@ -515,6 +532,7 @@ def plot_bars(input_data, args):
                 if t not in time_value.values:
                     df_modified.loc[len(df_modified.index)] = [x[x_title], t, 1e-10]
 
+        # Take the sums of flows from nodes to destinations that have the same time period and locations
         df_dup = df_modified[df_modified.duplicated(subset=[x_title, time], keep=False)]
         df_dup = df_dup.drop_duplicates(subset=[x_title, time], keep="first")
         for index, row in df_dup.iterrows():
@@ -528,6 +546,7 @@ def plot_bars(input_data, args):
 
         df_bar = df_modified.drop_duplicates(subset=[x_title, time], keep="first")
 
+        # Get all y values and then calculate the max for the y axis range
         for a, b in df_bar.iterrows():
             y_range.append(b[y_title])
             tick_text.append(b[x_title])
@@ -537,8 +556,10 @@ def plot_bars(input_data, args):
 
         max_y = max(y_range)
 
+        # Sort by time and x values
         df_time_sort = df_bar.sort_values(by=[time, x_title])
 
+        # Create bar chart with provided data and parameters
         fig = px.bar(
             df_time_sort,
             x=x_title,
@@ -556,16 +577,20 @@ def plot_bars(input_data, args):
             plot_bgcolor="#ccc",
         )
 
+        # Update animation settings
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["redraw"] = False
         fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["duration"] = 1000
         fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["easing"] = "linear"
 
+        # Write the figure to html format and open in the browser
         fig.write_html("first_bar.html", auto_open=True, auto_play=False)
     else:
 
+        # Create dataframe for use in the method
         df_new = pd.DataFrame(variable[1:], columns=i)
 
+        # Take the sums of flows from nodes to destinations that have the same locations
         df_modified = df_new[df_new.duplicated(subset=[x_title], keep=False)]
         for index, row in df_modified.iterrows():
             new_value = 0
@@ -576,6 +601,7 @@ def plot_bars(input_data, args):
 
         df_new_updated = df_new.drop_duplicates(subset=[x_title], keep="first")
 
+        # Get all values and then calculate the max for the y axis range
         for a, b in df_new_updated.iterrows():
             y_range.append(b[y_title])
 
@@ -584,6 +610,7 @@ def plot_bars(input_data, args):
 
         max_y = max(y_range)
 
+        # Create bar chart with provided data and parameters
         fig = px.bar(
             df_new_updated,
             x=x_title,
@@ -601,4 +628,5 @@ def plot_bars(input_data, args):
             yaxis_type=yaxis_type,
         )
 
+        # Write the figure to html format and open in the browser
         fig.write_html("first_bar.html", auto_open=True)
