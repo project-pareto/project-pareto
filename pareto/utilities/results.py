@@ -445,12 +445,6 @@ def plot_sankey(input_data={}, args=None):
             "Input data is not valid. Either provide source, destination, value, or a pareto_var assigned to the key pareto_var"
         )
 
-    # if "plot_title" in args.keys():
-    #     if "time_period" in input_data.keys():
-    #         args["plot_title"] = "{0} for {1}".format(
-    #             args["plot_title"], input_data["time_period"]
-    #         )
-
     # Taking in the lists and assigning them to list variables to be used in the method
     if input_data["type_of_data"] == "Labels":
         source = input_data["source"]
