@@ -1014,7 +1014,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_kappa_Pipeline = Param(
         default=120000,
         initialize=df_parameters["PipelineExpansionCost"]["pipeline_expansion_cost"],
-        doc="Pipeline construction/expansion capital cost for selected increment [$/inchmile]",
+        doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
     )
 
     # model.p_kappa_Disposal.pprint()
