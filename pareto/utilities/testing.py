@@ -10,5 +10,21 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
-def test_import_main_package():
-    import pareto
+from contextlib import nullcontext as does_not_raise
+from typing import Any
+
+import _pytest
+
+
+def get_readable_param(obj: Any):
+    """
+    Return a more readable representation of an object.
+
+    Use as the `ids` argument of parametrize/pytest.mark.parametrize.
+    """
+    if isinstance(obj, (tuple, list)):
+        return str.join(",", obj)
+    if "RaisesContext" in type(obj).__name__:
+        return "(should raise)"
+    if isinstance(obj, does_not_raise):
+        return "(should not raise)"

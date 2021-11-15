@@ -1,7 +1,21 @@
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021 by the software owners: The
+# Regents of the University of California, through Lawrence Berkeley National Laboratory, et al. All
+# rights reserved.
+#
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the
+# U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted
+# for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license
+# in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit other to do so.
+#####################################################################################################
 import pyomo.environ as pyo
-import idaes
 
 import pytest
+
+from pareto.utilities.solvers import get_solver, SolverError
+from pareto.utilities.testing import does_not_raise, get_readable_param
 
 
 def lp():
@@ -67,7 +81,7 @@ def solver_name(request):
     scope="class",
 )
 def solver(solver_name):
-    return pyo.SolverFactory(solver_name)
+    return get_solver(solver_name)
 
 
 @pytest.fixture(scope="class")
@@ -83,3 +97,25 @@ class TestSolver:
         m, x = problem()
         solver.solve(m)
         assert pytest.approx(x) == pyo.value(m.x)
+
+
+@pytest.fixture
+def nonexisting_solver_name():
+    return "bogus"
+
+
+class TestMultipleSolverChoices:
+    _VALID_NAME = "ipopt"
+
+    @pytest.mark.parametrize(
+        "names,expectation",
+        [
+            (("bogus1", _VALID_NAME, "bogus2"), does_not_raise()),
+            (("bogus1", "bogus2"), pytest.raises(SolverError)),
+        ],
+        ids=get_readable_param,
+    )
+    def test_valid_choice_is_instantiated(self, names, expectation):
+        with expectation:
+            # using the name to compare since different solver objects for the same name are not considered equal
+            assert get_solver(*names).name == self._VALID_NAME
