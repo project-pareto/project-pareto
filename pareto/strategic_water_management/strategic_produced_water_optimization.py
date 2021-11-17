@@ -442,6 +442,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     RKA_Table = {}
 
+    RSA_Table = {}
+
     SNA_Table = {}
 
     SCA_Table = {}
@@ -582,6 +584,13 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=RKA_Table,
         doc="Valid treatment-to-disposal pipeline arcs [-]",
+    )
+    model.p_RSA = Param(
+        model.s_R,
+        model.s_S,
+        default=0,
+        initialize=RSA_Table,
+        doc="Valid treatment-to-storage pipeline arcs [-]",
     )
     model.p_SNA = Param(
         model.s_S,
@@ -1307,6 +1316,7 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageSiteProcessingCapacityRule(model, s, t):
         return (
             sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+            + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
             + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
             + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
             <= model.p_sigma_ProcessingStorage[s]
@@ -1714,6 +1724,8 @@ def create_model(df_sets, df_parameters, default={}):
             return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
                 model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
             ) + sum(
+                model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
+            ) + sum(
                 model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
             ) + sum(
                 model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
@@ -1737,6 +1749,8 @@ def create_model(df_sets, df_parameters, default={}):
                 s, model.s_T.prev(t)
             ] + sum(
                 model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
+            ) + sum(
+                model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
             ) + sum(
                 model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
             ) + sum(
@@ -2041,11 +2055,20 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
-                        model.p_delta_Pipeline[d]
-                        * (
-                            model.vb_y_Pipeline[l, l_tilde, d]
-                            + model.vb_y_Pipeline[l_tilde, l, d]
-                        )
+                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        for d in model.s_D
+                    )
+                    + model.v_S_PipelineCapacity[l, l_tilde]
+                )
+            else:
+                return Constraint.Skip
+        elif l in model.s_R and l_tilde in model.s_S:
+            if model.p_RSA[l, l_tilde]:
+                return (
+                    model.v_F_Capacity[l, l_tilde]
+                    == model.p_sigma_Pipeline[l, l_tilde]
+                    + sum(
+                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2294,7 +2317,8 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+        ) == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p]) \
+               + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
 
     model.TreatmentBalance = Constraint(
         model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment balance"
@@ -2882,6 +2906,7 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_Storage[s, t] == (
             (
                 sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
                 + sum(
                     model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
                 )
