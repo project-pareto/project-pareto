@@ -93,6 +93,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies", "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+    # "pareto.case_studies", "small_strategic_case_study.xlsx"
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -103,6 +104,7 @@ strategic_model = create_model(
 
 # initialize pyomo solver
 opt = get_solver("gurobi_direct", "gurobi", "cbc")
+# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 set_timeout(opt, timeout_s=60)
 opt.options["mipgap"] = 0
 
