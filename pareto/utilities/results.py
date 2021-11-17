@@ -35,10 +35,10 @@ def generate_report(model, is_print=[], fname=None):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
-    IMPORTANT: If a variable is added or removed from a model, the printint lists and headers should be updated
+    IMPORTANT: If an indexed variable is added or removed from a model, the printing lists and headers should be updated
     accrodingly.
     """
-    # ## Printing model sets, parameters, constraints, variable values ##
+    # Printing model sets, parameters, constraints, variable values
 
     printing_list = []
 
@@ -436,7 +436,16 @@ def generate_report(model, is_print=[], fname=None):
 
 
 def plot_bars(input_data, args):
-
+    """
+    This method creates a bar chart based on a user passed in dictionary or list that is created from the get_data or generate_report methods.
+    The dictionary or list is assigned to the key 'pareto_var' of the input_data dictionary and the method then determines the type of variable
+    and proceeds accordingly. These variables are checked if they are indexed by time, if true then an animated bar chart is created, if false then
+    a static bar chart is created. In addition to the input_data dictionary, another dictionary named 'args' is passed in containing arguments for customizing
+    the bar chart. The args dictionary keys are 'chart_title', 'y_axis', 'group_by', and 'labels' which is only required if the variable is of get_data format(dictionary).
+    The 'y_axis' key is optional and accepts the value 'log' which will take the logarithm of the y axis. If 'y_axis' is not passed in then the axis will default to linear.
+    The 'group_by' key accepts a value that is equal to a column name of the variable data, this will specify which column to use for the x axis. Finally, the 'labels'
+    key accepts a tuple of labels to be assigned to the get_data format(list) variable since no labels are provided from the get_data method.
+    """
     y_range = []
     tick_text = []
     time_list = []
