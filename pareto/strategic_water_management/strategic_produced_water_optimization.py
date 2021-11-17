@@ -2317,8 +2317,11 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p]) \
-               + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+        ) == sum(
+            model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p]
+        ) + sum(
+            model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s]
+        )
 
     model.TreatmentBalance = Constraint(
         model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment balance"
