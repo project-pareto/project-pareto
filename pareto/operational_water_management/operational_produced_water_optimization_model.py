@@ -124,7 +124,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define continuous variables ##
 
-    model.v_Z = Var(within=Reals, doc="Objective funcation variable [$]")
+    model.v_Z = Var(within=Reals, doc="Objective function variable [$]")
 
     model.v_F_Piped = Var(
         model.s_L,
@@ -265,6 +265,10 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Credit for retrieving stored produced water from storage site [$/bbl]",
     )
 
+    model.v_F_TotalSourced = Var(
+        within=NonNegativeReals, doc="Total volume freshwater sourced [bbl]"
+    )
+
     model.v_C_TotalSourced = Var(
         within=NonNegativeReals, doc="Total cost of sourcing freshwater [$]"
     )
@@ -282,6 +286,10 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.v_C_TotalStorage = Var(
         within=NonNegativeReals, doc="Total cost of storing produced water [$]"
+    )
+    model.v_C_TotalPadStorage = Var(
+        within=NonNegativeReals,
+        doc="Total cost of storing produced water at completions site [$]",
     )
     model.v_C_TotalTrucking = Var(
         within=NonNegativeReals, doc="Total cost of trucking produced water [$]"
@@ -417,6 +425,9 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=Binary,
         doc="Directional flow between two locations",
+    )
+    model.vb_z_PadStorage = Var(
+        model.s_CP, model.s_T, within=Binary, doc="Completions pad storage use"
     )
     model.vb_y_Truck = Var(
         model.s_L,
@@ -915,6 +926,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_sigma_PadStorage = Param(
         model.s_CP,
+        model.s_T,
         default=0,
         initialize=df_parameters["CompletionsPadStorage"],
         doc="Storage capacity at completions site [bbl]",
@@ -1099,6 +1111,13 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=StorageOperationalCostTable,
         doc="Storage deposit operational cost [$/bbl]",
     )
+    model.p_pi_PadStorage = Param(
+        model.s_CP,
+        model.s_T,
+        default=0,
+        initialize=df_parameters["PadStorageCost"],
+        doc="Completions pad storage operational cost [$]",
+    )
     model.p_rho_Storage = Param(
         model.s_S,
         default=0,
@@ -1158,6 +1177,7 @@ def create_model(df_sets, df_parameters, default={}):
             + model.v_C_TotalReuse
             + model.v_C_TotalPiping
             + model.v_C_TotalStorage
+            + model.v_C_TotalPadStorage
             + model.v_C_TotalTrucking
             + model.v_C_DisposalCapEx
             + model.v_C_StorageCapEx
@@ -1242,7 +1262,10 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadStorageBalance.pprint()
 
     def CompletionsPadStorageCapacityRule(model, p, t):
-        return model.v_L_PadStorage[p, t] <= model.p_sigma_PadStorage[p]
+        return (
+            model.v_L_PadStorage[p, t]
+            <= model.vb_z_PadStorage[p, t] * model.p_sigma_PadStorage[p, t]
+        )
 
     model.CompletionsPadStorageCapacity = Constraint(
         model.s_CP,
@@ -2402,7 +2425,24 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalFreshSourcingCostRule, doc="Total fresh sourcing cost"
     )
 
-    # model.TotalFreshSourcingCost.pprint()
+    def TotalFreshSourcingVolumeRule(model):
+        return model.v_F_TotalSourced == sum(
+            sum(
+                sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
+                for p in model.s_CP
+            )
+            for t in model.s_T
+        ) + sum(
+            sum(
+                sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+                for p in model.s_CP
+            )
+            for t in model.s_T
+        )
+
+    model.TotalFreshSourcingVolume = Constraint(
+        rule=TotalFreshSourcingVolumeRule, doc="Total fresh sourcing volume"
+    )
 
     def DisposalCostRule(model, k, t):
         return (
@@ -2890,6 +2930,19 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # model.TotalStorageWithdrawalCredit.pprint()
+
+    def TotalPadStorageCostRule(model):
+        return model.v_C_TotalPadStorage == sum(
+            sum(
+                model.vb_z_PadStorage[p, t] * model.p_pi_PadStorage[p, t]
+                for p in model.s_CP
+            )
+            for t in model.s_T
+        )
+
+    model.TotalPadStorageCost = Constraint(
+        rule=TotalPadStorageCostRule, doc="Total completions pad storage cost"
+    )
 
     def TruckingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
@@ -3455,6 +3508,7 @@ if __name__ == "__main__":
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
+        "PadStorageCost",
         "PipingOperationalCost",
         "TruckingHourlyCost",
         "FreshSourcingCost",

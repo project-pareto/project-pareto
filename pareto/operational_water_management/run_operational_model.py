@@ -59,6 +59,7 @@ parameter_list = [
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
+    "PadStorageCost",
     "PipingOperationalCost",
     "TruckingHourlyCost",
     "FreshSourcingCost",

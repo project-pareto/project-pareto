@@ -77,6 +77,7 @@ def build_operational_model():
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
+        "PadStorageCost",
         "PipingOperationalCost",
         "TruckingHourlyCost",
         "FreshSourcingCost",
