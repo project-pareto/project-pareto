@@ -126,7 +126,7 @@ def test_basic_build(build_strategic_model):
     m = build_strategic_model
     assert degrees_of_freedom(m) == 63944
     # Check unit config arguments
-    assert len(m.config) == 2
+    assert len(m.config) == 4
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
