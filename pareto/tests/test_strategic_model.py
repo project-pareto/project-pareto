@@ -99,7 +99,9 @@ def build_strategic_model():
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
-        "PipelineExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
         "PipelineExpansionDistance",
         "Hydraulics",
     ]
