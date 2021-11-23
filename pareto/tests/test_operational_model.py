@@ -107,7 +107,7 @@ def build_operational_model():
 def test_basic_build(build_operational_model):
     """Make a model and make sure it doesn't throw exception"""
     m = build_operational_model
-    assert degrees_of_freedom(m) == 653
+    assert degrees_of_freedom(m) == 658
     # Check unit config arguments
     assert len(m.config) == 2
     assert m.config.production_tanks
@@ -123,7 +123,7 @@ def test_run_operational_model(build_operational_model):
     results = solver.solve(m, tee=True)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 653
+    assert degrees_of_freedom(m) == 658
     # solutions obtained from running the generic case study
     assert pytest.approx(327997.5, abs=1e-3) == pyo.value(m.v_Z)
     assert pytest.approx(993.0, abs=1e-3) == pyo.value(
