@@ -1152,10 +1152,13 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                + model.v_C_DisposalCapEx
-                + model.v_C_StorageCapEx
-                + +model.v_C_TreatmentCapEx
-                + model.v_C_PipelineCapEx
+                + model.p_alpha_AnnualizationRate
+                * (
+                    model.v_C_DisposalCapEx
+                    + model.v_C_StorageCapEx
+                    + model.v_C_TreatmentCapEx
+                    + model.v_C_PipelineCapEx
+                )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
             )
