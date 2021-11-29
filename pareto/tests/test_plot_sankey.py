@@ -42,12 +42,12 @@ def plot_args():
     return {"font_size": 15, "plot_title": "Total Flows"}
 
 
-def test_plot_bars(input_data, plot_args):
+def test_plot_bars_aggregated(input_data, plot_args):
     plot_sankey(input_data, args=plot_args)
 
 
 @pytest.fixture(scope="module")
-def input_data_time_period():
+def input_data_single_period():
     # Calling plot_sankey using the get_data format
     # User needs to provide a tuple with labels for each column of the pareto_var
     set_list = []
@@ -65,9 +65,9 @@ def input_data_time_period():
 
 
 @pytest.fixture
-def plot_args_time_period():
+def plot_args_single_period():
     return {"font_size": 15, "plot_title": "Flow for T01"}
 
 
-def test_plot_bars(input_data_time_period, plot_args_time_period):
-    plot_sankey(input_data_time_period, args=plot_args_time_period)
+def test_plot_bars_single_period(input_data_single_period, plot_args_single_period):
+    plot_sankey(input_data_single_period, args=plot_args_single_period)
