@@ -1064,7 +1064,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_L,
             model.s_L,
             model.s_D,
-            default=5,
+            default=30,
             initialize=df_parameters["PipelineCapexCapacityBased"],
             doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
         )
