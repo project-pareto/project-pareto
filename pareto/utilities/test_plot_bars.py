@@ -13,17 +13,27 @@
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import plot_bars
 from importlib import resources
+import pytest
 
-set_list = []
-parameter_list = ["test_plot_bar"]
 
-with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+@pytest.fixture(scope="module")
+def input_data():
+    set_list = []
+    parameter_list = ["test_plot_bar"]
 
-# Calling plot_bars using the get_data format
-args = {
-    "chart_title": "Test Data",
-    "labels": [("Origin", "Destination", "Time", "Value")],
-}
-input_data = {"pareto_var": df_parameters["test_plot_bar"]}
-plot_bars(input_data, args=args)
+    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    return {"pareto_var": df_parameters["test_plot_bar"]}
+
+
+@pytest.fixture
+def plot_args():
+    return  {
+        "chart_title": "Test Data",
+        "labels": [("Origin", "Destination", "Time", "Value")],
+    }
+
+
+def test_plot_bars(input_data, plot_args):
+    plot_bars(input_data, args=plot_args)
