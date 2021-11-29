@@ -29,7 +29,7 @@ def input_data():
 
 @pytest.fixture
 def plot_args():
-    return  {
+    return {
         "chart_title": "Test Data",
         "labels": [("Origin", "Destination", "Time", "Value")],
     }
