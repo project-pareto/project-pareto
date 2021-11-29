@@ -158,31 +158,43 @@ def generate_report(model, is_print=[], fname=None):
 
         # Defining KPIs for strategic model
         model.reuse_WaterKPI = Var(doc="Reuse Fraction Produced Water = [%]")
-        reuseWater_value = (
-            (model.v_F_TotalReused.value) / (model.p_beta_TotalProd.value) * 100
-        )
+        if model.p_beta_TotalProd.value and model.v_F_TotalReused.value:
+            reuseWater_value = (
+                (model.v_F_TotalReused.value) / (model.p_beta_TotalProd.value) * 100
+            )
+        else:
+            reuseWater_value = 0
         model.reuse_WaterKPI.value = reuseWater_value
 
         model.disposal_WaterKPI = Var(doc="Disposal Fraction Produced Water = [%]")
-        disposalWater_value = (
-            (model.v_F_TotalDisposed.value) / (model.p_beta_TotalProd.value) * 100
-        )
+        if model.v_F_TotalDisposed.value and model.p_beta_TotalProd.value:
+            disposalWater_value = (
+                (model.v_F_TotalDisposed.value) / (model.p_beta_TotalProd.value) * 100
+            )
+        else:
+            disposalWater_value = 0
         model.disposal_WaterKPI.value = disposalWater_value
 
         model.fresh_CompletionsDemandKPI = Var(
             doc="Fresh Fraction Completions Demand = [%]"
         )
-        freshDemand_value = (
-            (model.v_F_TotalSourced.value) / (model.p_gamma_TotalDemand.value) * 100
-        )
+        if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
+            freshDemand_value = (
+                (model.v_F_TotalSourced.value) / (model.p_gamma_TotalDemand.value) * 100
+            )
+        else:
+            freshDemand_value = 0
         model.fresh_CompletionsDemandKPI.value = freshDemand_value
 
         model.reuse_CompletionsDemandKPI = Var(
             doc="Reuse Fraction Completions Demand = [%]"
         )
-        reuseDemand_value = (
-            (model.v_F_TotalReused.value) / (model.p_gamma_TotalDemand.value) * 100
-        )
+        if model.v_F_TotalReused.value and model.p_gamma_TotalDemand.value:
+            reuseDemand_value = (
+                (model.v_F_TotalReused.value) / (model.p_gamma_TotalDemand.value) * 100
+            )
+        else:
+            reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
 
     elif model.type == "operational":
