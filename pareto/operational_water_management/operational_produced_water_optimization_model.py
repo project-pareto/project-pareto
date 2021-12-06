@@ -3739,6 +3739,7 @@ def water_quality(model, df_sets, df_parameters):
     model.v_F_PadStorageOut.fix()
     model.v_L_Storage.fix()
     model.v_F_UnusedTreatedWater.fix()
+    model.v_F_DisposalDestination.fix()
 
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
