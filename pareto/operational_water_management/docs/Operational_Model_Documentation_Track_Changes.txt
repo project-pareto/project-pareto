@@ -1,11 +1,15 @@
 
 PR # (Water Quality Calculation)
 --------------------------------------------------------------------------------------------------------
--add set W for Water Quality Component 
--add new variable Q for water quality by location, water quality component, and time
--add new variable F_TreatmentWaste
--add new parameter rho for intial water quality at pad
+
+-Add new variable F_TreatmentWaste
+-Add new variable F_DisposalDestination
+-Edit Disposal Capacity constraint to include constraint to include F_DisposalDestination
 -Edit Treatment Balance constraint
+-Add Water Quality Extension description with the following:
+-Add set W for Water Quality Component 
+-Add new variable Q for water quality by location, water quality component, and time
+-Add new parameter nu for intial water quality at pad
 -Add Disposal Water Quality constraint
 -Add Storage Site Water Quality constraint
 -Add Treatment Site Water Quality constraint

@@ -164,7 +164,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Water from completions pad storage" " used for fracturing [bbl/day]",
     )
-    model.v_F_TreatmentWaste = Var(
+    model.v_F_UnusedTreatedWater = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
@@ -2391,7 +2391,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
             )
             == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + model.v_F_TreatmentWaste[r, t]
+            + model.v_F_UnusedTreatedWater[r, t]
         )
 
     model.TreatmentBalance = Constraint(
@@ -3546,15 +3546,7 @@ def water_quality(model, df_sets, df_parameters):
             if model.p_RKT[r, k]
         ) == model.v_Q[
             k, w, t
-        ] * (
-            sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-            + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-            + sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k])
-            + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
-            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
-        )
+        ] * model.v_F_DisposalDestination[k, t]
 
     model.DisposalWaterQuality = Constraint(
         model.s_K,
@@ -3658,7 +3650,7 @@ def water_quality(model, df_sets, df_parameters):
             )
         ) == model.v_Q[r, w, t] * (
             sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + model.v_F_TreatmentWaste[r, t]
+            + model.v_F_UnusedTreatedWater[r, t]
         )
 
     model.TreatmentWaterQuality = Constraint(
@@ -3746,7 +3738,7 @@ def water_quality(model, df_sets, df_parameters):
     model.v_F_PadStorageIn.fix()
     model.v_F_PadStorageOut.fix()
     model.v_L_Storage.fix()
-    model.v_F_TreatmentWaste.fix()
+    model.v_F_UnusedTreatedWater.fix()
 
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
