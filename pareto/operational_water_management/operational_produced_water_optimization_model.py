@@ -3516,37 +3516,44 @@ def water_quality(model, df_sets, df_parameters):
 
     # Material Balance
     def DisposalWaterQualityRule(model, k, w, t):
-        return sum(
-            model.v_F_Piped[n, k, t] * model.v_Q[n, w, t]
-            for n in model.s_N
-            if model.p_NKA[n, k]
-        ) + sum(
-            model.v_F_Piped[s, k, t] * model.v_Q[s, w, t]
-            for s in model.s_S
-            if model.p_SKA[s, k]
-        ) + sum(
-            model.v_F_Piped[r, k, t] * model.v_Q[r, w, t]
-            for r in model.s_R
-            if model.p_RKA[r, k]
-        ) + sum(
-            model.v_F_Trucked[s, k, t] * model.v_Q[s, w, t]
-            for s in model.s_S
-            if model.p_SKT[s, k]
-        ) + sum(
-            model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
-            for p in model.s_PP
-            if model.p_PKT[p, k]
-        ) + sum(
-            model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
-            for p in model.s_CP
-            if model.p_CKT[p, k]
-        ) + sum(
-            model.v_F_Trucked[r, k, t] * model.v_Q[r, w, t]
-            for r in model.s_R
-            if model.p_RKT[r, k]
-        ) == model.v_Q[
-            k, w, t
-        ] * model.v_F_DisposalDestination[k, t]
+        return (
+            sum(
+                model.v_F_Piped[n, k, t] * model.v_Q[n, w, t]
+                for n in model.s_N
+                if model.p_NKA[n, k]
+            )
+            + sum(
+                model.v_F_Piped[s, k, t] * model.v_Q[s, w, t]
+                for s in model.s_S
+                if model.p_SKA[s, k]
+            )
+            + sum(
+                model.v_F_Piped[r, k, t] * model.v_Q[r, w, t]
+                for r in model.s_R
+                if model.p_RKA[r, k]
+            )
+            + sum(
+                model.v_F_Trucked[s, k, t] * model.v_Q[s, w, t]
+                for s in model.s_S
+                if model.p_SKT[s, k]
+            )
+            + sum(
+                model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
+                for p in model.s_PP
+                if model.p_PKT[p, k]
+            )
+            + sum(
+                model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
+                for p in model.s_CP
+                if model.p_CKT[p, k]
+            )
+            + sum(
+                model.v_F_Trucked[r, k, t] * model.v_Q[r, w, t]
+                for r in model.s_R
+                if model.p_RKT[r, k]
+            )
+            == model.v_Q[k, w, t] * model.v_F_DisposalDestination[k, t]
+        )
 
     model.DisposalWaterQuality = Constraint(
         model.s_K,
