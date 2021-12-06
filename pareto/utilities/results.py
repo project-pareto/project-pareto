@@ -314,6 +314,10 @@ def generate_report(model, is_print=[], fname=None):
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
             ],
+            "v_Q_dict": [("Location", "Water Component", "Time", "Water Quality")],
+            "v_F_TreatmentWaste_dict": [
+                ("Treatment site", "Time", "Treatment Waste Water")
+            ],
         }
 
         if model.config.production_tanks == ProdTank.equalized:

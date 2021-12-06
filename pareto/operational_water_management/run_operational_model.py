@@ -13,6 +13,7 @@
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     create_model,
     ProdTank,
+    water_quality,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
@@ -65,6 +66,7 @@ parameter_list = [
     "FreshSourcingCost",
     "ProductionRates",
     "TreatmentEfficiency",
+    "WaterQuality",
 ]
 
 # user needs to provide the path to the case study data file
@@ -93,12 +95,24 @@ set_timeout(opt, timeout_s=60)
 results = opt.solve(operational_model, tee=True)
 results.write()
 
+# Build Water quality model
+water_quality = water_quality(operational_model, df_sets, df_parameters)
+# solve water quality mathematical model
+water_quality_results = opt.solve(water_quality, tee=True)
+water_quality_results.write()
+
 # pyomo_postprocess(None, model, results)
 # set is_print=[PrintValues.Nominal] in generate_report() below to print results
 [model, results_dict] = generate_report(
     operational_model,
     is_print=[],
     fname="PARETO_report.xlsx",
+)
+
+[water_quality_model, water_quality_results_dict] = generate_report(
+    water_quality,
+    is_print=[],
+    fname="PARETO_report_water_quality.xlsx",
 )
 
 # This shows how to read data from PARETO reports
