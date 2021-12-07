@@ -332,6 +332,12 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         doc="Total deliveries to treatment site [bbl/week]",
     )
+    model.v_F_BeneficialReuseDestination = Var(
+        model.s_O,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total deliveries to Beneficial Reuse Site [bbl/week]",
+    )
 
     # COMMENT: Remove the disposal/storage/flow capacity variables
     model.v_D_Capacity = Var(
@@ -3473,6 +3479,18 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment destinations volume",
     )
 
+    def BeneficialReuseDeliveriesRule(model, o, t):
+        return model.v_F_BeneficialReuseDestination[o, t] == sum(
+            model.v_F_Piped[l, o, t] + model.v_F_Trucked[l, o, t] for l in model.s_L
+        )
+
+    model.BeneficialReuseDeliveries = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseDeliveriesRule,
+        doc="Beneficial reuse destinations volume",
+    )
+
     # model.TreatmentDestinationDeliveries.pprint()
 
     ## Fixing Decision Variables ##
@@ -3499,11 +3517,19 @@ def water_quality(model, df_sets, df_parameters):
     )
     # Add parameter for water quality at each pad
     model.p_nu = Param(
-        model.s_P | model.s_S,
+        model.s_P,
         model.s_W,
         default=0,
-        initialize=df_parameters["WaterQuality"],
+        initialize=df_parameters["PadWaterQuality"],
         doc="Water Quality at pad [mg/L]",
+    )
+    # Add parameter for initial water quality at each storage location
+    model.p_mu = Param(
+        model.s_S,
+        model.s_W,
+        default=0,
+        initialize=df_parameters["StorageInitialWaterQuality"],
+        doc="Initial Water Quality at storage site [mg/L]",
     )
     # Add variable to track water quality at each location over time
     model.v_Q = Var(
@@ -3565,7 +3591,7 @@ def water_quality(model, df_sets, df_parameters):
 
     def StorageSiteWaterQualityRule(model, s, w, t):
         if t == model.s_T.first():
-            return model.p_lambda_Storage[s] * model.p_nu[s, w] + sum(
+            return model.p_lambda_Storage[s] * model.p_mu[s, w] + sum(
                 model.v_F_Piped[n, s, t] * model.v_Q[n, w, t]
                 for n in model.s_N
                 if model.p_NSA[n, s]

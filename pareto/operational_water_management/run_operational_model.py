@@ -66,7 +66,8 @@ parameter_list = [
     "FreshSourcingCost",
     "ProductionRates",
     "TreatmentEfficiency",
-    "WaterQuality",
+    "PadWaterQuality",
+    "StorageInitialWaterQuality",
 ]
 
 # user needs to provide the path to the case study data file
