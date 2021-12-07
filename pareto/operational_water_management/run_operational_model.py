@@ -35,6 +35,7 @@ set_list = [
     "NetworkNodes",
 ]
 parameter_list = [
+    "RCA",
     "FCA",
     "PCT",
     "FCT",
@@ -63,6 +64,7 @@ parameter_list = [
     "TruckingHourlyCost",
     "FreshSourcingCost",
     "ProductionRates",
+    "TreatmentEfficiency",
 ]
 
 # user needs to provide the path to the case study data file
