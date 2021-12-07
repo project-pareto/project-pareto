@@ -315,7 +315,7 @@ def generate_report(model, is_print=[], fname=None):
                 ("Pads", "Time", "Produced Water For Transport From Pad")
             ],
             "v_Q_dict": [("Location", "Water Component", "Time", "Water Quality")],
-            "v_F_TreatmentWaste_dict": [
+            "v_F_UnusedTreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
             ],
         }
