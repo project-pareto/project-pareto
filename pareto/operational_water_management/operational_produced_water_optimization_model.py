@@ -101,6 +101,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_R = Set(initialize=df_sets["TreatmentSites"], doc="Treatment Sites")
     model.s_O = Set(initialize=df_sets["ReuseOptions"], doc="Reuse Options")
     model.s_N = Set(initialize=df_sets["NetworkNodes"], doc=["Network Nodes"])
+    model.s_W = Set(
+        initialize=df_sets["WaterQualityComponents"], doc="Water Quality Components"
+    )
     model.s_L = Set(
         initialize=(
             model.s_P
@@ -1009,6 +1012,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_epsilon_Treatment = Param(
         model.s_R,
+        model.s_W,
         default=1.0,
         initialize=df_parameters["TreatmentEfficiency"],
         doc="Treatment efficiency [%]",
@@ -2385,7 +2389,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentBalanceRule(model, r, t):
         return (
-            model.p_epsilon_Treatment[r]
+            model.p_epsilon_Treatment[r, "TDS"]
             * (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
                 + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
@@ -3511,10 +3515,6 @@ def create_model(df_sets, df_parameters, default={}):
 
 
 def water_quality(model, df_sets, df_parameters):
-    # Add set for water quality components to model
-    model.s_W = Set(
-        initialize=df_sets["WaterQualityComponents"], doc="Water Quality Components"
-    )
     # Add parameter for water quality at each pad
     model.p_nu = Param(
         model.s_P,
@@ -3524,7 +3524,7 @@ def water_quality(model, df_sets, df_parameters):
         doc="Water Quality at pad [mg/L]",
     )
     # Add parameter for initial water quality at each storage location
-    model.p_mu = Param(
+    model.p_xi = Param(
         model.s_S,
         model.s_W,
         default=0,
@@ -3591,7 +3591,7 @@ def water_quality(model, df_sets, df_parameters):
 
     def StorageSiteWaterQualityRule(model, s, w, t):
         if t == model.s_T.first():
-            return model.p_lambda_Storage[s] * model.p_mu[s, w] + sum(
+            return model.p_lambda_Storage[s] * model.p_xi[s, w] + sum(
                 model.v_F_Piped[n, s, t] * model.v_Q[n, w, t]
                 for n in model.s_N
                 if model.p_NSA[n, s]
@@ -3660,7 +3660,7 @@ def water_quality(model, df_sets, df_parameters):
     )
     # Treatment Facility
     def TreatmentWaterQualityRule(model, r, w, t):
-        return model.p_epsilon_Treatment[r] * (
+        return model.p_epsilon_Treatment[r, w] * (
             sum(
                 model.v_F_Piped[n, r, t] * model.v_Q[n, w, t]
                 for n in model.s_N
@@ -3735,24 +3735,23 @@ def water_quality(model, df_sets, df_parameters):
     )
 
     def BeneficialReuseWaterQuality(model, o, w, t):
-        return sum(
-            model.v_F_Piped[n, o, t] * model.v_Q[n, w, t]
-            for n in model.s_N
-            if model.p_NOA[n, o]
-        ) + sum(
-            model.v_F_Piped[s, o, t] * model.v_Q[s, w, t]
-            for s in model.s_S
-            if model.p_SOA[s, o]
-        ) + sum(
-            model.v_F_Trucked[p, o, t] * model.v_Q[p, w, t]
-            for p in model.s_PP
-            if model.p_POT[p, o]
-        ) == model.v_Q[
-            o, w, t
-        ] * (
-            sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
-            + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
-            + sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
+        return (
+            sum(
+                model.v_F_Piped[n, o, t] * model.v_Q[n, w, t]
+                for n in model.s_N
+                if model.p_NOA[n, o]
+            )
+            + sum(
+                model.v_F_Piped[s, o, t] * model.v_Q[s, w, t]
+                for s in model.s_S
+                if model.p_SOA[s, o]
+            )
+            + sum(
+                model.v_F_Trucked[p, o, t] * model.v_Q[p, w, t]
+                for p in model.s_PP
+                if model.p_POT[p, o]
+            )
+            == model.v_Q[o, w, t] * model.v_F_BeneficialReuseDestination[o, t]
         )
 
     model.BeneficialReuseWaterQuality = Constraint(
@@ -3773,6 +3772,7 @@ def water_quality(model, df_sets, df_parameters):
     model.v_L_Storage.fix()
     model.v_F_UnusedTreatedWater.fix()
     model.v_F_DisposalDestination.fix()
+    model.v_F_BeneficialReuseDestination.fix()
 
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
