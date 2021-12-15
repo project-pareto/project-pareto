@@ -103,6 +103,10 @@ with resources.path(
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 # create mathematical model
+"""Valid values of config arguments for the default parameter in the create_model() call
+ objective: [Objectives.cost, Objectives.reuse]
+ pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
+ pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]"""
 strategic_model = create_model(
     df_sets,
     df_parameters,

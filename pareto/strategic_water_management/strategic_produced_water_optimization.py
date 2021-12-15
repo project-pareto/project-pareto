@@ -99,7 +99,12 @@ CONFIG.declare(
         default=PipelineCapacity.input,
         domain=In(PipelineCapacity),
         description="alternate pipeline capacity selection",
-        doc="Alternate pipeline capacity (calculated or input)",
+        doc="""Alternate pipeline capacity selection (calculated or input)
+        ***default*** - PipelineCapacity.input
+        **Valid Values:** - {
+        **PipelineCapacity.input** - use input for pipeline capacity,
+        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters 
+        }""",
     ),
 )
 
@@ -109,7 +114,12 @@ CONFIG.declare(
         default=PipelineCost.capacity_based,
         domain=In(PipelineCost),
         description="alternate pipeline cost selection",
-        doc="Alternate pipeline cost structures (distance or capacity based)",
+        doc="""Alternate pipeline capex cost structures (distance or capacity based)
+        ***default*** - PipelineCost.capacity_based
+        **Valid Values:** - {
+        **PipelineCost.capacity_based** - use pipeline capacities and rate in $/bbl to calculate pipeline capex costs,
+        **PipelineCost.distance_based** - use pipeline distances and rate in $/inchmile to calculate pipeline capex costs
+        }""",
     ),
 )
 
