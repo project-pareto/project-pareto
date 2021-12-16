@@ -83,6 +83,8 @@ def build_operational_model():
         "FreshSourcingCost",
         "ProductionRates",
         "TreatmentEfficiency",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
     ]
 
     with resources.path(
