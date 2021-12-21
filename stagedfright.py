@@ -199,12 +199,16 @@ class StagedFright:
         ]
 
     def pytest_terminal_summary(self, terminalreporter: TerminalReporter) -> None:
-        to_report = self.with_failing_tests
         tr = terminalreporter
-
         tr.section(NAME)
+
+        to_report = self.with_failing_tests
+        if not to_report:
+            tr.write_line("No failed checks among the inspected staged files.")
+            return
+
         tr.write_line(
-            f"The following {len(to_report)} staged file(s) had one or more failing tests:"
+            f"The following {len(to_report)} inspected staged file(s) failed one or more checks:"
         )
         for staged in to_report:
             tr.write_line(f"\t{staged}")
