@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: black-check
+        name: Black (check)
+        language: system
+        entry: black --check pareto
+        verbose: true
