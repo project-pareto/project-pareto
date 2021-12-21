@@ -9,5 +9,7 @@ repos:
       - id: black-check
         name: Black (check)
         language: system
-        entry: black --check pareto
+        entry: black --check .
+        types: 
+          - python
         verbose: true
