@@ -27,8 +27,8 @@ setup(
         ]
     },
     entry_points={
-        'console_scripts': [
-            'stagedfright=stagedfright:main',
+        "console_scripts": [
+            "stagedfright=stagedfright:main",
         ]
     },
     maintainer="Keith Beattie",
