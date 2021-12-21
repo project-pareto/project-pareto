@@ -119,8 +119,8 @@ Assuming that the file to be commited is `pareto/data/sample-data.csv`:
 - The allowfile `pareto/data/sample-data.csv.stagedfright-allowed` exists, but is empty
   - **NO GO**: the allowfile must contain a string that matches the staged file's current fingerprint,
     defined as the SHA256 hash of the file's binary content
-  - The current fingerprint can be obtained by running the `sha256 <path>` command on Unix or `CertUtil -hashfile <path> SHA256` on Windows
-- The allowfile `pareto/data/sample-data.csv.stagedfright-allowed` exists and contains a SHA256 has,
+  - The current fingerprint can be obtained by running the `sha256sum <path>` command on Unix or `CertUtil -hashfile <path> SHA256` on Windows
+- The allowfile `pareto/data/sample-data.csv.stagedfright-allowed` exists and contains a SHA256 hash,
   but the staged file has been modified since the hash was computed, i.e. the allowfile contains an outdated fingerprint
   for the staged file
   - **NO GO**: the fingerprint in the allowfile must match the staged file's *current* content
