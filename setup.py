@@ -16,6 +16,8 @@ setup(
         # for the moment mainly for getting solvers with `idaes get-extensions`
         "idaes-pse",
         "requests",
+        "plotly",
+        "kaleido",
     ],
     include_package_data=True,
     package_data={
