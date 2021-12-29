@@ -1057,14 +1057,14 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_rho_Storage = Param(
         model.s_S,
-        default=0.99,
+        default=0,
         initialize=StorageOperationalCreditTable,
         doc="Storage withdrawal operational credit [$/bbl]",
     )
     model.p_pi_Pipeline = Param(
         model.s_L,
         model.s_L,
-        default=0.01,
+        default=0,
         initialize=df_parameters["PipelineOperationalCost"],
         doc="Pipeline operational cost [$/bbl]",
     )
