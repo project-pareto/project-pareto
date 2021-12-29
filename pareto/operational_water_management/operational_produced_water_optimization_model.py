@@ -3444,14 +3444,31 @@ def create_model(df_sets, df_parameters, default={}):
     model.SlackCosts = Constraint(rule=SlackCostsRule, doc="Slack costs")
 
     def ReuseDestinationDeliveriesRule(model, p, t):
-        return model.v_F_ReuseDestination[p, t] == sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]) + \
-               sum(model.v_F_Piped[p_tilde, p, t] for p_tilde in model.s_PP if model.p_PCA[p_tilde, p]) + \
-               sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p]) + \
-               sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p]) +\
-               sum(model.v_F_Piped[p_tilde, p, t] for p_tilde in model.s_CP if model.p_CCA[p_tilde, p]) + \
-               sum(model.v_F_Trucked[p_tilde, p, t] for p_tilde in model.s_CP if model.p_CCT[p_tilde, p]) + \
-               sum(model.v_F_Trucked[p_tilde, p, t] for p_tilde in model.s_PP if model.p_PCT[p_tilde, p]) + \
-               sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
+        return model.v_F_ReuseDestination[p, t] == sum(
+            model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]
+        ) + sum(
+            model.v_F_Piped[p_tilde, p, t]
+            for p_tilde in model.s_PP
+            if model.p_PCA[p_tilde, p]
+        ) + sum(
+            model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p]
+        ) + sum(
+            model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p]
+        ) + sum(
+            model.v_F_Piped[p_tilde, p, t]
+            for p_tilde in model.s_CP
+            if model.p_CCA[p_tilde, p]
+        ) + sum(
+            model.v_F_Trucked[p_tilde, p, t]
+            for p_tilde in model.s_CP
+            if model.p_CCT[p_tilde, p]
+        ) + sum(
+            model.v_F_Trucked[p_tilde, p, t]
+            for p_tilde in model.s_PP
+            if model.p_PCT[p_tilde, p]
+        ) + sum(
+            model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
+        )
 
     model.ReuseDestinationDeliveries = Constraint(
         model.s_CP,
@@ -3463,13 +3480,20 @@ def create_model(df_sets, df_parameters, default={}):
     # model.ReuseDestinationDeliveries.pprint()
 
     def DisposalDestinationDeliveriesRule(model, k, t):
-        return model.v_F_DisposalDestination[k, t] == sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k]) + \
-               sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k]) + \
-               sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k]) + \
-               sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]) +\
-               sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]) + \
-               sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]) + \
-               sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
+        return model.v_F_DisposalDestination[k, t] == sum(
+            model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k]
+        ) + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k]) + sum(
+            model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k]
+        ) + sum(
+            model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
+        ) + sum(
+            model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
+        ) + sum(
+            model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
+        ) + sum(
+            model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
+        )
+
     model.DisposalDestinationDeliveries = Constraint(
         model.s_K,
         model.s_T,
@@ -3480,10 +3504,13 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalDestinationDeliveries.pprint()
 
     def TreatmentDestinationDeliveriesRule(model, r, t):
-        return model.v_F_TreatmentDestination[r, t] == sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r]) + \
-               sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r]) + \
-               sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]) + \
-               sum(model.v_F_Trucked[s, r, t] for s in model.s_CP if model.p_CRT[s, r])
+        return model.v_F_TreatmentDestination[r, t] == sum(
+            model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r]
+        ) + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r]) + sum(
+            model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+        ) + sum(
+            model.v_F_Trucked[s, r, t] for s in model.s_CP if model.p_CRT[s, r]
+        )
 
     model.TreatmentDestinationDeliveries = Constraint(
         model.s_R,
@@ -3493,9 +3520,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def BeneficialReuseDeliveriesRule(model, o, t):
-        return model.v_F_BeneficialReuseDestination[o, t] == sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]) + \
-               sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + \
-               sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
+        return model.v_F_BeneficialReuseDestination[o, t] == sum(
+            model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
+        ) + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + sum(
+            model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
+        )
 
     model.BeneficialReuseDeliveries = Constraint(
         model.s_O,
