@@ -24,15 +24,18 @@ def input_data():
     with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-    return {"pareto_var": df_parameters["test_plot_bar"]}
+    return {
+        "pareto_var": df_parameters["test_plot_bar"],
+        "labels": [("Origin", "Destination", "Time", "Value")],
+    }
 
 
 @pytest.fixture
 def plot_args():
     return {
-        "chart_title": "Test Data",
-        "labels": [("Origin", "Destination", "Time", "Value")],
-    }
+        "plot_title": "Test Data",
+        "output_file": "first_bar.html",
+    }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
 def test_plot_bars(input_data, plot_args):

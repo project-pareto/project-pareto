@@ -565,19 +565,35 @@ def plot_sankey(input_data={}, args=None):
     label = sorted(set(total_labels), key=total_labels.index)
 
     # Loop through source and destination lists and replace values with proper index indicated from the label list
+    # for s in source:
+    #     for d in destination:
+    #         for l in label:
+    #             if s == l:
+    #                 s_index = label.index(l)
+    #                 for n, k in enumerate(source):
+    #                     if k == s:
+    #                         source[n] = s_index
+    #             if d == l:
+    #                 d_index = label.index(l)
+    #                 for m, j in enumerate(destination):
+    #                     if j == d:
+    #                         destination[m] = d_index
+
     for s in source:
-        for d in destination:
-            for l in label:
-                if s == l:
-                    s_index = label.index(l)
-                    for n, k in enumerate(source):
-                        if k == s:
-                            source[n] = s_index
-                if d == l:
-                    d_index = label.index(l)
-                    for m, j in enumerate(destination):
-                        if j == d:
-                            destination[m] = d_index
+        for l in label:
+            if s == l:
+                s_index = label.index(l)
+                for n, k in enumerate(source):
+                    if k == s:
+                        source[n] = s_index
+
+    for d in destination:
+        for l in label:
+            if d == l:
+                d_index = label.index(l)
+                for m, j in enumerate(destination):
+                    if j == d:
+                        destination[m] = d_index
 
     # Remove added string from affected names before passing them into sankey method
     for t, x in enumerate(label):
@@ -711,6 +727,9 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
     plot titles. It outputs the sankey diagram in an html format that is automatically opened
     in a browser.
     """
+    format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
+    figure_output = ""
+
     # Checking arguments and assigning appropriate values
     if args is None:
         font_size = 20
@@ -719,9 +738,12 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
         font_size = 20
     elif args["plot_title"] is None:
         plot_title = "Sankey Diagram"
+    elif args["output_file"] is None:
+        figure_output = "first_sankey.html"
     else:
         font_size = args["font_size"]
         plot_title = args["plot_title"]
+        figure_output = args["output_file"]
 
     # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
     link = dict(source=source, target=destination, value=value)
@@ -739,7 +761,19 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
         font_size=font_size,
     )
 
-    fig.write_html("first_figure.html", auto_open=True)
+    if ".html" in figure_output:
+        fig.write_html(figure_output, auto_open=False)
+    elif any(x in figure_output for x in format_checklist):
+        fig.write_image(figure_output, height=850, width=1800)
+    else:
+        exception_string = ""
+        for x in format_checklist:
+            exception_string = exception_string + ", " + x
+        raise Exception(
+            "The file format provided is not supported. Please use either html{}.".format(
+                exception_string
+            )
+        )
 
 
 def plot_bars(input_data, args):
@@ -748,7 +782,7 @@ def plot_bars(input_data, args):
     The dictionary or list is assigned to the key 'pareto_var' of the input_data dictionary and the method then determines the type of variable
     and proceeds accordingly. These variables are checked if they are indexed by time, if true then an animated bar chart is created, if false then
     a static bar chart is created. In addition to the input_data dictionary, another dictionary named 'args' is passed in containing arguments for customizing
-    the bar chart. The args dictionary keys are 'chart_title', 'y_axis', 'group_by', and 'labels' which is only required if the variable is of get_data format(dictionary).
+    the bar chart. The args dictionary keys are 'plot_title', 'y_axis', 'group_by', and 'labels' which is only required if the variable is of get_data format(dictionary).
     The 'y_axis' key is optional and accepts the value 'log' which will take the logarithm of the y axis. If 'y_axis' is not passed in then the axis will default to linear.
     The 'group_by' key accepts a value that is equal to a column name of the variable data, this will specify which column to use for the x axis. Finally, the 'labels'
     key accepts a tuple of labels to be assigned to the get_data format(list) variable since no labels are provided from the get_data method.
@@ -757,6 +791,14 @@ def plot_bars(input_data, args):
     tick_text = []
     time_list = []
     indexed_by_time = False
+    date_time = False
+    format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
+    figure_output = ""
+
+    if "output_file" not in args.keys() or args["output_file"] is None:
+        figure_output = "first_bar.html"
+    else:
+        figure_output = args["output_file"]
 
     # Check for variable data and throw exception if no data is provided
     if "pareto_var" in input_data.keys():
@@ -766,14 +808,14 @@ def plot_bars(input_data, args):
             "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
         )
 
-    # Give group_by and chart_title a value of None/"" if it is not provided
+    # Give group_by and plot_title a value of None/"" if it is not provided
     if "group_by" not in args.keys():
         args["group_by"] = None
 
-    if args["chart_title"] == "" or args["group_by"] is None:
-        chart_title = ""
+    if args["plot_title"] == "" or args["group_by"] is None:
+        plot_title = ""
     else:
-        chart_title = args["chart_title"]
+        plot_title = args["plot_title"]
 
     # Check if log was passed in as an option for the y axis and create a boolean for it
     if "y_axis" not in args.keys():
@@ -808,8 +850,8 @@ def plot_bars(input_data, args):
         for v in variable:
             formatted_list.append((*v, variable[v]))
 
-        if args["labels"] is not None:
-            for i in args["labels"]:
+        if input_data["labels"] is not None:
+            for i in input_data["labels"]:
                 i = [j.title() for j in i]
                 x_title = i[0]
                 y_title = i[-1]
@@ -836,7 +878,17 @@ def plot_bars(input_data, args):
         df_new = df_new.round(0)
         df_modified = df_new[[x_title, time, y_title]]
 
-        for d, y in df_new.iterrows():
+        char_checklist = ["/", "-"]
+        removed_char = ""
+        if any(x in df_modified[time][0] for x in char_checklist):
+            df_modified[time] = pd.to_datetime(df_modified[time]).dt.date
+            date_time = True
+        else:
+            removed_char = df_modified[time][0][:1]
+            df_modified[time] = df_modified[time].str.strip(removed_char)
+            df_modified[time] = pd.to_numeric(df_modified[time])
+
+        for d, y in df_modified.iterrows():
             time_list.append(y[time])
         time_loop = set(time_list)
         time_loop = sorted(time_loop)
@@ -875,6 +927,14 @@ def plot_bars(input_data, args):
         # Sort by time and x values
         df_time_sort = df_bar.sort_values(by=[time, x_title])
 
+        # If time is of type datetime, convert to string for figure processing
+        if date_time:
+            df_time_sort[time] = df_time_sort[time].apply(lambda x: str(x))
+        else:
+            df_time_sort[time] = df_time_sort[time].apply(
+                lambda x: removed_char + str(x)
+            )
+
         # Create bar chart with provided data and parameters
         fig = px.bar(
             df_time_sort,
@@ -883,7 +943,7 @@ def plot_bars(input_data, args):
             color=x_title,
             animation_frame=time,
             range_y=[1, max_y * 1.02],
-            title=chart_title,
+            title=plot_title,
             log_y=log_y,
         )
 
@@ -900,11 +960,23 @@ def plot_bars(input_data, args):
         fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["easing"] = "linear"
 
         # Write the figure to html format and open in the browser
-        fig.write_html("first_bar.html", auto_open=True, auto_play=False)
+        if ".html" in figure_output:
+            fig.write_html(figure_output, auto_open=False)
+        elif any(x in figure_output for x in format_checklist):
+            fig.write_image(figure_output, height=850, width=1800)
+        else:
+            exception_string = ""
+            for x in format_checklist:
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
+            )
     else:
 
         # Create dataframe for use in the method
-        df_new = pd.DataFrame(variable[1:], columns=i)
+        df_new = pd.DataFrame(formatted_variable, columns=i)
 
         # Take the sums of flows from nodes to destinations that have the same locations
         df_modified = df_new[df_new.duplicated(subset=[x_title], keep=False)]
@@ -933,7 +1005,7 @@ def plot_bars(input_data, args):
             y=y_title,
             range_y=[0, max_y * 1.02],
             color=x_title,
-            title=chart_title,
+            title=plot_title,
             text=y_title,
         )
 
@@ -944,5 +1016,16 @@ def plot_bars(input_data, args):
             yaxis_type=yaxis_type,
         )
 
-        # Write the figure to html format and open in the browser
-        fig.write_html("first_bar.html", auto_open=True)
+        if ".html" in figure_output:
+            fig.write_html(figure_output, auto_open=False)
+        elif any(x in figure_output for x in format_checklist):
+            fig.write_image(figure_output, height=850, width=1800)
+        else:
+            exception_string = ""
+            for x in format_checklist:
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
+            )
