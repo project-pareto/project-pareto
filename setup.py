@@ -18,6 +18,7 @@ setup(
         "idaes-pse",
         "requests",
         "plotly",
+        "kaleido",
     ],
     include_package_data=True,
     package_data={

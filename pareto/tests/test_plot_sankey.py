@@ -39,7 +39,11 @@ def input_data():
 
 @pytest.fixture
 def plot_args():
-    return {"font_size": 15, "plot_title": "Total Flows"}
+    return {
+        "font_size": 15,
+        "plot_title": "Total Flows",
+        "output_file": "first_sankey.html",
+    }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
 def test_plot_bars_aggregated(input_data, plot_args):
@@ -66,7 +70,11 @@ def input_data_single_period():
 
 @pytest.fixture
 def plot_args_single_period():
-    return {"font_size": 15, "plot_title": "Flow for T01"}
+    return {
+        "font_size": 15,
+        "plot_title": "Flow for T01",
+        "output_file": "first_sankey.html",
+    }
 
 
 def test_plot_bars_single_period(input_data_single_period, plot_args_single_period):
