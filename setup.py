@@ -9,6 +9,7 @@ setup(
     name=NAME,
     version=VERSION,
     packages=find_packages(),
+    py_modules=["stagedfright"],
     install_requires=[
         "pyomo<6.1",
         "pandas==1.2.*",
@@ -24,6 +25,11 @@ setup(
         # If any package contains these files, include them:
         "": [
             "*.xlsx",
+        ]
+    },
+    entry_points={
+        "console_scripts": [
+            "stagedfright=stagedfright:main",
         ]
     },
     maintainer="Keith Beattie",
