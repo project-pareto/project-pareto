@@ -65,10 +65,11 @@ Install the Python package using pip and the `requirements-dev.txt` file:
 pip install -r requirements-dev.txt
 ```
 
-The developer installation will install the cloned directory in editable mode (as opposed to the default behavior of installing a copy of it),
-which means that any modification made to the code in the cloned directory
-(including switching to a different branch with `git switch`/`git checkout`, or updating the directory with `git pull`) will be available when using the package in Python,
-regardless of e.g. the current working directory.
+Install the pre-commit checks that will run automatically whenever `git commit` is used, preventing the commit from being created if any of the checks fail:
+
+```sh
+pre-commit install
+```
 
 Install the open-source solvers packaged by the IDAES project:
 
@@ -83,6 +84,13 @@ pytest --verbose
 ```
 
 ## Notes for developers
+
+### Editable installation with pip
+
+The developer installation will install the Python packages and modules found in the cloned directory in editable mode (as opposed to the default behavior of installing a copy of it),
+which means that any modification made to the code in the cloned directory
+(including switching to a different branch with `git switch`/`git checkout`, or updating the directory with `git pull`) will be available when using the package in Python,
+regardless of e.g. the current working directory.
 
 ### Formatting code with Black
 
@@ -115,3 +123,5 @@ To reproduce this check locally (e.g. to verify that your code would pass this c
 ```sh
 black --check .
 ```
+
+**NOTE**: This is now done automatically as part of the pre-commit checks (see above).
