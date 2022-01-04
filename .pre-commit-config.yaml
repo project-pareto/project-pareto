@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: stagedfright
+        name: stagedfright
+        language: system
+        entry: stagedfright .stagedfright
+        verbose: true
+      - id: black-check
+        name: Black (check)
+        language: system
+        entry: black --check .
+        types: 
+          - python
+        verbose: true
