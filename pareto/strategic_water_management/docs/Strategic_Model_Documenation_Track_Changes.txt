@@ -1,3 +1,17 @@
+PR # : Water Quality Strategic Model (01/05/2022)
+------------------------------------------------------------------------------------------------------------------------
+- Add new variable v_F_BeneficialReuseDestination
+- Add Water Quality Calculation model: 
+	- Add set W for Water Quality Component 
+	- Add new variable Q for water quality by location, water quality component, and time
+	- Add new parameter nu for intial water quality at pad
+	- Add new parameter xi for intital water quality at storage
+	- Add Disposal Water Quality constraint
+	- Add Storage Site Water Quality constraint
+	- Add Treatment Site Water Quality constraint
+	- Add Network Node Water Quality constraint
+	- Add Beneficial Reuse Water Quality constraint
+
 
 PR #91: Annualized Costs (11/30/2021)
 ------------------------------------------------------------------------------------------------------------------------
