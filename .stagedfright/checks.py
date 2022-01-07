@@ -21,9 +21,10 @@ def test_allowfile_matches_if_present(staged: StagedFile, allowfile: AllowFile):
 
 MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/operational_water_management/run_operational_model.py": 5,
+    "pareto/operational_water_management/operational_produced_water_optimization_model.py": 71,
     "pareto/tests/test_operational_model.py": 11,
     "pareto/utilities/get_data.py": 24,
-    "pareto/utilities/results": 91,
+    "pareto/utilities/results.py": 91,
 }
 
 # this is meta, two levels deep:
