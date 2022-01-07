@@ -139,6 +139,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Produced water quantity piped from location l to location l [bbl/week]",
     )
     model.v_F_Trucked = Var(
@@ -146,6 +147,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Produced water quantity trucked from location l to location l [bbl/week]",
     )
     model.v_F_Sourced = Var(
@@ -153,6 +155,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Fresh water sourced from source f to completions pad p [bbl/week]",
     )
 
@@ -160,25 +163,36 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water put into completions pad storage [bbl/week]",
     )
     model.v_F_PadStorageOut = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water from completions pad storage used for fracturing [bbl/week]",
+    )
+    model.v_F_UnusedTreatedWater = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        doc="Water leftover from the treatment process [bbl/day]",
     )
 
     model.v_L_Storage = Var(
         model.s_S,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water level at storage site [bbl]",
     )
     model.v_L_PadStorage = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water level in completions pad storage [bbl]",
     )
 
@@ -286,6 +300,12 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         doc="Total deliveries to disposal site [bbl/week]",
+    )
+    model.v_F_BeneficialReuseDestination = Var(
+        model.s_O,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total deliveries to Beneficial Reuse Site [bbl/week]",
     )
 
     model.v_D_Capacity = Var(
@@ -2323,15 +2343,21 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentCapacity.pprint()
 
     def TreatmentBalanceRule(model, r, t):
-        return model.p_epsilon_Treatment[r] * (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) == sum(
-            model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p]
-        ) + sum(
-            model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s]
+        return (
+            model.p_epsilon_Treatment[r]
+            * (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+            )
+            == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+            + model.v_F_UnusedTreatedWater[r, t]
         )
 
     model.TreatmentBalance = Constraint(
@@ -4035,6 +4061,20 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # model.DisposalDestinationDeliveries.pprint()
+
+    def BeneficialReuseDeliveriesRule(model, o, t):
+        return model.v_F_BeneficialReuseDestination[o, t] == sum(
+            model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
+        ) + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + sum(
+            model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
+        )
+
+    model.BeneficialReuseDeliveries = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseDeliveriesRule,
+        doc="Beneficial reuse destinations volume",
+    )
 
     # model.LogicConstraintPipeline['N17','CP03'].pprint()
 
