@@ -6,7 +6,8 @@ For more information, see the README.md file in this directory.
 
 import ast
 import numbers
-from typing import List
+from pathlib import Path
+from typing import List, Dict
 
 import pytest
 from stagedfright import StagedFile, AllowFile, PyContent
@@ -63,9 +64,19 @@ class TestIsClearedForCommit:
         return len(hardcoded_data_definitions)
 
     @pytest.fixture
-    def expected_hardcoded_data_count(self, staged: StagedFile) -> int:
-        key = str(staged)
-        return int(MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT.get(key, 0))
+    def _mapping_with_normalized_paths(self) -> Dict[str, int]:
+        # paths must be normalized (here, by using pathlib.Path objects instead of str)
+        # so that the same key in the mapping can be matched on both UNIX and Windows
+        return {Path(k): v for k, v in MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT.items()}
+
+    @pytest.fixture
+    def expected_hardcoded_data_count(
+        self,
+        staged: StagedFile,
+        _mapping_with_normalized_paths: Dict[str, int],
+    ) -> int:
+        key = Path(staged)
+        return int(_mapping_with_normalized_paths.get(key, 0))
 
     def test_py_module_has_no_unexpected_hardcoded_data(
         self,
