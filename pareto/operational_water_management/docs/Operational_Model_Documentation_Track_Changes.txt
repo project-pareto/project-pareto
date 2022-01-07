@@ -1,0 +1,27 @@
+
+PR # (Water Quality Calculation Clean)
+--------------------------------------------------------------------------------------------------------
+Note: These changes were applied to the documentation in main as of 1/5/2022, or the f70239c commit
+
+-Add new variable F_TreatmentDestination
+-Add new variable F_UnusedTreatedWater
+-Add new variable F_DisposalDestination
+-Add new variable F_BeneficialReuseDestination
+-Add parameter epsilon for treatment efficiency
+-Edit Disposal Capacity constraint to include F_DisposalDestination
+-Edit Treatment Capacity constraint to include F_TreatmentDestination
+-Edit Beneficial Reuse Capcacity to include F_BeneficialReuseDestination
+-Edit Treatment Balance constraint
+
+-Add Water Quality Extension description with the following:
+-Add set W for Water Quality Component 
+-Add new variable Q for water quality by location, water quality component, and time
+-Add new parameter nu for intial water quality at pad
+-Add new parameter xi for intital water quality at storage
+-Add Disposal Water Quality constraint
+-Add Storage Site Water Quality constraint
+-Add Treatment Site Water Quality constraint
+-Add Network Node Water Quality constraint
+-Add Beneficial Reuse Water Quality constraint
+
+-Make "code-y" sections more readable
