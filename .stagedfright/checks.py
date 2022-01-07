@@ -23,8 +23,16 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/tests/test_operational_model.py": 11,
     "pareto/utilities/get_data.py": 24,
     "pareto/utilities/results": 91,
-    ".stagedfright/checks.py": 7,
 }
+
+# this is meta, two levels deep:
+# - this file is also included checked by stagedfright,
+#   so the hardcoded data used to define this mapping must be counted,
+# - the extra number accounts for constants defined below,
+#   plus 1 for the fact that this number itself is defined using a constant
+MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT[".stagedfright/checks.py"] = (
+    len(MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT) + 3
+)
 
 
 @pytest.mark.usefixtures("skip_if_matching_allowfile")
