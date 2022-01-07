@@ -18,6 +18,23 @@ def test_allowfile_matches_if_present(staged: StagedFile, allowfile: AllowFile):
     ), f"An allowfile must contain a matching fingerprint for a staged file to be cleared for commit"
 
 
+MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
+    "pareto/operational_water_management/run_operational_model.py": 5,
+    "pareto/tests/test_operational_model.py": 11,
+    "pareto/utilities/get_data.py": 24,
+    "pareto/utilities/results": 91,
+}
+
+# this is meta, two levels deep:
+# - this file is also included checked by stagedfright,
+#   so the hardcoded data used to define this mapping must be counted,
+# - the extra number accounts for constants defined below,
+#   plus 1 for the fact that this number itself is defined using a constant
+MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT[".stagedfright/checks.py"] = (
+    len(MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT) + 3
+)
+
+
 @pytest.mark.usefixtures("skip_if_matching_allowfile")
 class TestIsClearedForCommit:
     def test_has_py_path_suffix(self, staged: StagedFile):
@@ -41,7 +58,19 @@ class TestIsClearedForCommit:
             if isinstance(n.value, numbers.Number) and n.value != 0
         ]
 
-    def test_py_module_does_not_contain_hardcoded_data(
-        self, hardcoded_data_definitions: List[ast.AST]
+    @pytest.fixture
+    def hardcoded_data_count(self, hardcoded_data_definitions: List[ast.AST]) -> int:
+        return len(hardcoded_data_definitions)
+
+    @pytest.fixture
+    def expected_hardcoded_data_count(self, staged: StagedFile) -> int:
+        key = str(staged)
+        return int(MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT.get(key, 0))
+
+    def test_py_module_has_no_unexpected_hardcoded_data(
+        self,
+        hardcoded_data_count: int,
+        expected_hardcoded_data_count: int,
+        max_added_count=2,
     ):
-        assert len(hardcoded_data_definitions) <= 2
+        assert hardcoded_data_count <= (expected_hardcoded_data_count + max_added_count)
