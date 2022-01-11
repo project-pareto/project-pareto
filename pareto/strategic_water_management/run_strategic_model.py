@@ -14,6 +14,7 @@ from os import strerror
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
+    postprocess_water_quality_calculation,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
@@ -87,6 +88,8 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "PadWaterQuality",
+    "StorageInitialWaterQuality",
 ]
 
 # user needs to provide the path to the case study data file
@@ -94,8 +97,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
-    # "pareto.case_studies", "small_strategic_case_study.xlsx"
+    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+    "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -107,17 +110,32 @@ strategic_model = create_model(
 # initialize pyomo solver
 opt = get_solver("gurobi_direct", "gurobi", "cbc")
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
-set_timeout(opt, timeout_s=60)
+set_timeout(opt, timeout_s=300)
 opt.options["mipgap"] = 0
 
 # solve mathematical model
 results = opt.solve(strategic_model, tee=True)
 results.write()
+
+# Generate report with results in Excel
 print("\nDisplaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     is_print=[PrintValues.Essential],
-    fname="strategic_optimization_results.xlsx",
+    fname="strategic_optimization_results-small.xlsx",
+)
+
+# Solver water quality model
+strategic_model = postprocess_water_quality_calculation(
+    strategic_model, df_sets, df_parameters, opt
+)
+
+# Generate report with results in Excel
+print("\nDisplaying Solution\n" + "-" * 60)
+[model, results_dict] = generate_report(
+    strategic_model,
+    is_print=[PrintValues.Essential],
+    fname="strategic_optimization_results_v2-small.xlsx",
 )
 
 # This shows how to read data from PARETO reports
