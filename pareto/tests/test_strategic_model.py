@@ -244,7 +244,7 @@ def test_basic_reduced_build(build_reduced_strategic_model):
 def test_run_reduced_strategic_model(build_reduced_strategic_model):
     m = build_reduced_strategic_model
     solver = get_solver("cbc")
-    solver.options["seconds"] = 60 * 6
+    solver.options["seconds"] = 60 * 7
     results = solver.solve(m, tee=False)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
