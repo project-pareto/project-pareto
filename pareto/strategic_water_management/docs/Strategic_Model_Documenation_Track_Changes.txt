@@ -1,0 +1,9 @@
+
+PR #91: Annualized Costs (11/30/2021)
+------------------------------------------------------------------------------------------------------------------------
+-Add alpha AnnualizationRate parameter
+-Update Minimize Costs Objective with AnnualizationRate
+-Update Maximixe Reuse Objective with AnnualizationRate
+-Add Annualization Rate Calculation
+
+
