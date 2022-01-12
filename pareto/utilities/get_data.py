@@ -73,7 +73,7 @@ def _read_data(_fname, _set_list, _parameter_list):
 
     _set_list = list(set(_set_list))
     _data_column = list(set(_data_column))
-    generic_words = ["index", "nodes", "time"]
+    generic_words = ["index", "nodes", "time", "pads"]
     remove_columns = ["unnamed", "proprietary data"]
     keyword_strings = ["PROPRIETARY DATA", "proprietary data", "Proprietary Data"]
     for i in _df_parameters:
@@ -228,8 +228,11 @@ def get_data(fname, set_list, parameter_list):
                                         initialize=df_parameters['FlowbackRates'],
                                      doc="Water flowback rate")
 
-    It is worth highlighting that the Set for time periods "model.t" is derived by the
+    It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
+
+    Similarly, the Set for Water Quality Index "model.s_W" is derived by the method based
+    on the Parameter: PadWaterQuality which is indexed by W
     """
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters, data_column] = _read_data(
@@ -245,6 +248,14 @@ def get_data(fname, set_list, parameter_list):
     if "CompletionsDemand" in parameter_list:
         _df_sets["TimePeriods"] = _df_parameters[
             "CompletionsDemand"
+        ].columns.to_series()
+
+    # The set for water quality components (e.g. TDS, Cl) is defined based on the columns of the parameter for
+    # PadWaterQuality. This is done so the user does not have to add an extra tab
+    # in the spreadsheet for the water quality component set
+    if "PadWaterQuality" in parameter_list:
+        _df_sets["WaterQualityComponents"] = _df_parameters[
+            "PadWaterQuality"
         ].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo

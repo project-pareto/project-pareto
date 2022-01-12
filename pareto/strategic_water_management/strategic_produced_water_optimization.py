@@ -788,6 +788,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     FreshSourcingCostTable = {}
 
+    model.p_alpha_AnnualizationRate = Param(
+        default=1,
+        initialize=df_parameters["AnnualizationRate"],
+        doc="Annualization rate [%]",
+    )
     model.p_gamma_Completions = Param(
         model.s_P,
         model.s_T,
@@ -1115,10 +1120,13 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                + model.v_C_DisposalCapEx
-                + model.v_C_StorageCapEx
-                + +model.v_C_TreatmentCapEx
-                + model.v_C_PipelineCapEx
+                + model.p_alpha_AnnualizationRate
+                * (
+                    model.v_C_DisposalCapEx
+                    + model.v_C_StorageCapEx
+                    + model.v_C_TreatmentCapEx
+                    + model.v_C_PipelineCapEx
+                )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
             )
@@ -1144,10 +1152,13 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                + model.v_C_DisposalCapEx
-                + model.v_C_StorageCapEx
-                + +model.v_C_TreatmentCapEx
-                + model.v_C_PipelineCapEx
+                + model.p_alpha_AnnualizationRate
+                * (
+                    model.v_C_DisposalCapEx
+                    + model.v_C_StorageCapEx
+                    + model.v_C_TreatmentCapEx
+                    + model.v_C_PipelineCapEx
+                )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
             )
@@ -4095,6 +4106,24 @@ def _preprocess_data(_df_parameters):
 
         # add to parameter df.
         _df_parameters["PipelineCapacityIncrements"][key] = flow_rate
+
+    # Annualization rate
+    # The annualization rate is used using a discount rate and the lifetime
+    # expectancy of assets. It's calculated using the formula as described
+    # on the following website:
+    # http://www.energycommunity.org/webhelppro/Expressions/AnnualizedCost.htm
+
+    discount_rate = _df_parameters["Economics"]["discount_rate"]
+    life = _df_parameters["Economics"]["CAPEX_lifetime"]
+
+    if life == 0:
+        _df_parameters["AnnualizationRate"] = 1
+    elif discount_rate == 0:
+        _df_parameters["AnnualizationRate"] = 1 / life
+    else:
+        _df_parameters["AnnualizationRate"] = discount_rate / (
+            1 - (1 + discount_rate) ** -life
+        )
 
     return _df_parameters
 

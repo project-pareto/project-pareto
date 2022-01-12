@@ -102,6 +102,7 @@ def build_strategic_model():
         "PipelineExpansionCost",
         "PipelineExpansionDistance",
         "Hydraulics",
+        "Economics",
     ]
 
     # note the double backslashes '\\' in that path reference
