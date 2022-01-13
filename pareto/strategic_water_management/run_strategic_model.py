@@ -21,6 +21,8 @@ from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
 from pareto.utilities.solvers import get_solver, set_timeout
 
+# from pyomo.opt import SolverStatus, TerminationCondition
+
 import pandas as pd
 
 # This emulates what the pyomo command-line tools does
@@ -108,7 +110,8 @@ strategic_model = create_model(
 )
 
 # initialize pyomo solver
-opt = get_solver("gurobi_direct", "gurobi", "cbc")
+# opt = get_solver("gurobi_direct", "gurobi", "cbc")
+opt = get_solver("cbc")
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 set_timeout(opt, timeout_s=300)
 opt.options["mipgap"] = 0
@@ -116,14 +119,6 @@ opt.options["mipgap"] = 0
 # solve mathematical model
 results = opt.solve(strategic_model, tee=True)
 results.write()
-
-# Generate report with results in Excel
-print("\nDisplaying Solution\n" + "-" * 60)
-[model, results_dict] = generate_report(
-    strategic_model,
-    is_print=[PrintValues.Essential],
-    fname="strategic_optimization_results-small.xlsx",
-)
 
 # Solver water quality model
 strategic_model = postprocess_water_quality_calculation(
@@ -135,7 +130,7 @@ print("\nDisplaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     is_print=[PrintValues.Essential],
-    fname="strategic_optimization_results_v2-small.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
@@ -143,3 +138,25 @@ set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
+
+
+# region To Be Ignored
+# #### Water quality
+# from datetime import datetime
+# print('Start Water Quality')
+# print(datetime.now())
+# water_quality_model = water_quality(strategic_model, df_sets, df_parameters)
+
+# # Calculate water quality
+# print(datetime.now())
+# results_water_quality = opt.solve(water_quality_model, tee=True)
+
+# # Write the output
+# print(datetime.now())
+# results_water_quality.write()
+
+
+# print('')
+# print('------------------------------------------------------------------')
+# print(results_water_quality.solver.termination_condition.value)
+# endregion

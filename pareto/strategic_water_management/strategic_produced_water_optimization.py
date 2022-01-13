@@ -4115,6 +4115,12 @@ def create_model(df_sets, df_parameters, default={}):
 
 def water_quality(model, df_sets, df_parameters):
     # Add parameter for water quality at each pad
+
+    from datetime import datetime
+
+    # region Add parameters and constraints
+    print("Add parameters")
+    print(datetime.now())
     model.p_nu = Param(
         model.s_P,
         model.s_W,
@@ -4135,11 +4141,16 @@ def water_quality(model, df_sets, df_parameters):
         model.s_W,
         model.s_T,
         within=NonNegativeReals,
-        intialize=0,
+        initialize=0,
         doc="Water quality at location [mg/L]",
     )
+    # endregion
 
+    # region Disposal
     # Material Balance
+    print("Disposal")
+    print(datetime.now())
+
     def DisposalWaterQualityRule(model, k, w, t):
         return (
             sum(
@@ -4182,6 +4193,11 @@ def water_quality(model, df_sets, df_parameters):
         rule=DisposalWaterQualityRule,
         doc="Disposal water quality rule",
     )
+    # endregion
+
+    # region Storage
+    print("Storage Site")
+    print(datetime.now())
 
     def StorageSiteWaterQualityRule(model, s, w, t):
         if t == model.s_T.first():
@@ -4260,7 +4276,11 @@ def water_quality(model, df_sets, df_parameters):
         rule=StorageSiteWaterQualityRule,
         doc="Storage site water quality rule",
     )
+    # endregion
 
+    # region Treatment
+    print("Treatment")
+    print(datetime.now())
     # Treatment Facility
     def TreatmentWaterQualityRule(model, r, w, t):
         return model.p_epsilon_Treatment[r, w] * (
@@ -4297,6 +4317,11 @@ def water_quality(model, df_sets, df_parameters):
         rule=TreatmentWaterQualityRule,
         doc="Treatment water quality",
     )
+    # endregion
+
+    # region Network
+    print("Network")
+    print(datetime.now())
 
     def NetworkNodeWaterQualityRule(model, n, w, t):
         return sum(
@@ -4337,7 +4362,11 @@ def water_quality(model, df_sets, df_parameters):
         rule=NetworkNodeWaterQualityRule,
         doc="Network water quality",
     )
-    model.NetworkWaterQuality.pprint()
+    # endregion
+
+    # region Reuse
+    print("Reuse")
+    print(datetime.now())
 
     def BeneficialReuseWaterQuality(model, o, w, t):
         return (
@@ -4366,7 +4395,10 @@ def water_quality(model, df_sets, df_parameters):
         rule=BeneficialReuseWaterQuality,
         doc="Beneficial reuse capacity",
     )
+    # endregion
 
+    print("Fixing parameters")
+    print(datetime.now())
     # Fix variables
     # Fix variables: produced water flows, binary
     model.v_F_Piped.fix()
@@ -4379,6 +4411,57 @@ def water_quality(model, df_sets, df_parameters):
     model.v_F_DisposalDestination.fix()
     model.v_F_BeneficialReuseDestination.fix()
 
+    # region To be Ignored
+    # # Fix all other variables in case optimization didn't run to optimality
+    # model.v_L_PadStorage.fix()
+    # model.v_F_TotalTrucked.fix()
+    # model.v_F_TotalSourced.fix()
+    # model.v_F_TotalDisposed.fix()
+    # model.v_F_TotalReused.fix()
+    # # model.v_C_Piped.fix()
+    # # model.v_C_Trucked.fix()
+    # # model.v_C_Sourced.fix()
+    # # model.v_C_Disposal.fix()
+    # # model.v_C_Treatment.fix()
+    # # model.v_C_Reuse.fix()
+    # # model.v_C_Storage.fix()
+    # # model.v_R_Storage.fix()
+    # # model.v_C_TotalSourced.fix()
+    # # model.v_C_TotalDisposal.fix()
+    # # model.v_C_TotalTreatment.fix()
+    # # model.v_C_TotalReuse.fix()
+    # # model.v_C_TotalPiping.fix()
+    # # model.v_C_TotalStorage.fix()
+    # # model.v_C_TotalTrucking.fix()
+    # # model.v_C_Slack.fix()
+    # # model.v_R_TotalStorage.fix()
+    # model.v_F_ReuseDestination.fix()
+    # model.v_F_BeneficialReuseDestination.fix()
+    # # model.v_D_Capacity.fix()
+    # # model.v_X_Capacity.fix()
+    # # model.v_T_Capacity.fix()
+    # # model.v_F_Capacity.fix()
+    # # model.v_C_DisposalCapEx.fix()
+    # # model.v_C_PipelineCapEx.fix()
+    # # model.v_C_StorageCapEx.fix()
+    # # model.v_C_TreatmentCapEx.fix()
+    # # model.v_S_FracDemand.fix()
+    # # model.v_S_Production.fix()
+    # # model.v_S_Flowback.fix()
+    # # model.v_S_PipelineCapacity.fix()
+    # # model.v_S_StorageCapacity.fix()
+    # # model.v_S_DisposalCapacity.fix()
+    # # model.v_S_TreatmentCapacity.fix()
+    # # model.v_S_ReuseCapacity.fix()
+    # model.vb_y_Pipeline.fix()
+    # model.vb_y_Storage.fix()
+    # model.vb_y_Treatment.fix()
+    # model.vb_y_Disposal.fix()
+    # model.vb_y_Flow.fix()
+    # endregion
+
+    print("Fixing v_Q")
+    print(datetime.now())
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
         for w in model.s_W:
@@ -4392,16 +4475,11 @@ def postprocess_water_quality_calculation(model, df_sets, df_parameters, opt):
     # Add water quality formulation to input solved model
     water_quality_model = water_quality(model, df_sets, df_parameters)
 
-    # initialize pyomo solver
-    # opt = get_solver("gurobi_direct", "gurobi", "cbc")
-    # set_timeout(opt, timeout_s=300)
-    # opt.options["mipgap"] = 0
-
     # Calculate water quality
-    # results_water_quality = opt.solve(water_quality_model, tee=True)
+    results_water_quality = opt.solve(water_quality_model, tee=True)
 
     # Write the output
-    # results_water_quality.write()
+    results_water_quality.write()
 
     return water_quality_model
 
