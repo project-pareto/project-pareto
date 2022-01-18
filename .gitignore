@@ -117,6 +117,9 @@ venv.bak/
 # VSCode project settings
 .vscode/
 
+# PyCharm project settings
+.idea/
+
 # Rope project settings
 .ropeproject
 
@@ -133,3 +136,7 @@ dmypy.json
 
 # Ignore temporary Excel files
 ~$*.xlsx
+
+# stagedfright 
+
+*.stagedfright-allowed
