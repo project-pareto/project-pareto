@@ -147,4 +147,3 @@ def test_run_operational_model(build_strategic_model):
     # assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 63944
     # solutions obtained from running the generic case study
-    # assert pytest.approx(380699650.6, abs=1e-1) == pyo.value(m.v_Z)

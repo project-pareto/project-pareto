@@ -958,13 +958,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Pipeline capacity installation/expansion increments [bbl/week]",
     )
 
-    model.p_mu_Pipeline = Param(
-        model.s_D,
-        default=0,
-        initialize=df_parameters["PipelineDiameterValues"],
-        doc="Pipeline capacity installation/expansion increments [inch]",
-    )
-
     model.p_delta_Disposal = Param(
         model.s_I,
         default=10,
@@ -1067,6 +1060,13 @@ def create_model(df_sets, df_parameters, default={}):
                 "pipeline_expansion_cost"
             ],
             doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
+        )
+
+        model.p_mu_Pipeline = Param(
+            model.s_D,
+            default=0,
+            initialize=df_parameters["PipelineDiameterValues"],
+            doc="Pipeline capacity installation/expansion increments [inch]",
         )
 
     elif model.config.pipeline_cost == PipelineCost.capacity_based:
