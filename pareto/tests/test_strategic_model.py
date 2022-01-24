@@ -208,7 +208,9 @@ def build_reduced_strategic_model():
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
-        "PipelineExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
@@ -234,7 +236,7 @@ def test_basic_reduced_build(build_reduced_strategic_model):
     m = build_reduced_strategic_model
     assert degrees_of_freedom(m) == 63069
     # Check unit config arguments
-    assert len(m.config) == 2
+    assert len(m.config) == 4
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
