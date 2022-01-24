@@ -90,6 +90,7 @@ parameter_list = [
     "PipelineCapacityIncrements",
     "PipelineExpansionDistance",
     "Hydraulics",
+    "Economics",
 ]
 
 # user needs to provide the path to the case study data file

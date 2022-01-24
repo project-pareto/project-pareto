@@ -13,6 +13,7 @@
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     create_model,
     ProdTank,
+    postprocess_water_quality_calculation,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
@@ -35,6 +36,7 @@ set_list = [
     "NetworkNodes",
 ]
 parameter_list = [
+    "RCA",
     "FCA",
     "PCT",
     "FCT",
@@ -63,6 +65,9 @@ parameter_list = [
     "TruckingHourlyCost",
     "FreshSourcingCost",
     "ProductionRates",
+    "TreatmentEfficiency",
+    "PadWaterQuality",
+    "StorageInitialWaterQuality",
 ]
 
 # user needs to provide the path to the case study data file
@@ -90,6 +95,10 @@ set_timeout(opt, timeout_s=60)
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()
+
+operational_model = postprocess_water_quality_calculation(
+    operational_model, df_sets, df_parameters, opt
+)
 
 # pyomo_postprocess(None, model, results)
 # set is_print=[PrintValues.Nominal] in generate_report() below to print results
