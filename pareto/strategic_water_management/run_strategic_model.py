@@ -110,10 +110,9 @@ strategic_model = create_model(
 )
 
 # initialize pyomo solver
-# opt = get_solver("gurobi_direct", "gurobi", "cbc")
-opt = get_solver("cbc")
+opt = get_solver("gurobi_direct", "gurobi", "cbc")
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
-set_timeout(opt, timeout_s=300)
+set_timeout(opt, timeout_s=60)
 opt.options["mipgap"] = 0
 
 # solve mathematical model
@@ -122,7 +121,7 @@ results.write()
 
 # Solver water quality model
 strategic_model = postprocess_water_quality_calculation(
-    strategic_model, df_sets, df_parameters, opt
+    strategic_model, df_parameters, opt
 )
 
 # Generate report with results in Excel
@@ -138,25 +137,3 @@ set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
-
-
-# region To Be Ignored
-# #### Water quality
-# from datetime import datetime
-# print('Start Water Quality')
-# print(datetime.now())
-# water_quality_model = water_quality(strategic_model, df_sets, df_parameters)
-
-# # Calculate water quality
-# print(datetime.now())
-# results_water_quality = opt.solve(water_quality_model, tee=True)
-
-# # Write the output
-# print(datetime.now())
-# results_water_quality.write()
-
-
-# print('')
-# print('------------------------------------------------------------------')
-# print(results_water_quality.solver.termination_condition.value)
-# endregion

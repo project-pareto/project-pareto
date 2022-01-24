@@ -41,6 +41,7 @@ from pyomo.environ import (
     NonNegativeReals,
     Reals,
     Binary,
+    Block,
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -104,10 +105,11 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_S = Set(initialize=df_sets["StorageSites"], doc="Storage Sites")
     model.s_R = Set(initialize=df_sets["TreatmentSites"], doc="Treatment Sites")
     model.s_O = Set(initialize=df_sets["ReuseOptions"], doc="Reuse Options")
-    model.s_N = Set(initialize=df_sets["NetworkNodes"], doc=["Network Nodes"])
+    model.s_N = Set(initialize=df_sets["NetworkNodes"], doc="Network Nodes")
     model.s_W = Set(
-        initialize=df_sets["WaterQualityComponents"], doc=["Water Quality Components"]
+        initialize=df_sets["WaterQualityComponents"], doc="Water Quality Components"
     )
+
     model.s_L = Set(
         initialize=(
             model.s_P
@@ -4113,22 +4115,23 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def water_quality(model, df_sets, df_parameters):
+def water_quality(model, df_parameters):
     # Add parameter for water quality at each pad
 
-    from datetime import datetime
+    # Create block for calculating quality at each location in the model
+    model.quality = Block()
 
     # region Add parameters and constraints
-    print("Add parameters")
-    print(datetime.now())
-    model.p_nu = Param(
+    # Quality at pad
+    model.quality.p_nu = Param(
         model.s_P,
         model.s_W,
         default=0,
         initialize=df_parameters["PadWaterQuality"],
         doc="Water Quality at pad [mg/L]",
     )
-    model.p_xi = Param(
+    # Initial water quality at storage site
+    model.quality.p_xi = Param(
         model.s_S,
         model.s_W,
         default=0,
@@ -4136,7 +4139,7 @@ def water_quality(model, df_sets, df_parameters):
         doc="Initial Water Quality at storage site [mg/L]",
     )
     # Add variable to track water quality at each location over time
-    model.v_Q = Var(
+    model.quality.v_Q = Var(
         model.s_L,
         model.s_W,
         model.s_T,
@@ -4144,49 +4147,51 @@ def water_quality(model, df_sets, df_parameters):
         initialize=0,
         doc="Water quality at location [mg/L]",
     )
+    # v_X is solely used to make sure model has an objective value
+    model.quality.v_X = Var(
+        within=Reals,
+        doc="Obj value",
+    )
     # endregion
 
     # region Disposal
     # Material Balance
-    print("Disposal")
-    print(datetime.now())
-
-    def DisposalWaterQualityRule(model, k, w, t):
+    def DisposalWaterQualityRule(b, k, w, t):
         return (
             sum(
-                model.v_F_Piped[n, k, t] * model.v_Q[n, w, t]
-                for n in model.s_N
-                if model.p_NKA[n, k]
+                b.parent_block().v_F_Piped[n, k, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NKA[n, k]
             )
             + sum(
-                model.v_F_Piped[s, k, t] * model.v_Q[s, w, t]
-                for s in model.s_S
-                if model.p_SKA[s, k]
+                b.parent_block().v_F_Piped[s, k, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SKA[s, k]
             )
             + sum(
-                model.v_F_Trucked[s, k, t] * model.v_Q[s, w, t]
-                for s in model.s_S
-                if model.p_SKT[s, k]
+                b.parent_block().v_F_Trucked[s, k, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SKT[s, k]
             )
             + sum(
-                model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
-                for p in model.s_PP
-                if model.p_PKT[p, k]
+                b.parent_block().v_F_Trucked[p, k, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PKT[p, k]
             )
             + sum(
-                model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
-                for p in model.s_CP
-                if model.p_CKT[p, k]
+                b.parent_block().v_F_Trucked[p, k, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CKT[p, k]
             )
             + sum(
-                model.v_F_Trucked[r, k, t] * model.v_Q[r, w, t]
-                for r in model.s_R
-                if model.p_RKT[r, k]
+                b.parent_block().v_F_Trucked[r, k, t] * b.v_Q[r, w, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_RKT[r, k]
             )
-            == model.v_Q[k, w, t] * model.v_F_DisposalDestination[k, t]
+            == b.v_Q[k, w, t] * b.parent_block().v_F_DisposalDestination[k, t]
         )
 
-    model.DisposalWaterQuality = Constraint(
+    model.quality.DisposalWaterQuality = Constraint(
         model.s_K,
         model.s_W,
         model.s_T,
@@ -4196,80 +4201,125 @@ def water_quality(model, df_sets, df_parameters):
     # endregion
 
     # region Storage
-    print("Storage Site")
-    print(datetime.now())
-
-    def StorageSiteWaterQualityRule(model, s, w, t):
-        if t == model.s_T.first():
-            return model.p_lambda_Storage[s] * model.p_xi[s, w] + sum(
-                model.v_F_Piped[n, s, t] * model.v_Q[n, w, t]
-                for n in model.s_N
-                if model.p_NSA[n, s]
+    def StorageSiteWaterQualityRule(b, s, w, t):
+        if t == b.parent_block().s_T.first():
+            return b.parent_block().p_lambda_Storage[s] * b.p_xi[s, w] + sum(
+                b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NSA[n, s]
             ) + sum(
-                model.v_F_Piped[r, s, t] * model.v_Q[r, w, t]
-                for r in model.s_R
-                if model.p_RSA[r, s]
+                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_RSA[r, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
-                for p in model.s_PP
-                if model.p_PST[p, s]
+                b.parent_block().v_F_Trucked[p, s, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PST[p, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
-                for p in model.s_CP
-                if model.p_CST[p, s]
-            ) == model.v_Q[
+                b.parent_block().v_F_Trucked[p, s, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CST[p, s]
+            ) == b.v_Q[
                 s, w, t
             ] * (
-                model.v_L_Storage[s, t]
-                + sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
-                + sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
-                + sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
-                + sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
+                b.parent_block().v_L_Storage[s, t]
                 + sum(
-                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                    b.parent_block().v_F_Piped[s, n, t]
+                    for n in b.parent_block().s_N
+                    if b.parent_block().p_SNA[s, n]
                 )
                 + sum(
-                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                    b.parent_block().v_F_Piped[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCA[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKA[s, k]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, r, t]
+                    for r in b.parent_block().s_R
+                    if b.parent_block().p_SRA[s, r]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, o, t]
+                    for o in b.parent_block().s_O
+                    if b.parent_block().p_SOA[s, o]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCT[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKT[s, k]
                 )
             )
         else:
-            return model.v_L_Storage[s, model.s_T.prev(t)] * model.v_Q[
-                s, w, model.s_T.prev(t)
-            ] + sum(
-                model.v_F_Piped[n, s, t] * model.v_Q[n, w, t]
-                for n in model.s_N
-                if model.p_NSA[n, s]
+            return b.parent_block().v_L_Storage[
+                s, b.parent_block().s_T.prev(t)
+            ] * b.v_Q[s, w, b.parent_block().s_T.prev(t)] + sum(
+                b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NSA[n, s]
             ) + sum(
-                model.v_F_Piped[r, s, t] * model.v_Q[r, w, t]
-                for r in model.s_R
-                if model.p_RSA[r, s]
+                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_RSA[r, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
-                for p in model.s_PP
-                if model.p_PST[p, s]
+                b.parent_block().v_F_Trucked[p, s, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PST[p, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
-                for p in model.s_CP
-                if model.p_CST[p, s]
-            ) == model.v_Q[
+                b.parent_block().v_F_Trucked[p, s, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CST[p, s]
+            ) == b.v_Q[
                 s, w, t
             ] * (
-                model.v_L_Storage[s, t]
-                + sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
-                + sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
-                + sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
-                + sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
+                b.parent_block().v_L_Storage[s, t]
                 + sum(
-                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                    b.parent_block().v_F_Piped[s, n, t]
+                    for n in b.parent_block().s_N
+                    if b.parent_block().p_SNA[s, n]
                 )
                 + sum(
-                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                    b.parent_block().v_F_Piped[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCA[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKA[s, k]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, r, t]
+                    for r in b.parent_block().s_R
+                    if b.parent_block().p_SRA[s, r]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, o, t]
+                    for o in b.parent_block().s_O
+                    if b.parent_block().p_SOA[s, o]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCT[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKT[s, k]
                 )
             )
 
-    model.StorageSiteWaterQuality = Constraint(
+    model.quality.StorageSiteWaterQuality = Constraint(
         model.s_S,
         model.s_W,
         model.s_T,
@@ -4279,38 +4329,43 @@ def water_quality(model, df_sets, df_parameters):
     # endregion
 
     # region Treatment
-    print("Treatment")
-    print(datetime.now())
-    # Treatment Facility
-    def TreatmentWaterQualityRule(model, r, w, t):
-        return model.p_epsilon_Treatment[r, w] * (
+    def TreatmentWaterQualityRule(b, r, w, t):
+        return b.parent_block().p_epsilon_Treatment[r, w] * (
             sum(
-                model.v_F_Piped[n, r, t] * model.v_Q[n, w, t]
-                for n in model.s_N
-                if model.p_NRA[n, r]
+                b.parent_block().v_F_Piped[n, r, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NRA[n, r]
             )
             + sum(
-                model.v_F_Piped[s, r, t] * model.v_Q[s, w, t]
-                for s in model.s_S
-                if model.p_SRA[s, r]
+                b.parent_block().v_F_Piped[s, r, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SRA[s, r]
             )
             + sum(
-                model.v_F_Trucked[p, r, t] * model.v_Q[p, w, t]
-                for p in model.s_PP
-                if model.p_PRT[p, r]
+                b.parent_block().v_F_Trucked[p, r, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PRT[p, r]
             )
             + sum(
-                model.v_F_Trucked[p, r, t] * model.v_Q[p, w, t]
-                for p in model.s_CP
-                if model.p_CRT[p, r]
+                b.parent_block().v_F_Trucked[p, r, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CRT[p, r]
             )
-        ) == model.v_Q[r, w, t] * (
-            sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-            + model.v_F_UnusedTreatedWater[r, t]
+        ) == b.v_Q[r, w, t] * (
+            sum(
+                b.parent_block().v_F_Piped[r, p, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_RCA[r, p]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[r, s, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_RSA[r, s]
+            )
+            + b.parent_block().v_F_UnusedTreatedWater[r, t]
         )
 
-    model.TreatmentWaterQuality = Constraint(
+    model.quality.TreatmentWaterQuality = Constraint(
         model.s_R,
         model.s_W,
         model.s_T,
@@ -4320,42 +4375,59 @@ def water_quality(model, df_sets, df_parameters):
     # endregion
 
     # region Network
-    print("Network")
-    print(datetime.now())
-
-    def NetworkNodeWaterQualityRule(model, n, w, t):
+    def NetworkNodeWaterQualityRule(b, n, w, t):
         return sum(
-            model.v_F_Piped[p, n, t] * model.v_Q[p, w, t]
-            for p in model.s_PP
-            if model.p_PNA[p, n]
+            b.parent_block().v_F_Piped[p, n, t] * b.v_Q[p, w, t]
+            for p in b.parent_block().s_PP
+            if b.parent_block().p_PNA[p, n]
         ) + sum(
-            model.v_F_Piped[p, n, t] * model.v_Q[p, w, t]
-            for p in model.s_CP
-            if model.p_CNA[p, n]
+            b.parent_block().v_F_Piped[p, n, t] * b.v_Q[p, w, t]
+            for p in b.parent_block().s_CP
+            if b.parent_block().p_CNA[p, n]
         ) + sum(
-            model.v_F_Piped[s, n, t] * model.v_Q[s, w, t]
-            for s in model.s_S
-            if model.p_SNA[s, n]
+            b.parent_block().v_F_Piped[s, n, t] * b.v_Q[s, w, t]
+            for s in b.parent_block().s_S
+            if b.parent_block().p_SNA[s, n]
         ) + sum(
-            model.v_F_Piped[n_tilde, n, t] * model.v_Q[n_tilde, w, t]
-            for n_tilde in model.s_N
-            if model.p_NNA[n_tilde, n]
-        ) == model.v_Q[
+            b.parent_block().v_F_Piped[n_tilde, n, t] * b.v_Q[n_tilde, w, t]
+            for n_tilde in b.parent_block().s_N
+            if b.parent_block().p_NNA[n_tilde, n]
+        ) == b.v_Q[
             n, w, t
         ] * (
             sum(
-                model.v_F_Piped[n, n_tilde, t]
-                for n_tilde in model.s_N
-                if model.p_NNA[n, n_tilde]
+                b.parent_block().v_F_Piped[n, n_tilde, t]
+                for n_tilde in b.parent_block().s_N
+                if b.parent_block().p_NNA[n, n_tilde]
             )
-            + sum(model.v_F_Piped[n, p, t] for p in model.s_CP if model.p_NCA[n, p])
-            + sum(model.v_F_Piped[n, k, t] for k in model.s_K if model.p_NKA[n, k])
-            + sum(model.v_F_Piped[n, r, t] for r in model.s_R if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[n, s, t] for s in model.s_S if model.p_NSA[n, s])
-            + sum(model.v_F_Piped[n, o, t] for o in model.s_O if model.p_NOA[n, o])
+            + sum(
+                b.parent_block().v_F_Piped[n, p, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_NCA[n, p]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, k, t]
+                for k in b.parent_block().s_K
+                if b.parent_block().p_NKA[n, k]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, r, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_NRA[n, r]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, s, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_NSA[n, s]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, o, t]
+                for o in b.parent_block().s_O
+                if b.parent_block().p_NOA[n, o]
+            )
         )
 
-    model.NetworkWaterQuality = Constraint(
+    model.quality.NetworkWaterQuality = Constraint(
         model.s_N,
         model.s_W,
         model.s_T,
@@ -4364,31 +4436,28 @@ def water_quality(model, df_sets, df_parameters):
     )
     # endregion
 
-    # region Reuse
-    print("Reuse")
-    print(datetime.now())
-
-    def BeneficialReuseWaterQuality(model, o, w, t):
+    # region Beneficial Reuse
+    def BeneficialReuseWaterQuality(b, o, w, t):
         return (
             sum(
-                model.v_F_Piped[n, o, t] * model.v_Q[n, w, t]
-                for n in model.s_N
-                if model.p_NOA[n, o]
+                b.parent_block().v_F_Piped[n, o, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NOA[n, o]
             )
             + sum(
-                model.v_F_Piped[s, o, t] * model.v_Q[s, w, t]
-                for s in model.s_S
-                if model.p_SOA[s, o]
+                b.parent_block().v_F_Piped[s, o, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SOA[s, o]
             )
             + sum(
-                model.v_F_Trucked[p, o, t] * model.v_Q[p, w, t]
-                for p in model.s_PP
-                if model.p_POT[p, o]
+                b.parent_block().v_F_Trucked[p, o, t] * b.v_Q[p, w, t]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_POT[p, o]
             )
-            == model.v_Q[o, w, t] * model.v_F_BeneficialReuseDestination[o, t]
+            == b.v_Q[o, w, t] * b.parent_block().v_F_BeneficialReuseDestination[o, t]
         )
 
-    model.BeneficialReuseWaterQuality = Constraint(
+    model.quality.BeneficialReuseWaterQuality = Constraint(
         model.s_O,
         model.s_W,
         model.s_T,
@@ -4397,10 +4466,7 @@ def water_quality(model, df_sets, df_parameters):
     )
     # endregion
 
-    print("Fixing parameters")
-    print(datetime.now())
-    # Fix variables
-    # Fix variables: produced water flows, binary
+    # Fix variables: produced water flows
     model.v_F_Piped.fix()
     model.v_F_Trucked.fix()
     model.v_F_Sourced.fix()
@@ -4411,75 +4477,39 @@ def water_quality(model, df_sets, df_parameters):
     model.v_F_DisposalDestination.fix()
     model.v_F_BeneficialReuseDestination.fix()
 
-    # region To be Ignored
-    # # Fix all other variables in case optimization didn't run to optimality
-    # model.v_L_PadStorage.fix()
-    # model.v_F_TotalTrucked.fix()
-    # model.v_F_TotalSourced.fix()
-    # model.v_F_TotalDisposed.fix()
-    # model.v_F_TotalReused.fix()
-    # # model.v_C_Piped.fix()
-    # # model.v_C_Trucked.fix()
-    # # model.v_C_Sourced.fix()
-    # # model.v_C_Disposal.fix()
-    # # model.v_C_Treatment.fix()
-    # # model.v_C_Reuse.fix()
-    # # model.v_C_Storage.fix()
-    # # model.v_R_Storage.fix()
-    # # model.v_C_TotalSourced.fix()
-    # # model.v_C_TotalDisposal.fix()
-    # # model.v_C_TotalTreatment.fix()
-    # # model.v_C_TotalReuse.fix()
-    # # model.v_C_TotalPiping.fix()
-    # # model.v_C_TotalStorage.fix()
-    # # model.v_C_TotalTrucking.fix()
-    # # model.v_C_Slack.fix()
-    # # model.v_R_TotalStorage.fix()
-    # model.v_F_ReuseDestination.fix()
-    # model.v_F_BeneficialReuseDestination.fix()
-    # # model.v_D_Capacity.fix()
-    # # model.v_X_Capacity.fix()
-    # # model.v_T_Capacity.fix()
-    # # model.v_F_Capacity.fix()
-    # # model.v_C_DisposalCapEx.fix()
-    # # model.v_C_PipelineCapEx.fix()
-    # # model.v_C_StorageCapEx.fix()
-    # # model.v_C_TreatmentCapEx.fix()
-    # # model.v_S_FracDemand.fix()
-    # # model.v_S_Production.fix()
-    # # model.v_S_Flowback.fix()
-    # # model.v_S_PipelineCapacity.fix()
-    # # model.v_S_StorageCapacity.fix()
-    # # model.v_S_DisposalCapacity.fix()
-    # # model.v_S_TreatmentCapacity.fix()
-    # # model.v_S_ReuseCapacity.fix()
-    # model.vb_y_Pipeline.fix()
-    # model.vb_y_Storage.fix()
-    # model.vb_y_Treatment.fix()
-    # model.vb_y_Disposal.fix()
-    # model.vb_y_Flow.fix()
-    # endregion
-
-    print("Fixing v_Q")
-    print(datetime.now())
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
         for w in model.s_W:
             for t in model.s_T:
-                model.v_Q[p, w, t].fix(model.p_nu[p, w])
+                model.quality.v_Q[p, w, t].fix(model.quality.p_nu[p, w])
+
+    # Define Objective
+    def ObjectiveFunctionRule(b):
+        return b.v_X == sum(
+            sum(
+                sum(b.v_Q[p, w, t] for p in b.parent_block().s_P)
+                for w in b.parent_block().s_W
+            )
+            for t in b.parent_block().s_T
+        )
+
+    model.quality.ObjectiveFunction = Constraint(
+        rule=ObjectiveFunctionRule, doc="Objective function water quality"
+    )
+
+    model.quality.objective = Objective(
+        expr=model.quality.v_X, sense=minimize, doc="Objective function"
+    )
 
     return model
 
 
-def postprocess_water_quality_calculation(model, df_sets, df_parameters, opt):
+def postprocess_water_quality_calculation(model, df_parameters, opt):
     # Add water quality formulation to input solved model
-    water_quality_model = water_quality(model, df_sets, df_parameters)
+    water_quality_model = water_quality(model, df_parameters)
 
     # Calculate water quality
-    results_water_quality = opt.solve(water_quality_model, tee=True)
-
-    # Write the output
-    results_water_quality.write()
+    opt.solve(water_quality_model.quality, tee=True)
 
     return water_quality_model
 
