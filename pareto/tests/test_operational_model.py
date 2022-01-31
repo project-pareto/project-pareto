@@ -87,13 +87,9 @@ def build_operational_model():
         "StorageInitialWaterQuality",
     ]
 
-<<<<<<< HEAD
-    with resources.path("pareto.case_studies", 'EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx') as fpath:
-=======
     with resources.path(
         "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
     ) as fpath:
->>>>>>> 74cd19a69f9fbaf074148eb4f7031b09aa06ab26
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     df_parameters["MinTruckFlow"] = 75
     df_parameters["MaxTruckFlow"] = 37000
