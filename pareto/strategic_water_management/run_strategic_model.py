@@ -119,7 +119,7 @@ opt.options["mipgap"] = 0
 results = opt.solve(strategic_model, tee=True)
 results.write()
 
-# Solver water quality model
+# Solve water quality model to calculate values for water quality post optimization.
 strategic_model = postprocess_water_quality_calculation(
     strategic_model, df_parameters, opt
 )

@@ -4116,7 +4116,28 @@ def create_model(df_sets, df_parameters, default={}):
 
 
 def water_quality(model, df_parameters):
-    # Add parameter for water quality at each pad
+    # Fix solved Strategic Model variables
+    for var in model.component_objects(Var):
+        for index in var:
+            # Check if the variable is indexed
+            if index is None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if abs(var.value) > 0.0000001:
+                    var.fix()
+                # Otherwise, fix to 0
+                else:
+                    var.fix(0)
+            elif index is not None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if var[index].value and abs(var[index].value) > 0.0000001:
+                    var[index].fix()
+                # Otherwise, fix to 0
+                else:
+                    var[index].fix(0)
+
+    # Deactivate unnecessary constraints
+    for con in model.component_objects(Constraint):
+        con.deactivate()
 
     # Create block for calculating quality at each location in the model
     model.quality = Block()
@@ -4465,17 +4486,6 @@ def water_quality(model, df_parameters):
         doc="Beneficial reuse capacity",
     )
     # endregion
-
-    # Fix variables: produced water flows
-    model.v_F_Piped.fix()
-    model.v_F_Trucked.fix()
-    model.v_F_Sourced.fix()
-    model.v_F_PadStorageIn.fix()
-    model.v_F_PadStorageOut.fix()
-    model.v_L_Storage.fix()
-    model.v_F_UnusedTreatedWater.fix()
-    model.v_F_DisposalDestination.fix()
-    model.v_F_BeneficialReuseDestination.fix()
 
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
