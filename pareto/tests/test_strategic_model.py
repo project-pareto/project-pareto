@@ -103,6 +103,8 @@ def build_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
     ]
 
     # note the double backslashes '\\' in that path reference
