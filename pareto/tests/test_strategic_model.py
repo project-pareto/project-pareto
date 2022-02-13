@@ -125,7 +125,7 @@ def build_strategic_model():
 def test_basic_build(build_strategic_model):
     """Make a model and make sure it doesn't throw exception"""
     m = build_strategic_model
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 2
     assert m.config.objective
@@ -142,7 +142,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
 
 
 @pytest.fixture(scope="module")
@@ -212,6 +212,8 @@ def build_reduced_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -232,7 +234,7 @@ def build_reduced_strategic_model():
 def test_basic_reduced_build(build_reduced_strategic_model):
     """Make a model and make sure it doesn't throw exception"""
     m = build_reduced_strategic_model
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 2
     assert m.config.objective
@@ -251,6 +253,6 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     results = solver.solve(m, tee=False)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(10353565.0, abs=1e-1) == pyo.value(m.v_Z)
