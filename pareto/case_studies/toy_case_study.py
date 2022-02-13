@@ -126,7 +126,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_completion_demand = Constraint(
-        model.t, rule=DriveTimesEquationRule, doc="Calculation of total water demand"
+        model.t, rule=CompletionDemandRule, doc="Calculation of total water demand"
     )
 
     def FlowBackRatesRule(model):
@@ -135,7 +135,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_flowback_rates = Constraint(
-        rule=DriveTimesEquationRule, doc="Calculation of total flowback"
+        rule=FlowBackRatesRule, doc="Calculation of total flowback"
     )
 
     def ProductionRatesRule(model):
@@ -147,7 +147,7 @@ def create_model(df_sets, df_parameters):
         )
 
     model.e_production_rates = Constraint(
-        rule=DriveTimesEquationRule, doc="Calculation of total production rates"
+        rule=ProductionRatesRule, doc="Calculation of total production rates"
     )
 
     def DisposalCapacityRule(model):

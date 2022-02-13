@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     py_modules=["stagedfright"],
     install_requires=[
-        "pyomo<6.1",
+        "pyomo>=6.2",
         "pandas==1.2.*",
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
