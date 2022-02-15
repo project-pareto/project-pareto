@@ -1243,7 +1243,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadDemandBalance['CP02','T24'].pprint()
 
     def CompletionsPadStorageBalanceRule(model, p, t):
-        if t == "T01":
+        if t == model.s_T.first():
             return (
                 model.v_L_PadStorage[p, t]
                 == model.p_lambda_PadStorage[p]
@@ -1757,7 +1757,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.BidirectionalFlow2.pprint()
 
     def StorageSiteBalanceRule(model, s, t):
-        if t == "T01":
+        if t == model.s_T.first():
             return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
                 model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
             ) + sum(
@@ -4518,8 +4518,12 @@ def postprocess_water_quality_calculation(model, df_parameters, opt):
     # Add water quality formulation to input solved model
     water_quality_model = water_quality(model, df_parameters)
 
-    # Calculate water quality
-    opt.solve(water_quality_model.quality, tee=True)
+    # Calculate water quality. The following conditional is used to avoid errors when
+    # using Gurobi solver
+    if opt.name in ["gurobi_direct", "gurobi"]:
+        opt.solve(water_quality_model.quality, tee=True, save_results=False)
+    else:
+        opt.solve(water_quality_model.quality, tee=True)
 
     return water_quality_model
 
