@@ -78,6 +78,11 @@ setup(
         "plotly",
         "kaleido",
     ],
+    extras_require={
+        "testing": [
+            "pytest",
+        ],
+    },
     include_package_data=True,
     package_data={
         # If any package contains these files, include them:

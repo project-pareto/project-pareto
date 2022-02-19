@@ -39,7 +39,7 @@ jobs:
           # - '3.6'
           # - '3.7'
           - '3.8'
-          # - '3.9'
+          - '3.9'
         os:
           # - linux
           - win64
@@ -57,7 +57,7 @@ jobs:
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
-            pip-install-target: '.'
+            pip-install-target: ".[testing]"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -68,10 +68,9 @@ jobs:
           pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
           idaes get-extensions --verbose
       - name: Run pytest
-        if: contains(matrix.install-mode, 'dev')
         # TODO: add coverage
         run: |
-          pytest -v 
+          pytest -v
       - name: Run toy case study
         run: |
           python -m pareto.case_studies.toy_case_study
