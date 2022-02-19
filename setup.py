@@ -51,9 +51,7 @@ setup(
         "windows",
         "linux",
     ],
-    python_requires=[
-        ">=3.8, <4",
-    ],
+    python_requires=">=3.8, <4",
     packages=find_packages(),
     py_modules=["stagedfright"],
     install_requires=[
