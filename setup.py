@@ -1,8 +1,20 @@
 from setuptools import setup, find_packages
+from packaging.version import Version
 
 
-NAME = "project_pareto"
-VERSION = "0.1.0dev"
+NAME = "project-pareto"
+VERSION = "0.1dev1"
+
+
+def _validate_version(v: str) -> None:
+    version_obj = Version(v)
+    assert v == version_obj.public
+    assert v == str(version_obj)
+    n_components_to_specify = 2 if version_obj.is_devrelease else 3
+    assert len(version_obj.release) == n_components_to_specify
+
+
+_validate_version(VERSION)
 
 
 setup(
