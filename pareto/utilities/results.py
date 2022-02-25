@@ -169,6 +169,9 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_UnusedTreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
             ],
+            "v_F_CompletionsWater_dict": [
+                ("Pads", "Time", "Deliveries to completions not stored")
+            ],
         }
 
         # Defining KPIs for strategic model
