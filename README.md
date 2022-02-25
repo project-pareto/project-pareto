@@ -125,3 +125,11 @@ black --check .
 ```
 
 **NOTE**: This is now done automatically as part of the pre-commit checks (see above).
+
+
+## Funding Acknowledgement
+
+This work was conducted as part of the Produced Water Optimization Initiative, “Project PARETO”,
+with support through the Natural Gas & Oil Program within the U.S. Department of Energy’s Office of
+Fossil Energy and Carbon Management (FECM). For more information please see
+[www.project-pareto.org](http://www.project-pareto.org/).
