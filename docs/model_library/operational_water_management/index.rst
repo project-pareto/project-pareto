@@ -537,7 +537,7 @@ For equalized production tanks: ∀p ∈ P, t ∈ T
 
     \textcolor{red}{F_{p,t}^{Drain}}=\textcolor{red}{B_{p,t}^{Production}}
 
-.. note:: The constraint proposed above is obviously not necessary but included to facilitate switching between (1) an equalized production tank version and (2) a non-equalized production tank version.
+.. note:: The constraint proposed above is not necessary but included to facilitate switching between (1) an equalized production tank version and (2) a non-equalized production tank version.
 
 
 
@@ -778,7 +778,7 @@ Completions reuse water is all water that meets completions pad demand, excludin
         +∑_{(p,p)∈PCT}\textcolor{red}{F_{l,l,t}^{Trucked}}+∑_{(s,p)∈SCT}\textcolor{red}{F_{l,l,t}^{Trucked}})⋅ \textcolor{green}{π_{p}^{CompletionsReuse}}
 
 
-.. note:: Freshwater sourcing excluded from completions reuse costs.
+.. note:: Freshwater sourcing is excluded from completions reuse costs.
 
 .. math::
 

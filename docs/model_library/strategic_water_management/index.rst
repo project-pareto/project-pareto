@@ -654,7 +654,7 @@ where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as pe
 
 **Storage Capacity Construction/Expansion:** ∀s ∈ S, [t ∈ T]
 
-Update the storage capacity variable. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon.. The C0 notation indicates that we also include the 0th case, meaning that there is no selection in the set C where no capacity is added.
+This constraint accounts for the expansion of available pipelines or installation of new pipelines. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon. The C0 notation indicates that we also include the 0th case, meaning that there is no selection in the set C where no capacity is added.
 
 .. math::
 
@@ -798,7 +798,7 @@ Completions reuse water is all water that meets completions pad demand, excludin
         +∑_{(p,p)∈PCT}\textcolor{red}{F_{l,l,t}^{Trucked}}+∑_{(s,p)∈SCT}\textcolor{red}{F_{l,l,t}^{Trucked}})⋅ \textcolor{green}{π_{p}^{CompletionsReuse}}
 
 
-.. note:: Freshwater sourcing excluded from completions reuse costs.
+.. note:: Freshwater sourcing is excluded from completions reuse costs.
 
 .. math::
 
@@ -881,7 +881,7 @@ Trucking cost between two locations for time period is equal to the trucking vol
 
 **Total Trucking Volume:** ∀t ∈ T
 
-Get total trucking volume by summing trucking movements over all time periods and locations.
+The total trucking volume is estimated as the summation of trucking movements over all time periods and locations.
 
 .. math::
 

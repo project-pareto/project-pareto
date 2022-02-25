@@ -30,7 +30,7 @@ The PARETO team is comprised of collaborators from the following institutions:
 Project Timeline
 ----------------
 
-Project PARETO is a 3-year initiative that has been split into three distinct phases; with each phase taking up exactly one year. In execution year 2021, PARETO will capture produced water management, i.e., capturing optins for coordination water deliveries in a given development area. By execution year 2022, the project will shift its attention towards produced water treatment. Finally, execution year 2023 will be dedicated to produced water beneficial reuse.
+Project PARETO is a 3-year initiative that has been split into three distinct phases; with each phase taking up exactly one year. In execution year 2021, PARETO will capture produced water management, i.e., capturing options for coordinating water deliveries in a given development area. By execution year 2022, the project will shift its attention towards produced water treatment. Finally, execution year 2023 will be dedicated to produced water beneficial reuse.
 
 
 .. figure:: img/PARETO_3.png
@@ -40,13 +40,13 @@ Project PARETO is a 3-year initiative that has been split into three distinct ph
     Figure 4. Project PARETO Timeline
 
 In terms of deliverables, PARETO itself will be released as free and open-source software every year of the initiative – with increasing capabilities and functionality becoming available over time. The project team is also committed to conducting case studies with industrial and other partners; and where possible findings from those collaborations will be shared with the produced water community as best practice reports.
-It should also be noted that the project will continuously evaluated by a comprehensive stakeholder board that involves individuals representing upstream operators, midstream organizations, treatment technology providers, beneficial reuse entities, regulatory agencies and others – all of which will guide the project team and provide necessary input.
+It should also be noted that the project will be continuously evaluated by a comprehensive stakeholder board that involves individuals representing upstream operators, midstream organizations, treatment technology providers, beneficial reuse entities, regulatory agencies and others – all of which will guide the project team and provide necessary input.
 
 
 Contact us
 -----------
 General, background and overview information is available at the `PARETO main
-website <https://pareto.hyperarts.com>`_.  Framework development happens at our `GitHub
+website <https://www.project-pareto.org/>`_.  Framework development happens at our `GitHub
 repo <https://github.com/project-pareto/project-pareto>`_ where you can `report issues/bugs
 <https://github.com/project-pareto/project-pareto/issues>`_ or `make contributions
 <https://github.com/project-pareto/project-pareto/pulls>`_.  For further enquiries, send an

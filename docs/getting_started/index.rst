@@ -17,7 +17,7 @@ repo). This includes people who only work with protected data.
 protected data.
 
 **Hybrid**: Handle protected data, but also commit changes to the project-pareto
-repo (even occasionally) - needs approval fro PhD. Markus Drouven
+repo (even occasionally) - needs approval from PhD. Markus Drouven
 
 +------------------+-----------------------------+
 | Developer Role   | Section                     |
