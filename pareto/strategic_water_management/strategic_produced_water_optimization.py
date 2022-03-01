@@ -41,6 +41,8 @@ from pyomo.environ import (
     NonNegativeReals,
     Reals,
     Binary,
+    Suffix,
+    TransformationFactory,
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -970,7 +972,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_tau_Trucking = Param(
         model.s_L,
         model.s_L,
-        default=9999999,
+        default=12,
         initialize=df_parameters["TruckingTime"],
         doc="Drive time between locations [hr]",
     )
@@ -1075,35 +1077,35 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=9999999,
+        default=999999,
         initialize=df_parameters["TruckingHourlyCost"],
         doc="Trucking hourly cost (by source) [$/bbl]",
     )
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=9999999,
+        default=999999,
         initialize=df_parameters["FreshSourcingCost"],
         doc="Fresh sourcing cost [$/bbl]",
     )
 
     model.p_M_Flow = Param(default=9999999, doc="Big-M flow parameter [bbl/week]")
 
-    model.p_psi_FracDemand = Param(default=999999999, doc="Slack cost parameter [$]")
-    model.p_psi_Production = Param(default=999999999, doc="Slack cost parameter [$]")
-    model.p_psi_Flowback = Param(default=999999999, doc="Slack cost parameter [$]")
+    model.p_psi_FracDemand = Param(default=99999999, doc="Slack cost parameter [$]")
+    model.p_psi_Production = Param(default=99999999, doc="Slack cost parameter [$]")
+    model.p_psi_Flowback = Param(default=99999999, doc="Slack cost parameter [$]")
     model.p_psi_PipelineCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_StorageCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_DisposalCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_TreatmentCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
-    model.p_psi_ReuseCapacity = Param(default=999999999, doc="Slack cost parameter [$]")
+    model.p_psi_ReuseCapacity = Param(default=99999999, doc="Slack cost parameter [$]")
 
     # model.p_sigma_Freshwater.pprint()
 
@@ -4067,6 +4069,128 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     return model
+
+
+def scale_model(model, scaling_factor=None):
+
+    if scaling_factor is None:
+        scaling_factor = 1000000
+
+    model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+    # Scaling variables
+    model.scaling_factor[model.v_Z] = 1 / scaling_factor
+
+    model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_PipelineCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Reuse] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Slack] = 1 / (scaling_factor * 1000)
+    model.scaling_factor[model.v_C_Sourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_StorageCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalDisposal] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalPiping] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalReuse] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalSourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalTreatment] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalTrucking] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Treatment] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TreatmentCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Trucked] = 1 / scaling_factor
+    model.scaling_factor[model.v_D_Capacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Capacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_DisposalDestination] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_PadStorageIn] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalDisposed] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalReused] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalSourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalTrucked] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Trucked] = 1 / scaling_factor
+    model.scaling_factor[model.v_L_PadStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_L_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_DisposalCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_Flowback] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_FracDemand] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_PipelineCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_Production] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_ReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_TreatmentCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_StorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_X_Capacity] = 1 / scaling_factor
+
+    # model.scaling_factor[model.v_C_Slack] = scaling_factor
+    # model.scaling_factor[model.v_C_TotalPiping] = scaling_factor
+    # model.scaling_factor[model.v_C_Piped] = scaling_factor
+
+    # Scaling constraints
+    model.scaling_factor[model.CostObjectiveFunction] = 1 / scaling_factor
+    model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadDemandBalance] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadStorageBalance] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadStorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadSupplyBalance] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadTruckOffloadingCapacity] = (
+        1 / scaling_factor
+    )
+    model.scaling_factor[model.CompletionsReuseCost] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalCost] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalDestinationDeliveries] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.FreshwaterSourcingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.FreshSourcingCost] = 1 / scaling_factor
+    model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
+    model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.PipelineExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.PipingCost] = 1 / scaling_factor
+    model.scaling_factor[model.ProductionPadSupplyBalance] = 1 / scaling_factor
+    model.scaling_factor[model.ReuseDestinationDeliveries] = 1 / scaling_factor
+    model.scaling_factor[model.SlackCosts] = 1 / (scaling_factor ** 2)
+    model.scaling_factor[model.StorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.StorageCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.StorageDepositCost] = 1 / scaling_factor
+    model.scaling_factor[model.StorageExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.StorageSiteBalance] = 1 / scaling_factor
+    model.scaling_factor[model.StorageSiteProcessingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.StorageSiteTruckOffloadingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.StorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TerminalCompletionsPadStorageLevel] = 1 / scaling_factor
+    model.scaling_factor[model.TerminalStorageLevel] = 1 / scaling_factor
+    model.scaling_factor[model.TotalCompletionsReuseCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalDisposalCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalDisposalVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalFreshSourcingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalFreshSourcingVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalPipingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalReuseVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalStorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
+    model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
+
+    scaled_model = TransformationFactory("core.scale_model").create_using(model)
+
+    return scaled_model
 
 
 def _preprocess_data(_df_parameters):
