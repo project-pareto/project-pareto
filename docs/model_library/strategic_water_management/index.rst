@@ -654,7 +654,7 @@ where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as pe
 
 **Storage Capacity Construction/Expansion:** ∀s ∈ S, [t ∈ T]
 
-This constraint accounts for the expansion of available pipelines or installation of new pipelines. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon. The C0 notation indicates that we also include the 0th case, meaning that there is no selection in the set C where no capacity is added.
+This constraint accounts for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon. The C0 notation indicates that we also include the 0th case, meaning that there is no selection in the set C where no capacity is added.
 
 .. math::
 
@@ -670,7 +670,7 @@ This constraint accounts for the expansion of available pipelines or installatio
 
 **Disposal Capacity Construction/Expansion:** ∀k ∈ K, [t ∈ T]
 
-Update the disposal capacity variable. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
+This constraint accounts for the expansion of available disposal sites or installation of new disposal sites. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
 
 .. math::
 

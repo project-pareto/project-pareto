@@ -94,8 +94,10 @@ The method accept the following input arguments:
     
     REQUIRED. Data containing information regarding location name, and coordinates
     latitude and longitude. Two formats are acceptable:
-    {(origin1,"latitude"): value1, (origin1,"longitude"): value2} or
-    {origin1:{"latitude":value1, "longitude":value2}}
+
+    * {(origin1,"latitude"): value1, (origin1,"longitude"): value2} or
+    * {origin1:{"latitude":value1, "longitude":value2}}
+
     The first format allows the user to include a tab with the corresponding data
     in a table format as part of the workbook casestudy.
 
@@ -105,8 +107,10 @@ The method accept the following input arguments:
 
 - api:  
     OPTIONAL. Specify the type of API service, two options are supported:
-    Bing maps: https://docs.microsoft.com/en-us/bingmaps/rest-services/
-    Open Street Maps: https://www.openstreetmap.org/
+
+    * Bing maps: https://docs.microsoft.com/en-us/bingmaps/rest-services/
+    * Open Street Maps: https://www.openstreetmap.org/
+
     If no API is selected, Open Street Maps is used by default
 
 - api_key:  
@@ -114,11 +118,12 @@ The method accept the following input arguments:
     https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
 
 - output:   
-    OPTIONAL. Define the paramters that the method will output. The user can select:
-    'time': A list containing the drive times between the locations is returned
-    'distance': A list containing the drive distances between the locations is returned
-    'time_distance': Two lists containing the drive times and drive distances between
-    the locations is returned
+    OPTIONAL. Define the parameters that the method will output. The user can select:
+    
+    * 'time': A list containing the drive times between the locations is returned
+    * 'distance': A list containing the drive distances between the locations is returned
+    * 'time_distance': Two lists containing the drive times and drive distances between the locations is returned
+
     If not output is specified, 'time_distance' is the default
 
 - fpath:    
@@ -127,6 +132,7 @@ The method accept the following input arguments:
     specified, the excel file is saved with the name 'od_output.xlsx' in the current
     directory.
 
-- create_report OPTIONAL. if True an Excel report with drive distances and drive times is created
+- create_report:
+    OPTIONAL. if True an Excel report with drive distances and drive times is created
 
 

@@ -31,8 +31,12 @@ This method identifies the type of model: [strategic, operational], creates a pr
 and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
 The dictionaries are used to create separate excel sheets which categorize the data by variable name or type.
 This same data is put into excel sheets named after each variable as well as an overview sheet which contains totals and Key Performance Indicators (KPI) information.
-If an indexed variable is added or removed from a model, the printing lists and headers should be updated
-accordingly. The output of this method prints out each variable’s information in the terminal as specified by the user, as shown below.
+
+.. warning::
+    If an indexed variable is added or removed from a model, the printing lists and headers should be updated
+    accordingly. 
+
+The output of this method prints out each variable’s information in the terminal as specified by the user, as shown below.
 
 .. figure:: generate_report_1.png
     :width: 800
@@ -58,11 +62,12 @@ This method requires two parameters:
 
 2.) An array of an “enum” class value specifying which variables to print which are chosen by the user. These values are:
 
-    *"PrintValues.Detailed"* – Specifies that all information including slack information will be printed
+    *"PrintValues.Essential"* – Specifies that the overview information will be printed
 
     *"PrintValues.Nominal"* – Specifies that all information from PrintValues.Essential + Trucked, Piped, and Sourced water information will be printed
 
-    *"PrintValues.Essential"* – Specifies that the overview information will be printed
+    *"PrintValues.Detailed"* – Specifies that all information including slack information will be printed
+    
 
 Example of how this method is used::
 
@@ -180,11 +185,11 @@ This method requires two parameters:
 
 2.) A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
 
-    * “group_by”* – This specifies what field will be used as the x axis in the plot
+    * “group_by”*: This specifies what field will be used as the x axis in the plot
 
-    * “output_file”* – This parameter is used for creating the file that contains the Bar Chart created by this method.
+    * “output_file”*: This parameter is used for creating the file that contains the Bar Chart created by this method.
 
-    * “y_axis”* – This specifies if the user wants to take the logarithm of the y axis. If not provided, then the y axis remains the default(linear).
+    * “y_axis”*: This specifies if the user wants to take the logarithm of the y axis. If not provided, then the y axis remains the default(linear).
 
 
 Example of how this method is used::
