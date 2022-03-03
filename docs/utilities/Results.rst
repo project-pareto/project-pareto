@@ -185,11 +185,11 @@ This method requires two parameters:
 
 2.) A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
 
-    * “group_by”*: This specifies what field will be used as the x axis in the plot
+    *"group_by"* - This specifies what field will be used as the x axis in the plot
 
-    * “output_file”*: This parameter is used for creating the file that contains the Bar Chart created by this method.
+    *"output_file"* - This parameter is used for creating the file that contains the Bar Chart created by this method.
 
-    * “y_axis”*: This specifies if the user wants to take the logarithm of the y axis. If not provided, then the y axis remains the default(linear).
+    *"y_axis"* - This specifies if the user wants to take the logarithm of the y axis. If not provided, then the y axis remains the default(linear).
 
 
 Example of how this method is used::
