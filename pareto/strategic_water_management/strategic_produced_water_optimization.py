@@ -141,6 +141,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Produced water quantity piped from location l to location l [bbl/week]",
     )
     model.v_F_Trucked = Var(
@@ -148,6 +149,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Produced water quantity trucked from location l to location l [bbl/week]",
     )
     model.v_F_Sourced = Var(
@@ -155,6 +157,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Fresh water sourced from source f to completions pad p [bbl/week]",
     )
 
@@ -162,12 +165,14 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water put into completions pad storage [bbl/week]",
     )
     model.v_F_PadStorageOut = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water from completions pad storage used for fracturing [bbl/week]",
     )
 
@@ -175,12 +180,14 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water level at storage site [bbl]",
     )
     model.v_L_PadStorage = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water level in completions pad storage [bbl]",
     )
 
@@ -201,6 +208,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of piping produced water from location l to location l [$/week]",
     )
@@ -208,6 +216,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of trucking produced water from location l to location l [$/week]",
     )
@@ -215,36 +224,42 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_F,
         model.s_CP,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of sourcing fresh water from source f to completion pad p [$/week]",
     )
     model.v_C_Disposal = Var(
         model.s_K,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of injecting produced water at disposal site [$/week]",
     )
     model.v_C_Treatment = Var(
         model.s_R,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of treating produced water at treatment site [$/week]",
     )
     model.v_C_Reuse = Var(
         model.s_CP,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of reusing produced water at completions site [$/week]",
     )
     model.v_C_Storage = Var(
         model.s_S,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of storing produced water at storage site [$/week]",
     )
     model.v_R_Storage = Var(
         model.s_S,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Credit for retrieving stored produced water from storage site [$/bbl]",
     )
@@ -280,12 +295,14 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_F_ReuseDestination = Var(
         model.s_CP,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Total deliveries to completions pad [bbl/week]",
     )
     model.v_F_DisposalDestination = Var(
         model.s_K,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Total deliveries to disposal site [bbl/week]",
     )
@@ -309,6 +326,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         within=NonNegativeReals,
+        initialize=0,
         doc="Flow capacity along pipeline arc [bbl/week]",
     )
 
@@ -333,24 +351,28 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to meet the completions demand [bbl/week]",
     )
     model.v_S_Production = Var(
         model.s_PP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to process the produced water production [bbl/week]",
     )
     model.v_S_Flowback = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to proces flowback water production [bbl/week]",
     )
     model.v_S_PipelineCapacity = Var(
         model.s_L,
         model.s_L,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to provide necessary pipeline capacity [bbl]",
     )
     model.v_S_StorageCapacity = Var(
@@ -381,24 +403,28 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_D,
         within=Binary,
+        initialize=0,
         doc="New pipeline installed between one location and another location with specific diameter",
     )
     model.vb_y_Storage = Var(
         model.s_S,
         model.s_C,
         within=Binary,
+        initialize=0,
         doc="New or additional storage capacity installed at storage site with specific storage capacity",
     )
     model.vb_y_Treatment = Var(
         model.s_R,
         model.s_J,
         within=Binary,
+        initialize=0,
         doc="New or additional treatment capacity installed at treatment site with specific treatment capacity",
     )
     model.vb_y_Disposal = Var(
         model.s_K,
         model.s_I,
         within=Binary,
+        initialize=0,
         doc="New or additional disposal capacity installed at disposal site with specific injection capacity",
     )
     model.vb_y_Flow = Var(
@@ -406,6 +432,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=Binary,
+        initialize=0,
         doc="Directional flow between two locations",
     )
 

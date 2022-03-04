@@ -10,10 +10,9 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
-import ctypes
-from os import strerror
-import sys
-import numpy
+# from os import strerror
+# import sys
+# import numpy
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
@@ -23,11 +22,7 @@ from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
 from pareto.utilities.solvers import get_solver, set_timeout
-from pyomo.environ import Constraint, TransformationFactory
-from pyomo.util.infeasible import log_infeasible_constraints
-import numpy as np
-
-import pandas as pd
+from pyomo.environ import TransformationFactory
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
