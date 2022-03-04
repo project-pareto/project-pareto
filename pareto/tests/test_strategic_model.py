@@ -186,6 +186,7 @@ def build_reduced_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "NodeCapacities",
         "InitialPipelineCapacity",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
