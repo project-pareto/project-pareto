@@ -78,6 +78,7 @@ def build_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "NodeCapacities",
         "InitialPipelineCapacity",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
