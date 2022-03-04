@@ -1,0 +1,9 @@
+PR #107 (03/04/2022)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Add "NodeCapacities" tab
+
+Small Case (small_strategic_case_study.xlsx)
+	• Add "NodeCapacities" tab
