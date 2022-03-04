@@ -21,6 +21,7 @@ from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
+    scale_model,
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -244,11 +245,13 @@ def test_basic_reduced_build(build_reduced_strategic_model):
 @pytest.mark.component
 def test_run_reduced_strategic_model(build_reduced_strategic_model):
     m = build_reduced_strategic_model
+    scaled_m = scale_model(m, scaling_factor=100000)
     solver = get_solver("cbc")
     solver.options["seconds"] = 60 * 7
-    results = solver.solve(m, tee=False)
+    results = solver.solve(scaled_m, tee=False)
+    pyo.TransformationFactory("core.scale_model").propagate_solution(scaled_m, m)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 63069
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(10353565.0, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(10353563.0, abs=1e-1) == pyo.value(m.v_Z)
