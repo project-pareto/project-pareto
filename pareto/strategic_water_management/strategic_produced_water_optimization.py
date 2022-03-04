@@ -4080,7 +4080,6 @@ def scale_model(model, scaling_factor=None):
 
     # Scaling variables
     model.scaling_factor[model.v_Z] = 1 / scaling_factor
-
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
@@ -4127,10 +4126,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_S_StorageCapacity] = 1 / scaling_factor
     model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
     model.scaling_factor[model.v_X_Capacity] = 1 / scaling_factor
-
-    # model.scaling_factor[model.v_C_Slack] = scaling_factor
-    # model.scaling_factor[model.v_C_TotalPiping] = scaling_factor
-    # model.scaling_factor[model.v_C_Piped] = scaling_factor
 
     # Scaling constraints
     model.scaling_factor[model.CostObjectiveFunction] = 1 / scaling_factor
