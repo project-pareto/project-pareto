@@ -4660,7 +4660,7 @@ def water_quality(model, df_parameters, df_sets):
         if t == b.parent_block().s_T.first():
             return b.p_xi_PadStorage[p, w] * b.parent_block().p_lambda_PadStorage[
                 p
-            ] * +b.v_Q[p + "-intermediate", w, t] * b.parent_block().v_F_PadStorageIn[
+            ] + b.v_Q[p + "-intermediate", w, t] * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
                 p + "-storage", w, t
