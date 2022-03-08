@@ -14,6 +14,8 @@ from os import strerror
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
+    PipelineCost,
+    PipelineCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
@@ -83,7 +85,9 @@ parameter_list = [
     "DisposalExpansionCost",
     "StorageExpansionCost",
     "TreatmentExpansionCost",
-    "PipelineExpansionCost",
+    "PipelineCapexDistanceBased",
+    "PipelineCapexCapacityBased",
+    "PipelineCapacityIncrements",
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
@@ -100,8 +104,18 @@ with resources.path(
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 # create mathematical model
+"""Valid values of config arguments for the default parameter in the create_model() call
+ objective: [Objectives.cost, Objectives.reuse]
+ pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
+ pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]"""
 strategic_model = create_model(
-    df_sets, df_parameters, default={"objective": Objectives.cost}
+    df_sets,
+    df_parameters,
+    default={
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+    },
 )
 
 # initialize pyomo solver

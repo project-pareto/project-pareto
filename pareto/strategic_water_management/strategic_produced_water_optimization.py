@@ -58,6 +58,16 @@ class Objectives(Enum):
     reuse = 1
 
 
+class PipelineCapacity(Enum):
+    calculated = 0
+    input = 1
+
+
+class PipelineCost(Enum):
+    distance_based = 0
+    capacity_based = 1
+
+
 # create config dictionary
 CONFIG = ConfigBlock()
 CONFIG.declare(
@@ -80,6 +90,36 @@ CONFIG.declare(
         domain=In(Objectives),
         description="alternate objectives selection",
         doc="Alternate objective functions (i.e., minimize cost, maximize reuse)",
+    ),
+)
+
+CONFIG.declare(
+    "pipeline_capacity",
+    ConfigValue(
+        default=PipelineCapacity.input,
+        domain=In(PipelineCapacity),
+        description="alternate pipeline capacity selection",
+        doc="""Alternate pipeline capacity selection (calculated or input)
+        ***default*** - PipelineCapacity.input
+        **Valid Values:** - {
+        **PipelineCapacity.input** - use input for pipeline capacity,
+        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters 
+        }""",
+    ),
+)
+
+CONFIG.declare(
+    "pipeline_cost",
+    ConfigValue(
+        default=PipelineCost.capacity_based,
+        domain=In(PipelineCost),
+        description="alternate pipeline cost selection",
+        doc="""Alternate pipeline capex cost structures (distance or capacity based)
+        ***default*** - PipelineCost.capacity_based
+        **Valid Values:** - {
+        **PipelineCost.capacity_based** - use pipeline capacities and rate in $/bbl to calculate pipeline capex costs,
+        **PipelineCost.distance_based** - use pipeline distances and rate in $/inchmile to calculate pipeline capex costs
+        }""",
     ),
 )
 
@@ -412,7 +452,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.vb_z_Disposal      = Var(model.s_K,model.s_I,model.s_T,within=Binary, doc='Timing of disposal facility installation at disposal site')
 
     ## Pre-process Data ##
-    df_parameters = _preprocess_data(df_parameters)
+    df_parameters = _preprocess_data(model, df_parameters)
 
     ## Define set parameters ##
 
@@ -923,13 +963,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Pipeline capacity installation/expansion increments [bbl/week]",
     )
 
-    model.p_mu_Pipeline = Param(
-        model.s_D,
-        default=0,
-        initialize=df_parameters["PipelineDiameterValues"],
-        doc="Pipeline capacity installation/expansion increments [inch]",
-    )
-
     model.p_delta_Disposal = Param(
         model.s_I,
         default=10,
@@ -1025,11 +1058,31 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment construction/expansion capital cost for selected increment [$/bbl]",
     )
 
-    model.p_kappa_Pipeline = Param(
-        default=120000,
-        initialize=df_parameters["PipelineExpansionCost"]["pipeline_expansion_cost"],
-        doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
-    )
+    if model.config.pipeline_cost == PipelineCost.distance_based:
+        model.p_kappa_Pipeline = Param(
+            default=120000,
+            initialize=df_parameters["PipelineCapexDistanceBased"][
+                "pipeline_expansion_cost"
+            ],
+            doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
+        )
+
+        model.p_mu_Pipeline = Param(
+            model.s_D,
+            default=0,
+            initialize=df_parameters["PipelineDiameterValues"],
+            doc="Pipeline capacity installation/expansion increments [inch]",
+        )
+
+    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        model.p_kappa_Pipeline = Param(
+            model.s_L,
+            model.s_L,
+            model.s_D,
+            default=30,
+            initialize=df_parameters["PipelineCapexCapacityBased"],
+            doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
+        )
 
     # model.p_kappa_Disposal.pprint()
     # model.p_kappa_Storage.pprint()
@@ -3392,7 +3445,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.TreatmentExpansionCapEx.pprint()
 
-    def PipelineExpansionCapExRule(model):
+    def PipelineExpansionCapExDistanceBasedRule(model):
         return model.v_C_PipelineCapEx == (
             sum(
                 sum(
@@ -3662,10 +3715,267 @@ def create_model(df_sets, df_parameters, default={}):
             )
         )
 
-    model.PipelineExpansionCapEx = Constraint(
-        rule=PipelineExpansionCapExRule,
-        doc="Pipeline construction or capacity expansion cost",
-    )
+    def PipelineExpansionCapExCapacityBasedRule(model):
+        return model.v_C_PipelineCapEx == (
+            sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, p_tilde, d]
+                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_PP
+                        if model.p_PCA[p, p_tilde]
+                    )
+                    for p_tilde in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, n, d]
+                        * model.p_kappa_Pipeline[p, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_PP
+                        if model.p_PNA[p, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, p_tilde, d]
+                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_PP
+                        if model.p_PPA[p, p_tilde]
+                    )
+                    for p_tilde in model.s_PP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, n, d]
+                        * model.p_kappa_Pipeline[p, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_CP
+                        if model.p_CNA[p, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, n_tilde, d]
+                        * model.p_kappa_Pipeline[n, n_tilde, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NNA[n, n_tilde]
+                    )
+                    for n_tilde in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, p, d]
+                        * model.p_kappa_Pipeline[n, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NCA[n, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, k, d]
+                        * model.p_kappa_Pipeline[n, k, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NKA[n, k]
+                    )
+                    for k in model.s_K
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, s, d]
+                        * model.p_kappa_Pipeline[n, s, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NSA[n, s]
+                    )
+                    for s in model.s_S
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, r, d]
+                        * model.p_kappa_Pipeline[n, r, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NRA[n, r]
+                    )
+                    for r in model.s_R
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, o, d]
+                        * model.p_kappa_Pipeline[n, o, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NOA[n, o]
+                    )
+                    for o in model.s_O
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[f, p, d]
+                        * model.p_kappa_Pipeline[f, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for f in model.s_F
+                        if model.p_FCA[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[r, n, d]
+                        * model.p_kappa_Pipeline[r, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for r in model.s_R
+                        if model.p_RNA[r, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[r, p, d]
+                        * model.p_kappa_Pipeline[r, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for r in model.s_R
+                        if model.p_RCA[r, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[r, k, d]
+                        * model.p_kappa_Pipeline[r, k, d]
+                        * model.p_delta_Pipeline[d]
+                        for r in model.s_R
+                        if model.p_RKA[r, k]
+                    )
+                    for k in model.s_K
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, n, d]
+                        * model.p_kappa_Pipeline[s, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SNA[s, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, p, d]
+                        * model.p_kappa_Pipeline[s, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SCA[s, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, k, d]
+                        * model.p_kappa_Pipeline[s, k, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SKA[s, k]
+                    )
+                    for k in model.s_K
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, r, d]
+                        * model.p_kappa_Pipeline[s, r, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SRA[s, r]
+                    )
+                    for r in model.s_R
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, o, d]
+                        * model.p_kappa_Pipeline[s, o, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SOA[s, o]
+                    )
+                    for o in model.s_O
+                )
+                for d in model.s_D
+            )
+        )
+
+    if model.config.pipeline_cost == PipelineCost.distance_based:
+        model.PipelineExpansionCapEx = Constraint(
+            rule=PipelineExpansionCapExDistanceBasedRule,
+            doc="Pipeline construction or capacity expansion cost",
+        )
+    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        model.PipelineExpansionCapEx = Constraint(
+            rule=PipelineExpansionCapExCapacityBasedRule,
+            doc="Pipeline construction or capacity expansion cost",
+        )
 
     def SlackCostsRule(model):
         return model.v_C_Slack == (
@@ -4069,7 +4379,7 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def _preprocess_data(_df_parameters):
+def _preprocess_data(model, _df_parameters):
     """
     This module pre-processess data to fit the optimization format.
     In this module the following data is preprocessed:
@@ -4077,35 +4387,35 @@ def _preprocess_data(_df_parameters):
     - Pipeline Expension Cost is converted to [$/bbl]
     parameter_list = [list of tabs that contain parameters]
     """
+    if model.config.pipeline_capacity == PipelineCapacity.calculated:
+        # Pipeline Capacity
+        # Pipeline diameter is converted to pipeline capacity (bbl/week) using
+        # Hazen-Williams equation.
+        # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
+        # Required inputs are:
+        # - pipeline diameter [inch]
+        # - pipe roughness []
+        # - max head loss
 
-    # Pipeline Capacity
-    # Pipeline diameter is converted to pipeline capacity (bbl/week) using
-    # Hazen-Williams equation.
-    # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
-    # Required inputs are:
-    # - pipeline diameter [inch]
-    # - pipe roughness []
-    # - max head loss
+        # retrieve roughness and max head loss
+        roughness = _df_parameters["Hydraulics"]["roughness"]
+        max_head_loss = _df_parameters["Hydraulics"]["max_head_loss"]
 
-    # retrieve roughness and max head loss
-    roughness = _df_parameters["Hydraulics"]["roughness"]
-    max_head_loss = _df_parameters["Hydraulics"]["max_head_loss"]
+        _df_parameters["PipelineCapacityIncrements"] = {}
+        for key in _df_parameters["PipelineDiameterValues"]:
+            diameter = _df_parameters["PipelineDiameterValues"][key]
+            flow_rate = (
+                (1 / 10.67) ** (1 / 1.852)
+                * roughness
+                * (max_head_loss ** 0.54)
+                * (diameter * 0.0254) ** 2.63
+            )
 
-    _df_parameters["PipelineCapacityIncrements"] = {}
-    for key in _df_parameters["PipelineDiameterValues"]:
-        diameter = _df_parameters["PipelineDiameterValues"][key]
-        flow_rate = (
-            (1 / 10.67) ** (1 / 1.852)
-            * roughness
-            * (max_head_loss ** 0.54)
-            * (diameter * 0.0254) ** 2.63
-        )
+            # convert to bbl/week:
+            flow_rate *= 6.28981 * (3600 * 24 * 7)
 
-        # convert to bbl/week:
-        flow_rate *= 6.28981 * (3600 * 24 * 7)
-
-        # add to parameter df.
-        _df_parameters["PipelineCapacityIncrements"][key] = flow_rate
+            # add to parameter df.
+            _df_parameters["PipelineCapacityIncrements"][key] = flow_rate
 
     # Annualization rate
     # The annualization rate is used using a discount rate and the lifetime
@@ -4190,7 +4500,9 @@ if __name__ == "__main__":
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
-        "PipelineExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
         "PipelineExpansionDistance",
         "Hydraulics",
     ]
