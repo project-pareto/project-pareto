@@ -4157,6 +4157,9 @@ def scale_model(model, scaling_factor=None):
     # Scaling constraints
     model.scaling_factor[model.CostObjectiveFunction] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[
+        model.BidirectionalFlow1
+    ] = 1  # This constraints contains only binary variables
     model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
     model.scaling_factor[model.CompletionsPadDemandBalance] = 1 / scaling_factor
     model.scaling_factor[model.CompletionsPadStorageBalance] = 1 / scaling_factor
@@ -4173,6 +4176,14 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.DisposalExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.FreshwaterSourcingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.FreshSourcingCost] = 1 / scaling_factor
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintDisposal] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintPipeline] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintStorage] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintTreatment] = 1
     model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
