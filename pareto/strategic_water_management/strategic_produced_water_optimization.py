@@ -948,6 +948,13 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment efficiency [%]",
     )
 
+    model.p_W_TreatmentComponent = Param(
+        model.s_R,
+        default="TDS",
+        within=model.s_W,
+        doc="Water quality component treated at site",
+    )
+
     model.p_delta_Pipeline = Param(
         model.s_D,
         default=0,
@@ -2356,7 +2363,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentBalanceRule(model, r, t):
         return (
-            model.p_epsilon_Treatment[r, "TDS"]
+            model.p_epsilon_Treatment[r, model.p_W_TreatmentComponent[r]]
             * (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
                 + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
@@ -4185,9 +4192,10 @@ def water_quality(model, df_parameters, df_sets):
 
     # region Add sets, parameters and constraints
 
-    # Crate a set for Completions Pad storage by appending "-storage" to each item in the CompletionsPads Set
+    # Create a set for Completions Pad storage by appending the storage label to each item in the CompletionsPads Set
+    storage_label = "-storage"
     df_sets["CompletionsPadsStorage"] = [
-        p + "-storage" for p in df_sets["CompletionsPads"]
+        p + storage_label for p in df_sets["CompletionsPads"]
     ]
     model.quality.s_CP_Storage = Set(
         initialize=df_sets["CompletionsPadsStorage"],
@@ -4195,8 +4203,9 @@ def water_quality(model, df_parameters, df_sets):
     )
 
     # Create a set for water quality at Completions Pads intermediate flows (i.e. the blended trucked and piped water to pad)
+    intermediate_label = "-intermediate"
     df_sets["CompletionsPadsIntermediate"] = [
-        p + "-intermediate" for p in df_sets["CompletionsPads"]
+        p + intermediate_label for p in df_sets["CompletionsPads"]
     ]
     model.quality.s_CP_Intermediate = Set(
         initialize=df_sets["CompletionsPadsIntermediate"],
@@ -4224,7 +4233,7 @@ def water_quality(model, df_parameters, df_sets):
         model.s_F,
         model.s_W,
         default=0,
-        initialize=1000,
+        initialize=0,
         doc="Water Quality of freshwater [mg/L]",
     )
     # Initial water quality at storage site
@@ -4624,7 +4633,7 @@ def water_quality(model, df_parameters, df_sets):
             for f in b.parent_block().s_F
             if b.parent_block().p_FCT[f, p]
         ) == b.v_Q[
-            p + "-intermediate", w, t
+            p + intermediate_label, w, t
         ] * (
             b.parent_block().v_F_PadStorageIn[p, t]
             + b.parent_block().v_F_CompletionsWater[p, t]
@@ -4640,9 +4649,9 @@ def water_quality(model, df_parameters, df_sets):
 
     def CompletionsPadWaterQuality(b, p, w, t):
         return (
-            b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[p + "-storage", w, t]
+            b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[p + storage_label, w, t]
             + b.parent_block().v_F_CompletionsWater[p, t]
-            * b.v_Q[p + "-intermediate", w, t]
+            * b.v_Q[p + intermediate_label, w, t]
             == b.v_Q[p, w, t] * b.parent_block().p_gamma_Completions[p, t]
         )
 
@@ -4660,25 +4669,25 @@ def water_quality(model, df_parameters, df_sets):
         if t == b.parent_block().s_T.first():
             return b.p_xi_PadStorage[p, w] * b.parent_block().p_lambda_PadStorage[
                 p
-            ] + b.v_Q[p + "-intermediate", w, t] * b.parent_block().v_F_PadStorageIn[
+            ] + b.v_Q[p + intermediate_label, w, t] * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
-                p + "-storage", w, t
+                p + storage_label, w, t
             ] * (
                 b.parent_block().v_L_PadStorage[p, t]
                 + b.parent_block().v_F_PadStorageOut[p, t]
             )
         else:
             return b.v_Q[
-                p + "-storage", w, b.parent_block().s_T.prev(t)
+                p + storage_label, w, b.parent_block().s_T.prev(t)
             ] * b.parent_block().v_L_PadStorage[
                 p, b.parent_block().s_T.prev(t)
             ] + b.v_Q[
-                p + "-intermediate", w, t
+                p + intermediate_label, w, t
             ] * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
-                p + "-storage", w, t
+                p + storage_label, w, t
             ] * (
                 b.parent_block().v_L_PadStorage[p, t]
                 + b.parent_block().v_F_PadStorageOut[p, t]

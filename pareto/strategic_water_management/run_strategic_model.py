@@ -21,7 +21,6 @@ from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
 from pareto.utilities.solvers import get_solver, set_timeout
 
-# from pyomo.opt import SolverStatus, TerminationCondition
 
 import pandas as pd
 
