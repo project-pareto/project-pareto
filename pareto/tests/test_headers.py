@@ -18,9 +18,11 @@ from pathlib import Path
 import os
 
 # third-party
-from addheader.add import FileFinder, detect_files
 import pytest
 import yaml
+
+_ = pytest.importorskip("addheader", reason="addheader not available")
+from addheader.add import FileFinder, detect_files
 
 
 @pytest.fixture
