@@ -1,0 +1,17 @@
+
+
+PR #81 (11/19/2021)
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Rename "PipelineExpansionCost" to "PipelineCapexDistanceBased"
+	• Add "PipelineCapacityIncrements" from "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" on Box
+	• Add "PipelineCapexCapacityBased" from  tab called "PipelineExpansionCost" in "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" on box
+	• Update "PipelineExpansionDistance" to be 1/130th of original distance to be in range per Karen's feedback
+
+Small Case (small_strategic_case_study.xlsx)
+	• Rename "PipelineExpansionCost" to "PipelineCapexDistanceBased"
+	• Add "PipelineCapacityIncrements" from "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" on Box
+		• Edit to only include values for "D0"
+	• Add "PipelineCapexCapacityBased" from  tab called "PipelineExpansionCost" from "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" in box
+	• Update "PipelineExpansionDistance" to be 1/130th of original distance to be in range per Karen's feedback
