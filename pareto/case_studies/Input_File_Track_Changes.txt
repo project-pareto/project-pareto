@@ -1,0 +1,33 @@
+
+PR Unit Conversion (3/11/2022)
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Add a new tab "TimePeriodSetup" with parameter "days_in_period"
+	• Convert values on the following tabs from bbl/day to bbl/week: (CompletionsDemand, PadRates, FlowbackRates,InitialPipelineCapacity,
+	InitialDisposalCapacity, InitialTreatmentCapacity, FreshwaterSourcingAvailability, PadOffloadingCapacity, DisposalCapacityIncrements,
+	TreatmentCapacityIncrements, PipelineCapacityIncrements)
+	• Update the label (not values) of units on the following tabs from $/bbl to $/bbl/day: (DisposalExpansionCost, TreatmentExpansionCost, PipelineCapexCapacityBased)
+
+Small Case (small_strategic_case_study.xlsx)
+	• Add a new tab "TimePeriodSetup" with parameter "days_in_period"
+	• Convert values on the following tabs from bbl/day to bbl/week: (CompletionsDemand, PadRates, FlowbackRates,InitialPipelineCapacity,
+	InitialDisposalCapacity, InitialTreatmentCapacity, FreshwaterSourcingAvailability, PadOffloadingCapacity, DisposalCapacityIncrements,
+	TreatmentCapacityIncrements, PipelineCapacityIncrements)
+	• Update the label (not values) of units on the following tabs from $/bbl to $/bbl/day: (DisposalExpansionCost, TreatmentExpansionCost, PipelineCapexCapacityBased)
+
+
+PR #81 (11/19/2021)
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Rename "PipelineExpansionCost" to "PipelineCapexDistanceBased"
+	• Add "PipelineCapacityIncrements" from "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" on Box
+	• Add "PipelineCapexCapacityBased" from  tab called "PipelineExpansionCost" in "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" on box
+	• Update "PipelineExpansionDistance" to values that yield preferred case study results (values from Andres)
+
+Small Case (small_strategic_case_study.xlsx)
+	• Rename "PipelineExpansionCost" to "PipelineCapexDistanceBased"
+	• Add "PipelineCapacityIncrements" from "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" on Box
+		• Edit to only include values for "D0"
+	• Add "PipelineCapexCapacityBased" from  tab called "PipelineExpansionCost" from "input_data_generic_strategic_case_study_LAYFLAT_FULL - 20211018-2" in box
+	• Update "PipelineExpansionDistance" to values that yield preferred case study results (values from Andres)
