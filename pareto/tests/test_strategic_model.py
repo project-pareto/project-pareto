@@ -103,6 +103,7 @@ def build_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "TimePeriodSetup",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -210,6 +211,7 @@ def build_reduced_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "TimePeriodSetup",
     ]
 
     # note the double backslashes '\\' in that path reference
