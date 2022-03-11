@@ -34,6 +34,7 @@ def input_data():
     return {
         "pareto_var": df_parameters["test_plot_sankey"],
         "labels": [("Origin", "Destination", "Time", "Value")],
+        "days_in_period": 7,
     }
 
 
@@ -65,6 +66,7 @@ def input_data_single_period():
         "pareto_var": df_parameters["test_plot_sankey"],
         "labels": [("Origin", "Destination", "Time", "Value")],
         "time_period": ["T01"],
+        "days_in_period": 7,
     }
 
 

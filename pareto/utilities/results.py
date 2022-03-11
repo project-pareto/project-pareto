@@ -36,7 +36,7 @@ def generate_report(model, is_print=[], fname=None):
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
     IMPORTANT: If an indexed variable is added or removed from a model, the printing lists and headers should be updated
-    accrodingly.
+    accordingly.
     """
     # Printing model sets, parameters, constraints, variable values
 
@@ -456,7 +456,7 @@ def generate_report(model, is_print=[], fname=None):
 def plot_sankey(input_data={}, args=None):
 
     """
-    This method receives data in the form of 3 seperate lists (origin, destination, value lists), generate_report dictionary
+    This method receives data in the form of 3 separate lists (origin, destination, value lists), generate_report dictionary
     output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
     proper indexes can be assigned for each list so that the elements will correspond with each other based off of the indexes.
     These lists are then passed into the outlet_flow method which gives an output which is passed into the method to generate the
@@ -617,7 +617,7 @@ def plot_sankey(input_data={}, args=None):
             & (sum_df["destination"] == row["destination"]),
             "value",
         ].sum()
-        sum_df.at[index, "value"] = new_value
+        sum_df.at[index, "value"] = input_data["days_in_period"] * new_value
 
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
