@@ -136,7 +136,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -157,7 +157,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -178,7 +178,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -199,7 +199,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -326,7 +326,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -349,7 +349,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -372,7 +372,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
