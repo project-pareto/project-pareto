@@ -386,7 +386,13 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_reduced_strategic_model(build_reduced_strategic_model):
-    m = build_reduced_strategic_model
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
     solver = get_solver("cbc")
     solver.options["seconds"] = 60 * 7
     results = solver.solve(m, tee=False)

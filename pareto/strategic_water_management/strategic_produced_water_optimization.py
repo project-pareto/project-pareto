@@ -352,7 +352,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         doc="Total deliveries to Beneficial Reuse Site [bbl/week]",
     )
-    model.v_F_CompletionsWater = Var(
+    model.v_F_CompletionsDestination = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
@@ -4406,7 +4406,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsWaterDeliveriesRule(model, p, t):
-        return model.v_F_CompletionsWater[p, t] == (
+        return model.v_F_CompletionsDestination[p, t] == (
             sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
             + sum(
                 model.v_F_Piped[p_tilde, p, t]
@@ -4946,7 +4946,7 @@ def water_quality(model, df_parameters, df_sets):
             p + intermediate_label, w, t
         ] * (
             b.parent_block().v_F_PadStorageIn[p, t]
-            + b.parent_block().v_F_CompletionsWater[p, t]
+            + b.parent_block().v_F_CompletionsDestination[p, t]
         )
 
     model.quality.CompletionsPadIntermediateWaterQuality = Constraint(
@@ -4960,7 +4960,7 @@ def water_quality(model, df_parameters, df_sets):
     def CompletionsPadWaterQuality(b, p, w, t):
         return (
             b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[p + storage_label, w, t]
-            + b.parent_block().v_F_CompletionsWater[p, t]
+            + b.parent_block().v_F_CompletionsDestination[p, t]
             * b.v_Q[p + intermediate_label, w, t]
             == b.v_Q[p, w, t] * b.parent_block().p_gamma_Completions[p, t]
         )
