@@ -21,6 +21,8 @@ from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
+    PipelineCost,
+    PipelineCapacity,
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -99,7 +101,9 @@ def build_strategic_model():
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
-        "PipelineExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
@@ -114,31 +118,108 @@ def build_strategic_model():
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-    # create mathematical model
-    strategic_model = create_model(
-        df_sets, df_parameters, default={"objective": Objectives.cost}
-    )
-    return strategic_model
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            strategic_model = create_model(df_sets, df_parameters, config_dict)
+            return strategic_model
+
+    return _call_model_with_config
 
 
 @pytest.mark.unit
-def test_basic_build(build_strategic_model):
+def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_strategic_model
-    assert degrees_of_freedom(m) == 64048
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+    assert degrees_of_freedom(m) == 63944
     # Check unit config arguments
-    assert len(m.config) == 2
+    assert len(m.config) == 4
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+    assert degrees_of_freedom(m) == 63944
+    # Check unit config arguments
+    assert len(m.config) == 4
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+    assert degrees_of_freedom(m) == 63944
+    # Check unit config arguments
+    assert len(m.config) == 4
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+    assert degrees_of_freedom(m) == 63944
+    # Check unit config arguments
+    assert len(m.config) == 4
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
 
 
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_strategic_model(build_strategic_model):
-    m = build_strategic_model
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
@@ -208,7 +289,9 @@ def build_reduced_strategic_model():
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
-        "PipelineExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
@@ -223,25 +306,81 @@ def build_reduced_strategic_model():
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-    # create mathematical model
-    strategic_model = create_model(
-        df_sets, df_parameters, default={"objective": Objectives.cost}
-    )
-    return strategic_model
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            reduced_strategic_model = create_model(df_sets, df_parameters, config_dict)
+            return reduced_strategic_model
+
+    return _call_model_with_config
 
 
 @pytest.mark.unit
-def test_basic_reduced_build(build_reduced_strategic_model):
+def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
+    build_reduced_strategic_model,
+):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_reduced_strategic_model
-    assert degrees_of_freedom(m) == 63173
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+    assert degrees_of_freedom(m) == 63069
     # Check unit config arguments
-    assert len(m.config) == 2
+    assert len(m.config) == 4
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_basic_reduced_build_capex_capacity_based_capacity_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+    assert degrees_of_freedom(m) == 63069
+    # Check unit config arguments
+    assert len(m.config) == 4
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_basic_reduced_build_capex_distance_based_capacity_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+    assert degrees_of_freedom(m) == 63069
+    # Check unit config arguments
+    assert len(m.config) == 4
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
 
 
 # if solver cbc exists @solver
