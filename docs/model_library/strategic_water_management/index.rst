@@ -1026,7 +1026,7 @@ The process for calculating water quality is as follows: the strategic model is 
 
 Assumptions:
 
-* Water quality at a production pad or completions pad remains the same across all time periods
+* Water quality of produced water from production pads and completions pads remains the same across all time periods
 * When blending flows of different water quality, they blend linearly
 * Treatment does not affect water quality
 
@@ -1111,14 +1111,14 @@ The water quality at nodes is dependent on the flow rates into the node and the 
 
     +∑_{(n,s)∈NSA}\textcolor{purple}{F_{l,l,t}^{Piped}} +∑_{(n,o)∈NOA}\textcolor{purple}{F_{l,l,t}^{Piped}})
 
-
-
-**Completions Pad Intermediate Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
-
-.. note::
+.. admonition:: Water Quality at Completions Pads
 
     Water that is Piped and Trucked to a completions pad is mixed and split into two output streams: Stream (1) goes to the completions pad and stream (2) is input to the completions storage.
     This mixing happens at an intermediate node. Finally, water that meets completions demand comes from two inputs: The first input is output stream (1) from the intermediate step. The second is outgoing flow from the storage tank.
+
+**Completions Pad Intermediate Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
+
+The water quality at the completions pad intermediate node is dependent on the flow rates of water from outside of the pad to the pad. Even mixing is assumed, so the water to storage and water to completions input have the same water quality.
 
 .. math::
 
@@ -1134,6 +1134,8 @@ The water quality at nodes is dependent on the flow rates into the node and the 
 
 **Completions Pad Input Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
 
+The water quality at the completions pad input is dependent on the flow rates of water from pad storage and water from the intermediate node. Even mixing is assumed, so all water into the pad is of the same water quality.
+
 .. math::
 
     \textcolor{purple}{F_{p,t}^{PadStorageOut}}⋅\textcolor{red}{Q_{p^{PadStorage},w,t}}+\textcolor{purple}{F_{p,t}^{CompletionsDestination}}⋅\textcolor{red}{Q_{p^{IntermediateNode},w,t}}
@@ -1142,6 +1144,9 @@ The water quality at nodes is dependent on the flow rates into the node and the 
 
 
 **Completions Pad Storage Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
+
+The water quality at pad storage sites is dependent on the flow rates into the pad storage site, the volume of water in pad storage in the previous time period, and the quality of each of these flows. Even mixing is assumed, so the outgoing flow to completions pad and water in storage at the end of the period have the same water quality. If it is the first time period, the initial storage level and initial water quality replaces the water stored and water quality in the previous time period, respectively.
+
 
 .. math::
 
