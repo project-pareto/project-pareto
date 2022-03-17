@@ -172,6 +172,9 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_CompletionsWater_dict": [
                 ("Pads", "Time", "Deliveries to completions not stored")
             ],
+            "v_F_CompletionsDestination_dict": [
+                ("Pads", "Time", "Total deliveries to completions pads")
+            ],
         }
 
         # Defining KPIs for strategic model
