@@ -16,6 +16,8 @@ The following functions are used to conveniently display and analyze data.
 +----------------------+---------------------------------------+
 | plot_bars            | :ref:`results_plot_bars`              |
 +----------------------+---------------------------------------+
+| plot_scatter         | :ref:`results_plot_scatter            |
++----------------------+---------------------------------------+
 
 
 
@@ -144,15 +146,14 @@ This method requires two parameters:
 
 Example of how this method is used::
 
- args = {"font_size": 15, "plot_title": "Completion Storage", "output_file": "..\\first_sankey.png"}
+ args = {"font_size": 15,
+        "plot_title": "Completion Storage",
+        "output_file": "..\\first_sankey.png"}
 
  input_data = {"pareto_var": df_parameters["v_f_Trucked"]
-
-                 "labels": [("Origin", "Destination", "Time", "Trucked Water")]}
+                "labels": [("Origin", "Destination", "Time", "Trucked Water")]}
 
  plot_sankey(input_data, args)
-
-
 
 
 .. _results_plot_bars :
@@ -179,7 +180,7 @@ This method requires two parameters:
 
     *"pareto_var"*– This parameter contains the data that the user wants to use
 
-    *“labels”*– This parameter contains the labels for the data provided
+    *"labels"*– This is a tuple that contains the labels for each column of the data provided.
 
 
 
@@ -194,10 +195,104 @@ This method requires two parameters:
 
 Example of how this method is used::
 
-  args = {"plot_title": "Completion Storage", "y_axis": "log", "group_by": "Destination", "output_file": "first_bar.html"}
+  args = {"plot_title": "Completion Storage",
+            "y_axis": "log",
+            "group_by": "Destination",
+            "output_file": "first_bar.html"}
 
   input_data = {"pareto_var": df_parameters["v_f_PadStorage"]
-
-                  "labels": [("Completion Pad", "Time", "Storage Levels")]}
+                "labels": [("Completion Pad", "Time", "Storage Levels")]}
 
   plot_bars(input_data, args)
+
+
+  .. _results_plot_scatter :
+
+Plot Scatter
+---------
+
+**Method Description:**
+
+This method creates the scatter plot that is generated from the variable data that the user passes in. It creates either an animated scatter plot(if the variable is indexed by time) or a static scatter plot.
+
+
+.. figure:: plot_scatter_1.png
+    :width: 800
+    :align: center
+
+    Figure 5. Animated Scatter Chart. Notice the time period slider at the bottom.
+
+**How to Use**
+
+This method requires two parameters:
+
+1.) An input data dictionary that include the variables for x and y axis, a size parameter, and labels parameters that provides a tuple of labels (only required for get_data() format) for x, y, and size variables.
+
+    *"pareto_var"*– This parameter contains the data that the user wants to use.
+
+    *"labels"*– This is a tuple that contains the labels for each column of the data provided.
+
+    *"size"*- This specifies what will be used for the size of each individual marker on the plot. If the size parameter is not provided, a default size is given to all the markers. There are 3 options for the size parameter:
+        - "x/y" - This specifies that size will be calculated as a ratio of the x variable data over the y variable data
+        - "y/x" - This specifies that size will be calculated as a ratio of the y variable data over the x variable data
+        - A Pareto variable that contains data for the size of the bubbles. The data must match the column used for grouping the data in the option "group_by".
+
+.. figure:: plot_scatter_4.png
+    :width: 800
+    :align: center
+
+    Figure 6. Options for specifying the bubbles size.
+
+2.) A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
+
+    *"group_by"* - This specifies what field will be used as the x axis in the plot. The column name should be used to indicate how to group the data.
+    If "group_by" is not specified, then first column is used.
+
+    *"output_file"* - This parameter is used to name a file that the figure will be output to. It can be a file path such as “..\\first_figure.html” or just the file name itself “first_figure.html”.
+    There will always need to be a specified extension to the file. The accepted file extensions are as follows: .html, .png, .jpg, .jpeg, .svg, .pdf
+
+    *"print_data"* - The PARETO methods allow the user to specify if they want the plotted data to be printed in the console (default is False):
+        - True: The dataframe used for creating the figure is printed in the console
+
+.. figure:: plot_scatter_2.png
+    :width: 800
+    :align: center
+
+    Figure 7. Setting print_data to True will print out a dataframe for easy inspection.
+
+    *"group_by_category"* - This specifies how the color of the nodes will be assigned for easy visualization. There are 3 options:
+        - True: This will cause the color of the chart markers to be grouped based on the names of the nodes. For example: PP, CP, N, R, S, K, etc 
+        will be assigned a unique color.
+
+        - False: The data won't be categorized by color, therefore one color will be used for the chart markers.
+
+        - A Pareto variable containing a custom categorization. The method will recognize the variable automatically and the values in this variable 
+        will be used for assigning colors to the categories that are provided. An excel sheet should be created with all Node names, removing all duplicates,
+        and assigning a numerical value to each specific node with the category the user would like it to be associated with. This approach is best for 
+        the situations where nodes of different types are to be categorized together.
+
+.. figure:: plot_scatter_3.png
+    :width: 800
+    :align: center
+
+    Figure 8. Data used for custom categories.
+
+
+Example of how this method can be used::
+
+  args = {"plot_title": "Trucked Water",
+            "y_axis": "log",
+            "group_by": "Origin",
+            "output_file": "first_bar.html",
+            "print_data": True,
+            "group_by_category": df_parameters["plot_scatter_categories"]}
+
+  input_data = {"pareto_var_x": df_parameters["plot_scatter_vFPiped"],
+                "pareto_var_y": df_parameters["plot_scatter_vCPiped"],
+                "size": df_parameters["plot_scatter_vSize"], # 'x/y', 'y/x'
+                "labels_x": [("Origin", "Destination", "Time", "Trucked Water")],
+                "labels_y": [("Origin", "Destination", "Time", "Cost of Trucked Water")],
+                "labels_size": [("Origin", "Destination", "Time", "Size")],
+                }
+
+  plot_scatter(input_data, args)
