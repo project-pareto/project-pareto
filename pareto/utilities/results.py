@@ -961,7 +961,14 @@ def plot_bars(input_data, args):
 
         if print_data:
             # Printing dataframe that is used in bar chart
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None,'display.precision', 1):  
+            with pd.option_context(
+                "display.max_rows",
+                None,
+                "display.max_columns",
+                None,
+                "display.precision",
+                1,
+            ):
                 print(df_time_sort)
 
         # Write the figure to html format and open in the browser
@@ -1023,7 +1030,14 @@ def plot_bars(input_data, args):
 
         if print_data:
             # Printing dataframe that is used in bar chart
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None,'display.precision', 1):  
+            with pd.option_context(
+                "display.max_rows",
+                None,
+                "display.max_columns",
+                None,
+                "display.precision",
+                1,
+            ):
                 print(df_new_updated)
 
         if ".html" in figure_output:
@@ -1043,18 +1057,18 @@ def plot_bars(input_data, args):
 
 def plot_scatter(input_data, args):
 
-    '''
-    The plot_scatter method creates a scatter plot based on two variables that are assigned to x and y, 
-    and a dictionary of arguments including labels, size specifications, group by and chart title. The variables 
-    that are passed in can be of type list (generate_report format) and of type dictionary (get_data format). Labels and 
+    """
+    The plot_scatter method creates a scatter plot based on two variables that are assigned to x and y,
+    and a dictionary of arguments including labels, size specifications, group by and chart title. The variables
+    that are passed in can be of type list (generate_report format) and of type dictionary (get_data format). Labels and
     size arguments are then interpreted/assigned appropriately to create the scatter plots. This method will produce two different
-    kinds of scatter plots depending on if the variables are indexed by time or not. If they are indexed by time, an animated plot 
-    will be created, if they are not indexed by time, a static plot will be created. Before the manipulation and framing of this data 
+    kinds of scatter plots depending on if the variables are indexed by time or not. If they are indexed by time, an animated plot
+    will be created, if they are not indexed by time, a static plot will be created. Before the manipulation and framing of this data
     is completed, missing values in the datasets are detected and mitigated by giving them a value of 0 if none is provided. The size argument
     is then sorted out either by calculating the ratio that the user provided as 'y/x' or 'x/y', or taking the variable that was provided
     for the size argument and assigning those size values to their respective rows. Once these data modifications are completed, the scatter plot
     is created with the data and arguments that are provided.
-    '''
+    """
     # Suppress SettingWithCopyWarning because of false positives
     pd.options.mode.chained_assignment = None
 
@@ -1071,19 +1085,19 @@ def plot_scatter(input_data, args):
     print_data = False
     group_by_category = False
     category_variable = None
-    size = 'Size'
-    format_checklist = ['jpg', 'jpeg', 'pdf', 'png', 'svg']
-    figure_output = ''
+    size = "Size"
+    format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
+    figure_output = ""
 
-    # Checks if output_file has been passed in as a user argument 
+    # Checks if output_file has been passed in as a user argument
     if "output_file" not in args.keys() or args["output_file"] is None:
         figure_output = "first_scatter_plot.html"
     else:
         figure_output = args["output_file"]
 
     # Assigns boolean variable to True if labels have been provided in the arguments
-    check_list = ['labels_x', 'labels_y']
-    if  all(x in input_data.keys() for x in check_list):
+    check_list = ["labels_x", "labels_y"]
+    if all(x in input_data.keys() for x in check_list):
         has_labels = True
     else:
         has_labels = False
@@ -1092,29 +1106,31 @@ def plot_scatter(input_data, args):
     if "print_data" in args.keys():
         print_data = args["print_data"]
 
-    # Checking for size argument and checking the type 
-    if 'size' in input_data.keys():
-        s_variable = input_data['size']
+    # Checking for size argument and checking the type
+    if "size" in input_data.keys():
+        s_variable = input_data["size"]
         provided_size = True
         if isinstance(s_variable, list):
             is_list = True
         elif isinstance(s_variable, dict):
             is_dict = True
 
-    # Check if group by category argument was provided   
-    if 'group_by_category' in args.keys():
-        if isinstance(args['group_by_category'], bool):
-            group_by_category = args['group_by_category']
-        elif isinstance(args['group_by_category'], dict):
-            category_variable = args['group_by_category']
+    # Check if group by category argument was provided
+    if "group_by_category" in args.keys():
+        if isinstance(args["group_by_category"], bool):
+            group_by_category = args["group_by_category"]
+        elif isinstance(args["group_by_category"], dict):
+            category_variable = args["group_by_category"]
             for c in category_variable:
                 category_list.append((c, category_variable[c]))
-            df_category = pd.DataFrame(category_list, columns=['Node', 'Category'])
-        elif isinstance(args['group_by_category'], list):
-            category_variable = args['group_by_category'][1:]
-            df_category = pd.DataFrame(category_variable, columns=['Node', 'Category'])
+            df_category = pd.DataFrame(category_list, columns=["Node", "Category"])
+        elif isinstance(args["group_by_category"], list):
+            category_variable = args["group_by_category"][1:]
+            df_category = pd.DataFrame(category_variable, columns=["Node", "Category"])
         else:
-            raise Exception('Invalid type for argument "group_by_category". Must be of type boolean, list variable or dictionary variable.')
+            raise Exception(
+                'Invalid type for argument "group_by_category". Must be of type boolean, list variable or dictionary variable.'
+            )
 
     variable_x = input_data["pareto_var_x"]
     variable_y = input_data["pareto_var_y"]
@@ -1125,17 +1141,19 @@ def plot_scatter(input_data, args):
             g = [l.title() for l in g]
         x_title = i[-1]
         y_title = g[-1]
-        if args['group_by'] is not None:
-            col_1 = args['group_by']
+        if args["group_by"] is not None:
+            col_1 = args["group_by"]
         else:
             col_1 = i[0]
-        if 'Time' in i and 'Time' in g:
+        if "Time" in i and "Time" in g:
             indexed_by_time = True
-            time = 'Time'
-        elif 'Time' not in i and 'Time' not in g:
+            time = "Time"
+        elif "Time" not in i and "Time" not in g:
             indexed_by_time = False
         else:
-            raise Exception('Cannot create scatter plot unless BOTH variables are/are not indexed by time')
+            raise Exception(
+                "Cannot create scatter plot unless BOTH variables are/are not indexed by time"
+            )
         formatted_variable_x = variable_x[1:]
         formatted_variable_y = variable_y[1:]
 
@@ -1144,8 +1162,10 @@ def plot_scatter(input_data, args):
             for s in s_variable[:1]:
                 s = [s.title() for j in s]
             s_title = s[-1]
-            if indexed_by_time and 'Time' not in s:
-                raise Exception('Both x and y variables are indexed by time. Size variable must also be indexed by time to create scatter plot.')
+            if indexed_by_time and "Time" not in s:
+                raise Exception(
+                    "Both x and y variables are indexed by time. Size variable must also be indexed by time to create scatter plot."
+                )
             s_variable = s_variable[1:]
     elif isinstance(variable_x, dict) and isinstance(variable_y, dict):
         formatted_list_x = []
@@ -1171,25 +1191,29 @@ def plot_scatter(input_data, args):
             formatted_list_x.append((*l, variable_x[l]))
             formatted_list_y.append((*k, variable_y[k]))
         if has_labels:
-            for i in input_data['labels_x']:
+            for i in input_data["labels_x"]:
                 i = [j.title() for j in i]
             x_title = i[-1]
-            for g in input_data['labels_y']:
+            for g in input_data["labels_y"]:
                 g = [r.title() for r in g]
             y_title = g[-1]
-            if args['group_by'] is not None:
-                col_1 = args['group_by']
+            if args["group_by"] is not None:
+                col_1 = args["group_by"]
             else:
                 col_1 = i[0]
-            if 'Time' in i and 'Time' in g:
+            if "Time" in i and "Time" in g:
                 indexed_by_time = True
-                time = 'Time'
-            elif 'Time' not in i and 'Time' not in g:
+                time = "Time"
+            elif "Time" not in i and "Time" not in g:
                 indexed_by_time = False
             else:
-                raise Exception('Cannot create scatter plot unless BOTH variables are/are not indexed by time')
+                raise Exception(
+                    "Cannot create scatter plot unless BOTH variables are/are not indexed by time"
+                )
         else:
-            raise Exception('User must provide labels for both x and y when using Get_data format.')
+            raise Exception(
+                "User must provide labels for both x and y when using Get_data format."
+            )
         formatted_variable_x = formatted_list_x
         formatted_variable_y = formatted_list_y
 
@@ -1199,16 +1223,22 @@ def plot_scatter(input_data, args):
             for v in s_variable:
                 size_list.append((*v, s_variable[v]))
             s_variable = size_list
-            if 'labels_size' in input_data.keys():
-                for s in input_data['labels_size']:
+            if "labels_size" in input_data.keys():
+                for s in input_data["labels_size"]:
                     s = [k.title() for k in s]
                 s_title = s[-1]
-                if indexed_by_time and 'Time' not in s:
-                    raise Exception('Both x and y variables are indexed by time. Size variable must also be indexed by time to create scatter plot.')
+                if indexed_by_time and "Time" not in s:
+                    raise Exception(
+                        "Both x and y variables are indexed by time. Size variable must also be indexed by time to create scatter plot."
+                    )
             else:
-                raise Exception('User must provide labels for the size variable ')
+                raise Exception("User must provide labels for the size variable ")
     else:
-        raise Exception('Type of data {0} or {1} is not supported. Available options are list and dictionary. Both variables must be the same type of data.'.format(type(variable_x), type(variable_y)))
+        raise Exception(
+            "Type of data {0} or {1} is not supported. Available options are list and dictionary. Both variables must be the same type of data.".format(
+                type(variable_x), type(variable_y)
+            )
+        )
 
     if indexed_by_time:
 
@@ -1222,35 +1252,39 @@ def plot_scatter(input_data, args):
         df_modified_y = df_new_y[[col_1, time, y_title]]
 
         # Check if time period is in datetime format or in letter number format
-        char_checklist = ['/', '-']
-        removed_char = ''
+        char_checklist = ["/", "-"]
+        removed_char = ""
         if any(x in df_modified_x[time][0] for x in char_checklist):
             df_modified_x[time] = pd.to_datetime(df_modified_x[time]).dt.date
             df_modified_y[time] = pd.to_datetime(df_modified_y[time]).dt.date
             date_time = True
         else:
-            removed_char = df_modified_x[time][0][:1]   
-            df_modified_x[time] = df_modified_x[time].apply(lambda x: x.strip(removed_char))
-            df_modified_y[time] = df_modified_y[time].apply(lambda x: x.strip(removed_char))
+            removed_char = df_modified_x[time][0][:1]
+            df_modified_x[time] = df_modified_x[time].apply(
+                lambda x: x.strip(removed_char)
+            )
+            df_modified_y[time] = df_modified_y[time].apply(
+                lambda x: x.strip(removed_char)
+            )
 
             df_modified_x[time] = df_modified_x[time].apply(lambda x: pd.to_numeric(x))
             df_modified_y[time] = df_modified_y[time].apply(lambda x: pd.to_numeric(x))
 
         # Creates time list from data frame to be used to assign values to nodes without values for each time frame
         for d, y in df_modified_x.iterrows():
-                time_list.append(y[time])   
+            time_list.append(y[time])
         for c, f in df_modified_y.iterrows():
-                time_list.append(f[time])
-        
+            time_list.append(f[time])
+
         time_loop = set(time_list)
         time_loop = sorted(time_loop)
 
-        #Loop through time list and give any nodes without a value for that time a value of 0
+        # Loop through time list and give any nodes without a value for that time a value of 0
         for x_ind, x in df_modified_x.iterrows():
             time_value = df_modified_x.loc[df_modified_x[col_1] == x[col_1], time]
             x_vals = [z for z in time_loop if z not in time_value.values]
             for t in x_vals:
-                df_modified_x.loc[len(df_modified_x.index)] = [x[col_1], t, 0.0] 
+                df_modified_x.loc[len(df_modified_x.index)] = [x[col_1], t, 0.0]
 
         for y_ind, u in df_modified_y.iterrows():
             time_value = df_modified_y.loc[df_modified_y[col_1] == u[col_1], time]
@@ -1259,113 +1293,168 @@ def plot_scatter(input_data, args):
                 df_modified_y.loc[len(df_modified_y.index)] = [u[col_1], t, 0.0]
 
         # Finding duplicates in dataframe and dropping them
-        df_dup_x = df_modified_x[df_modified_x.duplicated(subset=[col_1,time], keep=False)]
-        df_dup_y = df_modified_y[df_modified_y.duplicated(subset=[col_1,time], keep=False)]
+        df_dup_x = df_modified_x[
+            df_modified_x.duplicated(subset=[col_1, time], keep=False)
+        ]
+        df_dup_y = df_modified_y[
+            df_modified_y.duplicated(subset=[col_1, time], keep=False)
+        ]
 
-        df_dup_x = df_dup_x.drop_duplicates(subset=[col_1, time], keep='first')
-        df_dup_y = df_dup_y.drop_duplicates(subset=[col_1, time], keep='first')
+        df_dup_x = df_dup_x.drop_duplicates(subset=[col_1, time], keep="first")
+        df_dup_y = df_dup_y.drop_duplicates(subset=[col_1, time], keep="first")
 
         # Looping through dataframe and summing the total values of each node and assigning it to its instance
         for index, row in df_dup_x.iterrows():
-                new_x_value = 0
-                new_x_value = df_modified_x.loc[(df_modified_x[col_1] == row[col_1]) & (df_modified_x[time] == row[time]), x_title].sum()
-                df_modified_x.at[index, x_title] = new_x_value
+            new_x_value = 0
+            new_x_value = df_modified_x.loc[
+                (df_modified_x[col_1] == row[col_1])
+                & (df_modified_x[time] == row[time]),
+                x_title,
+            ].sum()
+            df_modified_x.at[index, x_title] = new_x_value
 
         for y_index, y_row in df_dup_y.iterrows():
             new_y_value = 0
-            new_y_value = df_modified_y.loc[(df_modified_y[col_1] == y_row[col_1]) & (df_modified_y[time] == y_row[time]), y_title].sum()
+            new_y_value = df_modified_y.loc[
+                (df_modified_y[col_1] == y_row[col_1])
+                & (df_modified_y[time] == y_row[time]),
+                y_title,
+            ].sum()
             df_modified_y.at[y_index, y_title] = new_y_value
 
         # Dropping new duplicates
-        df_modified_x = df_modified_x.drop_duplicates(subset=[col_1, time], keep='first')
-        df_modified_y = df_modified_y.drop_duplicates(subset=[col_1, time], keep='first')
+        df_modified_x = df_modified_x.drop_duplicates(
+            subset=[col_1, time], keep="first"
+        )
+        df_modified_y = df_modified_y.drop_duplicates(
+            subset=[col_1, time], keep="first"
+        )
 
         # Add y value column then add the value for that node
         df_modified_x[y_title] = 0
         for x_indx, x_df_row in df_modified_x.iterrows():
             y_value = 0
-            y_value = df_modified_y.loc[(df_modified_y[col_1] == x_df_row[col_1]) & (df_modified_y[time] == x_df_row[time]), y_title]
+            y_value = df_modified_y.loc[
+                (df_modified_y[col_1] == x_df_row[col_1])
+                & (df_modified_y[time] == x_df_row[time]),
+                y_title,
+            ]
             df_modified_x.at[x_indx, y_title] = y_value
 
         # Add size column and calculate the ratio or grab the size from the variable passed in for size
         df_modified_x[size] = 0
-        if isinstance(s_variable, str): # provided_size == False or 
+        if isinstance(s_variable, str):  # provided_size == False or
             for s_indx, s_df_row in df_modified_x.iterrows():
                 s_value = 0
                 s_xvalue = 0
                 s_yvalue = 0
-                s_xvalue = df_modified_x.loc[(df_modified_x[col_1] == s_df_row[col_1]) & (df_modified_x[time] == s_df_row[time]), x_title]
-                s_yvalue = df_modified_x.loc[(df_modified_x[col_1] == s_df_row[col_1]) & (df_modified_x[time] == s_df_row[time]), y_title]
-                if s_variable == 'y/x':
+                s_xvalue = df_modified_x.loc[
+                    (df_modified_x[col_1] == s_df_row[col_1])
+                    & (df_modified_x[time] == s_df_row[time]),
+                    x_title,
+                ]
+                s_yvalue = df_modified_x.loc[
+                    (df_modified_x[col_1] == s_df_row[col_1])
+                    & (df_modified_x[time] == s_df_row[time]),
+                    y_title,
+                ]
+                if s_variable == "y/x":
                     if float(s_xvalue) == 0 and float(s_yvalue) == 0:
                         s_value = 0.0
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
                         if float(s_xvalue) > float(s_yvalue):
-                            s_value = s_value + (s_yvalue/s_xvalue)*1000
+                            s_value = s_value + (s_yvalue / s_xvalue) * 1000
                         else:
-                            s_value = s_value + (s_yvalue/s_xvalue)
-                elif s_variable == 'x/y':
+                            s_value = s_value + (s_yvalue / s_xvalue)
+                elif s_variable == "x/y":
                     if float(s_xvalue) == 0 and float(s_yvalue) == 0:
                         s_value = 0.0
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
                         if float(s_yvalue) > float(s_xvalue):
-                            s_value = s_value + (s_xvalue/s_yvalue)*1000
+                            s_value = s_value + (s_xvalue / s_yvalue) * 1000
                         else:
-                            s_value = s_value + (s_xvalue/s_yvalue)
+                            s_value = s_value + (s_xvalue / s_yvalue)
                 else:
-                    raise Exception('Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size.')
+                    raise Exception(
+                        "Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size."
+                    )
                 try:
                     df_modified_x.at[s_indx, size] = s_value
                 except:
-                    raise Exception('Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.'.format(s_variable))
+                    raise Exception(
+                        "Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.".format(
+                            s_variable
+                        )
+                    )
 
         elif is_dict or is_list:
-            df_size = pd.DataFrame(s_variable, columns=s)      
+            df_size = pd.DataFrame(s_variable, columns=s)
             df_size = df_size.round(0)
             df_modified_size = df_size[[col_1, time, s_title]]
 
             if any(x in df_modified_size[time][0] for x in char_checklist):
                 df_modified_size[time] = pd.to_datetime(df_modified_size[time]).dt.date
             else:
-                df_modified_size[time] = df_modified_size[time].apply(lambda x: x.strip(removed_char))
-                df_modified_size[time] = df_modified_size[time].apply(lambda x: pd.to_numeric(x))
+                df_modified_size[time] = df_modified_size[time].apply(
+                    lambda x: x.strip(removed_char)
+                )
+                df_modified_size[time] = df_modified_size[time].apply(
+                    lambda x: pd.to_numeric(x)
+                )
 
             # Finding duplicates in dataframe and dropping them
-            df_dup_size = df_modified_size[df_modified_size.duplicated(subset=[col_1,time], keep=False)]
+            df_dup_size = df_modified_size[
+                df_modified_size.duplicated(subset=[col_1, time], keep=False)
+            ]
 
-            df_dup_size = df_dup_size.drop_duplicates(subset=[col_1, time], keep='first')
+            df_dup_size = df_dup_size.drop_duplicates(
+                subset=[col_1, time], keep="first"
+            )
 
             # Looping through dataframe and summing the total values of each node and assigning it to its instance
             for size_index, size_row in df_dup_size.iterrows():
-                    new_size_value = 0
-                    new_size_value = df_modified_size.loc[(df_modified_size[col_1] == size_row[col_1]) & (df_modified_size[time] == size_row[time]), s_title].sum()
-                    df_modified_size.at[size_index, s_title] = new_size_value
+                new_size_value = 0
+                new_size_value = df_modified_size.loc[
+                    (df_modified_size[col_1] == size_row[col_1])
+                    & (df_modified_size[time] == size_row[time]),
+                    s_title,
+                ].sum()
+                df_modified_size.at[size_index, s_title] = new_size_value
 
             # Dropping new duplicates
-            df_modified_size = df_modified_size.drop_duplicates(subset=[col_1, time], keep='first')
+            df_modified_size = df_modified_size.drop_duplicates(
+                subset=[col_1, time], keep="first"
+            )
 
             # Assigning new size value to the correct row in the modified x variable dataframe
             for s_indx, s_df_row in df_modified_size.iterrows():
                 s_value = 0
-                s_value = df_modified_size.loc[(df_modified_size[col_1] == s_df_row[col_1]) & (df_modified_size[time] == s_df_row[time]), s_title].values[0]
-                x_index = df_modified_x.loc[(df_modified_x[col_1] == s_df_row[col_1]) & (df_modified_x[time] == s_df_row[time])].index
+                s_value = df_modified_size.loc[
+                    (df_modified_size[col_1] == s_df_row[col_1])
+                    & (df_modified_size[time] == s_df_row[time]),
+                    s_title,
+                ].values[0]
+                x_index = df_modified_x.loc[
+                    (df_modified_x[col_1] == s_df_row[col_1])
+                    & (df_modified_x[time] == s_df_row[time])
+                ].index
                 df_modified_x.at[x_index, size] = s_value
-            
-        # Looping through updated dataframe and assigning all y and x values to a list 
+
+        # Looping through updated dataframe and assigning all y and x values to a list
         for a, b in df_modified_x.iterrows():
-                y_range.append(b[y_title])
-                x_range.append(b[x_title])
+            y_range.append(b[y_title])
+            x_range.append(b[x_title])
 
         # Converting y values to a float data type
-        for y,x in enumerate(y_range):
+        for y, x in enumerate(y_range):
             y_range[y] = float(x)
 
         # Converting x values to a float data type
-        for z,w in enumerate(x_range):
+        for z, w in enumerate(x_range):
             x_range[z] = float(w)
 
         # Getting the max y and x value from y and x value lists
@@ -1383,38 +1472,53 @@ def plot_scatter(input_data, args):
 
         # Categorize by color
         if category_variable is not None:
-            df_category['Category'] = df_category['Category'].apply(lambda x: str(x))
-            df_scatter['Color'] = ''
+            df_category["Category"] = df_category["Category"].apply(lambda x: str(x))
+            df_scatter["Color"] = ""
             for c_index, c_df_row in df_category.iterrows():
-                category_num = c_df_row['Category']
-                scatter_indxs = df_scatter.loc[df_scatter[col_1] == c_df_row['Node']].index.tolist()
+                category_num = c_df_row["Category"]
+                scatter_indxs = df_scatter.loc[
+                    df_scatter[col_1] == c_df_row["Node"]
+                ].index.tolist()
                 for s_index in scatter_indxs:
-                    df_scatter.at[s_index, 'Color'] = category_num
+                    df_scatter.at[s_index, "Color"] = category_num
         else:
             if group_by_category:
-                df_scatter['Color'] = ''
-                category_char = ''
+                df_scatter["Color"] = ""
+                category_char = ""
                 for row_ind, row in df_scatter.iterrows():
                     category_char = row[col_1][:1]
                     df_scatter.at[row_ind, "Color"] = category_char
             else:
-                df_scatter['Color'] = col_1
+                df_scatter["Color"] = col_1
 
         # Make sure all values in the Color column are of type string
-        df_scatter['Color'] = df_scatter['Color'].apply(lambda x: str(x))
+        df_scatter["Color"] = df_scatter["Color"].apply(lambda x: str(x))
 
-        fig = px.scatter(df_scatter, x=x_title, y=y_title, animation_frame=time, animation_group=col_1,
-                size=size, size_max=65, opacity=.8, color="Color", color_discrete_sequence = px.colors.qualitative.T10, hover_name=col_1, range_x=[0, max_x*1.02],
-                 range_y=[0, max_y*1.02], title=args["plot_title"])
+        fig = px.scatter(
+            df_scatter,
+            x=x_title,
+            y=y_title,
+            animation_frame=time,
+            animation_group=col_1,
+            size=size,
+            size_max=65,
+            opacity=0.8,
+            color="Color",
+            color_discrete_sequence=px.colors.qualitative.T10,
+            hover_name=col_1,
+            range_x=[0, max_x * 1.02],
+            range_y=[0, max_y * 1.02],
+            title=args["plot_title"],
+        )
 
         # Formatting the colors of the layout
-        fig.update_layout(font_color='#fff', paper_bgcolor='#333', plot_bgcolor='#ccc')
+        fig.update_layout(font_color="#fff", paper_bgcolor="#333", plot_bgcolor="#ccc")
 
         # Update the size of the markers if user did not provide size
         if provided_size == False:
             for x in fig.frames:
                 for i in x.data:
-                    i['marker']['size'] = 30
+                    i["marker"]["size"] = 30
 
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 800
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["redraw"] = False
@@ -1423,19 +1527,30 @@ def plot_scatter(input_data, args):
 
         if print_data:
             # Printing dataframe that is used in scatter plot
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None,'display.precision', 1):  
+            with pd.option_context(
+                "display.max_rows",
+                None,
+                "display.max_columns",
+                None,
+                "display.precision",
+                1,
+            ):
                 print(df_scatter)
 
         # Writing figure to desired format
-        if '.html' in figure_output:
+        if ".html" in figure_output:
             fig.write_html(figure_output, auto_open=False, auto_play=False)
         elif any(x in figure_output for x in format_checklist):
             fig.write_image(figure_output, height=850, width=1800)
         else:
-            exception_string = ''
+            exception_string = ""
             for x in format_checklist:
-                exception_string = exception_string + ', ' + x
-            raise Exception("The file format provided is not supported. Please use either html{}.".format(exception_string))
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
+            )
 
     else:
         # Creating dataframe based on the passed in variable and rounding the values
@@ -1446,34 +1561,40 @@ def plot_scatter(input_data, args):
         df_new_y = pd.DataFrame(formatted_variable_y, columns=g)
         df_new_y = df_new_y.round(0)
         df_modified_y = df_new_y[[col_1, y_title]]
-        
+
         # Looping through dataframe and summing the total values of each node and assigning it to its instance
         df_dup_x = df_modified_x[df_modified_x.duplicated(subset=[col_1], keep=False)]
         df_dup_y = df_modified_y[df_modified_y.duplicated(subset=[col_1], keep=False)]
 
-        df_dup_x = df_dup_x.drop_duplicates(subset=[col_1], keep='first')
-        df_dup_y = df_dup_y.drop_duplicates(subset=[col_1], keep='first')
+        df_dup_x = df_dup_x.drop_duplicates(subset=[col_1], keep="first")
+        df_dup_y = df_dup_y.drop_duplicates(subset=[col_1], keep="first")
 
         # Looping through dataframe and summing the total values of each node and assigning it to its instance
         for index, row in df_dup_x.iterrows():
-                new_x_value = 0
-                new_x_value = df_modified_x.loc[(df_modified_x[col_1] == row[col_1]), x_title].sum()
-                df_modified_x.at[index, x_title] = new_x_value
+            new_x_value = 0
+            new_x_value = df_modified_x.loc[
+                (df_modified_x[col_1] == row[col_1]), x_title
+            ].sum()
+            df_modified_x.at[index, x_title] = new_x_value
 
         for y_index, y_row in df_dup_y.iterrows():
             new_y_value = 0
-            new_y_value = df_modified_y.loc[(df_modified_y[col_1] == y_row[col_1]), y_title].sum()
+            new_y_value = df_modified_y.loc[
+                (df_modified_y[col_1] == y_row[col_1]), y_title
+            ].sum()
             df_modified_y.at[y_index, y_title] = new_y_value
 
         # Dropping new duplicates
-        df_modified_x = df_modified_x.drop_duplicates(subset=[col_1], keep='first')
-        df_modified_y = df_modified_y.drop_duplicates(subset=[col_1], keep='first')
+        df_modified_x = df_modified_x.drop_duplicates(subset=[col_1], keep="first")
+        df_modified_y = df_modified_y.drop_duplicates(subset=[col_1], keep="first")
 
         # Add y value column then add the value for that node
         df_modified_x[y_title] = 0
         for x_indx, x_df_row in df_modified_x.iterrows():
             y_value = 0
-            y_value = df_modified_y.loc[(df_modified_y[col_1] == x_df_row[col_1]), y_title]
+            y_value = df_modified_y.loc[
+                (df_modified_y[col_1] == x_df_row[col_1]), y_title
+            ]
             df_modified_x.at[x_indx, y_title] = y_value
 
         # Add size column and calculate the ratio
@@ -1483,72 +1604,91 @@ def plot_scatter(input_data, args):
                 s_value = 0
                 s_xvalue = 0
                 s_yvalue = 0
-                s_xvalue = df_modified_x.loc[(df_modified_x[col_1] == s_df_row[col_1]), x_title]
-                s_yvalue = df_modified_x.loc[(df_modified_x[col_1] == s_df_row[col_1]), y_title]
-                if s_variable == 'y/x':
+                s_xvalue = df_modified_x.loc[
+                    (df_modified_x[col_1] == s_df_row[col_1]), x_title
+                ]
+                s_yvalue = df_modified_x.loc[
+                    (df_modified_x[col_1] == s_df_row[col_1]), y_title
+                ]
+                if s_variable == "y/x":
                     if float(s_xvalue) == 0 and float(s_yvalue) == 0:
                         s_value = 0.0
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
                         if float(s_xvalue) > float(s_yvalue):
-                            s_value = s_value + (s_yvalue/s_xvalue)*1000
+                            s_value = s_value + (s_yvalue / s_xvalue) * 1000
                         else:
-                            s_value = s_value + (s_yvalue/s_xvalue)
-                elif s_variable == 'x/y':
+                            s_value = s_value + (s_yvalue / s_xvalue)
+                elif s_variable == "x/y":
                     if float(s_xvalue) == 0 and float(s_yvalue) == 0:
                         s_value = 0.0
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
                         if float(s_yvalue) > float(s_xvalue):
-                            s_value = s_value + (s_xvalue/s_yvalue)*1000
+                            s_value = s_value + (s_xvalue / s_yvalue) * 1000
                         else:
-                            s_value = s_value + (s_xvalue/s_yvalue)
+                            s_value = s_value + (s_xvalue / s_yvalue)
                 else:
-                    raise Exception('Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size.')
+                    raise Exception(
+                        "Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size."
+                    )
                 try:
                     df_modified_x.at[s_indx, size] = s_value
                 except:
-                    raise Exception('Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.'.format(s_variable))
+                    raise Exception(
+                        "Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.".format(
+                            s_variable
+                        )
+                    )
 
         elif is_dict or is_list:
-            df_size = pd.DataFrame(s_variable, columns=s)      
+            df_size = pd.DataFrame(s_variable, columns=s)
             df_size = df_size.round(0)
             df_modified_size = df_size[[col_1, s_title]]
 
             # Finding duplicates in dataframe and dropping them
-            df_dup_size = df_modified_size[df_modified_size.duplicated(subset=[col_1], keep=False)]
+            df_dup_size = df_modified_size[
+                df_modified_size.duplicated(subset=[col_1], keep=False)
+            ]
 
-            df_dup_size = df_dup_size.drop_duplicates(subset=[col_1], keep='first')
+            df_dup_size = df_dup_size.drop_duplicates(subset=[col_1], keep="first")
 
             # Looping through dataframe and summing the total values of each node and assigning it to its instance
             for size_index, size_row in df_dup_size.iterrows():
-                    new_size_value = 0
-                    new_size_value = df_modified_size.loc[(df_modified_size[col_1] == size_row[col_1]), s_title].sum()
-                    df_modified_size.at[size_index, s_title] = new_size_value
+                new_size_value = 0
+                new_size_value = df_modified_size.loc[
+                    (df_modified_size[col_1] == size_row[col_1]), s_title
+                ].sum()
+                df_modified_size.at[size_index, s_title] = new_size_value
 
             # Dropping new duplicates
-            df_modified_size = df_modified_size.drop_duplicates(subset=[col_1], keep='first')
+            df_modified_size = df_modified_size.drop_duplicates(
+                subset=[col_1], keep="first"
+            )
 
             # Assigning new size value to the correct row in the modified x variable dataframe
             for s_indx, s_df_row in df_modified_size.iterrows():
-                s_value = df_modified_size.loc[(df_modified_size[col_1] == s_df_row[col_1]), s_title]
-                x_index = df_modified_x.loc[(df_modified_x[col_1] == s_df_row[col_1])].index
+                s_value = df_modified_size.loc[
+                    (df_modified_size[col_1] == s_df_row[col_1]), s_title
+                ]
+                x_index = df_modified_x.loc[
+                    (df_modified_x[col_1] == s_df_row[col_1])
+                ].index
                 df_modified_x.at[x_index, size] = s_value
-            
 
-        # Looping through updated dataframe and assigning all y and x values to a list 
+        # Looping through updated dataframe and assigning all y and x values to a list
         for a, b in df_modified_x.iterrows():
-                y_range.append(b[y_title])
-                x_range.append(b[x_title])
+            y_range.append(b[y_title])
+            x_range.append(b[x_title])
 
         # Converting y values to a float data type
-        for y,x in enumerate(y_range):
+        for y, x in enumerate(y_range):
             y_range[y] = float(x)
 
         # Converting x values to a float data type
-        for z,w in enumerate(x_range):
+        for z, w in enumerate(x_range):
             x_range[z] = float(w)
 
         # Getting the max y and x value from y and x value lists
@@ -1560,49 +1700,73 @@ def plot_scatter(input_data, args):
 
         # Categorize by color
         if category_variable is not None:
-            df_category['Category'] = df_category['Category'].apply(lambda x: str(x))
-            df_scatter['Color'] = ''
+            df_category["Category"] = df_category["Category"].apply(lambda x: str(x))
+            df_scatter["Color"] = ""
             for c_index, c_df_row in df_category.iterrows():
-                category_num = c_df_row['Category']
-                scatter_indxs = df_scatter.loc[df_scatter[col_1] == c_df_row['Node']].index.tolist()
+                category_num = c_df_row["Category"]
+                scatter_indxs = df_scatter.loc[
+                    df_scatter[col_1] == c_df_row["Node"]
+                ].index.tolist()
                 for s_index in scatter_indxs:
-                    df_scatter.at[s_index, 'Color'] = category_num
+                    df_scatter.at[s_index, "Color"] = category_num
         else:
             if group_by_category:
-                df_scatter['Color'] = ''
-                category_char = ''
+                df_scatter["Color"] = ""
+                category_char = ""
                 for row_ind, row in df_scatter.iterrows():
                     category_char = row[col_1][:1]
                     df_scatter.at[row_ind, "Color"] = category_char
             else:
-                df_scatter['Color'] = col_1
+                df_scatter["Color"] = col_1
 
         # Make sure all values in the Color column are of type string
-        df_scatter['Color'] = df_scatter['Color'].apply(lambda x: str(x))
+        df_scatter["Color"] = df_scatter["Color"].apply(lambda x: str(x))
 
-        fig = px.scatter(df_scatter, x=x_title, y=y_title, size=size, size_max=65, 
-                opacity=.8, color="Color", color_discrete_sequence = px.colors.qualitative.T10, hover_name=col_1, range_x=[0, max_x*1.02],
-                 range_y=[0, max_y*1.02], title=args["plot_title"])
+        fig = px.scatter(
+            df_scatter,
+            x=x_title,
+            y=y_title,
+            size=size,
+            size_max=65,
+            opacity=0.8,
+            color="Color",
+            color_discrete_sequence=px.colors.qualitative.T10,
+            hover_name=col_1,
+            range_x=[0, max_x * 1.02],
+            range_y=[0, max_y * 1.02],
+            title=args["plot_title"],
+        )
 
         # Formatting the colors of the layout
-        fig.update_layout(font_color='#fff', paper_bgcolor='#333', plot_bgcolor='#ccc')
+        fig.update_layout(font_color="#fff", paper_bgcolor="#333", plot_bgcolor="#ccc")
 
         # Update the size of the markers if user did not provide size
         if provided_size == False:
-            fig.update_traces(marker=dict(size = 24))
+            fig.update_traces(marker=dict(size=24))
 
         if print_data:
             # Printing dataframe that is used in scatter plot
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None,'display.precision', 1):  
+            with pd.option_context(
+                "display.max_rows",
+                None,
+                "display.max_columns",
+                None,
+                "display.precision",
+                1,
+            ):
                 print(df_scatter)
 
         # Writing figure to desired format
-        if '.html' in figure_output:
+        if ".html" in figure_output:
             fig.write_html(figure_output, auto_open=False)
         elif any(x in figure_output for x in format_checklist):
             fig.write_image(figure_output, height=850, width=1800)
         else:
-            exception_string = ''
+            exception_string = ""
             for x in format_checklist:
-                exception_string = exception_string + ', ' + x
-            raise Exception("The file format provided is not supported. Please use either html{}.".format(exception_string))
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
+            )
