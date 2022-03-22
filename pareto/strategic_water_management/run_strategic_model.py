@@ -10,10 +10,11 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
-from os import strerror
+
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
+    scale_model,
     PipelineCost,
     PipelineCapacity,
 )
@@ -21,8 +22,7 @@ from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
 from pareto.utilities.solvers import get_solver, set_timeout
-
-import pandas as pd
+from pyomo.environ import TransformationFactory
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -98,8 +98,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
-    # "pareto.case_studies", "small_strategic_case_study.xlsx"
+    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+    "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -118,6 +118,9 @@ strategic_model = create_model(
     },
 )
 
+# Scale model
+strategic_model_scaled = scale_model(strategic_model, scaling_factor=100000)
+
 # initialize pyomo solver
 opt = get_solver("gurobi_direct", "gurobi", "cbc")
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
@@ -125,7 +128,16 @@ set_timeout(opt, timeout_s=60)
 opt.options["mipgap"] = 0
 
 # solve mathematical model
-results = opt.solve(strategic_model, tee=True)
+print("\n")
+print("*" * 50)
+print(" " * 15, "Solving scaled model")
+print("*" * 50)
+results = opt.solve(strategic_model_scaled, tee=True)
+
+TransformationFactory("core.scale_model").propagate_solution(
+    strategic_model_scaled, strategic_model
+)
+
 results.write()
 print("\nDisplaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
