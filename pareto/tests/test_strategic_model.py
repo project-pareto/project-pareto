@@ -21,6 +21,7 @@ from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
+    scale_model,
     PipelineCost,
     PipelineCapacity,
 )
@@ -383,6 +384,42 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
 
 
+@pytest.mark.component
+def test_strategic_model_scaling(build_reduced_strategic_model):
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+    scaled_m = scale_model(m, scaling_factor=100000)
+    scaled_components = []
+    scaled_vars = []
+    unscaled_vars = []
+    scaled_constraints = []
+    unscaled_constraints = []
+    [scaled_components.append(i.name) for i in scaled_m.scaling_factor.keys()]
+
+    # Checking for scaled and unscaled variables
+    for v in m.component_objects(ctype=pyo.Var):
+        if "vb_y" not in v.name:
+            if str("scaled_" + v.name) in scaled_components:
+                scaled_vars.append(v.name)
+            else:
+                unscaled_vars.append(v.name)
+
+    # Checking for scaled and unscaled constraints
+    for c in m.component_objects(ctype=pyo.Constraint):
+        if str("scaled_" + c.name) in scaled_components:
+            scaled_constraints.append(c.name)
+        else:
+            unscaled_constraints.append(c.name)
+
+    assert len(unscaled_vars) == 0
+    assert len(unscaled_constraints) == 0
+
+
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_reduced_strategic_model(build_reduced_strategic_model):
@@ -393,11 +430,13 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
+    scaled_m = scale_model(m, scaling_factor=100000)
     solver = get_solver("cbc")
     solver.options["seconds"] = 60 * 7
-    results = solver.solve(m, tee=False)
+    results = solver.solve(scaled_m, tee=False)
+    pyo.TransformationFactory("core.scale_model").propagate_solution(scaled_m, m)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 63173
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(10188186.0, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(10188185.97, abs=1e-1) == pyo.value(m.v_Z)

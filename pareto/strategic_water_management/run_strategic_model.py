@@ -10,11 +10,12 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
-from os import strerror
+
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
     postprocess_water_quality_calculation,
+    scale_model,
     PipelineCost,
     PipelineCapacity,
 )
@@ -23,8 +24,8 @@ from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
 from pareto.utilities.solvers import get_solver, set_timeout
 
+from pyomo.environ import TransformationFactory
 
-import pandas as pd
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -123,6 +124,9 @@ strategic_model = create_model(
     },
 )
 
+# Scale model
+strategic_model_scaled = scale_model(strategic_model, scaling_factor=100000)
+
 # initialize pyomo solver
 opt = get_solver("gurobi_direct", "gurobi", "cbc")
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
@@ -130,7 +134,16 @@ set_timeout(opt, timeout_s=60)
 opt.options["mipgap"] = 0
 
 # solve mathematical model
-results = opt.solve(strategic_model, tee=True)
+print("\n")
+print("*" * 50)
+print(" " * 15, "Solving scaled model")
+print("*" * 50)
+results = opt.solve(strategic_model_scaled, tee=True)
+
+TransformationFactory("core.scale_model").propagate_solution(
+    strategic_model_scaled, strategic_model
+)
+
 results.write()
 
 # Solve water quality model to calculate values for water quality post optimization.
