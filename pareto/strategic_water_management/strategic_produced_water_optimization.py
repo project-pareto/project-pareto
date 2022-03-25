@@ -41,6 +41,9 @@ from pyomo.environ import (
     NonNegativeReals,
     Reals,
     Binary,
+    Block,
+    Suffix,
+    TransformationFactory,
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -57,6 +60,16 @@ from pareto.utilities.solvers import get_solver
 class Objectives(Enum):
     cost = 0
     reuse = 1
+
+
+class PipelineCapacity(Enum):
+    calculated = 0
+    input = 1
+
+
+class PipelineCost(Enum):
+    distance_based = 0
+    capacity_based = 1
 
 
 # create config dictionary
@@ -84,6 +97,36 @@ CONFIG.declare(
     ),
 )
 
+CONFIG.declare(
+    "pipeline_capacity",
+    ConfigValue(
+        default=PipelineCapacity.input,
+        domain=In(PipelineCapacity),
+        description="alternate pipeline capacity selection",
+        doc="""Alternate pipeline capacity selection (calculated or input)
+        ***default*** - PipelineCapacity.input
+        **Valid Values:** - {
+        **PipelineCapacity.input** - use input for pipeline capacity,
+        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters 
+        }""",
+    ),
+)
+
+CONFIG.declare(
+    "pipeline_cost",
+    ConfigValue(
+        default=PipelineCost.capacity_based,
+        domain=In(PipelineCost),
+        description="alternate pipeline cost selection",
+        doc="""Alternate pipeline capex cost structures (distance or capacity based)
+        ***default*** - PipelineCost.capacity_based
+        **Valid Values:** - {
+        **PipelineCost.capacity_based** - use pipeline capacities and rate in $/bbl to calculate pipeline capex costs,
+        **PipelineCost.distance_based** - use pipeline distances and rate in $/inchmile to calculate pipeline capex costs
+        }""",
+    ),
+)
+
 # Creation of a Concrete Model
 
 
@@ -105,7 +148,11 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_S = Set(initialize=df_sets["StorageSites"], doc="Storage Sites")
     model.s_R = Set(initialize=df_sets["TreatmentSites"], doc="Treatment Sites")
     model.s_O = Set(initialize=df_sets["ReuseOptions"], doc="Reuse Options")
-    model.s_N = Set(initialize=df_sets["NetworkNodes"], doc=["Network Nodes"])
+    model.s_N = Set(initialize=df_sets["NetworkNodes"], doc="Network Nodes")
+    model.s_W = Set(
+        initialize=df_sets["WaterQualityComponents"], doc="Water Quality Components"
+    )
+
     model.s_L = Set(
         initialize=(
             model.s_P
@@ -140,6 +187,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Produced water quantity piped from location l to location l [bbl/week]",
     )
     model.v_F_Trucked = Var(
@@ -147,6 +195,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Produced water quantity trucked from location l to location l [bbl/week]",
     )
     model.v_F_Sourced = Var(
@@ -154,6 +203,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Fresh water sourced from source f to completions pad p [bbl/week]",
     )
 
@@ -161,25 +211,36 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water put into completions pad storage [bbl/week]",
     )
     model.v_F_PadStorageOut = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water from completions pad storage used for fracturing [bbl/week]",
+    )
+    model.v_F_UnusedTreatedWater = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        doc="Water leftover from the treatment process [bbl/day]",
     )
 
     model.v_L_Storage = Var(
         model.s_S,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water level at storage site [bbl]",
     )
     model.v_L_PadStorage = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Water level in completions pad storage [bbl]",
     )
 
@@ -200,6 +261,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of piping produced water from location l to location l [$/week]",
     )
@@ -207,6 +269,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of trucking produced water from location l to location l [$/week]",
     )
@@ -214,36 +277,42 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_F,
         model.s_CP,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of sourcing fresh water from source f to completion pad p [$/week]",
     )
     model.v_C_Disposal = Var(
         model.s_K,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of injecting produced water at disposal site [$/week]",
     )
     model.v_C_Treatment = Var(
         model.s_R,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of treating produced water at treatment site [$/week]",
     )
     model.v_C_Reuse = Var(
         model.s_CP,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of reusing produced water at completions site [$/week]",
     )
     model.v_C_Storage = Var(
         model.s_S,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Cost of storing produced water at storage site [$/week]",
     )
     model.v_R_Storage = Var(
         model.s_S,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Credit for retrieving stored produced water from storage site [$/bbl]",
     )
@@ -279,14 +348,28 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_F_ReuseDestination = Var(
         model.s_CP,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Total deliveries to completions pad [bbl/week]",
     )
     model.v_F_DisposalDestination = Var(
         model.s_K,
         model.s_T,
+        initialize=0,
         within=NonNegativeReals,
         doc="Total deliveries to disposal site [bbl/week]",
+    )
+    model.v_F_BeneficialReuseDestination = Var(
+        model.s_O,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total deliveries to Beneficial Reuse Site [bbl/week]",
+    )
+    model.v_F_CompletionsDestination = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        doc="Total deliveries to completions pad that meet completions demand [bbl/week]",
     )
 
     model.v_D_Capacity = Var(
@@ -308,6 +391,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         within=NonNegativeReals,
+        initialize=0,
         doc="Flow capacity along pipeline arc [bbl/week]",
     )
 
@@ -332,24 +416,28 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to meet the completions demand [bbl/week]",
     )
     model.v_S_Production = Var(
         model.s_PP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to process the produced water production [bbl/week]",
     )
     model.v_S_Flowback = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to proces flowback water production [bbl/week]",
     )
     model.v_S_PipelineCapacity = Var(
         model.s_L,
         model.s_L,
         within=NonNegativeReals,
+        initialize=0,
         doc="Slack variable to provide necessary pipeline capacity [bbl]",
     )
     model.v_S_StorageCapacity = Var(
@@ -380,24 +468,28 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_D,
         within=Binary,
+        initialize=0,
         doc="New pipeline installed between one location and another location with specific diameter",
     )
     model.vb_y_Storage = Var(
         model.s_S,
         model.s_C,
         within=Binary,
+        initialize=0,
         doc="New or additional storage capacity installed at storage site with specific storage capacity",
     )
     model.vb_y_Treatment = Var(
         model.s_R,
         model.s_J,
         within=Binary,
+        initialize=0,
         doc="New or additional treatment capacity installed at treatment site with specific treatment capacity",
     )
     model.vb_y_Disposal = Var(
         model.s_K,
         model.s_I,
         within=Binary,
+        initialize=0,
         doc="New or additional disposal capacity installed at disposal site with specific injection capacity",
     )
     model.vb_y_Flow = Var(
@@ -405,6 +497,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_T,
         within=Binary,
+        initialize=0,
         doc="Directional flow between two locations",
     )
 
@@ -413,7 +506,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.vb_z_Disposal      = Var(model.s_K,model.s_I,model.s_T,within=Binary, doc='Timing of disposal facility installation at disposal site')
 
     ## Pre-process Data ##
-    df_parameters = _preprocess_data(df_parameters)
+    df_parameters = _preprocess_data(model, df_parameters)
 
     ## Define set parameters ##
 
@@ -918,9 +1011,17 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_epsilon_Treatment = Param(
         model.s_R,
+        model.s_W,
         default=1.0,
         initialize=df_parameters["TreatmentEfficiency"],
         doc="Treatment efficiency [%]",
+    )
+
+    model.p_W_TreatmentComponent = Param(
+        model.s_R,
+        default="TDS",
+        within=model.s_W,
+        doc="Water quality component treated at site",
     )
 
     model.p_delta_Pipeline = Param(
@@ -928,13 +1029,6 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=df_parameters["PipelineCapacityIncrements"],
         doc="Pipeline capacity installation/expansion increments [bbl/week]",
-    )
-
-    model.p_mu_Pipeline = Param(
-        model.s_D,
-        default=0,
-        initialize=df_parameters["PipelineDiameterValues"],
-        doc="Pipeline capacity installation/expansion increments [inch]",
     )
 
     model.p_delta_Disposal = Param(
@@ -977,7 +1071,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_tau_Trucking = Param(
         model.s_L,
         model.s_L,
-        default=9999999,
+        default=12,
         initialize=df_parameters["TruckingTime"],
         doc="Drive time between locations [hr]",
     )
@@ -1032,11 +1126,31 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment construction/expansion capital cost for selected increment [$/bbl]",
     )
 
-    model.p_kappa_Pipeline = Param(
-        default=120000,
-        initialize=df_parameters["PipelineExpansionCost"]["pipeline_expansion_cost"],
-        doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
-    )
+    if model.config.pipeline_cost == PipelineCost.distance_based:
+        model.p_kappa_Pipeline = Param(
+            default=120000,
+            initialize=df_parameters["PipelineCapexDistanceBased"][
+                "pipeline_expansion_cost"
+            ],
+            doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
+        )
+
+        model.p_mu_Pipeline = Param(
+            model.s_D,
+            default=0,
+            initialize=df_parameters["PipelineDiameterValues"],
+            doc="Pipeline capacity installation/expansion increments [inch]",
+        )
+
+    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        model.p_kappa_Pipeline = Param(
+            model.s_L,
+            model.s_L,
+            model.s_D,
+            default=30,
+            initialize=df_parameters["PipelineCapexCapacityBased"],
+            doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
+        )
 
     # model.p_kappa_Disposal.pprint()
     # model.p_kappa_Storage.pprint()
@@ -1082,35 +1196,35 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=9999999,
+        default=999999,
         initialize=df_parameters["TruckingHourlyCost"],
         doc="Trucking hourly cost (by source) [$/bbl]",
     )
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=9999999,
+        default=999999,
         initialize=df_parameters["FreshSourcingCost"],
         doc="Fresh sourcing cost [$/bbl]",
     )
 
     model.p_M_Flow = Param(default=9999999, doc="Big-M flow parameter [bbl/week]")
 
-    model.p_psi_FracDemand = Param(default=999999999, doc="Slack cost parameter [$]")
-    model.p_psi_Production = Param(default=999999999, doc="Slack cost parameter [$]")
-    model.p_psi_Flowback = Param(default=999999999, doc="Slack cost parameter [$]")
+    model.p_psi_FracDemand = Param(default=99999999, doc="Slack cost parameter [$]")
+    model.p_psi_Production = Param(default=99999999, doc="Slack cost parameter [$]")
+    model.p_psi_Flowback = Param(default=99999999, doc="Slack cost parameter [$]")
     model.p_psi_PipelineCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_StorageCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_DisposalCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
     model.p_psi_TreatmentCapacity = Param(
-        default=999999999, doc="Slack cost parameter [$]"
+        default=99999999, doc="Slack cost parameter [$]"
     )
-    model.p_psi_ReuseCapacity = Param(default=999999999, doc="Slack cost parameter [$]")
+    model.p_psi_ReuseCapacity = Param(default=99999999, doc="Slack cost parameter [$]")
 
     # model.p_sigma_Freshwater.pprint()
 
@@ -1224,7 +1338,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadDemandBalance['CP02','T24'].pprint()
 
     def CompletionsPadStorageBalanceRule(model, p, t):
-        if t == "T01":
+        if t == model.s_T.first():
             return (
                 model.v_L_PadStorage[p, t]
                 == model.p_lambda_PadStorage[p]
@@ -1738,7 +1852,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.BidirectionalFlow2.pprint()
 
     def StorageSiteBalanceRule(model, s, t):
-        if t == "T01":
+        if t == model.s_T.first():
             return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
                 model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
             ) + sum(
@@ -2351,15 +2465,21 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentCapacity.pprint()
 
     def TreatmentBalanceRule(model, r, t):
-        return model.p_epsilon_Treatment[r] * (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) == sum(
-            model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p]
-        ) + sum(
-            model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s]
+        return (
+            model.p_epsilon_Treatment[r, model.p_W_TreatmentComponent[r]]
+            * (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+            )
+            == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+            + model.v_F_UnusedTreatedWater[r, t]
         )
 
     model.TreatmentBalance = Constraint(
@@ -3420,7 +3540,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.TreatmentExpansionCapEx.pprint()
 
-    def PipelineExpansionCapExRule(model):
+    def PipelineExpansionCapExDistanceBasedRule(model):
         return model.v_C_PipelineCapEx == (
             sum(
                 sum(
@@ -3690,10 +3810,267 @@ def create_model(df_sets, df_parameters, default={}):
             )
         )
 
-    model.PipelineExpansionCapEx = Constraint(
-        rule=PipelineExpansionCapExRule,
-        doc="Pipeline construction or capacity expansion cost",
-    )
+    def PipelineExpansionCapExCapacityBasedRule(model):
+        return model.v_C_PipelineCapEx == (
+            sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, p_tilde, d]
+                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_PP
+                        if model.p_PCA[p, p_tilde]
+                    )
+                    for p_tilde in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, n, d]
+                        * model.p_kappa_Pipeline[p, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_PP
+                        if model.p_PNA[p, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, p_tilde, d]
+                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_PP
+                        if model.p_PPA[p, p_tilde]
+                    )
+                    for p_tilde in model.s_PP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[p, n, d]
+                        * model.p_kappa_Pipeline[p, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for p in model.s_CP
+                        if model.p_CNA[p, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, n_tilde, d]
+                        * model.p_kappa_Pipeline[n, n_tilde, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NNA[n, n_tilde]
+                    )
+                    for n_tilde in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, p, d]
+                        * model.p_kappa_Pipeline[n, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NCA[n, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, k, d]
+                        * model.p_kappa_Pipeline[n, k, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NKA[n, k]
+                    )
+                    for k in model.s_K
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, s, d]
+                        * model.p_kappa_Pipeline[n, s, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NSA[n, s]
+                    )
+                    for s in model.s_S
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, r, d]
+                        * model.p_kappa_Pipeline[n, r, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NRA[n, r]
+                    )
+                    for r in model.s_R
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, o, d]
+                        * model.p_kappa_Pipeline[n, o, d]
+                        * model.p_delta_Pipeline[d]
+                        for n in model.s_N
+                        if model.p_NOA[n, o]
+                    )
+                    for o in model.s_O
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[f, p, d]
+                        * model.p_kappa_Pipeline[f, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for f in model.s_F
+                        if model.p_FCA[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[r, n, d]
+                        * model.p_kappa_Pipeline[r, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for r in model.s_R
+                        if model.p_RNA[r, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[r, p, d]
+                        * model.p_kappa_Pipeline[r, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for r in model.s_R
+                        if model.p_RCA[r, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[r, k, d]
+                        * model.p_kappa_Pipeline[r, k, d]
+                        * model.p_delta_Pipeline[d]
+                        for r in model.s_R
+                        if model.p_RKA[r, k]
+                    )
+                    for k in model.s_K
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, n, d]
+                        * model.p_kappa_Pipeline[s, n, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SNA[s, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, p, d]
+                        * model.p_kappa_Pipeline[s, p, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SCA[s, p]
+                    )
+                    for p in model.s_CP
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, k, d]
+                        * model.p_kappa_Pipeline[s, k, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SKA[s, k]
+                    )
+                    for k in model.s_K
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, r, d]
+                        * model.p_kappa_Pipeline[s, r, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SRA[s, r]
+                    )
+                    for r in model.s_R
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[s, o, d]
+                        * model.p_kappa_Pipeline[s, o, d]
+                        * model.p_delta_Pipeline[d]
+                        for s in model.s_S
+                        if model.p_SOA[s, o]
+                    )
+                    for o in model.s_O
+                )
+                for d in model.s_D
+            )
+        )
+
+    if model.config.pipeline_cost == PipelineCost.distance_based:
+        model.PipelineExpansionCapEx = Constraint(
+            rule=PipelineExpansionCapExDistanceBasedRule,
+            doc="Pipeline construction or capacity expansion cost",
+        )
+    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        model.PipelineExpansionCapEx = Constraint(
+            rule=PipelineExpansionCapExCapacityBasedRule,
+            doc="Pipeline construction or capacity expansion cost",
+        )
 
     def SlackCostsRule(model):
         return model.v_C_Slack == (
@@ -4064,6 +4441,58 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.DisposalDestinationDeliveries.pprint()
 
+    def BeneficialReuseDeliveriesRule(model, o, t):
+        return model.v_F_BeneficialReuseDestination[o, t] == sum(
+            model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
+        ) + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + sum(
+            model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
+        )
+
+    model.BeneficialReuseDeliveries = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseDeliveriesRule,
+        doc="Beneficial reuse destinations volume",
+    )
+
+    def CompletionsWaterDeliveriesRule(model, p, t):
+        return model.v_F_CompletionsDestination[p, t] == (
+            sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
+            + sum(
+                model.v_F_Piped[p_tilde, p, t]
+                for p_tilde in model.s_PP
+                if model.p_PCA[p_tilde, p]
+            )
+            + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
+            + sum(
+                model.v_F_Piped[p_tilde, p, t]
+                for p_tilde in model.s_CP
+                if model.p_CCA[p_tilde, p]
+            )
+            + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
+            + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
+            + sum(
+                model.v_F_Trucked[p_tilde, p, t]
+                for p_tilde in model.s_PP
+                if model.p_PCT[p_tilde, p]
+            )
+            + sum(
+                model.v_F_Trucked[p_tilde, p, t]
+                for p_tilde in model.s_CP
+                if model.p_CCT[p_tilde, p]
+            )
+            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
+            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+            - model.v_F_PadStorageIn[p, t]
+        )
+
+    model.CompletionsWaterDeliveries = Constraint(
+        model.s_CP,
+        model.s_T,
+        rule=CompletionsWaterDeliveriesRule,
+        doc="Completions water volume",
+    )
+
     # model.LogicConstraintPipeline['N17','CP03'].pprint()
 
     ## Fixing Decision Variables ##
@@ -4097,7 +4526,715 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def _preprocess_data(_df_parameters):
+def water_quality(model, df_parameters, df_sets):
+    # region Fix solved Strategic Model variables
+    for var in model.component_objects(Var):
+        for index in var:
+            # Check if the variable is indexed
+            if index is None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if abs(var.value) > 0.0000001:
+                    var.fix()
+                # Otherwise, fix to 0
+                else:
+                    var.fix(0)
+            elif index is not None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if var[index].value and abs(var[index].value) > 0.0000001:
+                    var[index].fix()
+                # Otherwise, fix to 0
+                else:
+                    var[index].fix(0)
+    # endregion
+
+    # Create block for calculating quality at each location in the model
+    model.quality = Block()
+
+    # region Add sets, parameters and constraints
+
+    # Create a set for Completions Pad storage by appending the storage label to each item in the CompletionsPads Set
+    storage_label = "-storage"
+    df_sets["CompletionsPadsStorage"] = [
+        p + storage_label for p in df_sets["CompletionsPads"]
+    ]
+    model.quality.s_CP_Storage = Set(
+        initialize=df_sets["CompletionsPadsStorage"],
+        doc="Completions Pad Storage Tanks",
+    )
+
+    # Create a set for water quality at Completions Pads intermediate flows (i.e. the blended trucked and piped water to pad)
+    intermediate_label = "-intermediate"
+    df_sets["CompletionsPadsIntermediate"] = [
+        p + intermediate_label for p in df_sets["CompletionsPads"]
+    ]
+    model.quality.s_CP_Intermediate = Set(
+        initialize=df_sets["CompletionsPadsIntermediate"],
+        doc="Completions Pad Intermediate Flows",
+    )
+
+    # Create a set of locations to track water quality over
+    model.quality.s_WQL = Set(
+        initialize=(
+            model.s_L | model.quality.s_CP_Storage | model.quality.s_CP_Intermediate
+        ),
+        doc="Locations with tracked water quality ",
+    )
+
+    # Quality at pad
+    model.quality.p_nu_pad = Param(
+        model.s_P,
+        model.s_W,
+        default=0,
+        initialize=df_parameters["PadWaterQuality"],
+        doc="Water Quality at pad [mg/L]",
+    )
+    # Quality of Sourced Water
+    model.quality.p_nu_freshwater = Param(
+        model.s_F,
+        model.s_W,
+        default=0,
+        initialize=0,
+        doc="Water Quality of freshwater [mg/L]",
+    )
+    # Initial water quality at storage site
+    model.quality.p_xi_StorageSite = Param(
+        model.s_S,
+        model.s_W,
+        default=0,
+        initialize=df_parameters["StorageInitialWaterQuality"],
+        doc="Initial Water Quality at storage site [mg/L]",
+    )
+    # Initial water quality at completions pad storage tank
+    model.quality.p_xi_PadStorage = Param(
+        model.s_CP,
+        model.s_W,
+        default=0,
+        initialize=df_parameters["PadStorageInitialWaterQuality"],
+        doc="Initial Water Quality at storage site [mg/L]",
+    )
+    # Add variable to track water quality at each location over time
+    model.quality.v_Q = Var(
+        model.quality.s_WQL,
+        model.s_W,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        doc="Water quality at location [mg/L]",
+    )
+    # v_X is solely used to make sure model has an objective value
+    model.quality.v_X = Var(
+        within=Reals,
+        doc="Obj value",
+    )
+    # endregion
+
+    # region Disposal
+    # Material Balance
+    def DisposalWaterQualityRule(b, k, w, t):
+        return (
+            sum(
+                b.parent_block().v_F_Piped[n, k, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NKA[n, k]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[s, k, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SKA[s, k]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[s, k, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SKT[s, k]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[p, k, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PKT[p, k]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[p, k, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CKT[p, k]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[r, k, t] * b.v_Q[r, w, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_RKT[r, k]
+            )
+            == b.v_Q[k, w, t] * b.parent_block().v_F_DisposalDestination[k, t]
+        )
+
+    model.quality.DisposalWaterQuality = Constraint(
+        model.s_K,
+        model.s_W,
+        model.s_T,
+        rule=DisposalWaterQualityRule,
+        doc="Disposal water quality rule",
+    )
+    # endregion
+
+    # region Storage
+    def StorageSiteWaterQualityRule(b, s, w, t):
+        if t == b.parent_block().s_T.first():
+            return b.parent_block().p_lambda_Storage[s] * b.p_xi_StorageSite[
+                s, w
+            ] + sum(
+                b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NSA[n, s]
+            ) + sum(
+                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_RSA[r, s]
+            ) + sum(
+                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PST[p, s]
+            ) + sum(
+                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CST[p, s]
+            ) == b.v_Q[
+                s, w, t
+            ] * (
+                b.parent_block().v_L_Storage[s, t]
+                + sum(
+                    b.parent_block().v_F_Piped[s, n, t]
+                    for n in b.parent_block().s_N
+                    if b.parent_block().p_SNA[s, n]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCA[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKA[s, k]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, r, t]
+                    for r in b.parent_block().s_R
+                    if b.parent_block().p_SRA[s, r]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, o, t]
+                    for o in b.parent_block().s_O
+                    if b.parent_block().p_SOA[s, o]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCT[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKT[s, k]
+                )
+            )
+        else:
+            return b.parent_block().v_L_Storage[
+                s, b.parent_block().s_T.prev(t)
+            ] * b.v_Q[s, w, b.parent_block().s_T.prev(t)] + sum(
+                b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NSA[n, s]
+            ) + sum(
+                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_RSA[r, s]
+            ) + sum(
+                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PST[p, s]
+            ) + sum(
+                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CST[p, s]
+            ) == b.v_Q[
+                s, w, t
+            ] * (
+                b.parent_block().v_L_Storage[s, t]
+                + sum(
+                    b.parent_block().v_F_Piped[s, n, t]
+                    for n in b.parent_block().s_N
+                    if b.parent_block().p_SNA[s, n]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCA[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKA[s, k]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, r, t]
+                    for r in b.parent_block().s_R
+                    if b.parent_block().p_SRA[s, r]
+                )
+                + sum(
+                    b.parent_block().v_F_Piped[s, o, t]
+                    for o in b.parent_block().s_O
+                    if b.parent_block().p_SOA[s, o]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, p, t]
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_SCT[s, p]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[s, k, t]
+                    for k in b.parent_block().s_K
+                    if b.parent_block().p_SKT[s, k]
+                )
+            )
+
+    model.quality.StorageSiteWaterQuality = Constraint(
+        model.s_S,
+        model.s_W,
+        model.s_T,
+        rule=StorageSiteWaterQualityRule,
+        doc="Storage site water quality rule",
+    )
+    # endregion
+
+    # region Treatment
+    def TreatmentWaterQualityRule(b, r, w, t):
+        return b.parent_block().p_epsilon_Treatment[r, w] * (
+            sum(
+                b.parent_block().v_F_Piped[n, r, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NRA[n, r]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[s, r, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SRA[s, r]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_PRT[p, r]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_CRT[p, r]
+            )
+        ) == b.v_Q[r, w, t] * (
+            sum(
+                b.parent_block().v_F_Piped[r, p, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_RCA[r, p]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[r, s, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_RSA[r, s]
+            )
+            + b.parent_block().v_F_UnusedTreatedWater[r, t]
+        )
+
+    model.quality.TreatmentWaterQuality = Constraint(
+        model.s_R,
+        model.s_W,
+        model.s_T,
+        rule=TreatmentWaterQualityRule,
+        doc="Treatment water quality",
+    )
+    # endregion
+
+    # region Network
+    def NetworkNodeWaterQualityRule(b, n, w, t):
+        return sum(
+            b.parent_block().v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
+            for p in b.parent_block().s_PP
+            if b.parent_block().p_PNA[p, n]
+        ) + sum(
+            b.parent_block().v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
+            for p in b.parent_block().s_CP
+            if b.parent_block().p_CNA[p, n]
+        ) + sum(
+            b.parent_block().v_F_Piped[s, n, t] * b.v_Q[s, w, t]
+            for s in b.parent_block().s_S
+            if b.parent_block().p_SNA[s, n]
+        ) + sum(
+            b.parent_block().v_F_Piped[n_tilde, n, t] * b.v_Q[n_tilde, w, t]
+            for n_tilde in b.parent_block().s_N
+            if b.parent_block().p_NNA[n_tilde, n]
+        ) == b.v_Q[
+            n, w, t
+        ] * (
+            sum(
+                b.parent_block().v_F_Piped[n, n_tilde, t]
+                for n_tilde in b.parent_block().s_N
+                if b.parent_block().p_NNA[n, n_tilde]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, p, t]
+                for p in b.parent_block().s_CP
+                if b.parent_block().p_NCA[n, p]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, k, t]
+                for k in b.parent_block().s_K
+                if b.parent_block().p_NKA[n, k]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, r, t]
+                for r in b.parent_block().s_R
+                if b.parent_block().p_NRA[n, r]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, s, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_NSA[n, s]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[n, o, t]
+                for o in b.parent_block().s_O
+                if b.parent_block().p_NOA[n, o]
+            )
+        )
+
+    model.quality.NetworkWaterQuality = Constraint(
+        model.s_N,
+        model.s_W,
+        model.s_T,
+        rule=NetworkNodeWaterQualityRule,
+        doc="Network water quality",
+    )
+    # endregion
+
+    # region Beneficial Reuse
+    def BeneficialReuseWaterQuality(b, o, w, t):
+        return (
+            sum(
+                b.parent_block().v_F_Piped[n, o, t] * b.v_Q[n, w, t]
+                for n in b.parent_block().s_N
+                if b.parent_block().p_NOA[n, o]
+            )
+            + sum(
+                b.parent_block().v_F_Piped[s, o, t] * b.v_Q[s, w, t]
+                for s in b.parent_block().s_S
+                if b.parent_block().p_SOA[s, o]
+            )
+            + sum(
+                b.parent_block().v_F_Trucked[p, o, t] * b.p_nu_pad[p, w]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_POT[p, o]
+            )
+            == b.v_Q[o, w, t] * b.parent_block().v_F_BeneficialReuseDestination[o, t]
+        )
+
+    model.quality.BeneficialReuseWaterQuality = Constraint(
+        model.s_O,
+        model.s_W,
+        model.s_T,
+        rule=BeneficialReuseWaterQuality,
+        doc="Beneficial reuse capacity",
+    )
+    # endregion
+
+    # region Completions Pad
+
+    # Water that is Piped and Trucked to a completions pad is mixed and split into two output streams.
+    # Stream (1) goes to the completions pad and stream (2) is input to the completions storage.
+    # This is the intermediate step.
+    # Finally, water that meets completions demand comes from two inputs.
+    # The first input is output stream (1) from the intermediate step.
+    # The second is outgoing flow from the storage tank.
+
+    def CompletionsPadIntermediateWaterQuality(b, p, w, t):
+        return sum(
+            b.parent_block().v_F_Piped[n, p, t] * b.v_Q[n, w, t]
+            for n in b.parent_block().s_N
+            if b.parent_block().p_NCA[n, p]
+        ) + sum(
+            b.parent_block().v_F_Piped[p_tilde, p, t] * b.v_Q[p_tilde, w, t]
+            for p_tilde in b.parent_block().s_PP
+            if b.parent_block().p_PCA[p_tilde, p]
+        ) + sum(
+            b.parent_block().v_F_Piped[s, p, t] * b.v_Q[s, w, t]
+            for s in b.parent_block().s_S
+            if b.parent_block().p_SCA[s, p]
+        ) + sum(
+            b.parent_block().v_F_Piped[p_tilde, p, t] * b.v_Q[p_tilde, w, t]
+            for p_tilde in b.parent_block().s_CP
+            if b.parent_block().p_CCA[p_tilde, p]
+        ) + sum(
+            b.parent_block().v_F_Piped[r, p, t] * b.v_Q[r, w, t]
+            for r in b.parent_block().s_R
+            if b.parent_block().p_RCA[r, p]
+        ) + sum(
+            b.parent_block().v_F_Sourced[f, p, t] * b.p_nu_freshwater[f, w]
+            for f in b.parent_block().s_F
+            if b.parent_block().p_FCA[f, p]
+        ) + sum(
+            b.parent_block().v_F_Trucked[p_tilde, p, t] * b.v_Q[p_tilde, w, t]
+            for p_tilde in b.parent_block().s_PP
+            if b.parent_block().p_PCT[p_tilde, p]
+        ) + sum(
+            b.parent_block().v_F_Trucked[p_tilde, p, t] * b.v_Q[p_tilde, w, t]
+            for p_tilde in b.parent_block().s_CP
+            if b.parent_block().p_CCT[p_tilde, p]
+        ) + sum(
+            b.parent_block().v_F_Trucked[s, p, t] * b.v_Q[s, w, t]
+            for s in b.parent_block().s_S
+            if b.parent_block().p_SCT[s, p]
+        ) + sum(
+            b.parent_block().v_F_Trucked[f, p, t] * b.p_nu_freshwater[f, w]
+            for f in b.parent_block().s_F
+            if b.parent_block().p_FCT[f, p]
+        ) == b.v_Q[
+            p + intermediate_label, w, t
+        ] * (
+            b.parent_block().v_F_PadStorageIn[p, t]
+            + b.parent_block().v_F_CompletionsDestination[p, t]
+        )
+
+    model.quality.CompletionsPadIntermediateWaterQuality = Constraint(
+        model.s_CP,
+        model.s_W,
+        model.s_T,
+        rule=CompletionsPadIntermediateWaterQuality,
+        doc="Completions pad water quality",
+    )
+
+    def CompletionsPadWaterQuality(b, p, w, t):
+        return (
+            b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[p + storage_label, w, t]
+            + b.parent_block().v_F_CompletionsDestination[p, t]
+            * b.v_Q[p + intermediate_label, w, t]
+            == b.v_Q[p, w, t] * b.parent_block().p_gamma_Completions[p, t]
+        )
+
+    model.quality.CompletionsPadWaterQuality = Constraint(
+        model.s_CP,
+        model.s_W,
+        model.s_T,
+        rule=CompletionsPadWaterQuality,
+        doc="Completions pad water quality",
+    )
+    # endregion
+
+    # region Completion Pad Storage
+    def CompletionsPadStorageWaterQuality(b, p, w, t):
+        if t == b.parent_block().s_T.first():
+            return b.p_xi_PadStorage[p, w] * b.parent_block().p_lambda_PadStorage[
+                p
+            ] + b.v_Q[p + intermediate_label, w, t] * b.parent_block().v_F_PadStorageIn[
+                p, t
+            ] == b.v_Q[
+                p + storage_label, w, t
+            ] * (
+                b.parent_block().v_L_PadStorage[p, t]
+                + b.parent_block().v_F_PadStorageOut[p, t]
+            )
+        else:
+            return b.v_Q[
+                p + storage_label, w, b.parent_block().s_T.prev(t)
+            ] * b.parent_block().v_L_PadStorage[
+                p, b.parent_block().s_T.prev(t)
+            ] + b.v_Q[
+                p + intermediate_label, w, t
+            ] * b.parent_block().v_F_PadStorageIn[
+                p, t
+            ] == b.v_Q[
+                p + storage_label, w, t
+            ] * (
+                b.parent_block().v_L_PadStorage[p, t]
+                + b.parent_block().v_F_PadStorageOut[p, t]
+            )
+
+    model.quality.CompletionsPadStorageWaterQuality = Constraint(
+        model.s_CP,
+        model.s_W,
+        model.s_T,
+        rule=CompletionsPadStorageWaterQuality,
+        doc="Completions pad storage water quality",
+    )
+    # endregion
+
+    # Define Objective
+    def ObjectiveFunctionRule(b):
+        return b.v_X == sum(
+            sum(
+                sum(b.v_Q[p, w, t] for p in b.parent_block().s_P)
+                for w in b.parent_block().s_W
+            )
+            for t in b.parent_block().s_T
+        )
+
+    model.quality.ObjectiveFunction = Constraint(
+        rule=ObjectiveFunctionRule, doc="Objective function water quality"
+    )
+
+    model.quality.objective = Objective(
+        expr=model.quality.v_X, sense=minimize, doc="Objective function"
+    )
+
+    return model
+
+
+def postprocess_water_quality_calculation(model, df_parameters, df_sets, opt):
+    # Add water quality formulation to input solved model
+    water_quality_model = water_quality(model, df_parameters, df_sets)
+
+    # Calculate water quality. The following conditional is used to avoid errors when
+    # using Gurobi solver
+    try:
+        opt.solve(water_quality_model.quality, tee=True, save_results=False)
+    except ValueError:
+        opt.solve(water_quality_model.quality, tee=True)
+
+    return water_quality_model
+
+
+def scale_model(model, scaling_factor=None):
+
+    if scaling_factor is None:
+        scaling_factor = 1000000
+
+    model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+    # Scaling variables
+    model.scaling_factor[model.v_Z] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_PipelineCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Reuse] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Slack] = 1 / (scaling_factor * 1000)
+    model.scaling_factor[model.v_C_Sourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_StorageCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalDisposal] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalPiping] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalReuse] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalSourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalTreatment] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalTrucking] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Treatment] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TreatmentCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_Trucked] = 1 / scaling_factor
+    model.scaling_factor[model.v_D_Capacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Capacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_DisposalDestination] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_PadStorageIn] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_UnusedTreatedWater] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_BeneficialReuseDestination] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_CompletionsDestination] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalDisposed] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalReused] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalSourced] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalTrucked] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_Trucked] = 1 / scaling_factor
+    model.scaling_factor[model.v_L_PadStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_L_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_DisposalCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_Flowback] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_FracDemand] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_PipelineCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_Production] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_ReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_TreatmentCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_StorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_X_Capacity] = 1 / scaling_factor
+
+    # Scaling constraints
+    if model.config.objective == Objectives.cost:
+        model.scaling_factor[model.CostObjectiveFunction] = 1 / scaling_factor
+    elif model.config.objective == Objectives.reuse:
+        model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
+
+    model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[
+        model.BidirectionalFlow1
+    ] = 1  # This constraints contains only binary variables
+    model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadDemandBalance] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadStorageBalance] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadStorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadSupplyBalance] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsPadTruckOffloadingCapacity] = (
+        1 / scaling_factor
+    )
+    model.scaling_factor[model.CompletionsReuseCost] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalCost] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalDestinationDeliveries] = 1 / scaling_factor
+    model.scaling_factor[model.DisposalExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.FreshwaterSourcingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.FreshSourcingCost] = 1 / scaling_factor
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintDisposal] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintPipeline] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintStorage] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintTreatment] = 1
+    model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
+    model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.PipelineExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.PipingCost] = 1 / scaling_factor
+    model.scaling_factor[model.ProductionPadSupplyBalance] = 1 / scaling_factor
+    model.scaling_factor[model.ReuseDestinationDeliveries] = 1 / scaling_factor
+    model.scaling_factor[model.BeneficialReuseDeliveries] = 1 / scaling_factor
+    model.scaling_factor[model.CompletionsWaterDeliveries] = 1 / scaling_factor
+    model.scaling_factor[model.SlackCosts] = 1 / (scaling_factor ** 2)
+    model.scaling_factor[model.StorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.StorageCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.StorageDepositCost] = 1 / scaling_factor
+    model.scaling_factor[model.StorageExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.StorageSiteBalance] = 1 / scaling_factor
+    model.scaling_factor[model.StorageSiteProcessingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.StorageSiteTruckOffloadingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.StorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TerminalCompletionsPadStorageLevel] = 1 / scaling_factor
+    model.scaling_factor[model.TerminalStorageLevel] = 1 / scaling_factor
+    model.scaling_factor[model.TotalCompletionsReuseCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalDisposalCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalDisposalVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalFreshSourcingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalFreshSourcingVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalPipingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalReuseVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalStorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
+    model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
+
+    scaled_model = TransformationFactory("core.scale_model").create_using(model)
+
+    return scaled_model
+
+
+def _preprocess_data(model, _df_parameters):
     """
     This module pre-processess data to fit the optimization format.
     In this module the following data is preprocessed:
@@ -4105,35 +5242,35 @@ def _preprocess_data(_df_parameters):
     - Pipeline Expension Cost is converted to [$/bbl]
     parameter_list = [list of tabs that contain parameters]
     """
+    if model.config.pipeline_capacity == PipelineCapacity.calculated:
+        # Pipeline Capacity
+        # Pipeline diameter is converted to pipeline capacity (bbl/week) using
+        # Hazen-Williams equation.
+        # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
+        # Required inputs are:
+        # - pipeline diameter [inch]
+        # - pipe roughness []
+        # - max head loss
 
-    # Pipeline Capacity
-    # Pipeline diameter is converted to pipeline capacity (bbl/week) using
-    # Hazen-Williams equation.
-    # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
-    # Required inputs are:
-    # - pipeline diameter [inch]
-    # - pipe roughness []
-    # - max head loss
+        # retrieve roughness and max head loss
+        roughness = _df_parameters["Hydraulics"]["roughness"]
+        max_head_loss = _df_parameters["Hydraulics"]["max_head_loss"]
 
-    # retrieve roughness and max head loss
-    roughness = _df_parameters["Hydraulics"]["roughness"]
-    max_head_loss = _df_parameters["Hydraulics"]["max_head_loss"]
+        _df_parameters["PipelineCapacityIncrements"] = {}
+        for key in _df_parameters["PipelineDiameterValues"]:
+            diameter = _df_parameters["PipelineDiameterValues"][key]
+            flow_rate = (
+                (1 / 10.67) ** (1 / 1.852)
+                * roughness
+                * (max_head_loss ** 0.54)
+                * (diameter * 0.0254) ** 2.63
+            )
 
-    _df_parameters["PipelineCapacityIncrements"] = {}
-    for key in _df_parameters["PipelineDiameterValues"]:
-        diameter = _df_parameters["PipelineDiameterValues"][key]
-        flow_rate = (
-            (1 / 10.67) ** (1 / 1.852)
-            * roughness
-            * (max_head_loss ** 0.54)
-            * (diameter * 0.0254) ** 2.63
-        )
+            # convert to bbl/week:
+            flow_rate *= 6.28981 * (3600 * 24 * 7)
 
-        # convert to bbl/week:
-        flow_rate *= 6.28981 * (3600 * 24 * 7)
-
-        # add to parameter df.
-        _df_parameters["PipelineCapacityIncrements"][key] = flow_rate
+            # add to parameter df.
+            _df_parameters["PipelineCapacityIncrements"][key] = flow_rate
 
     # Annualization rate
     # The annualization rate is used using a discount rate and the lifetime
@@ -4218,7 +5355,9 @@ if __name__ == "__main__":
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
-        "PipelineExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
         "PipelineExpansionDistance",
         "Hydraulics",
     ]
