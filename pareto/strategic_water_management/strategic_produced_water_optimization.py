@@ -47,6 +47,7 @@ from pyomo.environ import (
 from pareto.utilities.get_data import get_data
 from importlib import resources
 import pyomo.environ
+from pyomo.core.base.constraint import simple_constraint_rule
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In
@@ -976,6 +977,12 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=ProcessingCapacityStorageTable,
         doc="Weekly processing (e.g. clarification) capacity per storage site [bbl/week]",
         mutable=True,
+    )
+    model.p_sigma_NetworkNode = Param(
+        model.s_N,
+        default=float("inf"),
+        initialize=df_parameters["NodeCapacities"],
+        doc="Daily capacity per network node [bbl/week]",
     )
 
     model.p_epsilon_Treatment = Param(
@@ -2304,6 +2311,27 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=PipelineCapacityRule,
         doc="Pipeline capacity",
+    )
+
+    def NetworkNodeCapacityRule(model, n, t):
+        return (
+            sum(model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n])
+            + sum(model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n])
+            + sum(
+                model.v_F_Piped[n_tilde, n, t]
+                for n_tilde in model.s_N
+                if model.p_NNA[n_tilde, n]
+            )
+            + sum(model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n])
+            <= model.p_sigma_NetworkNode[n]
+        )
+
+    # simple constraint rule required to prevent errors if there are no node flows
+    model.NetworkCapacity = Constraint(
+        model.s_N,
+        model.s_T,
+        rule=simple_constraint_rule(NetworkNodeCapacityRule),
+        doc="Network node capacity",
     )
 
     # model.PipelineCapacity['R01','CP01','T01'].pprint()
@@ -4500,6 +4528,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.LogicConstraintTreatment] = 1
     model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.PipelineExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.PipingCost] = 1 / scaling_factor

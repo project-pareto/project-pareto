@@ -27,6 +27,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/utilities/results.py": 91,
     "pareto/tests/test_strategic_model.py": 23,
     "pareto/strategic_water_management/run_strategic_model.py": 7,
+    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 230,
 }
 
 # this is meta, two levels deep:
