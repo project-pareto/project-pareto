@@ -64,6 +64,7 @@ parameter_list = [
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "NodeCapacities",
     "InitialPipelineCapacity",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
