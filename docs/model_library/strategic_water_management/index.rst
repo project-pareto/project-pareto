@@ -292,6 +292,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Weekly processing (e.g. clarification) capacity at storage site
 
+:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Daily capacity per network node
+
 
 
 :math:`\textcolor{green}{ϵ_{r}^{Treatment}}` =                         Treatment efficiency at treatment site
@@ -619,6 +621,20 @@ For each storage site, the storage in the last time period must be less than or 
 .. math::
 
     \textcolor{red}{L_{s,t=T}^{Storage}}≤\textcolor{green}{θ_{s}^{Storage}}
+
+
+
+**Network Node Capacity:** ∀n ∈ N, t ∈ T
+
+Flow capacity constraint. For each pipeline node and for each time period, the volume should not exceed the node capacity.
+
+.. math::
+
+    ∑_{(p,n)∈PNA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(p,n)∈CNA}\textcolor{red}{F_{l,l,t}^{Piped}} 
+    
+    +∑_{(n ̃,n)∈NNA}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(s,n)∈SNA}\textcolor{red}{F_{l,l,t}^{Piped}}
+
+        ≤ \textcolor{green}{σ_{n}^{Node}}
 
 
 
