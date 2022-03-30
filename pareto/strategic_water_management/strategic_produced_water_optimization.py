@@ -4422,7 +4422,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_C_PipelineCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Reuse] = 1 / scaling_factor
-    model.scaling_factor[model.v_C_Slack] = 1 / (scaling_factor * 1000)
+    model.scaling_factor[model.v_C_Slack] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.v_C_Sourced] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Storage] = 1 / scaling_factor
     model.scaling_factor[model.v_C_StorageCapEx] = 1 / scaling_factor
@@ -4453,14 +4453,14 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_L_Storage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_Storage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_DisposalCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_Flowback] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_FracDemand] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_PipelineCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_Production] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_ReuseCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_TreatmentCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.v_S_StorageCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.v_S_DisposalCapacity] = 1
+    model.scaling_factor[model.v_S_Flowback] = 1
+    model.scaling_factor[model.v_S_FracDemand] = 1
+    model.scaling_factor[model.v_S_PipelineCapacity] = 1
+    model.scaling_factor[model.v_S_Production] = 1
+    model.scaling_factor[model.v_S_ReuseCapacity] = 1
+    model.scaling_factor[model.v_S_TreatmentCapacity] = 1
+    model.scaling_factor[model.v_S_StorageCapacity] = 1
     model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
     model.scaling_factor[model.v_X_Capacity] = 1 / scaling_factor
 
@@ -4505,7 +4505,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.PipingCost] = 1 / scaling_factor
     model.scaling_factor[model.ProductionPadSupplyBalance] = 1 / scaling_factor
     model.scaling_factor[model.ReuseDestinationDeliveries] = 1 / scaling_factor
-    model.scaling_factor[model.SlackCosts] = 1 / (scaling_factor ** 2)
+    model.scaling_factor[model.SlackCosts] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.StorageCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.StorageDepositCost] = 1 / scaling_factor
@@ -4568,7 +4568,7 @@ def _preprocess_data(model, _df_parameters):
             flow_rate = (
                 (1 / 10.67) ** (1 / 1.852)
                 * roughness
-                * (max_head_loss ** 0.54)
+                * (max_head_loss**0.54)
                 * (diameter * 0.0254) ** 2.63
             )
 
