@@ -4505,14 +4505,14 @@ def water_quality(model, df_parameters, df_sets):
             # Check if the variable is indexed
             if index is None:
                 # Check if the value can reasonably be assumed to be non-zero
-                if abs(var.value) > 0.5:
+                if abs(var.value) > 0.0000001:
                     var.fix()
                 # Otherwise, fix to 0
                 else:
                     var.fix(0)
             elif index is not None:
                 # Check if the value can reasonably be assumed to be non-zero
-                if var[index].value and abs(var[index].value) > 0.5:
+                if var[index].value and abs(var[index].value) > 0.0000001:
                     var[index].fix()
                 # Otherwise, fix to 0
                 else:

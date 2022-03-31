@@ -147,10 +147,6 @@ TransformationFactory("core.scale_model").propagate_solution(
 
 results.write()
 
-# Solve water quality model to calculate values for water quality post optimization.
-strategic_model = postprocess_water_quality_calculation(
-    strategic_model, df_parameters, df_sets, opt
-)
 
 # Generate report with results in Excel
 print("\nDisplaying Solution\n" + "-" * 60)
