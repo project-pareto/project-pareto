@@ -80,6 +80,7 @@ def generate_report(model, is_print=[], fname=None):
                     "v_S_DisposalCapacity",
                     "v_S_TreatmentCapacity",
                     "v_S_ReuseCapacity",
+                    "v_Q",
                 ]
 
             # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -161,6 +162,18 @@ def generate_report(model, is_print=[], fname=None):
             ],
             "v_F_DisposalDestination_dict": [
                 ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
+            ],
+            "quality.v_Q_dict": [
+                ("Location", "Water Component", "Time", "Water Quality")
+            ],
+            "v_F_UnusedTreatedWater_dict": [
+                ("Treatment site", "Time", "Treatment Waste Water")
+            ],
+            "v_F_CompletionsWater_dict": [
+                ("Pads", "Time", "Deliveries to completions not stored")
+            ],
+            "v_F_CompletionsDestination_dict": [
+                ("Pads", "Time", "Total deliveries to completions pads")
             ],
         }
 
