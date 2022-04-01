@@ -24,9 +24,9 @@ copyright = "2021, PARETO"
 author = "Marcus Holly and Miguel Zamarripa"
 
 # The full version, including alpha/beta/rc tags
-release = "0.2.0rc1"
+release = "0.2.0"
 # The short X.Y version
-version = "0.2.0rc1"
+version = "0.2.0"
 # -- General configuration ---------------------------------------------------
 
 
