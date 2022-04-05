@@ -13,6 +13,8 @@ Given a set of existing network components (completion pads, storage pads, produ
 +---------------------------------------------------------+
 | :ref:`strategic_model_mathematical_program_formulation` |
 +---------------------------------------------------------+
+| :ref:`strategic_model_water_quality_extension`          |
++---------------------------------------------------------+
 | :ref:`strategic_model_terminology`                      |
 +---------------------------------------------------------+
 
@@ -138,9 +140,17 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{p,t}^{PadStorageOut}}` =	                   Water removed from completions pad storage
 
-:math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDeliveries}}` =	       Produced water delivered for completions reuse
+:math:`\textcolor{red}{F_{r,t}^{TreatmentDestination}}` =	           Water delivered to treatment site
 
-:math:`\textcolor{red}{F_{k,t}^{DisposalDeliveries}}` =                Produced water delivered for disposal
+:math:`\textcolor{red}{F_{r,t}^{UnusedTreatedWater}}` =	               Treated water that is not used
+
+:math:`\textcolor{red}{F_{k,t}^{DisposalDestination}}` =               Water injected at disposal site
+
+:math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}` =	   Water delivered to completions pad for reuse
+
+:math:`\textcolor{red}{F_{p,t}^{CompletionsDestination}}` =	           All water delivered to completions pad
+
+:math:`\textcolor{red}{F_{p,t}^{BeneficialReuseDestination}}` =	       Water delivered to beneficial reuse site
 
 
 
@@ -296,7 +306,9 @@ Strategic Model Mathematical Notation
 
 
 
-:math:`\textcolor{green}{ϵ_{r}^{Treatment}}` =                         Treatment efficiency at treatment site
+:math:`\textcolor{green}{W_{r}^{TreatmentComponent}}` =                Water quality component treated for at treatment site
+
+:math:`\textcolor{green}{ϵ_{r, w}^{Treatment}}` =                      Treatment efficiency at treatment site
 
 :math:`\textcolor{green}{α^{AnnualizationRate}}` =                     Annualization Rate [%]
 
@@ -725,11 +737,11 @@ Water input into treatment facility is treated with a level of efficiency, meani
 
 .. math::
 
-    \textcolor{green}{ϵ^{Treatment}}⋅(∑_{(n,r)∈NRA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(s,r)∈SRA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(p,r)∈PRT}\textcolor{red}{F_{l,l,t}^{Trucked}}
+    \textcolor{green}{ϵ_{r, \textcolor{green}{W_{r}^{TreatmentComponent}}}^{Treatment}}⋅(∑_{(n,r)∈NRA}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(s,r)∈SRA}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(p,r)∈PRT}\textcolor{red}{F_{l,l,t}^{Trucked}}
 
-        +∑_{(p,r)∈CRT}\textcolor{red}{F_{l,l,t}^{Trucked}}) = ∑_{(r,p)∈RCA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(r,s)∈RSA}\textcolor{red}{F_{l,l,t}^{Piped}}
+        +∑_{(p,r)∈CRT}\textcolor{red}{F_{l,l,t}^{Trucked}} )=∑_{(r,p)∈RCA}\textcolor{red}{F_{l,l,t}^{Piped}} + \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}
 
-where :math:`\textcolor{green}{ϵ^{Treatment}}` <1
+where :math:`\textcolor{green}{ϵ_{r, w}^{Treatment}}` <1
 
 
 
@@ -990,20 +1002,186 @@ New pipeline or facility capacity constraints: e.g., only one injection capacity
 
 
 
-**Deliveries Constraints:** ∀p ∈ CP, t ∈ T
+**Deliveries Destination Constraints:**
 
-Completions reuse deliveries at a completions pad in time period t is equal to all piped and trucked water moved into the completions pad, excluding freshwater. Disposal deliveries for disposal site k at time t is equal to all piped and trucked water moved to the disposal site k.
+Completions reuse deliveries at a completions pad in time period t is equal to all piped and trucked water moved into the completions pad, excluding freshwater.
+∀p ∈ CP, t ∈ T
 
 .. math::
 
-    \textcolor{red}{F_{p,t}^{CompletionsReuseDeliveries}} = ∑_{l∈{P,N,R,S}}\textcolor{red}{F_{l,p,t}^{Piped}}+\textcolor{red}{F_{l,p,t}^{Trucked}}
+    \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}} = ∑_{l∈{P,N,R,S}}\textcolor{red}{F_{l,p,t}^{Piped}}+\textcolor{red}{F_{l,p,t}^{Trucked}}
 
+Disposal deliveries for disposal site k at time t is equal to all piped and trucked water moved to the disposal site k.
 ∀k ∈ K, t ∈ T
 
 .. math::
 
-    \textcolor{red}{F_{k,t}^{DisposalDeliveries}} = ∑_{l∈L}\textcolor{red}{F_{l,k,t}^{Piped}}+\textcolor{red}{F_{l,k,t}^{Trucked}}
+    \textcolor{red}{F_{k,t}^{DisposalDestination}} = ∑_{l∈L}\textcolor{red}{F_{l,k,t}^{Piped}}+\textcolor{red}{F_{l,k,t}^{Trucked}}
 
+Completions deliveries destination for completions pad p at time t is equal to all piped and trucked water moved to the completions pad.
+∀p ∈ CP, t ∈ T
+
+.. math::
+
+    \textcolor{red}{F_{p,t}^{CompletionsDestination}}  = ∑_{(n,p)∈NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(p,p)∈PCA}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCA}\textcolor{red}{F_{l,l,t}^{Piped}}
+
+        +∑_{(p,c)∈CCA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(r,p)∈RCA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(f,p)∈FCA}\textcolor{red}{F_{l,l,t}^{Sourced}}
+
+        +∑_{(p,p)∈PCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +∑_{(s,p)∈SCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +∑_{(p,p)∈CCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
+
+        +∑_{(f,p)∈FCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}
+
+.. _strategic_model_water_quality_extension:
+
+Strategic Model Water Quality Extension
+---------------------------------------------------
+An extension to this strategic optimization model measures the water quality across all locations over time. As of now, water quality is not a decision variable. It is calculated after optimization of the strategic model.
+The process for calculating water quality is as follows: the strategic model is first solved to optimality, water quality variables and constraints are added, flow rates and storage levels are fixed to the solved values at optimality, and the water quality is calculated.
+
+.. note:: Fixed variables are denoted in purple in the documentation.
+
+Assumptions:
+
+* Water quality of produced water from production pads and completions pads remains the same across all time periods
+* When blending flows of different water quality, they blend linearly
+* Treatment does not affect water quality
+
+**Water Quality Sets**
+
+:math:`\textcolor{blue}{w ∈ W}`			                     Water Quality Components (e.g., TDS)
+
+:math:`\textcolor{blue}{p^{IntermediateNode} ∈ CP}`			 Intermediate Completions Pad Nodes
+
+:math:`\textcolor{blue}{p^{PadStorage} ∈ CP}`			     Pad Storage
+
+
+**Water Quality Parameters**
+
+:math:`\textcolor{green}{v_{l,w,[t]}}` = 	                Water quality at well pad
+
+:math:`\textcolor{green}{ξ_{l,w}^{StorageSite}}` = 	        Initial water quality at storage
+
+:math:`\textcolor{green}{ξ_{l,w}^{PadStorage}}` = 	        Initial water quality at pad storage
+
+
+**Water Quality Variables**
+
+:math:`\textcolor{red}{Q_{l,w,t}}` =           Water quality at location
+
+
+**Disposal Site Water Quality** ∀k ∈ K, w ∈ W, t ∈ T
+
+The water quality of disposed water is dependent on the flow rates into the disposal site and the quality of each of these flows.
+
+.. math::
+
+    ∑_{(n,k)∈NKA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}} +∑_{(s,k)∈SKA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{s,w,t}}+∑_{(r,k)∈RKA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{r,w,t}}
+
+    +∑_{(s,k)∈SKT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{red}{Q_{s,w,t}}+∑_{(p,k)∈PKT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}}
+
+    +∑_{(p,k)∈CKT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}}+∑_{(r,k)∈RKT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{red}{Q_{r,w,t}}
+
+    =\textcolor{purple}{F_{k,t}^{DisposalDestination}}⋅\textcolor{red}{Q_{k,w,t}}
+
+**Storage Site Water Quality** ∀s ∈ S, w ∈ W, t ∈ T
+
+The water quality at storage sites is dependent on the flow rates into the storage site, the volume of water in storage in the previous time period, and the quality of each of these flows. Even mixing is assumed, so all outgoing flows have the same water quality. If it is the first time period, the initial storage level and initial water quality replaces the water stored and water quality in the previous time period respectively.
+
+.. math::
+
+    \textcolor{green}{λ_{s,t=1}^{Storage}}⋅\textcolor{green}{ξ_{l,w}^{StorageSite}} +\textcolor{purple}{L_{s,t-1}^{Storage}}⋅\textcolor{red}{Q_{s,w,t-1}} +∑_{(n,s)∈NSA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}}
+
+    +∑_{(p,s)∈PST}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}} +∑_{(p,s)∈CST}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}}
+
+    = \textcolor{red}{Q_{s,w,t}}⋅(\textcolor{purple}{L_{s,t}^{Storage}} +∑_{(s,n)∈SNA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,k)∈SKA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+
+    +∑_{(s,r)∈SRA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,o)∈SOA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCT}\textcolor{purple}{F_{l,l,t}^{Trucked}}+∑_{(s,k)∈SKT}\textcolor{purple}{F_{l,l,t}^{Trucked}})
+
+**Treatment Site Water Quality** ∀r ∈ R, w ∈ W, t ∈ T
+
+The water quality at treatment sites is dependent on the flow rates into the treatment site, the efficiency of treatment, and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality. The treatment process does not affect water quality
+
+.. math::
+
+    \textcolor{green}{ϵ_{r,\textcolor{green}{W_{r}^{TreatmentComponent}}}^{Treatment}}⋅(∑_{(n,r)∈NRA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}} +∑_{(s,r)∈SRA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{s,w,t}}
+
+    +∑_{(p,r)∈PRT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}} +∑_{(p,r)∈CRT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}} )
+
+    = \textcolor{red}{Q_{r,w,t}}⋅(∑_{(r,p)∈RCA}\textcolor{purple}{F_{l,l,t}^{Piped}} + \textcolor{purple}{F_{r,t}^{UnusedTreatedWater}})
+
+where :math:`\textcolor{green}{ϵ_{r,w}^{Treatment}}` <1
+
+**Network Node Water Quality** ∀n ∈ N, w ∈ W, t ∈ T
+
+The water quality at nodes is dependent on the flow rates into the node and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality.
+
+.. math::
+
+    ∑_{(p,n)∈PNA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{green}{v_{p,w,[t]}} +∑_{(p,n)∈CNA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{green}{v_{p,w,[t]}}
+
+    +∑_{(n ̃,n)∈NNA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}}+∑_{(s,n)∈SNA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{s,w,t}}
+
+    = \textcolor{red}{Q_{n,w,t}}⋅(∑_{(n,n ̃)∈NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} +∑_{(n,p)∈NCA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+
+    +∑_{(n,k)∈NKA}\textcolor{purple}{F_{l,l,t}^{Piped}} +∑_{(n,r)∈NRA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+
+    +∑_{(n,s)∈NSA}\textcolor{purple}{F_{l,l,t}^{Piped}} +∑_{(n,o)∈NOA}\textcolor{purple}{F_{l,l,t}^{Piped}})
+
+.. admonition:: Water Quality at Completions Pads
+
+    Water that is Piped and Trucked to a completions pad is mixed and split into two output streams: Stream (1) goes to the completions pad and stream (2) is input to the completions storage.
+    This mixing happens at an intermediate node. Finally, water that meets completions demand comes from two inputs: The first input is output stream (1) from the intermediate step. The second is outgoing flow from the storage tank.
+
+**Completions Pad Intermediate Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
+
+The water quality at the completions pad intermediate node is dependent on the flow rates of water from outside of the pad to the pad. Even mixing is assumed, so the water to storage and water to completions input have the same water quality.
+
+.. math::
+
+    ∑_{(n,p)∈NCA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(p,p)∈PCA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+
+        +∑_{(p,c)∈CCA}\textcolor{purple}{F_{l,l,t}^{Piped}} +∑_{(r,p)∈RCA}\textcolor{purple}{F_{l,l,t}^{Piped}} +∑_{(f,p)∈FCA}\textcolor{purple}{F_{l,l,t}^{Sourced}}
+
+        +∑_{(p,p)∈PCT}\textcolor{purple}{F_{l,l,t}^{Trucked}} +∑_{(s,p)∈SCT}\textcolor{purple}{F_{l,l,t}^{Trucked}} +∑_{(p,p)∈CCT}\textcolor{purple}{F_{l,l,t}^{Trucked}}
+
+        +∑_{(f,p)∈FCT}\textcolor{purple}{F_{l,l,t}^{Trucked}} = \textcolor{red}{Q_{p^{IntermediateNode},w,t}}⋅ ( \textcolor{purple}{F_{p,t}^{PadStorageIn}} + \textcolor{purple}{F_{p,t}^{CompletionsDestination}})
+
+
+
+**Completions Pad Input Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
+
+The water quality at the completions pad input is dependent on the flow rates of water from pad storage and water from the intermediate node. Even mixing is assumed, so all water into the pad is of the same water quality.
+
+.. math::
+
+    \textcolor{purple}{F_{p,t}^{PadStorageOut}}⋅\textcolor{red}{Q_{p^{PadStorage},w,t}}+\textcolor{purple}{F_{p,t}^{CompletionsDestination}}⋅\textcolor{red}{Q_{p^{IntermediateNode},w,t}}
+
+    = \textcolor{red}{Q_{p,w,t}}⋅\textcolor{green}{γ_{p,t}^{Completions}}
+
+
+**Completions Pad Storage Node Water Quality** ∀p ∈ P, w ∈ W, t ∈ T
+
+The water quality at pad storage sites is dependent on the flow rates into the pad storage site, the volume of water in pad storage in the previous time period, and the quality of each of these flows. Even mixing is assumed, so the outgoing flow to completions pad and water in storage at the end of the period have the same water quality. If it is the first time period, the initial storage level and initial water quality replaces the water stored and water quality in the previous time period, respectively.
+
+
+.. math::
+
+    \textcolor{green}{λ_{s,t=1}^{PadStorage}}⋅\textcolor{green}{ξ_{l,w}^{PadStorage}} +\textcolor{purple}{L_{s,t-1}^{PadStorage}}⋅\textcolor{red}{Q_{p^{PadStorage},w,t-1}}
+
+    + \textcolor{purple}{F_{p,t}^{PadStorageIn}} ⋅\textcolor{red}{Q_{p^{IntermediateNode},w}}
+
+    = \textcolor{red}{Q_{p^{PadStorage},w,t}}⋅(\textcolor{purple}{L_{s,t}^{PadStorage}} + \textcolor{purple}{F_{p,t}^{PadStorageOut}} )
+
+
+**Beneficial Reuse Water Quality** ∀o ∈ O, w ∈ W, t ∈ T
+
+The water quality at beneficial reuse sites is dependent on the flow rates into the site and the water quality of the flows.
+
+.. math::
+
+    ∑_{(n,o)∈NOA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}} +∑_{(s,o)∈SOA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{s,w,t}} +∑_{(p,o)∈POT}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}}
+
+    = \textcolor{red}{Q_{o,w,t}}⋅\textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
 
 
 .. _strategic_model_terminology:

@@ -109,6 +109,8 @@ def build_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -136,7 +138,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -157,7 +159,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -178,7 +180,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -199,7 +201,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -223,7 +225,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 63944
+    assert degrees_of_freedom(m) == 64048
 
 
 @pytest.fixture(scope="module")
@@ -296,6 +298,8 @@ def build_reduced_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -325,7 +329,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -348,7 +352,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -371,30 +375,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    assert degrees_of_freedom(m) == 63069
-    # Check unit config arguments
-    assert len(m.config) == 4
-    assert m.config.objective
-    assert isinstance(m.s_T, pyo.Set)
-    assert isinstance(m.v_F_Piped, pyo.Var)
-    assert isinstance(m.p_pi_Trucking, pyo.Param)
-    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
-    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
-
-
-@pytest.mark.unit
-def test_basic_reduced_build_capex_distance_based_capacity_calculated(
-    build_reduced_strategic_model,
-):
-    """Make a model and make sure it doesn't throw exception"""
-    m = build_reduced_strategic_model(
-        config_dict={
-            "objective": Objectives.cost,
-            "pipeline_cost": PipelineCost.distance_based,
-            "pipeline_capacity": PipelineCapacity.calculated,
-        }
-    )
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
     assert len(m.config) == 4
     assert m.config.objective
@@ -447,7 +428,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     m = build_reduced_strategic_model(
         config_dict={
             "objective": Objectives.cost,
-            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
@@ -458,6 +439,6 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     pyo.TransformationFactory("core.scale_model").propagate_solution(scaled_m, m)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 63069
+    assert degrees_of_freedom(m) == 63173
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(10353563.0, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(10188185.97, abs=1e-1) == pyo.value(m.v_Z)
