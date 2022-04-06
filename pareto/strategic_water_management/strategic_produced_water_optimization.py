@@ -5235,7 +5235,7 @@ def _preprocess_data(model, _df_parameters):
             flow_rate = (
                 (1 / 10.67) ** (1 / 1.852)
                 * roughness
-                * (max_head_loss ** 0.54)
+                * (max_head_loss**0.54)
                 * (diameter * 0.0254) ** 2.63
             )
 
