@@ -53,7 +53,8 @@ import pyomo.environ
 from pyomo.common.config import ConfigBlock, ConfigValue, In
 from enum import Enum
 
-from pareto.utilities.solvers import get_solver
+from pareto.utilities.solvers import get_solver, set_timeout
+from pyomo.opt import SolverStatus, TerminationCondition
 
 
 class Objectives(Enum):
@@ -5234,7 +5235,7 @@ def _preprocess_data(model, _df_parameters):
             flow_rate = (
                 (1 / 10.67) ** (1 / 1.852)
                 * roughness
-                * (max_head_loss**0.54)
+                * (max_head_loss ** 0.54)
                 * (diameter * 0.0254) ** 2.63
             )
 
@@ -5263,6 +5264,107 @@ def _preprocess_data(model, _df_parameters):
         )
 
     return _df_parameters
+
+
+def solve_model(model, options=None):
+
+    if options is None:
+        options = {
+            "deactivate_slacks": True,
+            "scale_model": True,
+            "scaling_factor": 1000000,
+            "running_time": 60,
+            "gap": 0,
+        }
+    # initialize pyomo solver
+    opt = get_solver("gurobi_direct", "gurobi", "cbc")
+    # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
+    set_timeout(opt, timeout_s=options["running_time"])
+    opt.options["mipgap"] = options["gap"]
+    opt.options["NumericFocus"] = 1
+
+    if options["deactivate_slacks"] is True:
+        model.v_C_Slack.fix(0)
+        model.v_S_FracDemand.fix(0)
+        model.v_S_Production.fix(0)
+        model.v_S_Flowback.fix(0)
+        model.v_S_PipelineCapacity.fix(0)
+        model.v_S_StorageCapacity.fix(0)
+        model.v_S_DisposalCapacity.fix(0)
+        model.v_S_TreatmentCapacity.fix(0)
+        model.v_S_ReuseCapacity.fix(0)
+
+    if options["scale_model"] is True:
+        # Scale model
+        scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
+
+        # solve mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving scaled model")
+        print("*" * 50)
+        results = opt.solve(scaled_model, tee=True)
+    else:
+        # solve mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving model")
+        print("*" * 50)
+        results = opt.solve(model, tee=True)
+
+    # Check termination condition
+    if results.solver.termination_condition != TerminationCondition.infeasible:
+        if options["scale_model"] is True:
+            TransformationFactory("core.scale_model").propagate_solution(
+                scaled_model, model
+            )
+
+    else:
+        print(
+            "WARNING: Model is infeasible. Adding Slack variables to avoid infeasibilities\n, \
+            however this is an indication that the input data should be revised"
+        )
+
+        if options["scale_model"] is True:
+            scaled_model.scaled_v_C_Slack.unfix()
+            scaled_model.scaled_v_S_FracDemand.unfix()
+            scaled_model.scaled_v_S_Production.unfix()
+            scaled_model.scaled_v_S_Flowback.unfix()
+            scaled_model.scaled_v_S_PipelineCapacity.unfix()
+            scaled_model.scaled_v_S_StorageCapacity.unfix()
+            scaled_model.scaled_v_S_DisposalCapacity.unfix()
+            scaled_model.scaled_v_S_TreatmentCapacity.unfix()
+            scaled_model.scaled_v_S_ReuseCapacity.unfix()
+
+            # solve mathematical model
+            print("\n")
+            print("*" * 50)
+            print(" " * 15, "Solving scaled model")
+            print("*" * 50)
+            results = opt.solve(scaled_model, tee=True)
+            TransformationFactory("core.scale_model").propagate_solution(
+                scaled_model, model
+            )
+        else:
+
+            model.v_C_Slack.unfix()
+            model.v_S_FracDemand.unfix()
+            model.v_S_Production.unfix()
+            model.v_S_Flowback.unfix()
+            model.v_S_PipelineCapacity.unfix()
+            model.v_S_StorageCapacity.unfix()
+            model.v_S_DisposalCapacity.unfix()
+            model.v_S_TreatmentCapacity.unfix()
+            model.v_S_ReuseCapacity.unfix()
+
+            # solve mathematical model
+            print("\n")
+            print("*" * 50)
+            print(" " * 15, "Solving model")
+            print("*" * 50)
+            results = opt.solve(model, tee=True)
+
+    results.write()
 
 
 if __name__ == "__main__":
