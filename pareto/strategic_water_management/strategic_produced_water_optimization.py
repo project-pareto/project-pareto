@@ -135,6 +135,8 @@ def create_model(df_sets, df_parameters, default={}):
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
+    model.df_sets = df_sets
+    model.df_parameters = df_parameters
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
     ## Define sets ##
@@ -4499,7 +4501,7 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def water_quality(model, df_parameters, df_sets):
+def water_quality(model):
     # region Fix solved Strategic Model variables
     for var in model.component_objects(Var):
         for index in var:
@@ -4527,21 +4529,21 @@ def water_quality(model, df_parameters, df_sets):
 
     # Create a set for Completions Pad storage by appending the storage label to each item in the CompletionsPads Set
     storage_label = "-storage"
-    df_sets["CompletionsPadsStorage"] = [
-        p + storage_label for p in df_sets["CompletionsPads"]
+    model.df_sets["CompletionsPadsStorage"] = [
+        p + storage_label for p in model.df_sets["CompletionsPads"]
     ]
     model.quality.s_CP_Storage = Set(
-        initialize=df_sets["CompletionsPadsStorage"],
+        initialize=model.df_sets["CompletionsPadsStorage"],
         doc="Completions Pad Storage Tanks",
     )
 
     # Create a set for water quality at Completions Pads intermediate flows (i.e. the blended trucked and piped water to pad)
     intermediate_label = "-intermediate"
-    df_sets["CompletionsPadsIntermediate"] = [
-        p + intermediate_label for p in df_sets["CompletionsPads"]
+    model.df_sets["CompletionsPadsIntermediate"] = [
+        p + intermediate_label for p in model.df_sets["CompletionsPads"]
     ]
     model.quality.s_CP_Intermediate = Set(
-        initialize=df_sets["CompletionsPadsIntermediate"],
+        initialize=model.df_sets["CompletionsPadsIntermediate"],
         doc="Completions Pad Intermediate Flows",
     )
 
@@ -4558,7 +4560,7 @@ def water_quality(model, df_parameters, df_sets):
         model.s_P,
         model.s_W,
         default=0,
-        initialize=df_parameters["PadWaterQuality"],
+        initialize=model.df_parameters["PadWaterQuality"],
         doc="Water Quality at pad [mg/L]",
     )
     # Quality of Sourced Water
@@ -4574,7 +4576,7 @@ def water_quality(model, df_parameters, df_sets):
         model.s_S,
         model.s_W,
         default=0,
-        initialize=df_parameters["StorageInitialWaterQuality"],
+        initialize=model.df_parameters["StorageInitialWaterQuality"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
     # Initial water quality at completions pad storage tank
@@ -4582,7 +4584,7 @@ def water_quality(model, df_parameters, df_sets):
         model.s_CP,
         model.s_W,
         default=0,
-        initialize=df_parameters["PadStorageInitialWaterQuality"],
+        initialize=model.df_parameters["PadStorageInitialWaterQuality"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
     # Add variable to track water quality at each location over time
@@ -5056,9 +5058,9 @@ def water_quality(model, df_parameters, df_sets):
     return model
 
 
-def postprocess_water_quality_calculation(model, df_parameters, df_sets, opt):
+def postprocess_water_quality_calculation(model, opt):
     # Add water quality formulation to input solved model
-    water_quality_model = water_quality(model, df_parameters, df_sets)
+    water_quality_model = water_quality(model)
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
@@ -5275,6 +5277,7 @@ def solve_model(model, options=None):
             "scaling_factor": 1000000,
             "running_time": 60,
             "gap": 0,
+            "water_quality": False,
         }
     # initialize pyomo solver
     opt = get_solver("gurobi_direct", "gurobi", "cbc")
@@ -5363,6 +5366,9 @@ def solve_model(model, options=None):
             print(" " * 15, "Solving model")
             print("*" * 50)
             results = opt.solve(model, tee=True)
+
+    if options["water_quality"] is True:
+        model = postprocess_water_quality_calculation(model, opt)
 
     results.write()
 

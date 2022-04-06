@@ -131,6 +131,7 @@ options = {
     "scaling_factor": 1000000,
     "running_time": 60,
     "gap": 0,
+    "water_quality": True,
 }
 solve_model(model=strategic_model, options=options)
 
