@@ -79,7 +79,7 @@ def _read_data(_fname, _set_list, _parameter_list):
     for i in _df_parameters:
         if proprietary_data is False:
             proprietary_data = any(
-                x in _df_parameters[i].values for x in keyword_strings
+                x in _df_parameters[i].values.astype(str) for x in keyword_strings
             )
             if proprietary_data is False:
                 proprietary_data = any(
