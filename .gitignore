@@ -141,5 +141,5 @@ dmypy.json
 
 *.stagedfright-allowed
 
-#Gurobi Troubleshooting files
+# Gurobi Troubleshooting files
 gurobi.*
