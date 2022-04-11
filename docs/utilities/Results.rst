@@ -16,7 +16,7 @@ The following functions are used to conveniently display and analyze data.
 +----------------------+---------------------------------------+
 | plot_bars            | :ref:`results_plot_bars`              |
 +----------------------+---------------------------------------+
-| plot_scatter         | :ref:`results_plot_scatter            |
+| plot_scatter         | :ref:`results_plot_scatter`           |
 +----------------------+---------------------------------------+
 
 
@@ -206,7 +206,7 @@ Example of how this method is used::
   plot_bars(input_data, args)
 
 
-  .. _results_plot_scatter :
+.. _results_plot_scatter:
 
 Plot Scatter
 ---------
