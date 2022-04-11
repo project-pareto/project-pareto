@@ -140,3 +140,6 @@ dmypy.json
 # stagedfright 
 
 *.stagedfright-allowed
+
+#Gurobi Troubleshooting files
+gurobi.*
