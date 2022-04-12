@@ -209,7 +209,7 @@ Example of how this method is used::
 .. _results_plot_scatter:
 
 Plot Scatter
----------
+------------
 
 **Method Description:**
 
@@ -233,12 +233,13 @@ This method requires two parameters:
     *"labels"*– This is a tuple that contains the labels for each column of the data provided.
 
     *"size"*- This specifies what will be used for the size of each individual marker on the plot. If the size parameter is not provided, a default size is given to all the markers. There are 3 options for the size parameter:
+
         - "x/y" - This specifies that size will be calculated as a ratio of the x variable data over the y variable data
         - "y/x" - This specifies that size will be calculated as a ratio of the y variable data over the x variable data
         - A Pareto variable that contains data for the size of the bubbles. The data must match the column used for grouping the data in the option "group_by".
 
 .. figure:: plot_scatter_4.png
-    :width: 800
+    :width: 400
     :align: center
 
     Figure 6. Options for specifying the bubbles size.
@@ -252,27 +253,29 @@ This method requires two parameters:
     There will always need to be a specified extension to the file. The accepted file extensions are as follows: .html, .png, .jpg, .jpeg, .svg, .pdf
 
     *"print_data"* - The PARETO methods allow the user to specify if they want the plotted data to be printed in the console (default is False):
+
         - True: The dataframe used for creating the figure is printed in the console
 
-.. figure:: plot_scatter_2.png
-    :width: 800
-    :align: center
+        .. figure:: plot_scatter_2.png
+            :width: 400
+            :align: center
 
-    Figure 7. Setting print_data to True will print out a dataframe for easy inspection.
+            Figure 7. Setting print_data to True will print out a dataframe for easy inspection.
 
     *"group_by_category"* - This specifies how the color of the nodes will be assigned for easy visualization. There are 3 options:
-        - True: This will cause the color of the chart markers to be grouped based on the names of the nodes. For example: PP, CP, N, R, S, K, etc 
-        will be assigned a unique color.
+
+        - True: This will cause the color of the chart markers to be grouped based on the names of the nodes. For example: PP, CP, N, R, S, K, etc
+          will be assigned a unique color.
 
         - False: The data won't be categorized by color, therefore one color will be used for the chart markers.
 
         - A Pareto variable containing a custom categorization. The method will recognize the variable automatically and the values in this variable 
-        will be used for assigning colors to the categories that are provided. An excel sheet should be created with all Node names, removing all duplicates,
-        and assigning a numerical value to each specific node with the category the user would like it to be associated with. This approach is best for 
-        the situations where nodes of different types are to be categorized together.
+          will be used for assigning colors to the categories that are provided. An excel sheet should be created with all Node names, removing all duplicates,
+          and assigning a numerical value to each specific node with the category the user would like it to be associated with. This approach is best for
+          the situations where nodes of different types are to be categorized together.
 
 .. figure:: plot_scatter_3.png
-    :width: 800
+    :width: 300
     :align: center
 
     Figure 8. Data used for custom categories.
