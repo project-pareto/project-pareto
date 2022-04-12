@@ -14,8 +14,6 @@
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
-    postprocess_water_quality_calculation,
-    scale_model,
     solve_model,
     PipelineCost,
     PipelineCapacity,
@@ -23,10 +21,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pareto.utilities.solvers import get_solver, set_timeout
-
-from pyomo.environ import TransformationFactory
-
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
