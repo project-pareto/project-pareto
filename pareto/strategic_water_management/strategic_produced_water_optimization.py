@@ -141,18 +141,25 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define sets ##
 
-    model.s_T = Set(initialize=model.df_sets["TimePeriods"], doc="Time Periods", ordered=True)
+    model.s_T = Set(
+        initialize=model.df_sets["TimePeriods"], doc="Time Periods", ordered=True
+    )
     model.s_PP = Set(initialize=model.df_sets["ProductionPads"], doc="Production Pads")
-    model.s_CP = Set(initialize=model.df_sets["CompletionsPads"], doc="Completions Pads")
+    model.s_CP = Set(
+        initialize=model.df_sets["CompletionsPads"], doc="Completions Pads"
+    )
     model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc="Pads")
-    model.s_F = Set(initialize=model.df_sets["FreshwaterSources"], doc="Freshwater Sources")
+    model.s_F = Set(
+        initialize=model.df_sets["FreshwaterSources"], doc="Freshwater Sources"
+    )
     model.s_K = Set(initialize=model.df_sets["SWDSites"], doc="Disposal Sites")
     model.s_S = Set(initialize=model.df_sets["StorageSites"], doc="Storage Sites")
     model.s_R = Set(initialize=model.df_sets["TreatmentSites"], doc="Treatment Sites")
     model.s_O = Set(initialize=model.df_sets["ReuseOptions"], doc="Reuse Options")
     model.s_N = Set(initialize=model.df_sets["NetworkNodes"], doc="Network Nodes")
     model.s_W = Set(
-        initialize=model.df_sets["WaterQualityComponents"], doc="Water Quality Components"
+        initialize=model.df_sets["WaterQualityComponents"],
+        doc="Water Quality Components",
     )
 
     model.s_L = Set(
@@ -167,8 +174,12 @@ def create_model(df_sets, df_parameters, default={}):
         ),
         doc="Locations",
     )
-    model.s_D = Set(initialize=model.df_sets["PipelineDiameters"], doc="Pipeline diameters")
-    model.s_C = Set(initialize=model.df_sets["StorageCapacities"], doc="Storage capacities")
+    model.s_D = Set(
+        initialize=model.df_sets["PipelineDiameters"], doc="Pipeline diameters"
+    )
+    model.s_C = Set(
+        initialize=model.df_sets["StorageCapacities"], doc="Storage capacities"
+    )
     model.s_J = Set(
         initialize=model.df_sets["TreatmentCapacities"], doc="Treatment capacities"
     )
@@ -5265,6 +5276,7 @@ def _preprocess_data(model):
         model.df_parameters["AnnualizationRate"] = discount_rate / (
             1 - (1 + discount_rate) ** -life
         )
+
 
 def solve_model(model, options=None):
 
