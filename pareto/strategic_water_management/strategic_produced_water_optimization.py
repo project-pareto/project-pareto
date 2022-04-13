@@ -588,7 +588,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_PP,
         model.s_N,
         default=0,
-        initialize=df_parameters["PNA"],
+        initialize=model.df_parameters["PNA"],
         doc="Valid production-to-node pipeline arcs [-]",
     )
     model.p_PPA = Param(
@@ -602,49 +602,49 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_N,
         default=0,
-        initialize=df_parameters["CNA"],
+        initialize=model.df_parameters["CNA"],
         doc="Valid completion-to-node pipeline arcs [-]",
     )
     model.p_CCA = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=df_parameters["CCA"],
+        initialize=model.df_parameters["CCA"],
         doc="Valid completions-to-completions pipelin arcs [-]",
     )
     model.p_NNA = Param(
         model.s_N,
         model.s_N,
         default=0,
-        initialize=df_parameters["NNA"],
+        initialize=model.df_parameters["NNA"],
         doc="Valid node-to-node pipeline arcs [-]",
     )
     model.p_NCA = Param(
         model.s_N,
         model.s_CP,
         default=0,
-        initialize=df_parameters["NCA"],
+        initialize=model.df_parameters["NCA"],
         doc="Valid node-to-completions pipeline arcs [-]",
     )
     model.p_NKA = Param(
         model.s_N,
         model.s_K,
         default=0,
-        initialize=df_parameters["NKA"],
+        initialize=model.df_parameters["NKA"],
         doc="Valid node-to-disposal pipeline arcs [-]",
     )
     model.p_NSA = Param(
         model.s_N,
         model.s_S,
         default=0,
-        initialize=df_parameters["NSA"],
+        initialize=model.df_parameters["NSA"],
         doc="Valid node-to-storage pipeline arcs [-]",
     )
     model.p_NRA = Param(
         model.s_N,
         model.s_R,
         default=0,
-        initialize=df_parameters["NRA"],
+        initialize=model.df_parameters["NRA"],
         doc="Valid node-to-treatment pipeline arcs [-]",
     )
     model.p_NOA = Param(
@@ -658,21 +658,21 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_F,
         model.s_CP,
         default=0,
-        initialize=df_parameters["FCA"],
+        initialize=model.df_parameters["FCA"],
         doc="Valid freshwater-to-completions pipeline arcs [-]",
     )
     model.p_RCA = Param(
         model.s_R,
         model.s_CP,
         default=0,
-        initialize=df_parameters["RCA"],
+        initialize=model.df_parameters["RCA"],
         doc="Valid treatment-to-completions layflat arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
         model.s_N,
         default=0,
-        initialize=df_parameters["RNA"],
+        initialize=model.df_parameters["RNA"],
         doc="Valid treatment-to-node pipeline arcs [-]",
     )
     model.p_RKA = Param(
@@ -693,7 +693,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_N,
         default=0,
-        initialize=df_parameters["SNA"],
+        initialize=model.df_parameters["SNA"],
         doc="Valid storage-to-node pipeline arcs [-]",
     )
     model.p_SCA = Param(
@@ -729,21 +729,21 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_PP,
         model.s_CP,
         default=0,
-        initialize=df_parameters["PCT"],
+        initialize=model.df_parameters["PCT"],
         doc="Valid production-to-completions trucking arcs [-]",
     )
     model.p_FCT = Param(
         model.s_F,
         model.s_CP,
         default=0,
-        initialize=df_parameters["FCT"],
+        initialize=model.df_parameters["FCT"],
         doc="Valid freshwater-to-completions trucking arcs [-]",
     )
     model.p_PKT = Param(
         model.s_PP,
         model.s_K,
         default=0,
-        initialize=df_parameters["PKT"],
+        initialize=model.df_parameters["PKT"],
         doc="Valid production-to-disposal trucking arcs [-]",
     )
     model.p_PST = Param(
@@ -771,14 +771,14 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_K,
         default=0,
-        initialize=df_parameters["CKT"],
+        initialize=model.df_parameters["CKT"],
         doc="Valid completions-to-disposal trucking arcs [-]",
     )
     model.p_CST = Param(
         model.s_CP,
         model.s_S,
         default=0,
-        initialize=df_parameters["CST"],
+        initialize=model.df_parameters["CST"],
         doc="Valid completions-to-storage trucking arcs [-]",
     )
     model.p_CRT = Param(
@@ -792,7 +792,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=df_parameters["CCT"],
+        initialize=model.df_parameters["CCT"],
         doc="Valid completion-to-completion trucking arcs [-]",
     )
     model.p_SCT = Param(
@@ -5265,9 +5265,6 @@ def _preprocess_data(model):
         model.df_parameters["AnnualizationRate"] = discount_rate / (
             1 - (1 + discount_rate) ** -life
         )
-
-    # return _df_parameters
-
 
 def solve_model(model, options=None):
 
