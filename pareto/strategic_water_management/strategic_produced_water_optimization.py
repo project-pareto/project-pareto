@@ -5356,13 +5356,13 @@ def _preprocess_data(model, _df_parameters):
     """
     This module pre-processess data to fit the optimization format.
     In this module the following data is preprocessed:
-    - Pipeline Diameters [inch] are converted to flow rate [bbl/week]
+    - Pipeline Diameters [inch] are converted to flow rate [bbl/day]
     - Pipeline Expension Cost is converted to [$/bbl]
     parameter_list = [list of tabs that contain parameters]
     """
     if model.config.pipeline_capacity == PipelineCapacity.calculated:
         # Pipeline Capacity
-        # Pipeline diameter is converted to pipeline capacity (bbl/week) using
+        # Pipeline diameter is converted to pipeline capacity (bbl/day) using
         # Hazen-Williams equation.
         # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
         # Required inputs are:
