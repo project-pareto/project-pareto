@@ -1082,13 +1082,17 @@ The water quality at storage sites is dependent on the flow rates into the stora
 
 .. math::
 
-    \textcolor{green}{λ_{s,t=1}^{Storage}}⋅\textcolor{green}{ξ_{l,w}^{StorageSite}} +\textcolor{purple}{L_{s,t-1}^{Storage}}⋅\textcolor{red}{Q_{s,w,t-1}} +∑_{(n,s)∈NSA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}}
+    \textcolor{green}{λ_{s,t=1}^{Storage}}⋅\textcolor{green}{ξ_{l,w}^{StorageSite}} +\textcolor{purple}{L_{s,t-1}^{Storage}}⋅\textcolor{red}{Q_{s,w,t-1}}
 
-    +∑_{(p,s)∈PST}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}} +∑_{(p,s)∈CST}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}}
+    +\textcolor{green}{τ^{DaysInPeriod}}⋅[∑_{(n,s)∈NSA}\textcolor{purple}{F_{l,l,t}^{Piped}}⋅\textcolor{red}{Q_{n,w,t}}
 
-    = \textcolor{red}{Q_{s,w,t}}⋅(\textcolor{purple}{L_{s,t}^{Storage}} +∑_{(s,n)∈SNA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,k)∈SKA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+    +∑_{(p,s)∈PST}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}} +∑_{(p,s)∈CST}\textcolor{purple}{F_{l,l,t}^{Trucked}}⋅\textcolor{green}{v_{p,w,[t]}}]
 
-    +∑_{(s,r)∈SRA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,o)∈SOA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCT}\textcolor{purple}{F_{l,l,t}^{Trucked}}+∑_{(s,k)∈SKT}\textcolor{purple}{F_{l,l,t}^{Trucked}})
+    = \textcolor{red}{Q_{s,w,t}}⋅(\textcolor{purple}{L_{s,t}^{Storage}}
+
+    +\textcolor{green}{τ^{DaysInPeriod}}⋅[∑_{(s,n)∈SNA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,k)∈SKA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+
+    +∑_{(s,r)∈SRA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,o)∈SOA}\textcolor{purple}{F_{l,l,t}^{Piped}}+∑_{(s,p)∈SCT}\textcolor{purple}{F_{l,l,t}^{Trucked}}+∑_{(s,k)∈SKT}\textcolor{purple}{F_{l,l,t}^{Trucked}}])
 
 **Treatment Site Water Quality** ∀r ∈ R, w ∈ W, t ∈ T
 
@@ -1161,9 +1165,9 @@ The water quality at pad storage sites is dependent on the flow rates into the p
 
     \textcolor{green}{λ_{s,t=1}^{PadStorage}}⋅\textcolor{green}{ξ_{l,w}^{PadStorage}} +\textcolor{purple}{L_{s,t-1}^{PadStorage}}⋅\textcolor{red}{Q_{p^{PadStorage},w,t-1}}
 
-    + \textcolor{purple}{F_{p,t}^{PadStorageIn}} ⋅\textcolor{red}{Q_{p^{IntermediateNode},w}}
+    + \textcolor{green}{τ^{DaysInPeriod}}⋅\textcolor{purple}{F_{p,t}^{PadStorageIn}} ⋅\textcolor{red}{Q_{p^{IntermediateNode},w}}
 
-    = \textcolor{red}{Q_{p^{PadStorage},w,t}}⋅(\textcolor{purple}{L_{s,t}^{PadStorage}} + \textcolor{purple}{F_{p,t}^{PadStorageOut}} )
+    = \textcolor{red}{Q_{p^{PadStorage},w,t}}⋅(\textcolor{purple}{L_{s,t}^{PadStorage}} + \textcolor{green}{τ^{DaysInPeriod}}⋅\textcolor{purple}{F_{p,t}^{PadStorageOut}} )
 
 
 **Beneficial Reuse Water Quality** ∀o ∈ O, w ∈ W, t ∈ T
