@@ -302,7 +302,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Weekly processing (e.g. clarification) capacity at storage site
 
-:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Daily capacity per network node
+:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Weekly capacity per network node
 
 
 

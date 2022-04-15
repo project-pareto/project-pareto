@@ -30,6 +30,7 @@
 # - Implemented calculation of maximum flows based on pipeline diameters
 
 # Import
+from cmath import nan
 from pyomo.environ import (
     Var,
     Param,
@@ -41,6 +42,7 @@ from pyomo.environ import (
     NonNegativeReals,
     Reals,
     Binary,
+    Any,
     Block,
     Suffix,
     TransformationFactory,
@@ -70,6 +72,11 @@ class PipelineCapacity(Enum):
 class PipelineCost(Enum):
     distance_based = 0
     capacity_based = 1
+
+
+class IncludeNodeCapacity(Enum):
+    false = 0
+    true = 1
 
 
 # create config dictionary
@@ -126,6 +133,22 @@ CONFIG.declare(
         }""",
     ),
 )
+
+CONFIG.declare(
+    "node_capacity",
+    ConfigValue(
+        default=IncludeNodeCapacity.true,
+        domain=In(IncludeNodeCapacity),
+        description="Node Capacity",
+        doc="""Selection to include Node Capacity
+        ***default*** - IncludeNodeCapacity.True
+        **Valid Values:** - {
+        **IncludeNodeCapacity.True** - Include network node capacity constraints,
+        **IncludeNodeCapacity.Fales** - Exclude network node capacity constraints
+        }""",
+    ),
+)
+
 
 # Creation of a Concrete Model
 
@@ -814,6 +837,12 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Valid treatment-to-disposal trucking arcs [-]",
     )
 
+    # model.p_NNC = Param(
+    #     model.s_N,
+    #     default=0
+    #     initialize=
+    # )
+
     # model.p_PCA.pprint()
     # model.p_PNA.pprint()
     # model.p_CNA.pprint()
@@ -1002,12 +1031,14 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Weekly processing (e.g. clarification) capacity per storage site [bbl/week]",
         mutable=True,
     )
-    model.p_sigma_NetworkNode = Param(
-        model.s_N,
-        default=float("inf"),
-        initialize=df_parameters["NodeCapacities"],
-        doc="Daily capacity per network node [bbl/week]",
-    )
+    if model.config.node_capacity == IncludeNodeCapacity.true:
+        model.p_sigma_NetworkNode = Param(
+            model.s_N,
+            default=nan,
+            within=Any,
+            initialize=df_parameters["NodeCapacities"],
+            doc="Weekly capacity per network node [bbl/week]",
+        )
 
     model.p_epsilon_Treatment = Param(
         model.s_R,
@@ -2345,26 +2376,42 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Pipeline capacity",
     )
 
-    def NetworkNodeCapacityRule(model, n, t):
-        return (
-            sum(model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n])
-            + sum(model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n])
-            + sum(
-                model.v_F_Piped[n_tilde, n, t]
-                for n_tilde in model.s_N
-                if model.p_NNA[n_tilde, n]
-            )
-            + sum(model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n])
-            <= model.p_sigma_NetworkNode[n]
-        )
+    # only include network node capacity constraint if config is set to true
+    if model.config.node_capacity == IncludeNodeCapacity.true:
 
-    # simple constraint rule required to prevent errors if there are no node flows
-    model.NetworkCapacity = Constraint(
-        model.s_N,
-        model.s_T,
-        rule=simple_constraint_rule(NetworkNodeCapacityRule),
-        doc="Network node capacity",
-    )
+        def NetworkNodeCapacityRule(model, n, t):
+            if model.p_sigma_NetworkNode[n] > 0:
+                return (
+                    sum(
+                        model.v_F_Piped[p, n, t]
+                        for p in model.s_PP
+                        if model.p_PNA[p, n]
+                    )
+                    + sum(
+                        model.v_F_Piped[p, n, t]
+                        for p in model.s_CP
+                        if model.p_CNA[p, n]
+                    )
+                    + sum(
+                        model.v_F_Piped[n_tilde, n, t]
+                        for n_tilde in model.s_N
+                        if model.p_NNA[n_tilde, n]
+                    )
+                    + sum(
+                        model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
+                    )
+                    <= model.p_sigma_NetworkNode[n]
+                )
+            else:
+                return Constraint.Skip
+
+        # simple constraint rule required to prevent errors if there are no node flows
+        model.NetworkCapacity = Constraint(
+            model.s_N,
+            model.s_T,
+            rule=simple_constraint_rule(NetworkNodeCapacityRule),
+            doc="Network node capacity",
+        )
 
     # model.PipelineCapacity['R01','CP01','T01'].pprint()
 
@@ -5163,9 +5210,8 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
 
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
-    model.scaling_factor[
-        model.BidirectionalFlow1
-    ] = 1  # This constraints contains only binary variables
+    # This constraints contains only binary variables
+    model.scaling_factor[model.BidirectionalFlow1] = 1
     model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
     model.scaling_factor[model.CompletionsPadDemandBalance] = 1 / scaling_factor
     model.scaling_factor[model.CompletionsPadStorageBalance] = 1 / scaling_factor
@@ -5192,7 +5238,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.LogicConstraintTreatment] = 1
     model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.PipelineExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.PipingCost] = 1 / scaling_factor
@@ -5229,6 +5274,9 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentCost] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
+
+    if model.config.node_capacity == IncludeNodeCapacity.true:
+        model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
 
     scaled_model = TransformationFactory("core.scale_model").create_using(model)
 
