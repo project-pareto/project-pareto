@@ -46,8 +46,6 @@ from pyomo.environ import (
     TransformationFactory,
 )
 from pareto.utilities.get_data import get_data
-from importlib import resources
-import pyomo.environ
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In
