@@ -35,6 +35,8 @@ def plot_args():
     return {
         "plot_title": "Test Data",
         "output_file": "first_bar.html",
+        "group_by": "Destination",
+        "print_data": True,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
