@@ -24,6 +24,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     PipelineCapacity,
+    IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
@@ -81,6 +82,7 @@ def build_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "NodeCapacities",
         "InitialPipelineCapacity",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
@@ -135,11 +137,12 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "node_capacity": IncludeNodeCapacity.true,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -156,11 +159,12 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "node_capacity": IncludeNodeCapacity.true,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -177,11 +181,12 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "node_capacity": IncludeNodeCapacity.true,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -198,11 +203,12 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "node_capacity": IncludeNodeCapacity.true,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -269,6 +275,7 @@ def build_reduced_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "NodeCapacities",
         "InitialPipelineCapacity",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
@@ -329,7 +336,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -352,7 +359,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -375,7 +382,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
-    assert len(m.config) == 4
+    assert len(m.config) == 5
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
