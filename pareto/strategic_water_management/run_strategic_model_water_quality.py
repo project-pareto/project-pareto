@@ -67,6 +67,7 @@ parameter_list = [
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "NodeCapacities",
     "InitialPipelineCapacity",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
@@ -104,8 +105,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
-    # "small_strategic_case_study.xlsx",
+    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+    "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 

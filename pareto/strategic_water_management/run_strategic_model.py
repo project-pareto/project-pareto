@@ -18,6 +18,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     PipelineCapacity,
+    IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
@@ -67,6 +68,7 @@ parameter_list = [
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "NodeCapacities",
     "InitialPipelineCapacity",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
@@ -113,7 +115,8 @@ with resources.path(
 """Valid values of config arguments for the default parameter in the create_model() call
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
- pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]"""
+ pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+ node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
 strategic_model = create_model(
     df_sets,
     df_parameters,
@@ -121,6 +124,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": IncludeNodeCapacity.true,
     },
 )
 

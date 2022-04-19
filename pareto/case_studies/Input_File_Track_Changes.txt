@@ -1,3 +1,11 @@
+PR Node Capacity (3/28/2022)
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Add "Node Capacities" tab
+Small Case (small_strategic_case_study.xlsx)
+	• Add "Node Capacities" tab
+
 PR #103 Water Quality Strategic Model (3/15/2022)
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
