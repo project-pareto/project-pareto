@@ -47,9 +47,7 @@ from pyomo.environ import (
     Suffix,
     TransformationFactory,
 )
-from pareto.utilities.get_data import get_data
-from importlib import resources
-import pyomo.environ
+
 from pyomo.core.base.constraint import simple_constraint_rule
 
 # from gurobipy import *
