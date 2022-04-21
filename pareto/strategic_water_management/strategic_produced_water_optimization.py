@@ -159,6 +159,10 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+    # model.user_units =
+    # model.model_units =
+    # user_units = pyunits.bbl / pyunits.week
+    # model_unit = pyunits.kbbl / pyunits.day
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
     ## Define sets ##

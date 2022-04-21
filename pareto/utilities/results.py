@@ -145,18 +145,6 @@ def generate_report(model, is_print=[], fname=None):
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
             "v_F_Capacity_dict": [("Origin", "Destination", "Flow Capacity")],
-            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
-            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
-            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
-            "v_S_PipelineCapacity_dict": [
-                ("Origin", "Destination", "Slack Pipeline Capacity")
-            ],
-            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
-            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
-            "v_S_TreatmentCapacity_dict": [
-                ("Treatment site", "Slack Treatment Capacity")
-            ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_F_ReuseDestination_dict": [
                 ("Completion Pad", "Time", "Total Deliveries to Completion Pad")
             ],
@@ -175,6 +163,18 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_CompletionsDestination_dict": [
                 ("Pads", "Time", "Total deliveries to completions pads")
             ],
+            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
+            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
+            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
+            "v_S_PipelineCapacity_dict": [
+                ("Origin", "Destination", "Slack Pipeline Capacity")
+            ],
+            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
+            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
+            "v_S_TreatmentCapacity_dict": [
+                ("Treatment site", "Slack Treatment Capacity")
+            ],
+            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
         }
 
         # Defining KPIs for strategic model
@@ -323,18 +323,6 @@ def generate_report(model, is_print=[], fname=None):
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
             "v_F_Capacity_dict": [("Origin", "Destination", "Flow Capacity")],
-            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
-            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
-            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
-            "v_S_PipelineCapacity_dict": [
-                ("Origin", "Destination", "Slack Pipeline Capacity")
-            ],
-            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
-            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
-            "v_S_TreatmentCapacity_dict": [
-                ("Treatment site", "Slack Treatment Capacity")
-            ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_F_ReuseDestination_dict": [
                 ("Completion Pad", "Time", "Total Deliveries to Completion Pad")
             ],
@@ -351,6 +339,18 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_UnusedTreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
             ],
+            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
+            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
+            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
+            "v_S_PipelineCapacity_dict": [
+                ("Origin", "Destination", "Slack Pipeline Capacity")
+            ],
+            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
+            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
+            "v_S_TreatmentCapacity_dict": [
+                ("Treatment site", "Slack Treatment Capacity")
+            ],
+            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
