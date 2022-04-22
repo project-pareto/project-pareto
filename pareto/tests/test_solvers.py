@@ -47,7 +47,7 @@ def nlp():
     m.x = pyo.Var(initialize=-0.1)
     m.y = pyo.Var(initialize=1)
     m.c = pyo.Constraint(expr=m.x >= 1)
-    m.obj = pyo.Objective(expr=m.x**2 + m.y**2)
+    m.obj = pyo.Objective(expr=m.x ** 2 + m.y ** 2)
     return m, 1
 
 
@@ -58,7 +58,7 @@ def minlp():
     m.i = pyo.Var(domain=pyo.Binary, initialize=1)
     m.c = pyo.Constraint(expr=m.x >= 1)
     m.obj = pyo.Objective(
-        expr=m.i * (m.x**2 + m.y**2) + (1 - m.i) * 4 * (m.x**2 + m.y**2)
+        expr=m.i * (m.x ** 2 + m.y ** 2) + (1 - m.i) * 4 * (m.x ** 2 + m.y ** 2)
     )
     return m, 1
 

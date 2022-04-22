@@ -12,6 +12,7 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    WaterQuality,
     create_model,
     Objectives,
     solve_model,
@@ -111,7 +112,10 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+ node_capacity: [IncludeNodeCapacity.true, IncludeNodeCapacity.false]
+ water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ """
+
 strategic_model = create_model(
     df_sets,
     df_parameters,
@@ -120,6 +124,7 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
+        "water_quality": WaterQuality.discrete,
     },
 )
 
@@ -129,7 +134,6 @@ options = {
     "scaling_factor": 1000000,
     "running_time": 60,
     "gap": 0,
-    "water_quality": True,
 }
 solve_model(model=strategic_model, options=options)
 
