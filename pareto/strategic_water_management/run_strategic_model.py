@@ -14,17 +14,14 @@
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     Objectives,
-    scale_model,
+    solve_model,
     PipelineCost,
     PipelineCapacity,
+    IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
-from pareto.utilities.solvers import get_solver, set_timeout
-
-from pyomo.environ import TransformationFactory
-
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -66,6 +63,7 @@ parameter_list = [
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "NodeCapacities",
     "InitialPipelineCapacity",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
@@ -104,8 +102,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
-    "small_strategic_case_study.xlsx",
+    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx"
+    # "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -113,7 +111,8 @@ with resources.path(
 """Valid values of config arguments for the default parameter in the create_model() call
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
- pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]"""
+ pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+ node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
 strategic_model = create_model(
     df_sets,
     df_parameters,
@@ -121,32 +120,19 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": IncludeNodeCapacity.true,
     },
 )
 
-# Scale model
-strategic_model_scaled = scale_model(strategic_model, scaling_factor=1000000)
-
-# initialize pyomo solver
-opt = get_solver("gurobi_direct", "gurobi", "cbc")
-# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
-set_timeout(opt, timeout_s=60)
-opt.options["mipgap"] = 0
-opt.options["NumericFocus"] = 1
-
-# solve mathematical model
-print("\n")
-print("*" * 50)
-print(" " * 15, "Solving scaled model")
-print("*" * 50)
-results = opt.solve(strategic_model_scaled, tee=True)
-
-TransformationFactory("core.scale_model").propagate_solution(
-    strategic_model_scaled, strategic_model
-)
-
-results.write()
-
+options = {
+    "deactivate_slacks": True,
+    "scale_model": True,
+    "scaling_factor": 1000000,
+    "running_time": 60,
+    "gap": 0,
+    "water_quality": True,
+}
+solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
 print("\nDisplaying Solution\n" + "-" * 60)

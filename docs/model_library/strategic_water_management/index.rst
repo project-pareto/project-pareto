@@ -279,28 +279,30 @@ Strategic Model Mathematical Notation
 
 
 
-:math:`\textcolor{green}{σ_{l,l}^{Pipeline}}` =	                       Initial weekly pipeline capacity between two locations
+:math:`\textcolor{green}{σ_{l,l}^{Pipeline}}` =	                       Initial daily pipeline capacity between two locations
 
-:math:`\textcolor{green}{σ_{k}^{Disposal}}` =	                       Initial weekly disposal capacity at a disposal site
+:math:`\textcolor{green}{σ_{k}^{Disposal}}` =	                       Initial daily disposal capacity at a disposal site
 
 :math:`\textcolor{green}{σ_{s}^{Storage}}` =                           Initial storage capacity at a storage site
 
 :math:`\textcolor{green}{σ_{p,t}^{PadStorage}}` =                      Storage capacity at completions site
 
-:math:`\textcolor{green}{σ_{r}^{Treatment}}` =                         Initial weekly treatment capacity at a treatment site
+:math:`\textcolor{green}{σ_{r}^{Treatment}}` =                         Initial daily treatment capacity at a treatment site
 
-:math:`\textcolor{green}{σ_{o}^{BeneficialReuse}}` =                   Initial weekly reuse capacity at a reuse site
+:math:`\textcolor{green}{σ_{o}^{BeneficialReuse}}` =                   Initial daily reuse capacity at a reuse site
 
-:math:`\textcolor{green}{σ_{f,t}^{Freshwater}}` =                      Weekly freshwater sourcing capacity at freshwater source
+:math:`\textcolor{green}{σ_{f,t}^{Freshwater}}` =                      Daily freshwater sourcing capacity at freshwater source
 
-:math:`\textcolor{green}{σ_{p}^{Offloading,Pad}}` =                    Weekly truck offloading sourcing capacity per pad
+:math:`\textcolor{green}{σ_{p}^{Offloading,Pad}}` =                    Daily truck offloading sourcing capacity per pad
 
-:math:`\textcolor{green}{σ_{s}^{Offloading,Storage}}` =	               Weekly truck offloading sourcing capacity per storage site
+:math:`\textcolor{green}{σ_{s}^{Offloading,Storage}}` =	               Daily truck offloading sourcing capacity per storage site
 
 
-:math:`\textcolor{green}{σ_{p}^{Processing,Pad}}` =                    Weekly processing (e.g. clarification) capacity per pad
+:math:`\textcolor{green}{σ_{p}^{Processing,Pad}}` =                    Daily processing (e.g. clarification) capacity per pad
 
-:math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Weekly processing (e.g. clarification) capacity at storage site
+:math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Daily processing (e.g. clarification) capacity at storage site
+
+:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Daily capacity per network node
 
 
 
@@ -636,6 +638,20 @@ For each storage site, the storage in the last time period must be less than or 
 .. math::
 
     \textcolor{red}{L_{s,t=T}^{Storage}}≤\textcolor{green}{θ_{s}^{Storage}}
+
+
+
+**Network Node Capacity:** ∀n ∈ N, t ∈ T
+
+Flow capacity constraint. For each pipeline node and for each time period, the volume should not exceed the node capacity.
+
+.. math::
+
+    ∑_{(p,n)∈PNA}\textcolor{red}{F_{l,l,t}^{Piped}} +∑_{(p,n)∈CNA}\textcolor{red}{F_{l,l,t}^{Piped}} 
+    
+    +∑_{(n ̃,n)∈NNA}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(s,n)∈SNA}\textcolor{red}{F_{l,l,t}^{Piped}}
+
+        ≤ \textcolor{green}{σ_{n}^{Node}}
 
 
 
