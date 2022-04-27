@@ -312,10 +312,6 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{α^{AnnualizationRate}}` =                     Annualization Rate [%]
 
-:math:`\textcolor{green}{μ_{d}^{Pipeline}}` =                          Pipeline diameter installation or expansion increments  [inch]
-
-:math:`\textcolor{green}{δ_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion increments  [bbl/week]
-
 
 
 :math:`\textcolor{green}{δ_{i}^{Disposal}}` =                          Disposal capacity installation or expansion increments
@@ -358,15 +354,27 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{θ_{p}^{PadStorage}}` =                        Terminal storage level at completions site
 
-:math:`\textcolor{green}{λ_{l,l}^{Pipeline}}` = 	                   Pipeline segment length [miles]
-
 :math:`\textcolor{green}{κ_{k,i}^{Disposal}}` =                        Disposal construction or expansion capital cost for selected capacity increment
 
 :math:`\textcolor{green}{κ_{s,c}^{Storage}}` =                         Storage construction or expansion capital cost for selected capacity increment
 
 :math:`\textcolor{green}{κ_{r,j}^{Treatment}}` =                       Treatment construction or expansion capital cost for selected capacity increment
 
-:math:`\textcolor{green}{κ^{Pipeline}}` =                              Pipeline construction or expansion capital cost for selected diameter [$/inch-mile]
+
+**The cost parameter for expanding or constructing new pipeline capacity is structured differently depending on model configuration settings. If the pipeline cost configuration is distance based:**
+
+    :math:`\textcolor{green}{κ^{Pipeline}}` =                              Pipeline construction or expansion capital cost [$/inch-mile]
+
+    :math:`\textcolor{green}{μ_{d}^{Pipeline}}` =                          Pipeline diameter installation or expansion increments  [inch]
+
+    :math:`\textcolor{green}{λ_{l,l}^{Pipeline}}` = 	                   Pipeline segment length [miles]
+
+**Otherwise, if the pipeline cost configuration is capacity based:**
+
+    :math:`\textcolor{green}{κ_{l,l,d}^{Pipeline}}` =                      Pipeline construction or expansion capital cost for selected diameter capacity [$/bbl/day]
+
+    :math:`\textcolor{green}{δ_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion capacity increments  [bbl/day]
+
 
 :math:`\textcolor{green}{π_{k}^{Disposal}}` =                          Disposal operational cost
 
@@ -664,13 +672,16 @@ Sets the flow capacity in a given pipeline during a given time period. Different
 
     \textcolor{red}{F_{l,l ̂,[t]}^{Capacity}} = \textcolor{green}{σ_{l,l ̂}^{Pipeline}}+∑_{d∈D}\textcolor{green}{δ_{d}^{Pipeline}}⋅(\textcolor{red}{y_{l,l ̂,d}^{Pipeline}}+\textcolor{red}{y_{l ̂,l,d}^{Pipeline}} )+\textcolor{red}{S_{l,l ̂}^{PipelineCapacity}}
 
-.. note:: Parameter :math:`δ_{d}^{Pipeline}` will be calculated as follows:
+.. note::
+
+    δ can be input by user or calculated. If the user chooses to calculate pipeline capacity, the parameter will be calculated by the equation below where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as per Cafaro & Grossmann (2020) and d represents the pipeline diameter as per the set d∈D.
+
+    See equation:
 
 .. math::
 
-    \textcolor{green}{δ_{d}^{Pipeline}} =k_{l,l}⋅\textcolor{blue}{d}^{ω}
+    \textcolor{green}{δ_{d}^{Pipeline}} = k_{l,l}⋅\textcolor{blue}{d}^{ω}
 
-where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as per Cafaro & Grossmann (2020) and d represents the pipeline diameter as per the set d∈D.
 
 ∀{l,l} ∈ {PCA,PNA,PPA,CNA,RCA NNA,NCA,NKA,NSA,NRA,…,SOA}, t ∈ T
 
@@ -856,7 +867,7 @@ Piping cost is the total volume of piped water multiplied by the cost for piping
 
     \textcolor{red}{C_{l,l,t}^{Piped}} = (\textcolor{red}{F_{l,l,t}^{Piped}}+\textcolor{red}{F_{l,l,t}^{Sourced})}⋅ \textcolor{green}{π_{l,l}^{Pipeline}}
 
-    \textcolor{red}{C^{TotalPiping}} = ∑_({t∈T}∑_{∀(l,l)∈{PPA,…}}\textcolor{red}{C_{l,l,t}^{Piped}}
+    \textcolor{red}{C^{TotalPiping}} = ∑_{t∈T}∑_{∀(l,l)∈{PPA,…}}\textcolor{red}{C_{l,l,t}^{Piped}}
 
 
 .. note:: The constraints above explicitly consider freshwater piping via FCA arcs.
@@ -949,7 +960,16 @@ Cost related to expanding or constructing new treatment capacity. Takes into con
 
 **Pipeline Construction or Capacity Expansion Cost:** ∀t ∈ T
 
-Cost related to expanding or constructing new pipeline capacity. Takes into consideration capacity increment, cost for selected capacity increment, and if the construction/expansion is selected to occur.
+Cost related to expanding or constructing new pipeline capacity is calculated differently depending on model configuration settings.
+
+
+If the pipeline cost configuration is **capacity based**, pipeline expansion cost is calculated using capacity increments, cost for selected capacity increment, and if the construction/expansion is selected to occur.
+
+.. math::
+
+    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = ∑_{l∈L}∑_{l∈L}∑_{d∈D_0}\textcolor{green}{κ_{l,l,d}^{Pipeline}}⋅\textcolor{green}{δ_{d}^{Pipeline}}⋅\textcolor{red}{y_{l,l,d}^{Pipeline}}
+
+If the pipeline cost configuration is **distance based**, pipeline expansion cost is calculated using pipeline distances, pipeline diameters, cost per inch mile, and if the construction/expansion is selected to occur.
 
 .. math::
 
