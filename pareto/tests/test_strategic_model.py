@@ -19,6 +19,7 @@ import pyomo.environ as pyo
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    WaterQuality,
     create_model,
     Objectives,
     scale_model,
@@ -138,11 +139,12 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "node_capacity": IncludeNodeCapacity.true,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -160,11 +162,12 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.calculated,
             "node_capacity": IncludeNodeCapacity.true,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -182,11 +185,12 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
             "node_capacity": IncludeNodeCapacity.true,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -204,11 +208,12 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
             "node_capacity": IncludeNodeCapacity.true,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 64048
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -332,11 +337,12 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -355,11 +361,12 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -378,11 +385,12 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
         }
     )
     assert degrees_of_freedom(m) == 63173
     # Check unit config arguments
-    assert len(m.config) == 5
+    assert len(m.config) == 6
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
