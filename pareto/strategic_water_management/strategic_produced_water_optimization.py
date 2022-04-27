@@ -6558,7 +6558,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.PipingCost] = 1 / scaling_factor
     model.scaling_factor[model.ProductionPadSupplyBalance] = 1 / scaling_factor
     model.scaling_factor[model.ReuseDestinationDeliveries] = 1 / scaling_factor
-    model.scaling_factor[model.SlackCosts] = 1 / (scaling_factor ** 2)
+    model.scaling_factor[model.SlackCosts] = 1 / (scaling_factor**2)
     model.scaling_factor[model.BeneficialReuseDeliveries] = 1 / scaling_factor
     model.scaling_factor[model.CompletionsWaterDeliveries] = 1 / scaling_factor
     model.scaling_factor[model.StorageCapacity] = 1 / scaling_factor
@@ -6713,7 +6713,7 @@ def _preprocess_data(model):
             flow_rate = (
                 (1 / 10.67) ** (1 / 1.852)
                 * roughness
-                * (max_head_loss ** 0.54)
+                * (max_head_loss**0.54)
                 * (diameter * 0.0254) ** 2.63
             )
 
