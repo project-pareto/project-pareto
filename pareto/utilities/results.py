@@ -18,7 +18,7 @@ Authors: PARETO Team
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
 )
-from pyomo.environ import Var
+from pyomo.environ import Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
@@ -180,8 +180,14 @@ def generate_report(model, is_print=[], fname=None):
         # Defining KPIs for strategic model
         model.reuse_WaterKPI = Var(doc="Reuse Fraction Produced Water [%]")
         if model.p_beta_TotalProd.value and model.v_F_TotalReused.value:
-            reuseWater_value = (
-                (model.v_F_TotalReused.value) / (model.p_beta_TotalProd.value) * 100
+            reuseWater_value = value(
+                (model.v_F_TotalReused)
+                / (
+                    pyunits.convert(
+                        model.p_beta_TotalProd, to_units=model.model_units["volume"]
+                    )
+                )
+                * 100
             )
         else:
             reuseWater_value = 0
@@ -189,8 +195,14 @@ def generate_report(model, is_print=[], fname=None):
 
         model.disposal_WaterKPI = Var(doc="Disposal Fraction Produced Water [%]")
         if model.v_F_TotalDisposed.value and model.p_beta_TotalProd.value:
-            disposalWater_value = (
-                (model.v_F_TotalDisposed.value) / (model.p_beta_TotalProd.value) * 100
+            disposalWater_value = value(
+                (model.v_F_TotalDisposed)
+                / (
+                    pyunits.convert(
+                        model.p_beta_TotalProd, to_units=model.model_units["volume"]
+                    )
+                )
+                * 100
             )
         else:
             disposalWater_value = 0
@@ -200,8 +212,14 @@ def generate_report(model, is_print=[], fname=None):
             doc="Fresh Fraction Completions Demand [%]"
         )
         if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
-            freshDemand_value = (
-                (model.v_F_TotalSourced.value) / (model.p_gamma_TotalDemand.value) * 100
+            freshDemand_value = value(
+                (model.v_F_TotalSourced)
+                / (
+                    pyunits.convert(
+                        model.p_gamma_TotalDemand, to_units=model.model_units["volume"]
+                    )
+                )
+                * 100
             )
         else:
             freshDemand_value = 0
@@ -211,8 +229,14 @@ def generate_report(model, is_print=[], fname=None):
             doc="Reuse Fraction Completions Demand [%]"
         )
         if model.v_F_TotalReused.value and model.p_gamma_TotalDemand.value:
-            reuseDemand_value = (
-                (model.v_F_TotalReused.value) / (model.p_gamma_TotalDemand.value) * 100
+            reuseDemand_value = value(
+                (model.v_F_TotalReused)
+                / (
+                    pyunits.convert(
+                        model.p_gamma_TotalDemand, to_units=model.model_units["volume"]
+                    )
+                )
+                * 100
             )
         else:
             reuseDemand_value = 0

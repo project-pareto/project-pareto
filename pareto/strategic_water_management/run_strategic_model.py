@@ -126,7 +126,7 @@ strategic_model = create_model(
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
-    "scaling_factor": 1000000,
+    "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,
     "water_quality": True,

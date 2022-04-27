@@ -43,6 +43,7 @@ from pyomo.environ import (
     Reals,
     Binary,
     Any,
+    units as pyunits,
     Block,
     Suffix,
     TransformationFactory,
@@ -56,6 +57,7 @@ from enum import Enum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
+from pyomo.util.check_units import assert_units_equivalent
 
 
 class Objectives(Enum):
@@ -154,15 +156,63 @@ CONFIG.declare(
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
+    pyunits.load_definitions_from_strings(["USD = [currency]"])
+    # pyunits.load_definitions_from_strings(['MUSD = 1000000*USD'])
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
-    # model.user_units =
-    # model.model_units =
-    # user_units = pyunits.bbl / pyunits.week
-    # model_unit = pyunits.kbbl / pyunits.day
+    model.user_units = {
+        "volume": pyunits.bbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.mg / pyunits.liter,
+        "currency": pyunits.USD,
+        "time": pyunits.week,
+        # "decision_period": pyunits.week,
+    }
+    model.model_units = {
+        "volume": pyunits.kbbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.kg / pyunits.liter,
+        "currency": pyunits.kUSD,
+        "time": pyunits.week,
+    }
+    decision_period = pyunits.week  # This should come from the users input
+    time_per_period = decision_period / model.user_units["time"]
+    time_per_period = pyunits.convert(
+        time_per_period, to_units=model.user_units["time"] / model.user_units["time"]
+    )
+
+    # Defining compound units
+    model.user_units["volume_time"] = (
+        model.user_units["volume"] / model.user_units["time"]
+    )
+    model.user_units["pipe_cost_distance"] = model.user_units["currency"] / (
+        model.user_units["diameter"] * model.user_units["distance"]
+    )
+    model.user_units["pipe_cost_capacity"] = model.user_units["currency"] / (
+        model.user_units["volume"] / model.user_units["time"]
+    )
+    model.user_units["currency_volume"] = (
+        model.user_units["currency"] / model.user_units["volume"]
+    )
+
+    model.model_units["volume_time"] = (
+        model.model_units["volume"] / model.model_units["time"]
+    )
+    model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
+        model.model_units["diameter"] * model.model_units["distance"]
+    )
+    model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
+        model.model_units["volume"] / model.model_units["time"]
+    )
+    model.model_units["currency_volume"] = (
+        model.model_units["currency"] / model.model_units["volume"]
+    )
+
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
     ## Define sets ##
@@ -219,7 +269,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     ## Define continuous variables ##
 
-    model.v_Z = Var(within=Reals, doc="Objective function variable [$]")
+    model.v_Z = Var(
+        within=Reals,
+        units=model.model_units["currency"],
+        doc="Objective function variable [$]",
+    )
 
     model.v_F_Piped = Var(
         model.s_L,
@@ -227,6 +281,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Produced water quantity piped from location l to location l [bbl/week]",
     )
     model.v_F_Trucked = Var(
@@ -235,6 +290,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Produced water quantity trucked from location l to location l [bbl/week]",
     )
     model.v_F_Sourced = Var(
@@ -243,6 +299,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Fresh water sourced from source f to completions pad p [bbl/week]",
     )
 
@@ -251,6 +308,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Water put into completions pad storage [bbl/week]",
     )
     model.v_F_PadStorageOut = Var(
@@ -258,6 +316,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Water from completions pad storage used for fracturing [bbl/week]",
     )
     model.v_F_UnusedTreatedWater = Var(
@@ -265,7 +324,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
-        doc="Water leftover from the treatment process [bbl/day]",
+        units=model.model_units["volume"] / model.model_units["time"],
+        doc="Water leftover from the treatment process [bbl/week]",
     )
 
     model.v_L_Storage = Var(
@@ -273,6 +333,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"],
         doc="Water level at storage site [bbl]",
     )
     model.v_L_PadStorage = Var(
@@ -280,20 +341,29 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"],
         doc="Water level in completions pad storage [bbl]",
     )
 
     model.v_F_TotalTrucked = Var(
-        within=NonNegativeReals, doc="Total volume water trucked [bbl]"
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume water trucked [bbl]",
     )
     model.v_F_TotalSourced = Var(
-        within=NonNegativeReals, doc="Total volume freshwater sourced [bbl]"
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume freshwater sourced [bbl]",
     )
     model.v_F_TotalDisposed = Var(
-        within=NonNegativeReals, doc="Total volume of water disposed [bbl]"
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume of water disposed [bbl]",
     )
     model.v_F_TotalReused = Var(
-        within=NonNegativeReals, doc="Total volume of produced water reused [bbl]"
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume of produced water reused [bbl]",
     )
 
     model.v_C_Piped = Var(
@@ -302,7 +372,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
-        doc="Cost of piping produced water from location l to location l [$/week]",
+        units=model.model_units["currency"] / model.model_units["time"],
+        doc="Cost of piping produced water from location l to location l [currency/time]",
     )
     model.v_C_Trucked = Var(
         model.s_L,
@@ -310,6 +381,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["time"],
         doc="Cost of trucking produced water from location l to location l [$/week]",
     )
     model.v_C_Sourced = Var(
@@ -318,6 +390,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["time"],
         doc="Cost of sourcing fresh water from source f to completion pad p [$/week]",
     )
     model.v_C_Disposal = Var(
@@ -325,6 +398,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["time"],
         doc="Cost of injecting produced water at disposal site [$/week]",
     )
     model.v_C_Treatment = Var(
@@ -332,6 +406,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["time"],
         doc="Cost of treating produced water at treatment site [$/week]",
     )
     model.v_C_Reuse = Var(
@@ -339,6 +414,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["time"],
         doc="Cost of reusing produced water at completions site [$/week]",
     )
     model.v_C_Storage = Var(
@@ -346,6 +422,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["time"],
         doc="Cost of storing produced water at storage site [$/week]",
     )
     model.v_R_Storage = Var(
@@ -353,35 +430,54 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency"] / model.model_units["volume"],
         doc="Credit for retrieving stored produced water from storage site [$/bbl]",
     )
 
     model.v_C_TotalSourced = Var(
-        within=NonNegativeReals, doc="Total cost of sourcing freshwater [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of sourcing freshwater [$]",
     )
     model.v_C_TotalDisposal = Var(
-        within=NonNegativeReals, doc="Total cost of injecting produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of injecting produced water [$]",
     )
     model.v_C_TotalTreatment = Var(
-        within=NonNegativeReals, doc="Total cost of treating produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of treating produced water [$]",
     )
     model.v_C_TotalReuse = Var(
-        within=NonNegativeReals, doc="Total cost of reusing produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of reusing produced water [$]",
     )
     model.v_C_TotalPiping = Var(
-        within=NonNegativeReals, doc="Total cost of piping produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of piping produced water [$]",
     )
     model.v_C_TotalStorage = Var(
-        within=NonNegativeReals, doc="Total cost of storing produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of storing produced water [$]",
     )
     model.v_C_TotalTrucking = Var(
-        within=NonNegativeReals, doc="Total cost of trucking produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of trucking produced water [$]",
     )
     model.v_C_Slack = Var(
-        within=NonNegativeReals, doc="Total cost of slack variables [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of slack variables [$]",
     )
     model.v_R_TotalStorage = Var(
-        within=NonNegativeReals, doc="Total credit for withdrawing produced water [$]"
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total credit for withdrawing produced water [$]",
     )
 
     model.v_F_ReuseDestination = Var(
@@ -389,6 +485,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Total deliveries to completions pad [bbl/week]",
     )
     model.v_F_DisposalDestination = Var(
@@ -396,34 +493,40 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Total deliveries to disposal site [bbl/week]",
     )
     model.v_F_BeneficialReuseDestination = Var(
         model.s_O,
         model.s_T,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Total deliveries to Beneficial Reuse Site [bbl/week]",
     )
     model.v_F_CompletionsDestination = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Total deliveries to completions pad that meet completions demand [bbl/week]",
     )
 
     model.v_D_Capacity = Var(
         model.s_K,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Disposal capacity at a disposal site [bbl/week]",
     )
     model.v_X_Capacity = Var(
         model.s_S,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Storage capacity at a storage site [bbl/week]",
     )
     model.v_T_Capacity = Var(
         model.s_R,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Treatment capacity at a treatment site [bbl/week]",
     )
     model.v_F_Capacity = Var(
@@ -431,23 +534,28 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Flow capacity along pipeline arc [bbl/week]",
     )
 
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding disposal capacity [$]",
     )
     model.v_C_PipelineCapEx = Var(
         within=NonNegativeReals,
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding piping capacity [$]",
     )
     model.v_C_StorageCapEx = Var(
         within=NonNegativeReals,
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding storage capacity [$]",
     )
     model.v_C_TreatmentCapEx = Var(
         within=NonNegativeReals,
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [$]",
     )
 
@@ -456,6 +564,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Slack variable to meet the completions demand [bbl/week]",
     )
     model.v_S_Production = Var(
@@ -463,6 +572,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Slack variable to process the produced water production [bbl/week]",
     )
     model.v_S_Flowback = Var(
@@ -470,6 +580,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Slack variable to proces flowback water production [bbl/week]",
     )
     model.v_S_PipelineCapacity = Var(
@@ -477,26 +588,31 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["volume"],
         doc="Slack variable to provide necessary pipeline capacity [bbl]",
     )
     model.v_S_StorageCapacity = Var(
         model.s_S,
         within=NonNegativeReals,
+        units=model.model_units["volume"],
         doc="Slack variable to provide necessary storage capacity [bbl]",
     )
     model.v_S_DisposalCapacity = Var(
         model.s_K,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Slack variable to provide necessary disposal capacity [bbl/week]",
     )
     model.v_S_TreatmentCapacity = Var(
         model.s_R,
         within=NonNegativeReals,
-        doc="Slack variable to provide necessary treatment capacity [bbl/weel]",
+        units=model.model_units["volume"] / model.model_units["time"],
+        doc="Slack variable to provide necessary treatment capacity [bbl/week]",
     )
     model.v_S_ReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
+        units=model.model_units["volume"] / model.model_units["time"],
         doc="Slack variable to provide necessary reuse capacity [bbl/week]",
     )
 
@@ -938,6 +1054,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=model.df_parameters["CompletionsDemand"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Completions water demand [bbl/week]",
     )
     model.p_gamma_TotalDemand = Param(
@@ -945,6 +1062,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=sum(
             sum(model.p_gamma_Completions[p, t] for p in model.s_P) for t in model.s_T
         ),
+        units=model.user_units["volume"],
         doc="Total water demand over the planning horizon [bbl]",
         mutable=True,
     )
@@ -953,6 +1071,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=model.df_parameters["PadRates"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Produced water supply forecast [bbl/week]",
     )
     model.p_beta_Flowback = Param(
@@ -960,6 +1079,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=model.df_parameters["FlowbackRates"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Flowback supply forecast for a completions bad [bbl/week]",
     )
     model.p_beta_TotalProd = Param(
@@ -971,6 +1091,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for t in model.s_T
         ),
+        units=model.user_units["volume"],
         doc="Combined water supply forecast (flowback & production) over the planning horizon [bbl]",
         mutable=True,
     )
@@ -979,36 +1100,42 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         default=0,
         initialize=model.df_parameters["InitialPipelineCapacity"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Initial weekly pipeline capacity between two locations [bbl/week]",
     )
     model.p_sigma_Disposal = Param(
         model.s_K,
         default=0,
         initialize=model.df_parameters["InitialDisposalCapacity"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Initial weekly disposal capacity at disposal sites [bbl/week]",
     )
     model.p_sigma_Storage = Param(
         model.s_S,
         default=0,
         initialize=model.df_parameters["InitialStorageCapacity"],
+        units=model.user_units["volume"],
         doc="Initial storage capacity at storage site [bbl]",
     )
     model.p_sigma_PadStorage = Param(
         model.s_CP,
         default=0,
         initialize=model.df_parameters["CompletionsPadStorage"],
+        units=model.user_units["volume"],
         doc="Storage capacity at completions site [bbl]",
     )
     model.p_sigma_Treatment = Param(
         model.s_R,
         default=0,
         initialize=model.df_parameters["InitialTreatmentCapacity"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Initial weekly treatment capacity at treatment site [bbl/week]",
     )
     model.p_sigma_Reuse = Param(
         model.s_O,
         default=0,
         initialize=InitialReuseCapacityTable,
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Initial weekly reuse capacity at reuse site [bbl/week]",
     )
     model.p_sigma_Freshwater = Param(
@@ -1016,35 +1143,40 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=model.df_parameters["FreshwaterSourcingAvailability"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Weekly freshwater sourcing capacity at freshwater source [bbl/week]",
         mutable=True,
     )
 
     model.p_sigma_OffloadingPad = Param(
         model.s_P,
-        default=9999999,
+        default=999999,
         initialize=model.df_parameters["PadOffloadingCapacity"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Weekly truck offloading sourcing capacity per pad [bbl/week]",
         mutable=True,
     )
     model.p_sigma_OffloadingStorage = Param(
         model.s_S,
-        default=9999999,
+        default=999999,
         initialize=StorageOffloadingCapacityTable,
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Weekly truck offloading capacity per pad [bbl/week]",
         mutable=True,
     )
     model.p_sigma_ProcessingPad = Param(
         model.s_P,
-        default=9999999,
+        default=999999,
         initialize=ProcessingCapacityPadTable,
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Weekly processing (e.g. clarification) capacity per pad [bbl/week]",
         mutable=True,
     )
     model.p_sigma_ProcessingStorage = Param(
         model.s_S,
-        default=9999999,
+        default=999999,
         initialize=ProcessingCapacityStorageTable,
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Weekly processing (e.g. clarification) capacity per storage site [bbl/week]",
         mutable=True,
     )
@@ -1054,6 +1186,7 @@ def create_model(df_sets, df_parameters, default={}):
             default=nan,
             within=Any,
             initialize=df_parameters["NodeCapacities"],
+            units=model.user_units["volume"] / model.user_units["time"],
             doc="Weekly capacity per network node [bbl/week]",
         )
 
@@ -1076,6 +1209,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_D,
         default=0,
         initialize=model.df_parameters["PipelineCapacityIncrements"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Pipeline capacity installation/expansion increments [bbl/week]",
     )
 
@@ -1083,6 +1217,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_I,
         default=10,
         initialize=model.df_parameters["DisposalCapacityIncrements"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Disposal capacity installation/expansion increments [bbl/week]",
     )
 
@@ -1090,32 +1225,46 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_C,
         default=10,
         initialize=model.df_parameters["StorageCapacityIncrements"],
+        units=model.user_units["volume"],
         doc="Storage capacity installation/expansion increments [bbl]",
     )
     model.p_delta_Treatment = Param(
         model.s_J,
         default=10,
         initialize=model.df_parameters["TreatmentCapacityIncrements"],
+        units=model.user_units["volume"] / model.user_units["time"],
         doc="Treatment capacity installation/expansion increments [bbl/week]",
     )
 
-    model.p_delta_Truck = Param(default=110, doc="Truck capacity [bbl]")
+    model.p_delta_Truck = Param(
+        default=110, units=model.user_units["volume"], doc="Truck capacity [bbl]"
+    )
 
     model.p_tau_Disposal = Param(
-        model.s_K, default=12, doc="Disposal construction/expansion lead time [weeks]"
+        model.s_K,
+        default=12,
+        units=model.user_units["time"],
+        doc="Disposal construction/expansion lead time [weeks]",
     )
 
     model.p_tau_Storage = Param(
-        model.s_S, default=12, doc="Storage construction/expansion lead time [weeks]"
+        model.s_S,
+        default=12,
+        units=model.user_units["time"],
+        doc="Storage construction/expansion lead time [weeks]",
     )
 
     model.p_tau_Pipeline = Param(
         model.s_L,
         model.s_L,
         default=12,
+        units=model.user_units["time"],
         doc="Pipeline construction/expansion lead time [weeks]",
     )
 
+    # COMMENT: It is expected that the units for this parameter are hours, which usually differs from the time units used
+    # for flow rates, e.g., day, week, month. Therefore, for the sake of simplicity, no units are defined for this parameter,
+    # as the hr units will cancel out with the units in model.p_pi_Trucking which is the hourly cost of trucking.
     model.p_tau_Trucking = Param(
         model.s_L,
         model.s_L,
@@ -1127,26 +1276,39 @@ def create_model(df_sets, df_parameters, default={}):
     # COMMENT: Many more parameters missing. See documentation for details.
 
     model.p_lambda_Storage = Param(
-        model.s_S, default=0, doc="Initial storage level at storage site [bbl]"
+        model.s_S,
+        default=0,
+        units=model.user_units["volume"],
+        doc="Initial storage level at storage site [bbl]",
     )
 
     model.p_lambda_PadStorage = Param(
-        model.s_CP, default=0, doc="Initial storage level at completions site [bbl]"
+        model.s_CP,
+        default=0,
+        units=model.user_units["volume"],
+        doc="Initial storage level at completions site [bbl]",
     )
 
     model.p_theta_Storage = Param(
-        model.s_S, default=0, doc="Terminal storage level at storage site [bbl]"
+        model.s_S,
+        default=0,
+        units=model.user_units["volume"],
+        doc="Terminal storage level at storage site [bbl]",
     )
 
     model.p_theta_PadStorage = Param(
-        model.s_CP, default=0, doc="Terminal storage level at completions site [bbl]"
+        model.s_CP,
+        default=0,
+        units=model.user_units["volume"],
+        doc="Terminal storage level at completions site [bbl]",
     )
 
     model.p_lambda_Pipeline = Param(
         model.s_L,
         model.s_L,
-        default=9999999,
+        default=max(model.df_parameters["PipelineExpansionDistance"].values()) * 100,
         initialize=model.df_parameters["PipelineExpansionDistance"],
+        units=model.user_units["distance"],
         doc="Pipeline segment length [miles]",
     )
 
@@ -1155,6 +1317,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_I,
         default=20,
         initialize=model.df_parameters["DisposalExpansionCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Disposal construction/expansion capital cost for selected increment [$/bbl]",
     )
 
@@ -1163,6 +1326,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_C,
         default=0.1,
         initialize=model.df_parameters["StorageExpansionCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Storage construction/expansion capital cost for selected increment [$/bbl]",
     )
 
@@ -1171,6 +1335,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_J,
         default=10,
         initialize=model.df_parameters["TreatmentExpansionCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Treatment construction/expansion capital cost for selected increment [$/bbl]",
     )
 
@@ -1180,6 +1345,8 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=model.df_parameters["PipelineCapexDistanceBased"][
                 "pipeline_expansion_cost"
             ],
+            units=model.user_units["currency"]
+            / (model.user_units["diameter"] * model.user_units["distance"]),
             doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
         )
 
@@ -1187,6 +1354,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_D,
             default=0,
             initialize=model.df_parameters["PipelineDiameterValues"],
+            units=model.user_units["diameter"],
             doc="Pipeline capacity installation/expansion increments [inch]",
         )
 
@@ -1197,6 +1365,8 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_D,
             default=30,
             initialize=model.df_parameters["PipelineCapexCapacityBased"],
+            units=model.user_units["currency"]
+            / (model.user_units["volume"] / model.user_units["time"]),
             doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
         )
 
@@ -1207,32 +1377,37 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_pi_Disposal = Param(
         model.s_K,
-        default=9999999,
+        default=max(model.df_parameters["DisposalOperationalCost"].values()) * 100,
         initialize=model.df_parameters["DisposalOperationalCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Disposal operational cost [$/bbl]",
     )
     model.p_pi_Treatment = Param(
         model.s_R,
         default=0,
         initialize=model.df_parameters["TreatmentOperationalCost"],
-        doc="Treatment operational cost [$/bbl",
+        units=model.user_units["currency"] / model.user_units["volume"],
+        doc="Treatment operational cost [$/bbl]",
     )
     model.p_pi_Reuse = Param(
         model.s_CP,
-        default=9999999,
+        default=max(model.df_parameters["ReuseOperationalCost"].values()) * 100,
         initialize=model.df_parameters["ReuseOperationalCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Reuse operational cost [$/bbl]",
     )
     model.p_pi_Storage = Param(
         model.s_S,
         default=1,
         initialize=StorageOperationalCostTable,
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Storage deposit operational cost [$/bbl]",
     )
     model.p_rho_Storage = Param(
         model.s_S,
         default=0.99,
         initialize=StorageOperationalCreditTable,
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Storage withdrawal operational credit [$/bbl]",
     )
     model.p_pi_Pipeline = Param(
@@ -1240,39 +1415,73 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         default=0.01,
         initialize=model.df_parameters["PipelineOperationalCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Pipeline operational cost [$/bbl]",
     )
+    # COMMENT: For this parameter only currency units are defined, as the hourly rate is canceled out with the
+    # trucking time units from parameter p_Tau_Trucking. This is to avoid adding an extra unit for time which may
+    # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=999999,
+        default=max(model.df_parameters["TruckingHourlyCost"].values()) * 100,
         initialize=model.df_parameters["TruckingHourlyCost"],
-        doc="Trucking hourly cost (by source) [$/bbl]",
+        units=model.user_units["currency"],
+        doc="Trucking hourly cost (by source) [$/hr]",
     )
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=999999,
+        default=max(model.df_parameters["FreshSourcingCost"].values()) * 100,
         initialize=model.df_parameters["FreshSourcingCost"],
+        units=model.user_units["currency"] / model.user_units["volume"],
         doc="Fresh sourcing cost [$/bbl]",
     )
 
-    model.p_M_Flow = Param(default=9999999, doc="Big-M flow parameter [bbl/week]")
+    model.p_M_Flow = Param(
+        default=9999999,
+        units=model.user_units["volume"] / model.user_units["time"],
+        doc="Big-M flow parameter [bbl/week]",
+    )
 
-    model.p_psi_FracDemand = Param(default=99999999, doc="Slack cost parameter [$]")
-    model.p_psi_Production = Param(default=99999999, doc="Slack cost parameter [$]")
-    model.p_psi_Flowback = Param(default=99999999, doc="Slack cost parameter [$]")
+    model.p_psi_FracDemand = Param(
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
+    )
+    model.p_psi_Production = Param(
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
+    )
+    model.p_psi_Flowback = Param(
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
+    )
     model.p_psi_PipelineCapacity = Param(
-        default=99999999, doc="Slack cost parameter [$]"
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
     )
     model.p_psi_StorageCapacity = Param(
-        default=99999999, doc="Slack cost parameter [$]"
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
     )
     model.p_psi_DisposalCapacity = Param(
-        default=99999999, doc="Slack cost parameter [$]"
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
     )
     model.p_psi_TreatmentCapacity = Param(
-        default=99999999, doc="Slack cost parameter [$]"
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
     )
-    model.p_psi_ReuseCapacity = Param(default=99999999, doc="Slack cost parameter [$]")
+    model.p_psi_ReuseCapacity = Param(
+        default=99999999,
+        units=model.user_units["currency"],
+        doc="Slack cost parameter [$]",
+    )
 
     # model.p_sigma_Freshwater.pprint()
 
@@ -1312,7 +1521,10 @@ def create_model(df_sets, df_parameters, default={}):
 
         def ReuseObjectiveFunctionRule(model):
             return model.v_Z == -(
-                model.v_F_TotalReused / model.p_beta_TotalProd
+                model.v_F_TotalReused
+                / pyunits.convert(
+                    model.p_beta_TotalProd, to_units=model.model_units["volume"]
+                )
             ) + 1 / 38446652 * (
                 model.v_C_TotalSourced
                 + model.v_C_TotalDisposal
@@ -1344,7 +1556,9 @@ def create_model(df_sets, df_parameters, default={}):
     ## Define constraints ##
 
     def CompletionsPadDemandBalanceRule(model, p, t):
-        return model.p_gamma_Completions[p, t] == (
+        return pyunits.convert(
+            model.p_gamma_Completions[p, t], to_units=model.model_units["volume_time"]
+        ) == (
             sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
             + sum(
                 model.v_F_Piped[p_tilde, p, t]
@@ -1389,9 +1603,15 @@ def create_model(df_sets, df_parameters, default={}):
         if t == model.s_T.first():
             return (
                 model.v_L_PadStorage[p, t]
-                == model.p_lambda_PadStorage[p]
-                + model.v_F_PadStorageIn[p, t]
-                - model.v_F_PadStorageOut[p, t]
+                == pyunits.convert(
+                    model.p_lambda_PadStorage[p], to_units=model.model_units["volume"]
+                )
+                + model.v_F_PadStorageIn[
+                    p, t
+                ]  # [bbl/day] * time_per_period (If weeks -> days: 7)
+                - model.v_F_PadStorageOut[
+                    p, t
+                ]  # [bbl/day] * time_per_period (If weeks -> days: 7)
             )
         else:
             return (
@@ -1411,7 +1631,9 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadStorageBalance.pprint()
 
     def CompletionsPadStorageCapacityRule(model, p, t):
-        return model.v_L_PadStorage[p, t] <= model.p_sigma_PadStorage[p]
+        return model.v_L_PadStorage[p, t] <= pyunits.convert(
+            model.p_sigma_PadStorage[p], to_units=model.model_units["volume"]
+        )
 
     model.CompletionsPadStorageCapacity = Constraint(
         model.s_CP,
@@ -1424,7 +1646,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TerminalCompletionsPadStorageLevelRule(model, p, t):
         if t == model.s_T.last():
-            return model.v_L_PadStorage[p, t] <= model.p_theta_PadStorage[p]
+            return model.v_L_PadStorage[p, t] <= pyunits.convert(
+                model.p_theta_PadStorage[p], to_units=model.model_units["volume"]
+            )
         else:
             return Constraint.Skip
 
@@ -1441,7 +1665,9 @@ def create_model(df_sets, df_parameters, default={}):
         return (
             sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
             + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
-        ) <= model.p_sigma_Freshwater[f, t]
+        ) <= pyunits.convert(
+            model.p_sigma_Freshwater[f, t], to_units=model.model_units["volume_time"]
+        )
 
     model.FreshwaterSourcingCapacity = Constraint(
         model.s_F,
@@ -1466,7 +1692,9 @@ def create_model(df_sets, df_parameters, default={}):
                 if model.p_CCT[p_tilde, p]
             )
             + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
-        ) <= model.p_sigma_OffloadingPad[p]
+        ) <= pyunits.convert(
+            model.p_sigma_OffloadingPad[p], to_units=model.model_units["volume_time"]
+        )
 
     model.CompletionsPadTruckOffloadingCapacity = Constraint(
         model.s_CP,
@@ -1478,10 +1706,13 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadTruckOffloadingCapacity.pprint()
 
     def StorageSiteTruckOffloadingCapacityRule(model, s, t):
-        return (
-            sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
-            <= model.p_sigma_OffloadingStorage[s]
+        return sum(
+            model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+        ) + sum(
+            model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+        ) <= pyunits.convert(
+            model.p_sigma_OffloadingStorage[s],
+            to_units=model.model_units["volume_time"],
         )
 
     model.StorageSiteTruckOffloadingCapacity = Constraint(
@@ -1494,12 +1725,15 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageSiteTruckOffloadingCapacity.pprint()
 
     def StorageSiteProcessingCapacityRule(model, s, t):
-        return (
-            sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-            + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
-            <= model.p_sigma_ProcessingStorage[s]
+        return sum(
+            model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
+        ) + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]) + sum(
+            model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+        ) + sum(
+            model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+        ) <= pyunits.convert(
+            model.p_sigma_ProcessingStorage[s],
+            to_units=model.model_units["volume_time"],
         )
 
     model.StorageSiteProcessingCapacity = Constraint(
@@ -1513,7 +1747,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ProductionPadSupplyBalanceRule(model, p, t):
         return (
-            model.p_beta_Production[p, t]
+            pyunits.convert(
+                model.p_beta_Production[p, t], to_units=model.model_units["volume_time"]
+            )
             == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_PNA[p, n])
             + sum(
                 model.v_F_Piped[p, p_tilde, t]
@@ -1548,7 +1784,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadSupplyBalanceRule(model, p, t):
         return (
-            model.p_beta_Flowback[p, t]
+            pyunits.convert(
+                model.p_beta_Flowback[p, t], to_units=model.model_units["volume_time"]
+            )
             == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_CNA[p, n])
             + sum(
                 model.v_F_Piped[p, p_tilde, t]
@@ -1744,145 +1982,163 @@ def create_model(df_sets, df_parameters, default={}):
     def BidirectionalFlowRule2(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+                return model.v_F_Piped[l, l_tilde, t] <= model.vb_y_Flow[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_M_Flow, to_units=model.model_units["volume_time"]
                 )
             else:
                 return Constraint.Skip
@@ -1901,7 +2157,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
-            return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
+            return model.v_L_Storage[s, t] == pyunits.convert(
+                model.p_lambda_Storage[s], to_units=model.model_units["volume"]
+            ) + sum(
                 model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
             ) + sum(
                 model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
@@ -1962,7 +2220,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TerminalStorageLevelRule(model, s, t):
         if t == model.s_T.last():
-            return model.v_L_Storage[s, t] <= model.p_theta_Storage[s]
+            return model.v_L_Storage[s, t] <= pyunits.convert(
+                model.p_theta_Storage[s], to_units=model.model_units["volume"]
+            )
         else:
             return Constraint.Skip
 
@@ -1980,9 +2240,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_PCA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -1993,9 +2260,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_PNA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2006,9 +2280,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_PPA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2023,9 +2303,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_CNA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2036,9 +2323,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NNA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2053,9 +2346,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NCA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2066,9 +2366,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NKA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2079,9 +2386,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NSA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2096,9 +2409,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NRA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2113,9 +2432,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NOA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2126,9 +2452,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_FCA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2139,9 +2472,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_RNA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2156,9 +2495,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_RCA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2169,9 +2515,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_RKA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2186,9 +2538,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_SNA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2203,9 +2561,15 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_SCA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d]
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         * (
                             model.vb_y_Pipeline[l, l_tilde, d]
                             + model.vb_y_Pipeline[l_tilde, l, d]
@@ -2220,9 +2584,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_SKA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2233,9 +2604,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_SRA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2246,9 +2624,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_RSA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2259,9 +2644,16 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_SOA[l, l_tilde]:
                 return (
                     model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
+                    == pyunits.convert(
+                        model.p_sigma_Pipeline[l, l_tilde],
+                        to_units=model.model_units["volume_time"],
+                    )
                     + sum(
-                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
+                        * (model.vb_y_Pipeline[l, l_tilde, d])
                         for d in model.s_D
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
@@ -2397,27 +2789,20 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.node_capacity == IncludeNodeCapacity.true:
 
         def NetworkNodeCapacityRule(model, n, t):
-            if model.p_sigma_NetworkNode[n] > 0:
-                return (
-                    sum(
-                        model.v_F_Piped[p, n, t]
-                        for p in model.s_PP
-                        if model.p_PNA[p, n]
-                    )
-                    + sum(
-                        model.v_F_Piped[p, n, t]
-                        for p in model.s_CP
-                        if model.p_CNA[p, n]
-                    )
-                    + sum(
-                        model.v_F_Piped[n_tilde, n, t]
-                        for n_tilde in model.s_N
-                        if model.p_NNA[n_tilde, n]
-                    )
-                    + sum(
-                        model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-                    )
-                    <= model.p_sigma_NetworkNode[n]
+            if model.p_sigma_NetworkNode[n].value > 0:
+                return sum(
+                    model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n]
+                ) + sum(
+                    model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n]
+                ) + sum(
+                    model.v_F_Piped[n_tilde, n, t]
+                    for n_tilde in model.s_N
+                    if model.p_NNA[n_tilde, n]
+                ) + sum(
+                    model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
+                ) <= pyunits.convert(
+                    model.p_sigma_NetworkNode[n],
+                    to_units=model.model_units["volume_time"],
                 )
             else:
                 return Constraint.Skip
@@ -2435,9 +2820,15 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageCapacityExpansionRule(model, s):
         return (
             model.v_X_Capacity[s]
-            == model.p_sigma_Storage[s]
+            == pyunits.convert(
+                model.p_sigma_Storage[s], to_units=model.model_units["volume"]
+            )
             + sum(
-                model.p_delta_Storage[c] * model.vb_y_Storage[s, c] for c in model.s_C
+                pyunits.convert(
+                    model.p_delta_Storage[c], to_units=model.model_units["volume"]
+                )
+                * model.vb_y_Storage[s, c]
+                for c in model.s_C
             )
             + model.v_S_StorageCapacity[s]
         )
@@ -2462,9 +2853,15 @@ def create_model(df_sets, df_parameters, default={}):
     def DisposalCapacityExpansionRule(model, k):
         return (
             model.v_D_Capacity[k]
-            == model.p_sigma_Disposal[k]
+            == pyunits.convert(
+                model.p_sigma_Disposal[k], to_units=model.model_units["volume_time"]
+            )
             + sum(
-                model.p_delta_Disposal[i] * model.vb_y_Disposal[k, i] for i in model.s_I
+                pyunits.convert(
+                    model.p_delta_Disposal[i], to_units=model.model_units["volume_time"]
+                )
+                * model.vb_y_Disposal[k, i]
+                for i in model.s_I
             )
             + model.v_S_DisposalCapacity[k]
         )
@@ -2497,9 +2894,15 @@ def create_model(df_sets, df_parameters, default={}):
     def TreatmentCapacityExpansionRule(model, r):
         return (
             model.v_T_Capacity[r]
-            == model.p_sigma_Treatment[r]
+            == pyunits.convert(
+                model.p_sigma_Treatment[r], to_units=model.model_units["volume_time"]
+            )
             + sum(
-                model.p_delta_Treatment[j] * model.vb_y_Treatment[r, j]
+                pyunits.convert(
+                    model.p_delta_Treatment[j],
+                    to_units=model.model_units["volume_time"],
+                )
+                * model.vb_y_Treatment[r, j]
                 for j in model.s_J
             )
             + model.v_S_TreatmentCapacity[r]
@@ -2557,7 +2960,10 @@ def create_model(df_sets, df_parameters, default={}):
             sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
             + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
             + sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
-            <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
+            <= pyunits.convert(
+                model.p_sigma_Reuse[o], to_units=model.model_units["volume_time"]
+            )
+            + model.v_S_ReuseCapacity[o]
         )
 
     model.BeneficialReuseCapacity = Constraint(
@@ -2574,16 +2980,18 @@ def create_model(df_sets, df_parameters, default={}):
     def FreshSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
             if model.p_FCA[f, p]:
-                return (
-                    model.v_C_Sourced[f, p, t]
-                    == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
-                    * model.p_pi_Sourcing[f]
+                return model.v_C_Sourced[f, p, t] == (
+                    model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t]
+                ) * pyunits.convert(
+                    model.p_pi_Sourcing[f],
+                    to_units=model.model_units["currency_volume"],
                 )
             elif model.p_FCT[f, p]:
-                return (
-                    model.v_C_Sourced[f, p, t]
-                    == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
-                    * model.p_pi_Sourcing[f]
+                return model.v_C_Sourced[f, p, t] == (
+                    model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t]
+                ) * pyunits.convert(
+                    model.p_pi_Sourcing[f],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
@@ -2638,26 +3046,16 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalFreshSourcingVolume.pprint()
 
     def DisposalCostRule(model, k, t):
-        return (
-            model.v_C_Disposal[k, t]
-            == (
-                sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-                + sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k])
-                + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-                + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
-                )
-                + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
-                )
-                + sum(
-                    model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
-                )
-                + sum(
-                    model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
-                )
-            )
-            * model.p_pi_Disposal[k]
+        return model.v_C_Disposal[k, t] == (
+            sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
+            + sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k])
+            + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
+            + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
+            + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
+            + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
+            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
+        ) * pyunits.convert(
+            model.p_pi_Disposal[k], to_units=model.model_units["currency_volume"]
         )
 
     model.DisposalCost = Constraint(
@@ -2699,19 +3097,13 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalVolume.pprint()
 
     def TreatmentCostRule(model, r, t):
-        return (
-            model.v_C_Treatment[r, t]
-            == (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
-                )
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
-                )
-            )
-            * model.p_pi_Treatment[r]
+        return model.v_C_Treatment[r, t] == (
+            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
+            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+        ) * pyunits.convert(
+            model.p_pi_Treatment[r], to_units=model.model_units["currency_volume"]
         )
 
     model.TreatmentCost = Constraint(
@@ -2765,7 +3157,9 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
                 )
             )
-            * model.p_pi_Reuse[p]
+            * pyunits.convert(
+                model.p_pi_Reuse[p], to_units=model.model_units["currency_volume"]
+            )
         )
 
     model.CompletionsReuseCost = Constraint(
@@ -2829,154 +3223,191 @@ def create_model(df_sets, df_parameters, default={}):
     def PipingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_CP:
             if model.p_CCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Sourced[l, l_tilde, t]
-                    * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Sourced[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                    l, l_tilde, t
+                ] * pyunits.convert(
+                    model.p_pi_Pipeline[l, l_tilde],
+                    to_units=model.model_units["currency_volume"],
                 )
             else:
                 return Constraint.Skip
@@ -3140,7 +3571,9 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
                 )
             )
-            * model.p_pi_Storage[s]
+            * pyunits.convert(
+                model.p_pi_Storage[s], to_units=model.model_units["currency_volume"]
+            )
         )
 
     model.StorageDepositCost = Constraint(
@@ -3175,7 +3608,9 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
                 )
             )
-            * model.p_rho_Storage[s]
+            * pyunits.convert(
+                model.p_rho_Storage[s], to_units=model.model_units["currency_volume"]
+            )
         )
 
     model.StorageWithdrawalCredit = Constraint(
@@ -3201,157 +3636,170 @@ def create_model(df_sets, df_parameters, default={}):
     def TruckingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_K:
             if model.p_PKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_S:
             if model.p_PST[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_R:
             if model.p_PRT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_O:
             if model.p_POT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_K:
             if model.p_CKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_S:
             if model.p_CST[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_R:
             if model.p_CRT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_CP:
             if model.p_CCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
+                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                    l, l_tilde, t
+                ] * 1 / pyunits.convert(
+                    model.p_delta_Truck, to_units=model.model_units["volume"]
+                ) * model.p_tau_Trucking[
+                    l, l_tilde
+                ] * pyunits.convert(
+                    model.p_pi_Trucking[l], to_units=model.model_units["currency"]
                 )
             else:
                 return Constraint.Skip
@@ -3554,8 +4002,13 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_DisposalCapEx == sum(
             sum(
                 model.vb_y_Disposal[k, i]
-                * model.p_kappa_Disposal[k, i]
-                * model.p_delta_Disposal[i]
+                * pyunits.convert(
+                    model.p_kappa_Disposal[k, i],
+                    to_units=model.model_units["currency_volume"],
+                )
+                * pyunits.convert(
+                    model.p_delta_Disposal[i], to_units=model.model_units["volume_time"]
+                )
                 for i in model.s_I
             )
             for k in model.s_K
@@ -3572,8 +4025,13 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_StorageCapEx == sum(
             sum(
                 model.vb_y_Storage[s, c]
-                * model.p_kappa_Storage[s, c]
-                * model.p_delta_Storage[c]
+                * pyunits.convert(
+                    model.p_kappa_Storage[s, c],
+                    to_units=model.model_units["currency_volume"],
+                )
+                * pyunits.convert(
+                    model.p_delta_Storage[c], to_units=model.model_units["volume"]
+                )
                 for s in model.s_S
             )
             for c in model.s_C
@@ -3590,8 +4048,14 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_TreatmentCapEx == sum(
             sum(
                 model.vb_y_Treatment[r, j]
-                * model.p_kappa_Treatment[r, j]
-                * model.p_delta_Treatment[j]
+                * pyunits.convert(
+                    model.p_kappa_Treatment[r, j],
+                    to_units=model.model_units["currency_volume"],
+                )
+                * pyunits.convert(
+                    model.p_delta_Treatment[j],
+                    to_units=model.model_units["volume_time"],
+                )
                 for r in model.s_R
             )
             for j in model.s_J
@@ -3610,9 +4074,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, p_tilde]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[p, p_tilde],
+                            to_units=model.model_units["distance"],
+                        )
                         for p in model.s_PP
                         if model.p_PCA[p, p_tilde]
                     )
@@ -3624,9 +4097,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, n]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[p, n],
+                            to_units=model.model_units["distance"],
+                        )
                         for p in model.s_PP
                         if model.p_PNA[p, n]
                     )
@@ -3638,9 +4120,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, p_tilde]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[p, p_tilde],
+                            to_units=model.model_units["distance"],
+                        )
                         for p in model.s_PP
                         if model.p_PPA[p, p_tilde]
                     )
@@ -3652,9 +4143,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, n]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[p, n],
+                            to_units=model.model_units["distance"],
+                        )
                         for p in model.s_CP
                         if model.p_CNA[p, n]
                     )
@@ -3666,9 +4166,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, n_tilde]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[n, n_tilde],
+                            to_units=model.model_units["distance"],
+                        )
                         for n in model.s_N
                         if model.p_NNA[n, n_tilde]
                     )
@@ -3680,9 +4189,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, p]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[n, p],
+                            to_units=model.model_units["distance"],
+                        )
                         for n in model.s_N
                         if model.p_NCA[n, p]
                     )
@@ -3694,9 +4212,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, k]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[n, k],
+                            to_units=model.model_units["distance"],
+                        )
                         for n in model.s_N
                         if model.p_NKA[n, k]
                     )
@@ -3708,9 +4235,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, s]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[n, s],
+                            to_units=model.model_units["distance"],
+                        )
                         for n in model.s_N
                         if model.p_NSA[n, s]
                     )
@@ -3722,9 +4258,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, r]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[n, r],
+                            to_units=model.model_units["distance"],
+                        )
                         for n in model.s_N
                         if model.p_NRA[n, r]
                     )
@@ -3736,9 +4281,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, o]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[n, o],
+                            to_units=model.model_units["distance"],
+                        )
                         for n in model.s_N
                         if model.p_NOA[n, o]
                     )
@@ -3750,9 +4304,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[f, p]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[f, p],
+                            to_units=model.model_units["distance"],
+                        )
                         for f in model.s_F
                         if model.p_FCA[f, p]
                     )
@@ -3764,9 +4327,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, n]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[r, n],
+                            to_units=model.model_units["distance"],
+                        )
                         for r in model.s_R
                         if model.p_RNA[r, n]
                     )
@@ -3778,9 +4350,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, p]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[r, p],
+                            to_units=model.model_units["distance"],
+                        )
                         for r in model.s_R
                         if model.p_RCA[r, p]
                     )
@@ -3792,9 +4373,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, k]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[r, k],
+                            to_units=model.model_units["distance"],
+                        )
                         for r in model.s_R
                         if model.p_RKA[r, k]
                     )
@@ -3806,9 +4396,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, n]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[s, n],
+                            to_units=model.model_units["distance"],
+                        )
                         for s in model.s_S
                         if model.p_SNA[s, n]
                     )
@@ -3820,9 +4419,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, p]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[s, p],
+                            to_units=model.model_units["distance"],
+                        )
                         for s in model.s_S
                         if model.p_SCA[s, p]
                     )
@@ -3834,9 +4442,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, k]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[s, k],
+                            to_units=model.model_units["distance"],
+                        )
                         for s in model.s_S
                         if model.p_SKA[s, k]
                     )
@@ -3848,9 +4465,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, r]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[s, r],
+                            to_units=model.model_units["distance"],
+                        )
                         for s in model.s_S
                         if model.p_SRA[s, r]
                     )
@@ -3862,9 +4488,18 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, o]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline,
+                            to_units=model.model_units["pipe_cost_distance"],
+                        )
+                        * pyunits.convert(
+                            model.p_mu_Pipeline[d],
+                            to_units=model.model_units["diameter"],
+                        )
+                        * pyunits.convert(
+                            model.p_lambda_Pipeline[s, o],
+                            to_units=model.model_units["distance"],
+                        )
                         for s in model.s_S
                         if model.p_SOA[s, o]
                     )
@@ -3880,8 +4515,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[p, p_tilde, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for p in model.s_PP
                         if model.p_PCA[p, p_tilde]
                     )
@@ -3893,8 +4534,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[p, n, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for p in model.s_PP
                         if model.p_PNA[p, n]
                     )
@@ -3906,8 +4553,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[p, p_tilde, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for p in model.s_PP
                         if model.p_PPA[p, p_tilde]
                     )
@@ -3919,8 +4572,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[p, n, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for p in model.s_CP
                         if model.p_CNA[p, n]
                     )
@@ -3932,8 +4591,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline[n, n_tilde, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[n, n_tilde, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for n in model.s_N
                         if model.p_NNA[n, n_tilde]
                     )
@@ -3945,8 +4610,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline[n, p, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[n, p, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for n in model.s_N
                         if model.p_NCA[n, p]
                     )
@@ -3958,8 +4629,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline[n, k, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[n, k, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for n in model.s_N
                         if model.p_NKA[n, k]
                     )
@@ -3971,8 +4648,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline[n, s, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[n, s, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for n in model.s_N
                         if model.p_NSA[n, s]
                     )
@@ -3984,8 +4667,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline[n, r, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[n, r, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for n in model.s_N
                         if model.p_NRA[n, r]
                     )
@@ -3997,8 +4686,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline[n, o, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[n, o, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for n in model.s_N
                         if model.p_NOA[n, o]
                     )
@@ -4010,8 +4705,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline[f, p, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[f, p, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for f in model.s_F
                         if model.p_FCA[f, p]
                     )
@@ -4023,8 +4724,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline[r, n, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[r, n, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for r in model.s_R
                         if model.p_RNA[r, n]
                     )
@@ -4036,8 +4743,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline[r, p, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[r, p, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for r in model.s_R
                         if model.p_RCA[r, p]
                     )
@@ -4049,8 +4762,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline[r, k, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[r, k, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for r in model.s_R
                         if model.p_RKA[r, k]
                     )
@@ -4062,8 +4781,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline[s, n, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[s, n, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for s in model.s_S
                         if model.p_SNA[s, n]
                     )
@@ -4075,8 +4800,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, p, d]
-                        * model.p_kappa_Pipeline[s, p, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[s, p, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for s in model.s_S
                         if model.p_SCA[s, p]
                     )
@@ -4088,8 +4819,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline[s, k, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[s, k, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for s in model.s_S
                         if model.p_SKA[s, k]
                     )
@@ -4101,8 +4838,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline[s, r, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[s, r, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for s in model.s_S
                         if model.p_SRA[s, r]
                     )
@@ -4114,8 +4857,14 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(
                     sum(
                         model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline[s, o, d]
-                        * model.p_delta_Pipeline[d]
+                        * pyunits.convert(
+                            model.p_kappa_Pipeline[s, o, d],
+                            to_units=model.model_units["pipe_cost_capacity"],
+                        )
+                        * pyunits.convert(
+                            model.p_delta_Pipeline[d],
+                            to_units=model.model_units["volume_time"],
+                        )
                         for s in model.s_S
                         if model.p_SOA[s, o]
                     )
@@ -4140,26 +4889,41 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_Slack == (
             sum(
                 sum(
-                    model.v_S_FracDemand[p, t] * model.p_psi_FracDemand
+                    model.v_S_FracDemand[p, t]
+                    * pyunits.convert(
+                        model.p_psi_FracDemand, to_units=model.model_units["currency"]
+                    )
                     for p in model.s_CP
                 )
                 for t in model.s_T
             )
             + sum(
                 sum(
-                    model.v_S_Production[p, t] * model.p_psi_Production
+                    model.v_S_Production[p, t]
+                    * pyunits.convert(
+                        model.p_psi_Production, to_units=model.model_units["currency"]
+                    )
                     for p in model.s_PP
                 )
                 for t in model.s_T
             )
             + sum(
-                sum(model.v_S_Flowback[p, t] * model.p_psi_Flowback for p in model.s_CP)
+                sum(
+                    model.v_S_Flowback[p, t]
+                    * pyunits.convert(
+                        model.p_psi_Flowback, to_units=model.model_units["currency"]
+                    )
+                    for p in model.s_CP
+                )
                 for t in model.s_T
             )
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
-                    * model.p_psi_PipelineCapacity
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for p in model.s_PP
                     if model.p_PCA[p, p_tilde]
                 )
@@ -4168,7 +4932,10 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
-                    * model.p_psi_PipelineCapacity
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for p in model.s_CP
                     if model.p_CCA[p, p_tilde]
                 )
@@ -4176,7 +4943,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[p, n]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for p in model.s_PP
                     if model.p_PNA[p, n]
                 )
@@ -4185,7 +4956,10 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
-                    * model.p_psi_PipelineCapacity
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for p in model.s_PP
                     if model.p_PPA[p, p_tilde]
                 )
@@ -4193,7 +4967,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[p, n]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for p in model.s_CP
                     if model.p_CNA[p, n]
                 )
@@ -4202,7 +4980,10 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[n, n_tilde]
-                    * model.p_psi_PipelineCapacity
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for n in model.s_N
                     if model.p_NNA[n, n_tilde]
                 )
@@ -4210,7 +4991,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, p]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for n in model.s_N
                     if model.p_NCA[n, p]
                 )
@@ -4218,7 +5003,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, k] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, k]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for n in model.s_N
                     if model.p_NKA[n, k]
                 )
@@ -4226,7 +5015,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, s] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, s]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for n in model.s_N
                     if model.p_NSA[n, s]
                 )
@@ -4234,7 +5027,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, r] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, r]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for n in model.s_N
                     if model.p_NRA[n, r]
                 )
@@ -4242,7 +5039,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, o] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, o]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for n in model.s_N
                     if model.p_NOA[n, o]
                 )
@@ -4250,7 +5051,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[f, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[f, p]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for f in model.s_F
                     if model.p_FCA[f, p]
                 )
@@ -4258,7 +5063,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[r, n]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for r in model.s_R
                     if model.p_RNA[r, n]
                 )
@@ -4266,7 +5075,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[r, p]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for r in model.s_R
                     if model.p_RCA[r, p]
                 )
@@ -4274,7 +5087,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, k] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[r, k]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for r in model.s_R
                     if model.p_RKA[r, k]
                 )
@@ -4282,7 +5099,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, n]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for s in model.s_S
                     if model.p_SNA[s, n]
                 )
@@ -4290,7 +5111,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, p]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for s in model.s_S
                     if model.p_SCA[s, p]
                 )
@@ -4298,7 +5123,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, k] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, k]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for s in model.s_S
                     if model.p_SKA[s, k]
                 )
@@ -4306,7 +5135,11 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, r] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, r]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for s in model.s_S
                     if model.p_SRA[s, r]
                 )
@@ -4314,26 +5147,43 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, o] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, o]
+                    * pyunits.convert(
+                        model.p_psi_PipelineCapacity,
+                        to_units=model.model_units["currency"],
+                    )
                     for s in model.s_S
                     if model.p_SOA[s, o]
                 )
                 for o in model.s_O
             )
             + sum(
-                model.v_S_StorageCapacity[s] * model.p_psi_StorageCapacity
+                model.v_S_StorageCapacity[s]
+                * pyunits.convert(
+                    model.p_psi_StorageCapacity, to_units=model.model_units["currency"]
+                )
                 for s in model.s_S
             )
             + sum(
-                model.v_S_DisposalCapacity[k] * model.p_psi_DisposalCapacity
+                model.v_S_DisposalCapacity[k]
+                * pyunits.convert(
+                    model.p_psi_DisposalCapacity, to_units=model.model_units["currency"]
+                )
                 for k in model.s_K
             )
             + sum(
-                model.v_S_TreatmentCapacity[r] * model.p_psi_TreatmentCapacity
+                model.v_S_TreatmentCapacity[r]
+                * pyunits.convert(
+                    model.p_psi_TreatmentCapacity,
+                    to_units=model.model_units["currency"],
+                )
                 for r in model.s_R
             )
             + sum(
-                model.v_S_ReuseCapacity[o] * model.p_psi_ReuseCapacity
+                model.v_S_ReuseCapacity[o]
+                * pyunits.convert(
+                    model.p_psi_ReuseCapacity, to_units=model.model_units["currency"]
+                )
                 for o in model.s_O
             )
         )
@@ -4650,6 +5500,7 @@ def water_quality(model):
         model.s_W,
         default=0,
         initialize=model.df_parameters["PadWaterQuality"],
+        units=model.user_units["concentration"],
         doc="Water Quality at pad [mg/L]",
     )
     # Quality of Sourced Water
@@ -4658,6 +5509,7 @@ def water_quality(model):
         model.s_W,
         default=0,
         initialize=0,
+        units=model.user_units["concentration"],
         doc="Water Quality of freshwater [mg/L]",
     )
     # Initial water quality at storage site
@@ -4666,6 +5518,7 @@ def water_quality(model):
         model.s_W,
         default=0,
         initialize=model.df_parameters["StorageInitialWaterQuality"],
+        units=model.user_units["concentration"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
     # Initial water quality at completions pad storage tank
@@ -4674,6 +5527,7 @@ def water_quality(model):
         model.s_W,
         default=0,
         initialize=model.df_parameters["PadStorageInitialWaterQuality"],
+        units=model.user_units["concentration"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
     # Add variable to track water quality at each location over time
@@ -4683,11 +5537,13 @@ def water_quality(model):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["concentration"],
         doc="Water quality at location [mg/L]",
     )
     # v_X is solely used to make sure model has an objective value
     model.quality.v_X = Var(
         within=Reals,
+        units=model.model_units["concentration"],
         doc="Water quality objective value ",
     )
     # endregion
@@ -4712,12 +5568,20 @@ def water_quality(model):
                 if b.parent_block().p_SKT[s, k]
             )
             + sum(
-                b.parent_block().v_F_Trucked[p, k, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, k, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_PP
                 if b.parent_block().p_PKT[p, k]
             )
             + sum(
-                b.parent_block().v_F_Trucked[p, k, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, k, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_CP
                 if b.parent_block().p_CKT[p, k]
             )
@@ -4741,9 +5605,13 @@ def water_quality(model):
     # region Storage
     def StorageSiteWaterQualityRule(b, s, w, t):
         if t == b.parent_block().s_T.first():
-            return b.parent_block().p_lambda_Storage[s] * b.p_xi_StorageSite[
-                s, w
-            ] + sum(
+            return pyunits.convert(
+                b.parent_block().p_lambda_Storage[s],
+                to_units=b.parent_block().model_units["volume"],
+            ) * pyunits.convert(
+                b.p_xi_StorageSite[s, w],
+                to_units=b.parent_block().model_units["concentration"],
+            ) + sum(
                 b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
                 for n in b.parent_block().s_N
                 if b.parent_block().p_NSA[n, s]
@@ -4752,11 +5620,19 @@ def water_quality(model):
                 for r in b.parent_block().s_R
                 if b.parent_block().p_RSA[r, s]
             ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, s, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_PP
                 if b.parent_block().p_PST[p, s]
             ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, s, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_CP
                 if b.parent_block().p_CST[p, s]
             ) == b.v_Q[
@@ -4811,11 +5687,19 @@ def water_quality(model):
                 for r in b.parent_block().s_R
                 if b.parent_block().p_RSA[r, s]
             ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, s, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_PP
                 if b.parent_block().p_PST[p, s]
             ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, s, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_CP
                 if b.parent_block().p_CST[p, s]
             ) == b.v_Q[
@@ -4882,12 +5766,20 @@ def water_quality(model):
                 if b.parent_block().p_SRA[s, r]
             )
             + sum(
-                b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, r, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_PP
                 if b.parent_block().p_PRT[p, r]
             )
             + sum(
-                b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, r, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_CP
                 if b.parent_block().p_CRT[p, r]
             )
@@ -4917,11 +5809,17 @@ def water_quality(model):
     # region Network
     def NetworkNodeWaterQualityRule(b, n, w, t):
         return sum(
-            b.parent_block().v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
+            b.parent_block().v_F_Piped[p, n, t]
+            * pyunits.convert(
+                b.p_nu_pad[p, w], to_units=b.parent_block().model_units["concentration"]
+            )
             for p in b.parent_block().s_PP
             if b.parent_block().p_PNA[p, n]
         ) + sum(
-            b.parent_block().v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
+            b.parent_block().v_F_Piped[p, n, t]
+            * pyunits.convert(
+                b.p_nu_pad[p, w], to_units=b.parent_block().model_units["concentration"]
+            )
             for p in b.parent_block().s_CP
             if b.parent_block().p_CNA[p, n]
         ) + sum(
@@ -4990,7 +5888,11 @@ def water_quality(model):
                 if b.parent_block().p_SOA[s, o]
             )
             + sum(
-                b.parent_block().v_F_Trucked[p, o, t] * b.p_nu_pad[p, w]
+                b.parent_block().v_F_Trucked[p, o, t]
+                * pyunits.convert(
+                    b.p_nu_pad[p, w],
+                    to_units=b.parent_block().model_units["concentration"],
+                )
                 for p in b.parent_block().s_PP
                 if b.parent_block().p_POT[p, o]
             )
@@ -5037,7 +5939,11 @@ def water_quality(model):
             for r in b.parent_block().s_R
             if b.parent_block().p_RCA[r, p]
         ) + sum(
-            b.parent_block().v_F_Sourced[f, p, t] * b.p_nu_freshwater[f, w]
+            b.parent_block().v_F_Sourced[f, p, t]
+            * pyunits.convert(
+                b.p_nu_freshwater[f, w],
+                to_units=b.parent_block().model_units["concentration"],
+            )
             for f in b.parent_block().s_F
             if b.parent_block().p_FCA[f, p]
         ) + sum(
@@ -5053,7 +5959,11 @@ def water_quality(model):
             for s in b.parent_block().s_S
             if b.parent_block().p_SCT[s, p]
         ) + sum(
-            b.parent_block().v_F_Trucked[f, p, t] * b.p_nu_freshwater[f, w]
+            b.parent_block().v_F_Trucked[f, p, t]
+            * pyunits.convert(
+                b.p_nu_freshwater[f, w],
+                to_units=b.parent_block().model_units["concentration"],
+            )
             for f in b.parent_block().s_F
             if b.parent_block().p_FCT[f, p]
         ) == b.v_Q[
@@ -5072,11 +5982,15 @@ def water_quality(model):
     )
 
     def CompletionsPadWaterQuality(b, p, w, t):
-        return (
-            b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[p + storage_label, w, t]
-            + b.parent_block().v_F_CompletionsDestination[p, t]
-            * b.v_Q[p + intermediate_label, w, t]
-            == b.v_Q[p, w, t] * b.parent_block().p_gamma_Completions[p, t]
+        return b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[
+            p + storage_label, w, t
+        ] + b.parent_block().v_F_CompletionsDestination[p, t] * b.v_Q[
+            p + intermediate_label, w, t
+        ] == b.v_Q[
+            p, w, t
+        ] * pyunits.convert(
+            b.parent_block().p_gamma_Completions[p, t],
+            to_units=b.parent_block().model_units["volume_time"],
         )
 
     model.quality.CompletionsPadWaterQuality = Constraint(
@@ -5091,9 +6005,15 @@ def water_quality(model):
     # region Completion Pad Storage
     def CompletionsPadStorageWaterQuality(b, p, w, t):
         if t == b.parent_block().s_T.first():
-            return b.p_xi_PadStorage[p, w] * b.parent_block().p_lambda_PadStorage[
-                p
-            ] + b.v_Q[p + intermediate_label, w, t] * b.parent_block().v_F_PadStorageIn[
+            return pyunits.convert(
+                b.p_xi_PadStorage[p, w],
+                to_units=b.parent_block().model_units["concentration"],
+            ) * pyunits.convert(
+                b.parent_block().p_lambda_PadStorage[p],
+                to_units=model.model_units["volume"],
+            ) + b.v_Q[
+                p + intermediate_label, w, t
+            ] * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
                 p + storage_label, w, t
