@@ -113,6 +113,8 @@ def build_strategic_model():
         "Economics",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -310,6 +312,8 @@ def build_reduced_strategic_model():
         "Economics",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -397,6 +401,71 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_basic_reduced_build_discrete_water_quality_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+    assert degrees_of_freedom(m) == 109453
+    # Check unit config arguments
+    assert len(m.config) == 6
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.OnlyOneDiscreteQualityPerLocation, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxPipeFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowPiped, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxTruckedFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowTrucked, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxDisposalDestination, pyo.Constraint)
+    assert isinstance(
+        m.SumDiscreteDisposalDestinationIsDisposalDestination, pyo.Constraint
+    )
+    assert isinstance(m.DiscreteMaxOutStorageFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowOutStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxStorage, pyo.Constraint)
+    assert isinstance(m.SumDiscreteStorageIsStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxTreatmentFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowTreatment, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxOutNodeFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowOutNode, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxBeneficialReuseFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowBeneficialReuse, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxCompletionsPadIntermediateFlow, pyo.Constraint)
+    assert isinstance(
+        m.SumDiscreteFlowsIsFlowCompletionsPadIntermediate, pyo.Constraint
+    )
+    assert isinstance(m.DiscreteMaxCompletionsPadStorageFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowCompletionsPadStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxPadStorage, pyo.Constraint)
+    assert isinstance(m.SumDiscretePadStorageIsPadStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxFlowOutPadStorage, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowOutPadStorageIsFlowOutPadStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxFlowInPadStorage, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowInPadStorageIsFlowInPadStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxCompletionsDestination, pyo.Constraint)
+    assert isinstance(
+        m.SumDiscreteCompletionsDestinationIsCompletionsDestination, pyo.Constraint
+    )
+    assert isinstance(m.DisposalWaterQuality, pyo.Constraint)
+    assert isinstance(m.StorageSiteWaterQuality, pyo.Constraint)
+    assert isinstance(m.TreatmentWaterQuality, pyo.Constraint)
+    assert isinstance(m.NetworkWaterQuality, pyo.Constraint)
+    assert isinstance(m.BeneficialReuseWaterQuality, pyo.Constraint)
+    assert isinstance(m.CompletionsPadIntermediateWaterQuality, pyo.Constraint)
+    assert isinstance(m.CompletionsPadWaterQuality, pyo.Constraint)
+    assert isinstance(m.CompletionsPadStorageWaterQuality, pyo.Constraint)
 
 
 @pytest.mark.component
