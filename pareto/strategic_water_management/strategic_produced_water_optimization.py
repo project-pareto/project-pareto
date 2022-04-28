@@ -169,7 +169,7 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.mg / pyunits.liter,
         "currency": pyunits.USD,
-        "time": pyunits.week,
+        "time": pyunits.day,
         # "decision_period": pyunits.week,
     }
     model.model_units = {
@@ -181,9 +181,10 @@ def create_model(df_sets, df_parameters, default={}):
         "time": pyunits.week,
     }
     decision_period = pyunits.week  # This should come from the users input
-    time_per_period = decision_period / model.user_units["time"]
-    time_per_period = pyunits.convert(
-        time_per_period, to_units=model.user_units["time"] / model.user_units["time"]
+    model.time_per_period = decision_period / model.model_units["time"]
+    model.time_per_period = pyunits.convert(
+        model.time_per_period,
+        to_units=model.user_units["time"] / model.user_units["time"],
     )
 
     # Defining compound units
@@ -1601,24 +1602,16 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadStorageBalanceRule(model, p, t):
         if t == model.s_T.first():
-            return (
-                model.v_L_PadStorage[p, t]
-                == pyunits.convert(
-                    model.p_lambda_PadStorage[p], to_units=model.model_units["volume"]
-                )
-                + model.v_F_PadStorageIn[
-                    p, t
-                ]  # [bbl/day] * time_per_period (If weeks -> days: 7)
-                - model.v_F_PadStorageOut[
-                    p, t
-                ]  # [bbl/day] * time_per_period (If weeks -> days: 7)
+            return model.v_L_PadStorage[p, t] == pyunits.convert(
+                model.p_lambda_PadStorage[p], to_units=model.model_units["volume"]
+            ) + model.time_per_period * (
+                model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t]
             )
         else:
-            return (
-                model.v_L_PadStorage[p, t]
-                == model.v_L_PadStorage[p, model.s_T.prev(t)]
-                + model.v_F_PadStorageIn[p, t]
-                - model.v_F_PadStorageOut[p, t]
+            return model.v_L_PadStorage[p, t] == model.v_L_PadStorage[
+                p, model.s_T.prev(t)
+            ] + model.time_per_period * (
+                model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t]
             )
 
     model.CompletionsPadStorageBalance = Constraint(
@@ -2159,54 +2152,50 @@ def create_model(df_sets, df_parameters, default={}):
         if t == model.s_T.first():
             return model.v_L_Storage[s, t] == pyunits.convert(
                 model.p_lambda_Storage[s], to_units=model.model_units["volume"]
-            ) + sum(
-                model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-            ) + sum(
-                model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-            ) - sum(
-                model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-            ) - sum(
-                model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p]
-            ) - sum(
-                model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-            ) - sum(
-                model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-            ) - sum(
-                model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-            ) - sum(
-                model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
-            ) - sum(
-                model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+            ) + model.time_per_period * (
+                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                )
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                )
+                - sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
+                - sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
+                - sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
+                - sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
+                - sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
+                - sum(
+                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                )
+                - sum(
+                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                )
             )
         else:
             return model.v_L_Storage[s, t] == model.v_L_Storage[
                 s, model.s_T.prev(t)
-            ] + sum(
-                model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-            ) + sum(
-                model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-            ) - sum(
-                model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-            ) - sum(
-                model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p]
-            ) - sum(
-                model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-            ) - sum(
-                model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-            ) - sum(
-                model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-            ) - sum(
-                model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
-            ) - sum(
-                model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+            ] + model.time_per_period * (
+                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                )
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                )
+                - sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
+                - sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
+                - sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
+                - sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
+                - sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
+                - sum(
+                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                )
+                - sum(
+                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                )
             )
 
     model.StorageSiteBalance = Constraint(
@@ -2980,14 +2969,14 @@ def create_model(df_sets, df_parameters, default={}):
     def FreshSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
             if model.p_FCA[f, p]:
-                return model.v_C_Sourced[f, p, t] == (
+                return model.v_C_Sourced[f, p, t] == model.time_per_period * (
                     model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t]
                 ) * pyunits.convert(
                     model.p_pi_Sourcing[f],
                     to_units=model.model_units["currency_volume"],
                 )
             elif model.p_FCT[f, p]:
-                return model.v_C_Sourced[f, p, t] == (
+                return model.v_C_Sourced[f, p, t] == model.time_per_period * (
                     model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t]
                 ) * pyunits.convert(
                     model.p_pi_Sourcing[f],
@@ -3025,18 +3014,29 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalFreshSourcingCost.pprint()
 
     def TotalFreshSourcingVolumeRule(model):
-        return model.v_F_TotalSourced == sum(
+        return model.v_F_TotalSourced == model.time_per_period * (
             sum(
-                sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
-                for p in model.s_CP
+                sum(
+                    sum(
+                        model.v_F_Sourced[f, p, t]
+                        for f in model.s_F
+                        if model.p_FCA[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for t in model.s_T
             )
-            for t in model.s_T
-        ) + sum(
-            sum(
-                sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
-                for p in model.s_CP
+            + sum(
+                sum(
+                    sum(
+                        model.v_F_Trucked[f, p, t]
+                        for f in model.s_F
+                        if model.p_FCT[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for t in model.s_T
             )
-            for t in model.s_T
         )
 
     model.TotalFreshSourcingVolume = Constraint(
@@ -3046,7 +3046,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalFreshSourcingVolume.pprint()
 
     def DisposalCostRule(model, k, t):
-        return model.v_C_Disposal[k, t] == (
+        return model.v_C_Disposal[k, t] == model.time_per_period * (
             sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
             + sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k])
             + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
@@ -3076,7 +3076,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalCost.pprint()
 
     def TotalDisposalVolumeRule(model):
-        return model.v_F_TotalDisposed == (
+        return model.v_F_TotalDisposed == model.time_per_period * (
             sum(
                 sum(sum(model.v_F_Piped[l, k, t] for l in model.s_L) for k in model.s_K)
                 for t in model.s_T
@@ -3097,7 +3097,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalVolume.pprint()
 
     def TreatmentCostRule(model, r, t):
-        return model.v_C_Treatment[r, t] == (
+        return model.v_C_Treatment[r, t] == model.time_per_period * (
             sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
             + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
@@ -3128,7 +3128,7 @@ def create_model(df_sets, df_parameters, default={}):
         p,
         t,
     ):
-        return model.v_C_Reuse[p, t] == (
+        return model.v_C_Reuse[p, t] == model.time_per_period * (
             (
                 sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
                 + sum(
@@ -3181,37 +3181,47 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalReuseVolumeRule(model):
-        return model.v_F_TotalReused == sum(
+        return model.v_F_TotalReused == model.time_per_period * (
             sum(
-                sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCA[p_tilde, p]
+                sum(
+                    sum(
+                        model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]
+                    )
+                    + sum(
+                        model.v_F_Piped[p_tilde, p, t]
+                        for p_tilde in model.s_PP
+                        if model.p_PCA[p_tilde, p]
+                    )
+                    + sum(
+                        model.v_F_Piped[p_tilde, p, t]
+                        for p_tilde in model.s_CP
+                        if model.p_CCA[p_tilde, p]
+                    )
+                    + sum(
+                        model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p]
+                    )
+                    + sum(
+                        model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p]
+                    )
+                    + sum(
+                        model.v_F_Trucked[p_tilde, p, t]
+                        for p_tilde in model.s_PP
+                        if model.p_PCT[p_tilde, p]
+                    )
+                    + sum(
+                        model.v_F_Trucked[p_tilde, p, t]
+                        for p_tilde in model.s_CP
+                        if model.p_CCT[p_tilde, p]
+                    )
+                    + sum(
+                        model.v_F_Trucked[s, p, t]
+                        for s in model.s_S
+                        if model.p_SCT[s, p]
+                    )
+                    for p in model.s_CP
                 )
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCA[p_tilde, p]
-                )
-                + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
-                )
-                for p in model.s_CP
+                for t in model.s_T
             )
-            for t in model.s_T
         )
 
     model.TotalReuseVolume = Constraint(
@@ -3223,7 +3233,9 @@ def create_model(df_sets, df_parameters, default={}):
     def PipingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3233,7 +3245,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3243,7 +3257,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3253,7 +3269,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3263,7 +3281,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_CP:
             if model.p_CCA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3273,7 +3293,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3283,7 +3305,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3293,7 +3317,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3303,7 +3329,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3313,7 +3341,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3323,7 +3353,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3333,7 +3365,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Sourced[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Sourced[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3343,7 +3377,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3353,7 +3389,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3363,7 +3401,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3373,7 +3413,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3383,7 +3425,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3393,7 +3437,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3403,7 +3449,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return model.v_C_Piped[l, l_tilde, t] == model.v_F_Piped[
+                return model.v_C_Piped[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Piped[
                     l, l_tilde, t
                 ] * pyunits.convert(
                     model.p_pi_Pipeline[l, l_tilde],
@@ -3560,7 +3608,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalPipingCost.pprint()
 
     def StorageDepositCostRule(model, s, t):
-        return model.v_C_Storage[s, t] == (
+        return model.v_C_Storage[s, t] == model.time_per_period * (
             (
                 sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
                 + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
@@ -3594,7 +3642,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalStorageCost.pprint()
 
     def StorageWithdrawalCreditRule(model, s, t):
-        return model.v_R_Storage[s, t] == (
+        return model.v_R_Storage[s, t] == model.time_per_period * (
             (
                 sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
                 + sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
@@ -3636,7 +3684,9 @@ def create_model(df_sets, df_parameters, default={}):
     def TruckingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3649,7 +3699,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3662,7 +3714,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_K:
             if model.p_PKT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3675,7 +3729,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_S:
             if model.p_PST[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3688,7 +3744,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_R:
             if model.p_PRT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3701,7 +3759,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_O:
             if model.p_POT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3714,7 +3774,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_K:
             if model.p_CKT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3727,7 +3789,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_S:
             if model.p_CST[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3740,7 +3804,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_R:
             if model.p_CRT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3753,7 +3819,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_CP:
             if model.p_CCT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3766,7 +3834,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3779,7 +3849,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3792,7 +3864,9 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKT[l, l_tilde]:
-                return model.v_C_Trucked[l, l_tilde, t] == model.v_F_Trucked[
+                return model.v_C_Trucked[
+                    l, l_tilde, t
+                ] == model.time_per_period * model.v_F_Trucked[
                     l, l_tilde, t
                 ] * 1 / pyunits.convert(
                     model.p_delta_Truck, to_units=model.model_units["volume"]
@@ -3930,68 +4004,114 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalTruckingCost.pprint()
 
     def TotalTruckingVolumeRule(model):
-        return model.v_F_TotalTrucked == sum(
+        return model.v_F_TotalTrucked == model.time_per_period * (
             sum(
                 sum(
-                    model.v_F_Trucked[p, p_tilde, t]
-                    for p in model.s_PP
-                    if model.p_PCT[p, p_tilde]
+                    sum(
+                        model.v_F_Trucked[p, p_tilde, t]
+                        for p in model.s_PP
+                        if model.p_PCT[p, p_tilde]
+                    )
+                    for p_tilde in model.s_CP
                 )
-                for p_tilde in model.s_CP
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-                for s in model.s_S
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-                for r in model.s_R
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
-                for o in model.s_O
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
-                for s in model.s_S
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-                for r in model.s_R
-            )
-            + sum(
-                sum(
-                    model.v_F_Trucked[p, p_tilde, t]
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, k, t]
+                        for p in model.s_PP
+                        if model.p_PKT[p, k]
+                    )
+                    for k in model.s_K
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, s, t]
+                        for p in model.s_PP
+                        if model.p_PST[p, s]
+                    )
+                    for s in model.s_S
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, r, t]
+                        for p in model.s_PP
+                        if model.p_PRT[p, r]
+                    )
+                    for r in model.s_R
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, o, t]
+                        for p in model.s_PP
+                        if model.p_POT[p, o]
+                    )
+                    for o in model.s_O
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, k, t]
+                        for p in model.s_CP
+                        if model.p_CKT[p, k]
+                    )
+                    for k in model.s_K
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, s, t]
+                        for p in model.s_CP
+                        if model.p_CST[p, s]
+                    )
+                    for s in model.s_S
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, r, t]
+                        for p in model.s_CP
+                        if model.p_CRT[p, r]
+                    )
+                    for r in model.s_R
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[p, p_tilde, t]
+                        for p in model.s_CP
+                        if model.p_CCT[p, p_tilde]
+                    )
+                    for p_tilde in model.s_CP
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[s, p, t]
+                        for s in model.s_S
+                        if model.p_SCT[s, p]
+                    )
                     for p in model.s_CP
-                    if model.p_CCT[p, p_tilde]
                 )
-                for p_tilde in model.s_CP
+                + sum(
+                    sum(
+                        model.v_F_Trucked[s, k, t]
+                        for s in model.s_S
+                        if model.p_SKT[s, k]
+                    )
+                    for k in model.s_K
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[r, k, t]
+                        for r in model.s_R
+                        if model.p_RKT[r, k]
+                    )
+                    for k in model.s_K
+                )
+                + sum(
+                    sum(
+                        model.v_F_Trucked[f, p, t]
+                        for f in model.s_F
+                        if model.p_FCT[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for t in model.s_T
             )
-            + sum(
-                sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-                for p in model.s_CP
-            )
-            + sum(
-                sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
-                for p in model.s_CP
-            )
-            for t in model.s_T
         )
 
     model.TotalTruckingVolume = Constraint(
@@ -5611,135 +5731,153 @@ def water_quality(model):
             ) * pyunits.convert(
                 b.p_xi_StorageSite[s, w],
                 to_units=b.parent_block().model_units["concentration"],
-            ) + sum(
-                b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
-                for n in b.parent_block().s_N
-                if b.parent_block().p_NSA[n, s]
-            ) + sum(
-                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
-                for r in b.parent_block().s_R
-                if b.parent_block().p_RSA[r, s]
-            ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t]
-                * pyunits.convert(
-                    b.p_nu_pad[p, w],
-                    to_units=b.parent_block().model_units["concentration"],
+            ) + b.parent_block().time_per_period * (
+                sum(
+                    b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
+                    for n in b.parent_block().s_N
+                    if b.parent_block().p_NSA[n, s]
                 )
-                for p in b.parent_block().s_PP
-                if b.parent_block().p_PST[p, s]
-            ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t]
-                * pyunits.convert(
-                    b.p_nu_pad[p, w],
-                    to_units=b.parent_block().model_units["concentration"],
+                + sum(
+                    b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
+                    for r in b.parent_block().s_R
+                    if b.parent_block().p_RSA[r, s]
                 )
-                for p in b.parent_block().s_CP
-                if b.parent_block().p_CST[p, s]
+                + sum(
+                    b.parent_block().v_F_Trucked[p, s, t]
+                    * pyunits.convert(
+                        b.p_nu_pad[p, w],
+                        to_units=b.parent_block().model_units["concentration"],
+                    )
+                    for p in b.parent_block().s_PP
+                    if b.parent_block().p_PST[p, s]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[p, s, t]
+                    * pyunits.convert(
+                        b.p_nu_pad[p, w],
+                        to_units=b.parent_block().model_units["concentration"],
+                    )
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_CST[p, s]
+                )
             ) == b.v_Q[
                 s, w, t
             ] * (
                 b.parent_block().v_L_Storage[s, t]
-                + sum(
-                    b.parent_block().v_F_Piped[s, n, t]
-                    for n in b.parent_block().s_N
-                    if b.parent_block().p_SNA[s, n]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, p, t]
-                    for p in b.parent_block().s_CP
-                    if b.parent_block().p_SCA[s, p]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, k, t]
-                    for k in b.parent_block().s_K
-                    if b.parent_block().p_SKA[s, k]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, r, t]
-                    for r in b.parent_block().s_R
-                    if b.parent_block().p_SRA[s, r]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, o, t]
-                    for o in b.parent_block().s_O
-                    if b.parent_block().p_SOA[s, o]
-                )
-                + sum(
-                    b.parent_block().v_F_Trucked[s, p, t]
-                    for p in b.parent_block().s_CP
-                    if b.parent_block().p_SCT[s, p]
-                )
-                + sum(
-                    b.parent_block().v_F_Trucked[s, k, t]
-                    for k in b.parent_block().s_K
-                    if b.parent_block().p_SKT[s, k]
+                + b.parent_block().time_per_period
+                * (
+                    sum(
+                        b.parent_block().v_F_Piped[s, n, t]
+                        for n in b.parent_block().s_N
+                        if b.parent_block().p_SNA[s, n]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, p, t]
+                        for p in b.parent_block().s_CP
+                        if b.parent_block().p_SCA[s, p]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, k, t]
+                        for k in b.parent_block().s_K
+                        if b.parent_block().p_SKA[s, k]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, r, t]
+                        for r in b.parent_block().s_R
+                        if b.parent_block().p_SRA[s, r]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, o, t]
+                        for o in b.parent_block().s_O
+                        if b.parent_block().p_SOA[s, o]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Trucked[s, p, t]
+                        for p in b.parent_block().s_CP
+                        if b.parent_block().p_SCT[s, p]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Trucked[s, k, t]
+                        for k in b.parent_block().s_K
+                        if b.parent_block().p_SKT[s, k]
+                    )
                 )
             )
         else:
             return b.parent_block().v_L_Storage[
                 s, b.parent_block().s_T.prev(t)
-            ] * b.v_Q[s, w, b.parent_block().s_T.prev(t)] + sum(
-                b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
-                for n in b.parent_block().s_N
-                if b.parent_block().p_NSA[n, s]
-            ) + sum(
-                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
-                for r in b.parent_block().s_R
-                if b.parent_block().p_RSA[r, s]
-            ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t]
-                * pyunits.convert(
-                    b.p_nu_pad[p, w],
-                    to_units=b.parent_block().model_units["concentration"],
+            ] * b.v_Q[
+                s, w, b.parent_block().s_T.prev(t)
+            ] + b.parent_block().time_per_period * (
+                sum(
+                    b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
+                    for n in b.parent_block().s_N
+                    if b.parent_block().p_NSA[n, s]
                 )
-                for p in b.parent_block().s_PP
-                if b.parent_block().p_PST[p, s]
-            ) + sum(
-                b.parent_block().v_F_Trucked[p, s, t]
-                * pyunits.convert(
-                    b.p_nu_pad[p, w],
-                    to_units=b.parent_block().model_units["concentration"],
+                + sum(
+                    b.parent_block().v_F_Piped[r, s, t] * b.v_Q[r, w, t]
+                    for r in b.parent_block().s_R
+                    if b.parent_block().p_RSA[r, s]
                 )
-                for p in b.parent_block().s_CP
-                if b.parent_block().p_CST[p, s]
+                + sum(
+                    b.parent_block().v_F_Trucked[p, s, t]
+                    * pyunits.convert(
+                        b.p_nu_pad[p, w],
+                        to_units=b.parent_block().model_units["concentration"],
+                    )
+                    for p in b.parent_block().s_PP
+                    if b.parent_block().p_PST[p, s]
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[p, s, t]
+                    * pyunits.convert(
+                        b.p_nu_pad[p, w],
+                        to_units=b.parent_block().model_units["concentration"],
+                    )
+                    for p in b.parent_block().s_CP
+                    if b.parent_block().p_CST[p, s]
+                )
             ) == b.v_Q[
                 s, w, t
             ] * (
                 b.parent_block().v_L_Storage[s, t]
-                + sum(
-                    b.parent_block().v_F_Piped[s, n, t]
-                    for n in b.parent_block().s_N
-                    if b.parent_block().p_SNA[s, n]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, p, t]
-                    for p in b.parent_block().s_CP
-                    if b.parent_block().p_SCA[s, p]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, k, t]
-                    for k in b.parent_block().s_K
-                    if b.parent_block().p_SKA[s, k]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, r, t]
-                    for r in b.parent_block().s_R
-                    if b.parent_block().p_SRA[s, r]
-                )
-                + sum(
-                    b.parent_block().v_F_Piped[s, o, t]
-                    for o in b.parent_block().s_O
-                    if b.parent_block().p_SOA[s, o]
-                )
-                + sum(
-                    b.parent_block().v_F_Trucked[s, p, t]
-                    for p in b.parent_block().s_CP
-                    if b.parent_block().p_SCT[s, p]
-                )
-                + sum(
-                    b.parent_block().v_F_Trucked[s, k, t]
-                    for k in b.parent_block().s_K
-                    if b.parent_block().p_SKT[s, k]
+                + b.parent_block().time_per_period
+                * (
+                    sum(
+                        b.parent_block().v_F_Piped[s, n, t]
+                        for n in b.parent_block().s_N
+                        if b.parent_block().p_SNA[s, n]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, p, t]
+                        for p in b.parent_block().s_CP
+                        if b.parent_block().p_SCA[s, p]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, k, t]
+                        for k in b.parent_block().s_K
+                        if b.parent_block().p_SKA[s, k]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, r, t]
+                        for r in b.parent_block().s_R
+                        if b.parent_block().p_SRA[s, r]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Piped[s, o, t]
+                        for o in b.parent_block().s_O
+                        if b.parent_block().p_SOA[s, o]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Trucked[s, p, t]
+                        for p in b.parent_block().s_CP
+                        if b.parent_block().p_SCT[s, p]
+                    )
+                    + sum(
+                        b.parent_block().v_F_Trucked[s, k, t]
+                        for k in b.parent_block().s_K
+                        if b.parent_block().p_SKT[s, k]
+                    )
                 )
             )
 
@@ -6013,13 +6151,14 @@ def water_quality(model):
                 to_units=model.model_units["volume"],
             ) + b.v_Q[
                 p + intermediate_label, w, t
-            ] * b.parent_block().v_F_PadStorageIn[
+            ] * b.parent_block().time_per_period * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
                 p + storage_label, w, t
             ] * (
                 b.parent_block().v_L_PadStorage[p, t]
-                + b.parent_block().v_F_PadStorageOut[p, t]
+                + b.parent_block().time_per_period
+                * b.parent_block().v_F_PadStorageOut[p, t]
             )
         else:
             return b.v_Q[
@@ -6028,13 +6167,14 @@ def water_quality(model):
                 p, b.parent_block().s_T.prev(t)
             ] + b.v_Q[
                 p + intermediate_label, w, t
-            ] * b.parent_block().v_F_PadStorageIn[
+            ] * b.parent_block().time_per_period * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
                 p + storage_label, w, t
             ] * (
                 b.parent_block().v_L_PadStorage[p, t]
-                + b.parent_block().v_F_PadStorageOut[p, t]
+                + b.parent_block().time_per_period
+                * b.parent_block().v_F_PadStorageOut[p, t]
             )
 
     model.quality.CompletionsPadStorageWaterQuality = Constraint(
@@ -6253,7 +6393,11 @@ def _preprocess_data(model):
             )
 
             # convert to bbl/week:
-            flow_rate *= 6.28981 * (3600 * 24 * 7)
+            days_in_period = model.user_units["time"] / pyunits.days
+            days_in_period = pyunits.convert(
+                days_in_period, to_units=pyunits.days / pyunits.days
+            )
+            flow_rate *= 6.28981 * (3600 * 24 * days_in_period)
 
             # add to parameter df.
             model.df_parameters["PipelineCapacityIncrements"][key] = flow_rate
