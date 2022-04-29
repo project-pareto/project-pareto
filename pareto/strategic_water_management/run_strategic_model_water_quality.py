@@ -141,9 +141,7 @@ results = opt.solve(strategic_model, tee=True)
 results.write()
 
 # Solve water quality model to calculate values for water quality post optimization.
-strategic_model = postprocess_water_quality_calculation(
-    strategic_model, df_parameters, df_sets, opt
-)
+strategic_model = postprocess_water_quality_calculation(strategic_model, opt)
 
 # Generate report with results in Excel
 print("\nDisplaying Solution\n" + "-" * 60)
