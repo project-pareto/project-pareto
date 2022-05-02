@@ -178,7 +178,7 @@ def generate_report(model, is_print=[], fname=None):
             "v_Q_CompletionPad_dict": [
                 ("Completion pad", "Water Component", "Time", "Water Quality")
             ],
-            "v_Q_Discrete_dict": [
+            "v_Z_dict": [
                 (
                     "Location",
                     "Time",
@@ -494,7 +494,7 @@ def generate_report(model, is_print=[], fname=None):
             "v_Q_CompletionPad_dict": [
                 ("Completion pad", "Water Component", "Time", "Water Quality")
             ],
-            "v_Q_Discrete_dict": [
+            "v_Z_dict": [
                 (
                     "Location",
                     "Time",
@@ -689,7 +689,7 @@ def generate_report(model, is_print=[], fname=None):
                 elif i is not None and isinstance(i, str):
                     i = (i,)
                 # replace the discrete qualities by their actual values
-                if str(variable.name) == "v_Q_Discrete" and var_value > 0:
+                if str(variable.name) == "v_Z" and var_value > 0:
                     var_value = model.p_discrete_quality[i[2], i[3]]
                 if i is not None and var_value is not None and var_value > 0:
                     headers[str(variable.name) + "_dict"].append((*i, var_value))

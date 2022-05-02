@@ -5331,7 +5331,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
 
     # For the discretization we need a upperbound for the maximum number of trucks for each truck flow
     model.p_max_number_of_trucks = Param(
-        initialize=100,
+        initialize=500,
         doc="Max number of trucks. Needed for upperbound on v_F_Trucked",
     )
 
@@ -5480,7 +5480,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             rule=lambda model, k, t, w, q: model.v_F_DiscreteDisposalDestination[
                 k, t, w, q
             ]
-            <= model.p_sigma_Disposal[k] * model.v_Z[k, t, w, q],
+            <= (model.p_sigma_Disposal[k] + max(model.p_delta_Disposal.values()))
+            * model.v_Z[k, t, w, q],
             doc="Only one quantity at disposal can be non-zero for quality component w and all discretized quality q",
         )
 
