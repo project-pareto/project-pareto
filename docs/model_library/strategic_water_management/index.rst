@@ -674,13 +674,13 @@ Sets the flow capacity in a given pipeline during a given time period. Different
 
 .. note::
 
-    δ can be input by user or calculated. If the user chooses to calculate pipeline capacity, the parameter will be calculated by the equation below where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as per Cafaro & Grossmann (2020) and d represents the pipeline diameter as per the set d∈D.
+    δ can be input by user or calculated. If the user chooses to calculate pipeline capacity, the parameter will be calculated by the equation below where :math:`{κ_{l,l}}` is Hazen-Williams constant and ω is Hazen-Williams exponent as per Cafaro & Grossmann (2020) and d represents the pipeline diameter as per the set d∈D.
 
     See equation:
 
 .. math::
 
-    \textcolor{green}{δ_{d}^{Pipeline}} = k_{l,l}⋅\textcolor{blue}{d}^{ω}
+    \textcolor{green}{δ_{d}^{Pipeline}} = {κ_{l,l}}⋅\textcolor{blue}{d}^{ω}
 
 
 ∀{l,l} ∈ {PCA,PNA,PPA,CNA,RCA NNA,NCA,NKA,NSA,NRA,…,SOA}, t ∈ T
