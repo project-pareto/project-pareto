@@ -1242,7 +1242,6 @@ For each location in time the sum of the flows for all the discrete qualities is
 
     ∑_{(q)∈Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} == \textcolor{red}{F_{k,t}^{DisposalDestination}}
 
-.. _strategic_model_terminology:
 
 We can now rewrite the non linear equation showed before to:
 
@@ -1293,6 +1292,8 @@ The water quality of disposed water is dependent on the flow rates into the disp
 The constraints for the DiscretePiped and DiscreteTrucked are similar to the DiscreteDisposalDestination.
 
 .. note:: The == sign in the original constraint is changed to <= sign in the discretized version. 
+
+.. _strategic_model_terminology:
 
 Terminology
 -----------
