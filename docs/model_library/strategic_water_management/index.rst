@@ -17,6 +17,8 @@ Given a set of existing network components (completion pads, storage pads, produ
 +---------------------------------------------------------+
 | :ref:`strategic_model_terminology`                      |
 +---------------------------------------------------------+
+| :ref:`strategic_model_references`                       |
++---------------------------------------------------------+
 
 
 .. _strategic_model_mathematical_notation:
@@ -674,7 +676,7 @@ Sets the flow capacity in a given pipeline during a given time period. Different
 
 .. note::
 
-    δ can be input by user or calculated. If the user chooses to calculate pipeline capacity, the parameter will be calculated by the equation below where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as per Cafaro & Grossmann (2020) and d represents the pipeline diameter as per the set d∈D.
+    δ can be input by user or calculated. If the user chooses to calculate pipeline capacity, the parameter will be calculated by the equation below where k_{l,l} is Hazen-Williams constant and ω is Hazen-Williams exponent as per Cafaro & Grossmann (2021) and d represents the pipeline diameter as per the set d∈D.
 
     See equation:
 
@@ -1224,3 +1226,10 @@ Terminology
 **Terminal Storage Level:** These are goal storage levels for the final time period. Without this, the storage levels would likely be depleted in the last time period.
 
 **Water Boosting:** Moving large volumes of water requires water pumps. Water boosting refers to the infrastructure required to maintain water pressure.
+
+.. _strategic_model_references:
+
+References
+----------
+
+Cafaro, D. C., & Grossmann, I. (2021). Optimal design of water pipeline networks for the development of shale gas resources. AIChE Journal, 67(1), e17058.
