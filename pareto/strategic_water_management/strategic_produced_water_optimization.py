@@ -169,7 +169,7 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.mg / pyunits.liter,
         "currency": pyunits.USD,
-        "time": pyunits.day,
+        "time": pyunits.week,
         # "decision_period": pyunits.week,
     }
     model.model_units = {
@@ -1058,12 +1058,21 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.user_units["volume"] / model.user_units["time"],
         doc="Completions water demand [bbl/week]",
     )
+    # Note: when summing volume/time to get total volumes, the volume/time must be in model units OR a conversion factor between model decision time and user time must be considered
+    # For example, if model decision (week) and user time (day) are different, the sum of bbl/day for all time periods is not equal to total volume UNLESS  we convert bbl/day -> bbl/week OR we multiply by a factor of 7
     model.p_gamma_TotalDemand = Param(
         default=0,
         initialize=sum(
-            sum(model.p_gamma_Completions[p, t] for p in model.s_P) for t in model.s_T
+            sum(
+                pyunits.convert(
+                    model.p_gamma_Completions[p, t],
+                    to_units=model.model_units["volume_time"],
+                )
+                for p in model.s_P
+            )
+            for t in model.s_T
         ),
-        units=model.user_units["volume"],
+        units=model.model_units["volume"],
         doc="Total water demand over the planning horizon [bbl]",
         mutable=True,
     )
@@ -1087,12 +1096,19 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=sum(
             sum(
-                model.p_beta_Production[p, t] + model.p_beta_Flowback[p, t]
+                pyunits.convert(
+                    model.p_beta_Production[p, t],
+                    to_units=model.model_units["volume_time"],
+                )
+                + pyunits.convert(
+                    model.p_beta_Flowback[p, t],
+                    to_units=model.model_units["volume_time"],
+                )
                 for p in model.s_P
             )
             for t in model.s_T
         ),
-        units=model.user_units["volume"],
+        units=model.model_units["volume"],
         doc="Combined water supply forecast (flowback & production) over the planning horizon [bbl]",
         mutable=True,
     )
