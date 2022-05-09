@@ -108,7 +108,7 @@ def generate_report(model, is_print=[], fname=None):
                 raise Exception("Report {0} not supported".format(is_print))
 
         headers = {
-            "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
+            "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
             "v_F_Piped_dict": [("Origin", "destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
@@ -162,6 +162,13 @@ def generate_report(model, is_print=[], fname=None):
             ],
             "v_F_CompletionsDestination_dict": [
                 ("Pads", "Time", "Total deliveries to completions pads")
+            ],
+            "v_F_BeneficialReuseDestination_dict": [
+                (
+                    "Beneficial Reuse Site",
+                    "Time",
+                    "Total deliveries to beneficial reuse",
+                )
             ],
             "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
             "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
@@ -312,7 +319,7 @@ def generate_report(model, is_print=[], fname=None):
                 raise Exception("Report {0} not supported".format(is_print))
 
         headers = {
-            "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
+            "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
@@ -418,16 +425,54 @@ def generate_report(model, is_print=[], fname=None):
 
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
+        # Not all of our variables have units (binary variables)
+        units_true = variable.get_units() is not None
+        # If units are used, determine what the display units should be based off user input
+        if units_true:
+            from_unit_string = variable.get_units().to_string()
+            to_unit = model.model_to_user_units[from_unit_string]
+            # if variable data is not none and indexed, update headers to display unit
+            if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
+                header = list(headers[str(variable.name) + "_dict"][0])
+                header[-1] = (
+                    headers[str(variable.name) + "_dict"][0][-1]
+                    + " ["
+                    + to_unit.to_string()
+                    + "]"
+                )
+                headers[str(variable.name) + "_dict"][0] = tuple(header)
+        else:
+            to_unit = None
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
-                var_value = variable._data[i].value
+                # convert the value to display units
+                if units_true:
+                    var_value = pyunits.convert_value(
+                        variable._data[i].value,
+                        from_units=variable.get_units(),
+                        to_units=to_unit,
+                    )
+                else:
+                    var_value = variable._data[i].value
+
                 if i is None:
                     # Create the overview report with variables that are not indexed, e.g.:
                     # total piped water, total trucked water, total fresh water, etc.
-                    headers["v_F_Overview_dict"].append(
-                        (variable.name, variable.doc, var_value)
-                    )
+                    if to_unit is not None:
+                        headers["v_F_Overview_dict"].append(
+                            (
+                                variable.name,
+                                variable.doc,
+                                to_unit.to_string(),
+                                var_value,
+                            )
+                        )
+                    else:
+                        headers["v_F_Overview_dict"].append(
+                            (variable.name, variable.doc, to_unit, var_value)
+                        )
+
                 # if a variable contains only one index, then "i" is recognized as a string and not a tupel,
                 # in that case, "i" is redefined by adding a comma so that it becomes a tuple
                 elif i is not None and isinstance(i, str):
@@ -461,7 +506,7 @@ def generate_report(model, is_print=[], fname=None):
                 ]:  # Conditional that checks if the header for a section should be added
                     print(j[0].upper())
                 else:
-                    print("{0} = {1}".format(j[1], j[2]))
+                    print("{0} = {1}".format(j[1], j[3]))
 
     # Printing warning if "proprietary_data" is True
     if len(printing_list) > 0 and model.proprietary_data is True:

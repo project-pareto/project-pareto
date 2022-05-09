@@ -1,3 +1,12 @@
+PR Adding Support for Units #125 (5/5/2022)
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Add tab "Units"
+	• Convert all tab units to generic names (e.g., time, volume, currency, etc)
+Small Case (small_strategic_case_study.xlsx)
+	• Add tab "Units"
+
+
 PR Node Capacity (3/28/2022)
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 

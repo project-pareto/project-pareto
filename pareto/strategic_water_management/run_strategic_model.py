@@ -41,6 +41,7 @@ set_list = [
     "TreatmentCapacities",
 ]
 parameter_list = [
+    "Units",
     "PNA",
     "CNA",
     "CCA",

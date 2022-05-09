@@ -129,8 +129,8 @@ CONFIG.declare(
         doc="""Alternate pipeline capex cost structures (distance or capacity based)
         ***default*** - PipelineCost.capacity_based
         **Valid Values:** - {
-        **PipelineCost.capacity_based** - use pipeline capacities and rate in $/bbl to calculate pipeline capex costs,
-        **PipelineCost.distance_based** - use pipeline distances and rate in $/inchmile to calculate pipeline capex costs
+        **PipelineCost.capacity_based** - use pipeline capacities and rate in [currency/volume] to calculate pipeline capex costs,
+        **PipelineCost.distance_based** - use pipeline distances and rate in [currency/(diameter-distance)] to calculate pipeline capex costs
         }""",
     ),
 )
@@ -157,31 +157,47 @@ CONFIG.declare(
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
     pyunits.load_definitions_from_strings(["USD = [currency]"])
-    # pyunits.load_definitions_from_strings(['MUSD = 1000000*USD'])
+
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
-    model.user_units = {
-        "volume": pyunits.bbl,
-        "distance": pyunits.mile,
-        "diameter": pyunits.inch,
-        "concentration": pyunits.mg / pyunits.liter,
-        "currency": pyunits.USD,
-        "time": pyunits.week,
-        # "decision_period": pyunits.week,
-    }
+
+    # Convert user unit selection to a user_units dictionary
+    model.user_units = {}
+    for user_input in model.df_parameters["Units"]:
+        # Concentration is a relationship between two units, so requires some manipulation from user input
+        if user_input == "concentration":
+            split = model.df_parameters["Units"][user_input].split("/")
+            mass = split[0]
+            vol = split[1]
+            exec(
+                "model.user_units['concentration'] = pyunits.%s / pyunits.%s"
+                % (mass, vol)
+            )
+        # Decision Period is not a user_unit. We will define this as a separate variable.
+        elif user_input == "decision period":
+            exec(
+                "model.decision_period = pyunits.%s"
+                % model.df_parameters["Units"][user_input]
+            )
+        # All other units can be interpreted directly from user input
+        else:
+            exec(
+                "model.user_units['%s'] = pyunits.%s"
+                % (user_input, df_parameters["Units"][user_input])
+            )
+
     model.model_units = {
-        "volume": pyunits.kbbl,
+        "volume": pyunits.koil_bbl,
         "distance": pyunits.mile,
         "diameter": pyunits.inch,
         "concentration": pyunits.kg / pyunits.liter,
         "currency": pyunits.kUSD,
         "time": pyunits.week,
     }
-    decision_period = pyunits.week  # This should come from the users input
-    model.time_per_period = decision_period / model.model_units["time"]
+    model.time_per_period = model.decision_period / model.model_units["time"]
     model.time_per_period = pyunits.convert(
         model.time_per_period,
         to_units=model.user_units["time"] / model.user_units["time"],
@@ -190,6 +206,9 @@ def create_model(df_sets, df_parameters, default={}):
     # Defining compound units
     model.user_units["volume_time"] = (
         model.user_units["volume"] / model.user_units["time"]
+    )
+    model.user_units["currency_time"] = (
+        model.user_units["currency"] / model.user_units["time"]
     )
     model.user_units["pipe_cost_distance"] = model.user_units["currency"] / (
         model.user_units["diameter"] * model.user_units["distance"]
@@ -204,6 +223,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.model_units["volume_time"] = (
         model.model_units["volume"] / model.model_units["time"]
     )
+    model.model_units["currency_time"] = (
+        model.model_units["currency"] / model.model_units["time"]
+    )
     model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
         model.model_units["diameter"] * model.model_units["distance"]
     )
@@ -213,6 +235,15 @@ def create_model(df_sets, df_parameters, default={}):
     model.model_units["currency_volume"] = (
         model.model_units["currency"] / model.model_units["volume"]
     )
+
+    # Create dictionary to map model units to user units to assist generating results in the correct units
+    model.model_to_user_units = {}
+    for unit in model.model_units:
+        model_unit = model.model_units[unit].to_string()
+        if "/" in model_unit:
+            model_unit = "(" + model_unit + ")"
+        user_unit = model.user_units[unit]
+        model.model_to_user_units[model_unit] = user_unit
 
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
@@ -273,7 +304,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_Z = Var(
         within=Reals,
         units=model.model_units["currency"],
-        doc="Objective function variable [$]",
+        doc="Objective function variable [currency]",
     )
 
     model.v_F_Piped = Var(
@@ -283,7 +314,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Produced water quantity piped from location l to location l [bbl/week]",
+        doc="Produced water quantity piped from location l to location l [volume/time]",
     )
     model.v_F_Trucked = Var(
         model.s_L,
@@ -292,7 +323,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Produced water quantity trucked from location l to location l [bbl/week]",
+        doc="Produced water quantity trucked from location l to location l [volume/time]",
     )
     model.v_F_Sourced = Var(
         model.s_F,
@@ -301,7 +332,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Fresh water sourced from source f to completions pad p [bbl/week]",
+        doc="Fresh water sourced from source f to completions pad p [volume/time]",
     )
 
     model.v_F_PadStorageIn = Var(
@@ -310,7 +341,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Water put into completions pad storage [bbl/week]",
+        doc="Water put into completions pad storage [volume/time]",
     )
     model.v_F_PadStorageOut = Var(
         model.s_CP,
@@ -318,7 +349,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Water from completions pad storage used for fracturing [bbl/week]",
+        doc="Water from completions pad storage used for fracturing [volume/time]",
     )
     model.v_F_UnusedTreatedWater = Var(
         model.s_R,
@@ -326,7 +357,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Water leftover from the treatment process [bbl/week]",
+        doc="Water leftover from the treatment process [volume/time]",
     )
 
     model.v_L_Storage = Var(
@@ -335,7 +366,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"],
-        doc="Water level at storage site [bbl]",
+        doc="Water level at storage site [volume]",
     )
     model.v_L_PadStorage = Var(
         model.s_CP,
@@ -343,28 +374,28 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"],
-        doc="Water level in completions pad storage [bbl]",
+        doc="Water level in completions pad storage [volume]",
     )
 
     model.v_F_TotalTrucked = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume water trucked [bbl]",
+        doc="Total volume water trucked [volume]",
     )
     model.v_F_TotalSourced = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume freshwater sourced [bbl]",
+        doc="Total volume freshwater sourced [volume]",
     )
     model.v_F_TotalDisposed = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume of water disposed [bbl]",
+        doc="Total volume of water disposed [volume]",
     )
     model.v_F_TotalReused = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume of produced water reused [bbl]",
+        doc="Total volume of produced water reused [volume]",
     )
 
     model.v_C_Piped = Var(
@@ -383,7 +414,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["time"],
-        doc="Cost of trucking produced water from location l to location l [$/week]",
+        doc="Cost of trucking produced water from location l to location l [currency/time]",
     )
     model.v_C_Sourced = Var(
         model.s_F,
@@ -392,7 +423,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["time"],
-        doc="Cost of sourcing fresh water from source f to completion pad p [$/week]",
+        doc="Cost of sourcing fresh water from source f to completion pad p [currency/time]",
     )
     model.v_C_Disposal = Var(
         model.s_K,
@@ -400,7 +431,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["time"],
-        doc="Cost of injecting produced water at disposal site [$/week]",
+        doc="Cost of injecting produced water at disposal site [currency/time]",
     )
     model.v_C_Treatment = Var(
         model.s_R,
@@ -408,7 +439,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["time"],
-        doc="Cost of treating produced water at treatment site [$/week]",
+        doc="Cost of treating produced water at treatment site [currency/time]",
     )
     model.v_C_Reuse = Var(
         model.s_CP,
@@ -416,7 +447,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["time"],
-        doc="Cost of reusing produced water at completions site [$/week]",
+        doc="Cost of reusing produced water at completions site [currency/time]",
     )
     model.v_C_Storage = Var(
         model.s_S,
@@ -424,7 +455,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["time"],
-        doc="Cost of storing produced water at storage site [$/week]",
+        doc="Cost of storing produced water at storage site [currency/time]",
     )
     model.v_R_Storage = Var(
         model.s_S,
@@ -432,53 +463,53 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency"] / model.model_units["volume"],
-        doc="Credit for retrieving stored produced water from storage site [$/bbl]",
+        doc="Credit for retrieving stored produced water from storage site [currency/volume]",
     )
 
     model.v_C_TotalSourced = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of sourcing freshwater [$]",
+        doc="Total cost of sourcing freshwater [currency]",
     )
     model.v_C_TotalDisposal = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of injecting produced water [$]",
+        doc="Total cost of injecting produced water [currency]",
     )
     model.v_C_TotalTreatment = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of treating produced water [$]",
+        doc="Total cost of treating produced water [currency]",
     )
     model.v_C_TotalReuse = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of reusing produced water [$]",
+        doc="Total cost of reusing produced water [currency]",
     )
     model.v_C_TotalPiping = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of piping produced water [$]",
+        doc="Total cost of piping produced water [currency]",
     )
     model.v_C_TotalStorage = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of storing produced water [$]",
+        doc="Total cost of storing produced water [currency]",
     )
     model.v_C_TotalTrucking = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of trucking produced water [$]",
+        doc="Total cost of trucking produced water [currency]",
     )
     model.v_C_Slack = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of slack variables [$]",
+        doc="Total cost of slack variables [currency]",
     )
     model.v_R_TotalStorage = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total credit for withdrawing produced water [$]",
+        doc="Total credit for withdrawing produced water [currency]",
     )
 
     model.v_F_ReuseDestination = Var(
@@ -487,7 +518,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Total deliveries to completions pad [bbl/week]",
+        doc="Total deliveries to completions pad [volume/time]",
     )
     model.v_F_DisposalDestination = Var(
         model.s_K,
@@ -495,40 +526,40 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Total deliveries to disposal site [bbl/week]",
+        doc="Total deliveries to disposal site [volume/time]",
     )
     model.v_F_BeneficialReuseDestination = Var(
         model.s_O,
         model.s_T,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Total deliveries to Beneficial Reuse Site [bbl/week]",
+        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
     )
     model.v_F_CompletionsDestination = Var(
         model.s_CP,
         model.s_T,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Total deliveries to completions pad that meet completions demand [bbl/week]",
+        doc="Total deliveries to completions pad that meet completions demand [volume/time]",
     )
 
     model.v_D_Capacity = Var(
         model.s_K,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Disposal capacity at a disposal site [bbl/week]",
+        doc="Disposal capacity at a disposal site [volume/time]",
     )
     model.v_X_Capacity = Var(
         model.s_S,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Storage capacity at a storage site [bbl/week]",
+        doc="Storage capacity at a storage site [volume/time]",
     )
     model.v_T_Capacity = Var(
         model.s_R,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Treatment capacity at a treatment site [bbl/week]",
+        doc="Treatment capacity at a treatment site [volume/time]",
     )
     model.v_F_Capacity = Var(
         model.s_L,
@@ -536,28 +567,28 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Flow capacity along pipeline arc [bbl/week]",
+        doc="Flow capacity along pipeline arc [volume/time]",
     )
 
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding disposal capacity [$]",
+        doc="Capital cost of constructing or expanding disposal capacity [currency]",
     )
     model.v_C_PipelineCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding piping capacity [$]",
+        doc="Capital cost of constructing or expanding piping capacity [currency]",
     )
     model.v_C_StorageCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding storage capacity [$]",
+        doc="Capital cost of constructing or expanding storage capacity [currency]",
     )
     model.v_C_TreatmentCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding treatment capacity [$]",
+        doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
 
     model.v_S_FracDemand = Var(
@@ -566,7 +597,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Slack variable to meet the completions demand [bbl/week]",
+        doc="Slack variable to meet the completions demand [volume/time]",
     )
     model.v_S_Production = Var(
         model.s_PP,
@@ -574,7 +605,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Slack variable to process the produced water production [bbl/week]",
+        doc="Slack variable to process the produced water production [volume/time]",
     )
     model.v_S_Flowback = Var(
         model.s_CP,
@@ -582,7 +613,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Slack variable to proces flowback water production [bbl/week]",
+        doc="Slack variable to proces flowback water production [volume/time]",
     )
     model.v_S_PipelineCapacity = Var(
         model.s_L,
@@ -590,31 +621,31 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume"],
-        doc="Slack variable to provide necessary pipeline capacity [bbl]",
+        doc="Slack variable to provide necessary pipeline capacity [volume]",
     )
     model.v_S_StorageCapacity = Var(
         model.s_S,
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Slack variable to provide necessary storage capacity [bbl]",
+        doc="Slack variable to provide necessary storage capacity [volume]",
     )
     model.v_S_DisposalCapacity = Var(
         model.s_K,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Slack variable to provide necessary disposal capacity [bbl/week]",
+        doc="Slack variable to provide necessary disposal capacity [volume/time]",
     )
     model.v_S_TreatmentCapacity = Var(
         model.s_R,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Slack variable to provide necessary treatment capacity [bbl/week]",
+        doc="Slack variable to provide necessary treatment capacity [volume/time]",
     )
     model.v_S_ReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
         units=model.model_units["volume"] / model.model_units["time"],
-        doc="Slack variable to provide necessary reuse capacity [bbl/week]",
+        doc="Slack variable to provide necessary reuse capacity [volume/time]",
     )
 
     ## Define binary variables ##
@@ -1056,7 +1087,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["CompletionsDemand"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Completions water demand [bbl/week]",
+        doc="Completions water demand [volume/time]",
     )
     # Note: when summing volume/time to get total volumes, the volume/time must be in model units OR a conversion factor between model decision time and user time must be considered
     # For example, if model decision (week) and user time (day) are different, the sum of bbl/day for all time periods is not equal to total volume UNLESS  we convert bbl/day -> bbl/week OR we multiply by a factor of 7
@@ -1073,7 +1104,7 @@ def create_model(df_sets, df_parameters, default={}):
             for t in model.s_T
         ),
         units=model.model_units["volume"],
-        doc="Total water demand over the planning horizon [bbl]",
+        doc="Total water demand over the planning horizon [volume]",
         mutable=True,
     )
     model.p_beta_Production = Param(
@@ -1082,7 +1113,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["PadRates"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Produced water supply forecast [bbl/week]",
+        doc="Produced water supply forecast [volume/time]",
     )
     model.p_beta_Flowback = Param(
         model.s_P,
@@ -1090,7 +1121,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["FlowbackRates"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Flowback supply forecast for a completions bad [bbl/week]",
+        doc="Flowback supply forecast for a completions bad [volume/time]",
     )
     model.p_beta_TotalProd = Param(
         default=0,
@@ -1109,7 +1140,7 @@ def create_model(df_sets, df_parameters, default={}):
             for t in model.s_T
         ),
         units=model.model_units["volume"],
-        doc="Combined water supply forecast (flowback & production) over the planning horizon [bbl]",
+        doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
         mutable=True,
     )
     model.p_sigma_Pipeline = Param(
@@ -1118,42 +1149,42 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["InitialPipelineCapacity"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Initial weekly pipeline capacity between two locations [bbl/week]",
+        doc="Initial pipeline capacity between two locations [volume/time]",
     )
     model.p_sigma_Disposal = Param(
         model.s_K,
         default=0,
         initialize=model.df_parameters["InitialDisposalCapacity"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Initial weekly disposal capacity at disposal sites [bbl/week]",
+        doc="Initial disposal capacity at disposal sites [volume/time]",
     )
     model.p_sigma_Storage = Param(
         model.s_S,
         default=0,
         initialize=model.df_parameters["InitialStorageCapacity"],
         units=model.user_units["volume"],
-        doc="Initial storage capacity at storage site [bbl]",
+        doc="Initial storage capacity at storage site [volume]",
     )
     model.p_sigma_PadStorage = Param(
         model.s_CP,
         default=0,
         initialize=model.df_parameters["CompletionsPadStorage"],
         units=model.user_units["volume"],
-        doc="Storage capacity at completions site [bbl]",
+        doc="Storage capacity at completions site [volume]",
     )
     model.p_sigma_Treatment = Param(
         model.s_R,
         default=0,
         initialize=model.df_parameters["InitialTreatmentCapacity"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Initial weekly treatment capacity at treatment site [bbl/week]",
+        doc="Initial treatment capacity at treatment site [volume/time]",
     )
     model.p_sigma_Reuse = Param(
         model.s_O,
         default=0,
         initialize=InitialReuseCapacityTable,
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Initial weekly reuse capacity at reuse site [bbl/week]",
+        doc="Initial reuse capacity at reuse site [volume/time]",
     )
     model.p_sigma_Freshwater = Param(
         model.s_F,
@@ -1161,7 +1192,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["FreshwaterSourcingAvailability"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Weekly freshwater sourcing capacity at freshwater source [bbl/week]",
+        doc="Freshwater sourcing capacity at freshwater source [volume/time]",
         mutable=True,
     )
 
@@ -1170,7 +1201,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=999999,
         initialize=model.df_parameters["PadOffloadingCapacity"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Weekly truck offloading sourcing capacity per pad [bbl/week]",
+        doc="Truck offloading sourcing capacity per pad [volume/time]",
         mutable=True,
     )
     model.p_sigma_OffloadingStorage = Param(
@@ -1178,7 +1209,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=999999,
         initialize=StorageOffloadingCapacityTable,
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Weekly truck offloading capacity per pad [bbl/week]",
+        doc="Truck offloading capacity per pad [volume/time]",
         mutable=True,
     )
     model.p_sigma_ProcessingPad = Param(
@@ -1186,7 +1217,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=999999,
         initialize=ProcessingCapacityPadTable,
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Weekly processing (e.g. clarification) capacity per pad [bbl/week]",
+        doc="Processing (e.g. clarification) capacity per pad [volume/time]",
         mutable=True,
     )
     model.p_sigma_ProcessingStorage = Param(
@@ -1194,7 +1225,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=999999,
         initialize=ProcessingCapacityStorageTable,
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Weekly processing (e.g. clarification) capacity per storage site [bbl/week]",
+        doc="Processing (e.g. clarification) capacity per storage site [volume/time]",
         mutable=True,
     )
     if model.config.node_capacity == IncludeNodeCapacity.true:
@@ -1204,7 +1235,7 @@ def create_model(df_sets, df_parameters, default={}):
             within=Any,
             initialize=df_parameters["NodeCapacities"],
             units=model.user_units["volume"] / model.user_units["time"],
-            doc="Weekly capacity per network node [bbl/week]",
+            doc="Capacity per network node [volume/time]",
         )
 
     model.p_epsilon_Treatment = Param(
@@ -1227,7 +1258,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["PipelineCapacityIncrements"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Pipeline capacity installation/expansion increments [bbl/week]",
+        doc="Pipeline capacity installation/expansion increments [volume/time]",
     )
 
     model.p_delta_Disposal = Param(
@@ -1235,7 +1266,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=10,
         initialize=model.df_parameters["DisposalCapacityIncrements"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Disposal capacity installation/expansion increments [bbl/week]",
+        doc="Disposal capacity installation/expansion increments [volume/time]",
     )
 
     model.p_delta_Storage = Param(
@@ -1243,32 +1274,32 @@ def create_model(df_sets, df_parameters, default={}):
         default=10,
         initialize=model.df_parameters["StorageCapacityIncrements"],
         units=model.user_units["volume"],
-        doc="Storage capacity installation/expansion increments [bbl]",
+        doc="Storage capacity installation/expansion increments [volume]",
     )
     model.p_delta_Treatment = Param(
         model.s_J,
         default=10,
         initialize=model.df_parameters["TreatmentCapacityIncrements"],
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Treatment capacity installation/expansion increments [bbl/week]",
+        doc="Treatment capacity installation/expansion increments [volume/time]",
     )
 
     model.p_delta_Truck = Param(
-        default=110, units=model.user_units["volume"], doc="Truck capacity [bbl]"
+        default=110, units=model.user_units["volume"], doc="Truck capacity [volume]"
     )
 
     model.p_tau_Disposal = Param(
         model.s_K,
         default=12,
         units=model.user_units["time"],
-        doc="Disposal construction/expansion lead time [weeks]",
+        doc="Disposal construction/expansion lead time [time]",
     )
 
     model.p_tau_Storage = Param(
         model.s_S,
         default=12,
         units=model.user_units["time"],
-        doc="Storage construction/expansion lead time [weeks]",
+        doc="Storage construction/expansion lead time [time]",
     )
 
     model.p_tau_Pipeline = Param(
@@ -1276,7 +1307,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         default=12,
         units=model.user_units["time"],
-        doc="Pipeline construction/expansion lead time [weeks]",
+        doc="Pipeline construction/expansion lead time [time]",
     )
 
     # COMMENT: It is expected that the units for this parameter are hours, which usually differs from the time units used
@@ -1296,28 +1327,28 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         default=0,
         units=model.user_units["volume"],
-        doc="Initial storage level at storage site [bbl]",
+        doc="Initial storage level at storage site [volume]",
     )
 
     model.p_lambda_PadStorage = Param(
         model.s_CP,
         default=0,
         units=model.user_units["volume"],
-        doc="Initial storage level at completions site [bbl]",
+        doc="Initial storage level at completions site [volume]",
     )
 
     model.p_theta_Storage = Param(
         model.s_S,
         default=0,
         units=model.user_units["volume"],
-        doc="Terminal storage level at storage site [bbl]",
+        doc="Terminal storage level at storage site [volume]",
     )
 
     model.p_theta_PadStorage = Param(
         model.s_CP,
         default=0,
         units=model.user_units["volume"],
-        doc="Terminal storage level at completions site [bbl]",
+        doc="Terminal storage level at completions site [volume]",
     )
 
     model.p_lambda_Pipeline = Param(
@@ -1326,7 +1357,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=max(model.df_parameters["PipelineExpansionDistance"].values()) * 100,
         initialize=model.df_parameters["PipelineExpansionDistance"],
         units=model.user_units["distance"],
-        doc="Pipeline segment length [miles]",
+        doc="Pipeline segment length [distance]",
     )
 
     model.p_kappa_Disposal = Param(
@@ -1335,7 +1366,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=20,
         initialize=model.df_parameters["DisposalExpansionCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Disposal construction/expansion capital cost for selected increment [$/bbl]",
+        doc="Disposal construction/expansion capital cost for selected increment [currency/volume]",
     )
 
     model.p_kappa_Storage = Param(
@@ -1344,7 +1375,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0.1,
         initialize=model.df_parameters["StorageExpansionCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Storage construction/expansion capital cost for selected increment [$/bbl]",
+        doc="Storage construction/expansion capital cost for selected increment [currency/volume]",
     )
 
     model.p_kappa_Treatment = Param(
@@ -1353,7 +1384,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=10,
         initialize=model.df_parameters["TreatmentExpansionCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Treatment construction/expansion capital cost for selected increment [$/bbl]",
+        doc="Treatment construction/expansion capital cost for selected increment [currency/volume]",
     )
 
     if model.config.pipeline_cost == PipelineCost.distance_based:
@@ -1364,7 +1395,7 @@ def create_model(df_sets, df_parameters, default={}):
             ],
             units=model.user_units["currency"]
             / (model.user_units["diameter"] * model.user_units["distance"]),
-            doc="Pipeline construction/expansion capital cost for selected increment [$/inch-mile]",
+            doc="Pipeline construction/expansion capital cost for selected increment [[currency/(diameter-distance)]",
         )
 
         model.p_mu_Pipeline = Param(
@@ -1372,7 +1403,7 @@ def create_model(df_sets, df_parameters, default={}):
             default=0,
             initialize=model.df_parameters["PipelineDiameterValues"],
             units=model.user_units["diameter"],
-            doc="Pipeline capacity installation/expansion increments [inch]",
+            doc="Pipeline capacity installation/expansion increments [diameter]",
         )
 
     elif model.config.pipeline_cost == PipelineCost.capacity_based:
@@ -1384,7 +1415,7 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=model.df_parameters["PipelineCapexCapacityBased"],
             units=model.user_units["currency"]
             / (model.user_units["volume"] / model.user_units["time"]),
-            doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
+            doc="Pipeline construction/expansion capital cost for selected increment [currency/volume]",
         )
 
     # model.p_kappa_Disposal.pprint()
@@ -1397,35 +1428,35 @@ def create_model(df_sets, df_parameters, default={}):
         default=max(model.df_parameters["DisposalOperationalCost"].values()) * 100,
         initialize=model.df_parameters["DisposalOperationalCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Disposal operational cost [$/bbl]",
+        doc="Disposal operational cost [currency/volume]",
     )
     model.p_pi_Treatment = Param(
         model.s_R,
         default=0,
         initialize=model.df_parameters["TreatmentOperationalCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Treatment operational cost [$/bbl]",
+        doc="Treatment operational cost [currency/volume]",
     )
     model.p_pi_Reuse = Param(
         model.s_CP,
         default=max(model.df_parameters["ReuseOperationalCost"].values()) * 100,
         initialize=model.df_parameters["ReuseOperationalCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Reuse operational cost [$/bbl]",
+        doc="Reuse operational cost [currency/volume]",
     )
     model.p_pi_Storage = Param(
         model.s_S,
         default=1,
         initialize=StorageOperationalCostTable,
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Storage deposit operational cost [$/bbl]",
+        doc="Storage deposit operational cost [currency/volume]",
     )
     model.p_rho_Storage = Param(
         model.s_S,
         default=0.99,
         initialize=StorageOperationalCreditTable,
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Storage withdrawal operational credit [$/bbl]",
+        doc="Storage withdrawal operational credit [currency/volume]",
     )
     model.p_pi_Pipeline = Param(
         model.s_L,
@@ -1433,7 +1464,7 @@ def create_model(df_sets, df_parameters, default={}):
         default=0.01,
         initialize=model.df_parameters["PipelineOperationalCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Pipeline operational cost [$/bbl]",
+        doc="Pipeline operational cost [currency/volume]",
     )
     # COMMENT: For this parameter only currency units are defined, as the hourly rate is canceled out with the
     # trucking time units from parameter p_Tau_Trucking. This is to avoid adding an extra unit for time which may
@@ -1443,61 +1474,61 @@ def create_model(df_sets, df_parameters, default={}):
         default=max(model.df_parameters["TruckingHourlyCost"].values()) * 100,
         initialize=model.df_parameters["TruckingHourlyCost"],
         units=model.user_units["currency"],
-        doc="Trucking hourly cost (by source) [$/hr]",
+        doc="Trucking hourly cost (by source) [currency/hr]",
     )
     model.p_pi_Sourcing = Param(
         model.s_F,
         default=max(model.df_parameters["FreshSourcingCost"].values()) * 100,
         initialize=model.df_parameters["FreshSourcingCost"],
         units=model.user_units["currency"] / model.user_units["volume"],
-        doc="Fresh sourcing cost [$/bbl]",
+        doc="Fresh sourcing cost [currency/volume]",
     )
 
     model.p_M_Flow = Param(
         default=9999999,
         units=model.user_units["volume"] / model.user_units["time"],
-        doc="Big-M flow parameter [bbl/week]",
+        doc="Big-M flow parameter [volume/time]",
     )
 
     model.p_psi_FracDemand = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_Production = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_Flowback = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_PipelineCapacity = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_StorageCapacity = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_DisposalCapacity = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_TreatmentCapacity = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
     model.p_psi_ReuseCapacity = Param(
         default=99999999,
         units=model.user_units["currency"],
-        doc="Slack cost parameter [$]",
+        doc="Slack cost parameter [currency]",
     )
 
     # model.p_sigma_Freshwater.pprint()
@@ -5637,7 +5668,7 @@ def water_quality(model):
         default=0,
         initialize=model.df_parameters["PadWaterQuality"],
         units=model.user_units["concentration"],
-        doc="Water Quality at pad [mg/L]",
+        doc="Water Quality at pad [concentration]",
     )
     # Quality of Sourced Water
     model.quality.p_nu_freshwater = Param(
@@ -5646,7 +5677,7 @@ def water_quality(model):
         default=0,
         initialize=0,
         units=model.user_units["concentration"],
-        doc="Water Quality of freshwater [mg/L]",
+        doc="Water Quality of freshwater [concentration]",
     )
     # Initial water quality at storage site
     model.quality.p_xi_StorageSite = Param(
@@ -5655,7 +5686,7 @@ def water_quality(model):
         default=0,
         initialize=model.df_parameters["StorageInitialWaterQuality"],
         units=model.user_units["concentration"],
-        doc="Initial Water Quality at storage site [mg/L]",
+        doc="Initial Water Quality at storage site [concentration]",
     )
     # Initial water quality at completions pad storage tank
     model.quality.p_xi_PadStorage = Param(
@@ -5664,7 +5695,7 @@ def water_quality(model):
         default=0,
         initialize=model.df_parameters["PadStorageInitialWaterQuality"],
         units=model.user_units["concentration"],
-        doc="Initial Water Quality at storage site [mg/L]",
+        doc="Initial Water Quality at storage site [concentration]",
     )
     # Add variable to track water quality at each location over time
     model.quality.v_Q = Var(
@@ -5674,7 +5705,7 @@ def water_quality(model):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["concentration"],
-        doc="Water quality at location [mg/L]",
+        doc="Water quality at location [concentration]",
     )
     # v_X is solely used to make sure model has an objective value
     model.quality.v_X = Var(
@@ -6380,13 +6411,13 @@ def _preprocess_data(model):
     """
     This module pre-processess data to fit the optimization format.
     In this module the following data is preprocessed:
-    - Pipeline Diameters [inch] are converted to flow rate [bbl/week]
-    - Pipeline Expension Cost is converted to [$/bbl]
+    - Pipeline Diameters [diameter] are converted to flow rate model [volume/time]
+    - Pipeline Expension Cost is converted to model [currency/volume]
     parameter_list = [list of tabs that contain parameters]
     """
     if model.config.pipeline_capacity == PipelineCapacity.calculated:
         # Pipeline Capacity
-        # Pipeline diameter is converted to pipeline capacity (bbl/week) using
+        # Pipeline diameter is converted to pipeline capacity (volume/time) using
         # Hazen-Williams equation.
         # (https://en.wikipedia.org/wiki/Hazen%E2%80%93Williams_equation)
         # Required inputs are:
@@ -6400,7 +6431,11 @@ def _preprocess_data(model):
 
         model.df_parameters["PipelineCapacityIncrements"] = {}
         for key in model.df_parameters["PipelineDiameterValues"]:
-            diameter = model.df_parameters["PipelineDiameterValues"][key]
+            diameter = pyunits.convert_value(
+                model.df_parameters["PipelineDiameterValues"][key],
+                from_units=model.user_units["diameter"],
+                to_units=model.model_units["diameter"],
+            )
             flow_rate = (
                 (1 / 10.67) ** (1 / 1.852)
                 * roughness
@@ -6408,7 +6443,7 @@ def _preprocess_data(model):
                 * (diameter * 0.0254) ** 2.63
             )
 
-            # convert to bbl/week:
+            # convert to volume/time:
             days_in_period = model.user_units["time"] / pyunits.days
             days_in_period = pyunits.convert(
                 days_in_period, to_units=pyunits.days / pyunits.days
