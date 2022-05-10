@@ -1063,7 +1063,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_W_TreatmentComponent = Param(
         model.s_R,
-        default="TDS",
+        default=model.s_W.first(),
         within=model.s_W,
         doc="Water quality component treated at site",
     )
