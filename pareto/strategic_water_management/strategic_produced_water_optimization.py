@@ -6575,3 +6575,5 @@ def solve_model(model, options=None):
         model = postprocess_water_quality_calculation(model, opt)
 
     results.write()
+    # Return the solver results so we can check optimality/solver status
+    return results
