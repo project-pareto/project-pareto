@@ -123,6 +123,9 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
             "v_C_Disposal_dict": [("Disposal site", "Time", "Cost of disposal")],
             "v_C_Treatment_dict": [("Treatment site", "Time", "Cost of Treatment")],
+            "v_C_UnusedTreatedWater_dict": [
+                ("Treatment site", "Time", "Cost of unused treated water")
+            ],
             "v_C_Reuse_dict": [("Completion pad", "Time", "Cost of reuse")],
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
@@ -303,6 +306,9 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
             "v_C_Disposal_dict": [("Disposal site", "Time", "Cost of disposal")],
             "v_C_Treatment_dict": [("Treatment site", "Time", "Cost of Treatment")],
+            "v_C_UnusedTreatedWater_dict": [
+                ("Treatment site", "Time", "Cost of unused treated water")
+            ],
             "v_C_Reuse_dict": [("Completion pad", "Time", "Cost of reuse")],
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [

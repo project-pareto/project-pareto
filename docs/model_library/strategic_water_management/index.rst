@@ -178,6 +178,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{C_{r,t}^{Treatment}}` =	                       Cost of treating produced water at treatment site
 
+:math:`\textcolor{red}{C_{r,t}^{UnusedTreatedWater}}` =	               Cost of unused treated water at treatment site
+
 :math:`\textcolor{red}{C_{p,t}^{CompletionsReuse}}` =                  Cost of reusing produced water at completions site
 
 :math:`\textcolor{red}{C_{s,t}^{Storage}}` =                           Cost of storing produced water at storage site (incl. treatment)
@@ -189,6 +191,8 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{red}{C^{TotalDisposal}}` =                           Total cost of injecting produced water
 
 :math:`\textcolor{red}{C^{TotalTreatment}}` = 	                       Total cost of treating produced water
+
+:math:`\textcolor{red}{C^{TotalUnusedTreatedWater}}` =                 Total cost of unused treated water
 
 :math:`\textcolor{red}{C^{TotalCompletionsReuse}}` =                   Total cost of reusing produced water
 
@@ -421,13 +425,13 @@ Two objective functions can be considered for the optimization of a produced wat
 
     min = \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}
 
-        +\textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}
+        +\textcolor{red}{C^{TotalUnusedTreatedWater}}+\textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}
 
-        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{α^{AnnualizationRate}}⋅(\textcolor{red}{C^{DisposalCapEx}}
+        +\textcolor{red}{C^{TotalStorage}}+\textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{α^{AnnualizationRate}}
 
-        +\textcolor{red}{C^{StorageCapEx}}+\textcolor{red}{C^{TreatmentCapEx}}+\textcolor{red}{C^{PipelineCapEx}})
+        ⋅(\textcolor{red}{C^{DisposalCapEx}}+\textcolor{red}{C^{StorageCapEx}}+\textcolor{red}{C^{TreatmentCapEx}}
 
-        +\textcolor{red}{C^{Slack}}-\textcolor{red}{R^{TotalStorage}}
+        +\textcolor{red}{C^{PipelineCapEx}})+\textcolor{red}{C^{Slack}}-\textcolor{red}{R^{TotalStorage}}
 
 
 .. math::
@@ -811,6 +815,16 @@ For each treatment site, for each time period, the treatment cost is equal to al
 
     \textcolor{red}{C^{TotalTreatment}} = ∑_{∀t∈T}∑_{r∈R}\textcolor{red}{C_{r,t}^{Treatment}}
 
+
+**Unused Treated Water Cost:** ∀r ∈ R, t ∈ T
+
+For each treatment site, for each time period, the unused treated water cost is equal to all water not used after treating multiplied by the highest disposal cost. The total unused treated water cost is the sum of unused treated water costs over all time periods and all treatment sites.
+
+.. math::
+
+    \textcolor{red}{C_{r,t}^{UnusedTreatedWater}} = \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}⋅ Max_{∀k∈K}(\textcolor{green}{π_{k}^{Disposal}})
+
+    \textcolor{red}{C^{TotalUnusedTreatedWater}} = ∑_{∀t∈T}∑_{r∈R}\textcolor{red}{C_{r,t}^{UnusedTreatedWater}}
 
 
 **Completions Reuse Cost:** ∀p ∈ P, t ∈ T

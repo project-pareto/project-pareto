@@ -176,6 +176,8 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{C_{r,t}^{Treatment}}` =	                       Cost of treating produced water at treatment site
 
+:math:`\textcolor{red}{C_{r,t}^{UnusedTreatedWater}}` =	               Cost of unused treated water at treatment site
+
 :math:`\textcolor{red}{C_{p,t}^{CompletionsReuse}}` =                  Cost of reusing produced water at completions site
 
 :math:`\textcolor{red}{C_{s,t}^{Storage}}` =                           Cost of storing produced water at storage site (incl. treatment)
@@ -187,6 +189,8 @@ Operational Model Mathematical Notation
 :math:`\textcolor{red}{C^{TotalDisposal}}` =                           Total cost of injecting produced water
 
 :math:`\textcolor{red}{C^{TotalTreatment}}` = 	                       Total cost of treating produced water
+
+:math:`\textcolor{red}{C^{TotalUnusedTreatedWater}}` =                 Total cost of unused treated water
 
 :math:`\textcolor{red}{C^{TotalCompletionsReuse}}` =                   Total cost of reusing produced water
 
@@ -354,7 +358,7 @@ The default objective function for this produced water operational model is to m
 
 .. math::
 
-    min = \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}+\textcolor{red}{C^{TotalCompletionsReuse}}+
+    min = \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}+\textcolor{red}{C^{TotalUnusedTreatedWater}}+\textcolor{red}{C^{TotalCompletionsReuse}}+
 
         \textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}+\textcolor{red}{C^{TotalPadStorage}}+ \textcolor{red}{C^{TotalTrucking}}+\textcolor{red}{C^{Slack}-R^{TotalStorage}}
 
@@ -748,7 +752,17 @@ For each treatment site, for each time period, the treatment cost is equal to al
     \textcolor{red}{C_{r,t}^{Treatment}} = (∑_{(l,l)∈{NRA,SRA}}\textcolor{red}{F_{l,l,t}^{Piped}}+∑_{(l,l)∈{PRT,CRT}}\textcolor{red}{F_{l,l,t}^{Trucked}})⋅ \textcolor{green}{π_{r}^{Treatment}}
 
     \textcolor{red}{C^{TotalTreatment}} = ∑_{∀t∈T}∑_{r∈R}\textcolor{red}{C_{r,t}^{Treatment}}
+    
 
+**Unused Treated Water Cost:** ∀r ∈ R, t ∈ T
+
+For each treatment site, for each time period, the unused treated water cost is equal to all water not used after treating multiplied by the highest disposal cost. The total unused treated water cost is the sum of unused treated water costs over all time periods and all treatment sites.
+
+.. math::
+
+    \textcolor{red}{C_{r,t}^{UnusedTreatedWater}} = \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}⋅ Max_{∀k∈K}(\textcolor{green}{π_{k}^{Disposal}})
+
+    \textcolor{red}{C^{TotalUnusedTreatedWater}} = ∑_{∀t∈T}∑_{r∈R}\textcolor{red}{C_{r,t}^{UnusedTreatedWater}}
 
 
 **Treatment Balance:** ∀r ∈ R, t ∈ T

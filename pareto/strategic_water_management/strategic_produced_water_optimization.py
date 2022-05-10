@@ -330,6 +330,13 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         doc="Cost of treating produced water at treatment site [$/week]",
     )
+    model.v_C_UnusedTreatedWater = Var(
+        model.s_R,
+        model.s_T,
+        initialize=0,
+        within=NonNegativeReals,
+        doc="Cost of unused treated water [$/week]",
+    )
     model.v_C_Reuse = Var(
         model.s_CP,
         model.s_T,
@@ -344,6 +351,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         doc="Cost of storing produced water at storage site [$/week]",
     )
+
     model.v_R_Storage = Var(
         model.s_S,
         model.s_T,
@@ -360,6 +368,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.v_C_TotalTreatment = Var(
         within=NonNegativeReals, doc="Total cost of treating produced water [$]"
+    )
+    model.v_C_TotalUnusedTreatedWater = Var(
+        within=NonNegativeReals, doc="Total cost of unused treated water [$]"
     )
     model.v_C_TotalReuse = Var(
         within=NonNegativeReals, doc="Total cost of reusing produced water [$]"
@@ -1281,6 +1292,7 @@ def create_model(df_sets, df_parameters, default={}):
                 model.v_C_TotalSourced
                 + model.v_C_TotalDisposal
                 + model.v_C_TotalTreatment
+                + model.v_C_TotalUnusedTreatedWater
                 + model.v_C_TotalReuse
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
@@ -2725,7 +2737,28 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalTreatmentCostRule, doc="Total treatment cost"
     )
 
-    # model.TotalTreatmentCost.pprint()
+    # TODO: Figure out what happens with unused treated water. For now assume it gets disposed at the maximal disposal rate.
+    def UnusedTreatedWatertCostRule(model, r, t):
+        return model.v_C_UnusedTreatedWater[r, t] == model.v_F_UnusedTreatedWater[
+            r, t
+        ] * max(model.p_pi_Disposal.values())
+
+    model.UnusedTreatedWaterCost = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=UnusedTreatedWatertCostRule,
+        doc="unused treated water cost",
+    )
+
+    def TotalUnusedTreatedWaterCostRule(model):
+        return model.v_C_TotalUnusedTreatedWater == sum(
+            sum(model.v_C_UnusedTreatedWater[r, t] for r in model.s_R)
+            for t in model.s_T
+        )
+
+    model.TotalUnusedTreatedWaterCost = Constraint(
+        rule=TotalUnusedTreatedWaterCostRule, doc="Total unused treated water cost"
+    )
 
     def CompletionsReuseCostRule(
         model,
@@ -5181,6 +5214,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_C_TotalReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalSourced] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalTreatment] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalUnusedTreatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalTrucking] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Treatment] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TreatmentCapEx] = 1 / scaling_factor
@@ -5279,12 +5313,14 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageWithdrawalCredit] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalUnusedTreatedWaterCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.UnusedTreatedWaterCost] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
 
