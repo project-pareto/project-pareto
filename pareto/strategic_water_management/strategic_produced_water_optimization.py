@@ -149,14 +149,14 @@ CONFIG.declare(
         }""",
     ),
 )
-
+# Currency base units are not inherently defined by default
+pyunits.load_definitions_from_strings(["USD = [currency]"])
 
 # Creation of a Concrete Model
 
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
-    pyunits.load_definitions_from_strings(["USD = [currency]"])
 
     # import config dictionary
     model.config = CONFIG(default)
