@@ -456,7 +456,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 61883
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(4353992.02, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(10188.19, abs=1e-1) == pyo.value(m.v_Z)
 
 
 @pytest.mark.component
@@ -483,4 +483,4 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
     assert degrees_of_freedom(m) == -18826
-    assert pytest.approx(8.70, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert pytest.approx(9.06, abs=1e-1) == pyo.value(m.quality.v_X)
