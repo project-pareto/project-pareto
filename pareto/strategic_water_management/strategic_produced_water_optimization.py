@@ -5981,3 +5981,4 @@ def solve_model(model, options=None):
         model = postprocess_water_quality_calculation(model, opt)
 
     results.write()
+    return results
