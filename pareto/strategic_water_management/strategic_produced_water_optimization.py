@@ -5217,6 +5217,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_C_TotalUnusedTreatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalTrucking] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Treatment] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_UnusedTreatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TreatmentCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Trucked] = 1 / scaling_factor
     model.scaling_factor[model.v_D_Capacity] = 1 / scaling_factor

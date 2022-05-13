@@ -301,6 +301,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_TotalTreatment = Var(
         within=NonNegativeReals, doc="Total cost of treating produced water [$]"
     )
+    model.v_C_TotalUnusedTreatedWater = Var(
+        within=NonNegativeReals, doc="Total cost of unused treated water [$]"
+    )
     model.v_C_TotalReuse = Var(
         within=NonNegativeReals, doc="Total cost of reusing produced water [$]"
     )
