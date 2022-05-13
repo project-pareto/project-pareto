@@ -1509,7 +1509,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_lambda_Pipeline = Param(
         model.s_L,
         model.s_L,
-        default=max(PipelineExpansionDistance_convert_to_model.values()) * 100,
+        default=pyunits.convert_value(
+            10000, from_units=pyunits.miles, to_units=model.model_units["distance"]
+        ),
         initialize=PipelineExpansionDistance_convert_to_model,
         units=model.model_units["distance"],
         doc="Pipeline segment length [distance]",
@@ -1646,7 +1648,11 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Disposal = Param(
         model.s_K,
-        default=max(DisposalOperationalCost_convert_to_model.values()) * 100,
+        default=pyunits.convert_value(
+            25,
+            from_units=pyunits.USD / pyunits.oil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
         initialize=DisposalOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
         doc="Disposal operational cost [currency/volume]",
@@ -1675,7 +1681,11 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Reuse = Param(
         model.s_CP,
-        default=max(ReuseOperationalCost_convert_to_model.values()) * 100,
+        default=pyunits.convert_value(
+            25,
+            from_units=pyunits.USD / pyunits.oil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
         initialize=ReuseOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
         doc="Reuse operational cost [currency/volume]",
@@ -1741,7 +1751,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_pi_Trucking = Param(
         model.s_L,
         default=pyunits.convert_value(
-            max(model.df_parameters["TruckingHourlyCost"].values()) * 100,
+            15000,
             from_units=model.user_units["currency"],
             to_units=model.model_units["currency"],
         ),
@@ -1759,7 +1769,11 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=max(FreshSourcingCost_convert_to_model.values()) * 100,
+        default=pyunits.convert_value(
+            150,
+            from_units=pyunits.USD / pyunits.oil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
         initialize=FreshSourcingCost_convert_to_model,
         units=model.model_units["currency_volume"],
         doc="Fresh sourcing cost [currency/volume]",
