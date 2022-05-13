@@ -96,34 +96,31 @@ parameter_list = [
     "PadStorageInitialWaterQuality",
 ]
 
-# user needs to provide the path to the case study data file
-# for example: 'C:\\user\\Documents\\myfile.xlsx'
-# note the double backslashes '\\' in that path reference
-with resources.path(
-    "pareto.case_studies",
-    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+### Input Settings
+""" Please enter the path to folder in which the different input files reside
+    for example: 'C:\\user\\Documents\\myfile.xlsx'
+    note the double backslashes '\\' in that path reference
+    input_files should contain all files to be read. Each file will be a 
+    different scenario and create a separate output file"""
+input_folder = "pareto.case_studies"
+input_files = [
+    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
     "small_strategic_case_study.xlsx",
-    # "strategic_water_treatment_toy_case_study_t10.xlsx"
-) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+]
 
-# create mathematical model
+
+### Optimization Settings
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse]
- pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
- pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
-strategic_model = create_model(
-    df_sets,
-    df_parameters,
-    default={
-        "objective": Objectives.cost,
-        "pipeline_cost": PipelineCost.distance_based,
-        "pipeline_capacity": PipelineCapacity.input,
-        "node_capacity": IncludeNodeCapacity.true,
-    },
-)
+    objective: [Objectives.cost, Objectives.reuse]
+    pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
+    pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+    node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+objective = Objectives.cost
+pipeline_cost = PipelineCost.distance_based
+pipeline_capacity = PipelineCapacity.input
+node_capacity = IncludeNodeCapacity.true
 
+# General optimization settings
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
@@ -132,18 +129,54 @@ options = {
     "gap": 0,
     "water_quality": True,
 }
-solve_model(model=strategic_model, options=options)
 
-# Generate report with results in Excel
-print("\nDisplaying Solution\n" + "-" * 60)
-[model, results_dict] = generate_report(
-    strategic_model,
-    is_print=[PrintValues.Essential],
-    fname="strategic_optimization_results.xlsx",
-)
 
-# This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
+### Optimization
+for file in input_files:
+    # run optimization for all files in input file
+
+    df_sets = []
+    df_parameters = []
+
+    with resources.path(
+        str(input_folder),
+        str(file),
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    # create mathematical model
+    """Valid values of config arguments for the default parameter in the create_model() call
+    objective: [Objectives.cost, Objectives.reuse]
+    pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
+    pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+    node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+    strategic_model = create_model(
+        df_sets,
+        df_parameters,
+        default={
+            "objective": objective,
+            "pipeline_cost": pipeline_cost,
+            "pipeline_capacity": pipeline_capacity,
+            "node_capacity": node_capacity,
+        },
+    )
+
+    solve_model(model=strategic_model, options=options)
+
+    # Define name of resultfile. Note that file already contains suffix ".xlsx"
+    result_file = "strategic_opt_results_" + str(file)
+
+    # Generate report with results in Excel
+    print("\nDisplaying Solution\n" + "-" * 60)
+    [model, results_dict] = generate_report(
+        strategic_model,
+        is_print=[PrintValues.Essential],
+        fname=result_file,
+    )
+
+    # This shows how to read data from PARETO reports
+    set_list_report = []
+    parameter_list_report = ["v_F_Trucked", "v_C_Trucked"]
+    [sets_reports, parameters_report] = get_data(
+        result_file, set_list_report, parameter_list_report
+    )
