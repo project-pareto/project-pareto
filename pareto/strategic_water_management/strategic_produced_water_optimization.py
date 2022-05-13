@@ -1432,7 +1432,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_tau_Disposal = Param(
         model.s_K,
         default=pyunits.convert_value(
-            12, from_units=pyunits.week, to_units=model.model_units["time"]
+            12, from_units=pyunits.week, to_units=model.decision_period
         ),
         units=model.decision_period,
         doc="Disposal construction/expansion lead time [time]",
@@ -1441,7 +1441,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_tau_Storage = Param(
         model.s_S,
         default=pyunits.convert_value(
-            12, from_units=pyunits.week, to_units=model.model_units["time"]
+            12, from_units=pyunits.week, to_units=model.decision_period
         ),
         units=model.decision_period,
         doc="Storage construction/expansion lead time [time]",
@@ -1451,7 +1451,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         default=pyunits.convert_value(
-            12, from_units=pyunits.week, to_units=model.model_units["time"]
+            12, from_units=pyunits.week, to_units=model.decision_period
         ),
         units=model.decision_period,
         doc="Pipeline construction/expansion lead time [time]",
