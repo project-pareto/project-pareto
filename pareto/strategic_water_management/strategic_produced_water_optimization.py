@@ -1509,7 +1509,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_lambda_Pipeline = Param(
         model.s_L,
         model.s_L,
-        default=pyunits.convert_value(
+        default=max(PipelineExpansionDistance_convert_to_model.values()) * 100
+        if PipelineExpansionDistance_convert_to_model
+        else pyunits.convert_value(
             10000, from_units=pyunits.miles, to_units=model.model_units["distance"]
         ),
         initialize=PipelineExpansionDistance_convert_to_model,
@@ -1648,7 +1650,9 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Disposal = Param(
         model.s_K,
-        default=pyunits.convert_value(
+        default=max(DisposalOperationalCost_convert_to_model.values()) * 100
+        if DisposalOperationalCost_convert_to_model
+        else pyunits.convert_value(
             25,
             from_units=pyunits.USD / pyunits.oil_bbl,
             to_units=model.model_units["currency_volume"],
@@ -1681,7 +1685,9 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Reuse = Param(
         model.s_CP,
-        default=pyunits.convert_value(
+        default=max(ReuseOperationalCost_convert_to_model.values()) * 100
+        if ReuseOperationalCost_convert_to_model
+        else pyunits.convert_value(
             25,
             from_units=pyunits.USD / pyunits.oil_bbl,
             to_units=model.model_units["currency_volume"],
@@ -1750,12 +1756,21 @@ def create_model(df_sets, df_parameters, default={}):
     # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=pyunits.convert_value(
+        default=max(model.df_parameters["TruckingHourlyCost"].values()) * 100
+        if model.df_parameters["TruckingHourlyCost"]
+        else pyunits.convert_value(
             15000,
             from_units=model.user_units["currency"],
             to_units=model.model_units["currency"],
         ),
-        initialize=model.df_parameters["TruckingHourlyCost"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency"],
+                to_units=model.model_units["currency"],
+            )
+            for key, value in model.df_parameters["TruckingHourlyCost"].items()
+        },
         units=model.model_units["currency"],
         doc="Trucking hourly cost (by source) [currency/hr]",
     )
@@ -1769,7 +1784,9 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=pyunits.convert_value(
+        default=max(FreshSourcingCost_convert_to_model.values()) * 100
+        if FreshSourcingCost_convert_to_model
+        else pyunits.convert_value(
             150,
             from_units=pyunits.USD / pyunits.oil_bbl,
             to_units=model.model_units["currency_volume"],
@@ -5159,9 +5176,19 @@ def water_quality(model):
         for index in var:
             # Check if the variable is indexed
             if index is None:
-                var.fix()
+                # Check if the value can reasonably be assumed to be non-zero
+                if abs(var.value) > 0.0000001:
+                    var.fix()
+                # Otherwise, fix to 0
+                else:
+                    var.fix(0)
             elif index is not None:
-                var[index].fix()
+                # Check if the value can reasonably be assumed to be non-zero
+                if var[index].value and abs(var[index].value) > 0.0000001:
+                    var[index].fix()
+                # Otherwise, fix to 0
+                else:
+                    var[index].fix(0)
     # endregion
 
     # Create block for calculating quality at each location in the model
@@ -5218,7 +5245,11 @@ def water_quality(model):
         model.s_F,
         model.s_W,
         default=0,
-        initialize=0,
+        initialize=pyunits.convert_value(
+            0,
+            from_units=model.user_units["concentration"],
+            to_units=model.model_units["concentration"],
+        ),
         units=model.model_units["concentration"],
         doc="Water Quality of freshwater [concentration]",
     )
@@ -5906,16 +5937,16 @@ def _preprocess_data(model):
 
         model.df_parameters["PipelineCapacityIncrements_Calculated"] = {}
         for key in model.df_parameters["PipelineDiameterValues"]:
-            diameter = pyunits.convert_value(
+            diameter_inches = pyunits.convert_value(
                 model.df_parameters["PipelineDiameterValues"][key],
                 from_units=model.user_units["diameter"],
-                to_units=model.model_units["diameter"],
+                to_units=pyunits.inch,
             )
             flow_rate = (
                 (1 / 10.67) ** (1 / 1.852)
                 * roughness
                 * (max_head_loss**0.54)
-                * (diameter * 0.0254) ** 2.63
+                * (diameter_inches * 0.0254) ** 2.63
             )
 
             # convert to volume/time:

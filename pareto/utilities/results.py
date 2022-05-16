@@ -188,13 +188,7 @@ def generate_report(model, is_print=[], fname=None):
         model.reuse_WaterKPI = Var(doc="Reuse Fraction Produced Water [%]")
         if model.p_beta_TotalProd.value and model.v_F_TotalReused.value:
             reuseWater_value = value(
-                (model.v_F_TotalReused)
-                / (
-                    pyunits.convert(
-                        model.p_beta_TotalProd, to_units=model.model_units["volume"]
-                    )
-                )
-                * 100
+                (model.v_F_TotalReused / model.p_beta_TotalProd) * 100
             )
         else:
             reuseWater_value = 0
@@ -203,13 +197,7 @@ def generate_report(model, is_print=[], fname=None):
         model.disposal_WaterKPI = Var(doc="Disposal Fraction Produced Water [%]")
         if model.v_F_TotalDisposed.value and model.p_beta_TotalProd.value:
             disposalWater_value = value(
-                (model.v_F_TotalDisposed)
-                / (
-                    pyunits.convert(
-                        model.p_beta_TotalProd, to_units=model.model_units["volume"]
-                    )
-                )
-                * 100
+                (model.v_F_TotalDisposed / model.p_beta_TotalProd) * 100
             )
         else:
             disposalWater_value = 0
@@ -220,13 +208,7 @@ def generate_report(model, is_print=[], fname=None):
         )
         if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
             freshDemand_value = value(
-                (model.v_F_TotalSourced)
-                / (
-                    pyunits.convert(
-                        model.p_gamma_TotalDemand, to_units=model.model_units["volume"]
-                    )
-                )
-                * 100
+                (model.v_F_TotalSourced / model.p_gamma_TotalDemand) * 100
             )
         else:
             freshDemand_value = 0
@@ -237,13 +219,7 @@ def generate_report(model, is_print=[], fname=None):
         )
         if model.v_F_TotalReused.value and model.p_gamma_TotalDemand.value:
             reuseDemand_value = value(
-                (model.v_F_TotalReused)
-                / (
-                    pyunits.convert(
-                        model.p_gamma_TotalDemand, to_units=model.model_units["volume"]
-                    )
-                )
-                * 100
+                (model.v_F_TotalReused / model.p_gamma_TotalDemand) * 100
             )
         else:
             reuseDemand_value = 0
