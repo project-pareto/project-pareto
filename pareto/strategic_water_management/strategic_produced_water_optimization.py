@@ -3199,10 +3199,10 @@ def create_model(df_sets, df_parameters, default={}):
         if (
             sum(model.p_NKA[n, k] for n in model.s_N)
             or sum(model.p_SKA[s, k] for s in model.s_S)
-            or sum(model.SKT[s, k] for s in model.s_S)
-            or sum(model.PKT[p, k] for p in model.s_PP)
-            or sum(model.CKT[p, k] for p in model.s_CP)
-            or sum(model.RKT[r, k] for r in model.s_R)
+            or sum(model.p_SKT[s, k] for s in model.s_S)
+            or sum(model.p_PKT[p, k] for p in model.s_PP)
+            or sum(model.p_CKT[p, k] for p in model.s_CP)
+            or sum(model.p_RKT[r, k] for r in model.s_R)
         ):
             return (
                 sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
