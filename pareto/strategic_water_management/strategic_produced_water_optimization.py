@@ -6766,7 +6766,7 @@ def solve_discrete_water_quality(strategic_model_scaled, opt):
         "scaled_v_F_DiscreteFlowInPadStorage",
         "scaled_v_F_DiscreteCompletionsDestination",
         "scaled_v_Q_CompletionPad",
-        "scaled_v_Z2",
+        "scaled_v_ObjectiveWithQuality",
     }
     for var in strategic_model_scaled.component_objects(Var):
         if var.name in discrete_variables_names:
