@@ -1580,7 +1580,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_I,
         default=pyunits.convert_value(
             20,
-            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.week),
+            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.day),
             to_units=model.model_units["currency_volume_time"],
         ),
         initialize={
@@ -1620,7 +1620,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_J,
         default=pyunits.convert_value(
             10,
-            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.week),
+            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.day),
             to_units=model.model_units["currency_volume_time"],
         ),
         initialize={
