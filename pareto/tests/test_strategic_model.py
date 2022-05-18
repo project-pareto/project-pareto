@@ -18,6 +18,7 @@ import pyomo.environ as pyo
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
+from pyomo.util.check_units import assert_units_consistent
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     solve_model,
@@ -29,7 +30,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 )
 from pareto.utilities.get_data import get_data
 from importlib import resources
-import pandas as pd
 import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
 
@@ -217,6 +217,18 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.component
+def test_strategic_model_unit_consistency(build_strategic_model):
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+    assert_units_consistent(m)
 
 
 # if solver cbc exists @solver

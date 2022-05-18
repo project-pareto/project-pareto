@@ -20,7 +20,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.results import generate_report, PrintValues, OutputUnits
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -135,10 +135,15 @@ options = {
 solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
-print("\nDisplaying Solution\n" + "-" * 60)
+print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
+"""Valid values of parameters in the generate_report() call
+ is_print: [PrintValues.Detailed, PrintValues.Nominal, PrintValues.Essential]
+ output_units: [OutputUnits.UserUnits, OutputUnits.DecisionPeriodDefinedUnits]
+ """
 [model, results_dict] = generate_report(
     strategic_model,
     is_print=[PrintValues.Essential],
+    output_units=OutputUnits.DecisionPeriodDefinedUnits,
     fname="strategic_optimization_results.xlsx",
 )
 

@@ -176,6 +176,14 @@ def create_model(df_sets, df_parameters, default={}):
                 "model.user_units['concentration'] = pyunits.%s / pyunits.%s"
                 % (mass, vol)
             )
+        # Pyunits defines oil_bbl separately from bbl. Users will see 'bbl', but pyunits are defined in oil_bbl
+        elif user_input == "volume":
+            user_volume = model.df_parameters["Units"][user_input]
+            if user_volume == "bbl":
+                exec("model.user_units['volume'] = pyunits.%s" % ("oil_bbl"))
+            elif user_volume == "kbbl":
+                exec("model.user_units['volume'] = pyunits.%s" % ("koil_bbl"))
+
         # Decision Period is not a user_unit. We will define this as a separate variable.
         elif user_input == "decision period":
             exec(
@@ -197,6 +205,15 @@ def create_model(df_sets, df_parameters, default={}):
         "currency": pyunits.kUSD,
     }
 
+    # Units that are most helpful for troubleshooting
+    model.developer_output_units = {
+        "volume": pyunits.oil_bbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.mg / pyunits.liter,
+        "currency": pyunits.USD,
+    }
+
     # Defining compound units
     model.user_units["volume_time"] = (
         model.user_units["volume"] / model.user_units["time"]
@@ -212,6 +229,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.user_units["currency_volume"] = (
         model.user_units["currency"] / model.user_units["volume"]
+    )
+    model.user_units["currency_volume_time"] = (
+        model.user_units["currency"] / model.user_units["volume_time"]
     )
 
     model.model_units["volume_time"] = (
@@ -229,8 +249,35 @@ def create_model(df_sets, df_parameters, default={}):
     model.model_units["currency_volume"] = (
         model.model_units["currency"] / model.model_units["volume"]
     )
+    model.model_units["currency_volume_time"] = (
+        model.model_units["currency"] / model.model_units["volume_time"]
+    )
 
-    # Create dictionary to map model units to user units to assist generating results in the correct units
+    model.developer_output_units["volume_time"] = (
+        model.developer_output_units["volume"] / model.decision_period
+    )
+    model.developer_output_units["currency_time"] = (
+        model.developer_output_units["currency"] / model.decision_period
+    )
+    model.developer_output_units["pipe_cost_distance"] = model.developer_output_units[
+        "currency"
+    ] / (
+        model.developer_output_units["diameter"]
+        * model.developer_output_units["distance"]
+    )
+    model.developer_output_units["pipe_cost_capacity"] = model.developer_output_units[
+        "currency"
+    ] / (model.developer_output_units["volume"] / model.decision_period)
+    model.developer_output_units["currency_volume"] = (
+        model.developer_output_units["currency"]
+        / model.developer_output_units["volume"]
+    )
+    model.developer_output_units["currency_volume_time"] = (
+        model.developer_output_units["currency"]
+        / model.developer_output_units["volume_time"]
+    )
+
+    # Create dictionary to map model units to user units to assist generating results in the user units
     model.model_to_user_units = {}
     for unit in model.model_units:
         model_unit = model.model_units[unit].to_string()
@@ -238,6 +285,15 @@ def create_model(df_sets, df_parameters, default={}):
             model_unit = "(" + model_unit + ")"
         user_unit = model.user_units[unit]
         model.model_to_user_units[model_unit] = user_unit
+
+    # Create dictionary to map model units to user units to assist generating results in units relative to time discretization
+    model.model_to_developer_units = {}
+    for unit in model.model_units:
+        model_unit = model.model_units[unit].to_string()
+        if "/" in model_unit:
+            model_unit = "(" + model_unit + ")"
+        developer_output = model.developer_output_units[unit]
+        model.model_to_developer_units[model_unit] = developer_output
 
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
@@ -456,8 +512,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
-        units=model.model_units["currency"] / model.model_units["volume"],
-        doc="Credit for retrieving stored produced water from storage site [currency/volume]",
+        units=model.model_units["currency_time"],
+        doc="Credit for retrieving stored produced water from storage site [currency/time]",
     )
 
     model.v_C_TotalSourced = Var(
@@ -546,8 +602,8 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_X_Capacity = Var(
         model.s_S,
         within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Storage capacity at a storage site [volume/time]",
+        units=model.model_units["volume"],
+        doc="Storage capacity at a storage site [volume]",
     )
     model.v_T_Capacity = Var(
         model.s_R,
@@ -614,8 +670,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         within=NonNegativeReals,
         initialize=0,
-        units=model.model_units["volume"],
-        doc="Slack variable to provide necessary pipeline capacity [volume]",
+        units=model.model_units["volume_time"],
+        doc="Slack variable to provide necessary pipeline capacity [volume/time]",
     )
     model.v_S_StorageCapacity = Var(
         model.s_S,
@@ -1388,8 +1444,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_C,
         default=pyunits.convert_value(
             10,
-            from_units=pyunits.oil_bbl / pyunits.week,
-            to_units=model.model_units["volume_time"],
+            from_units=pyunits.oil_bbl,
+            to_units=model.model_units["volume"],
         ),
         initialize={
             key: pyunits.convert_value(
@@ -1524,19 +1580,19 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_I,
         default=pyunits.convert_value(
             20,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
         ),
         initialize={
             key: pyunits.convert_value(
                 value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
+                from_units=model.user_units["currency_volume_time"],
+                to_units=model.model_units["currency_volume_time"],
             )
             for key, value in model.df_parameters["DisposalExpansionCost"].items()
         },
-        units=model.model_units["currency_volume"],
-        doc="Disposal construction/expansion capital cost for selected increment [currency/volume]",
+        units=model.model_units["currency_volume_time"],
+        doc="Disposal construction/expansion capital cost for selected increment [currency/(volume/time)]",
     )
 
     model.p_kappa_Storage = Param(
@@ -1564,19 +1620,19 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_J,
         default=pyunits.convert_value(
             10,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
         ),
         initialize={
             key: pyunits.convert_value(
                 value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
+                from_units=model.user_units["currency_volume_time"],
+                to_units=model.model_units["currency_volume_time"],
             )
             for key, value in model.df_parameters["TreatmentExpansionCost"].items()
         },
-        units=model.model_units["currency_volume"],
-        doc="Treatment construction/expansion capital cost for selected increment [currency/volume]",
+        units=model.model_units["currency_volume_time"],
+        doc="Treatment construction/expansion capital cost for selected increment [currency/(volume/time)]",
     )
 
     if model.config.pipeline_cost == PipelineCost.distance_based:
@@ -1804,43 +1860,43 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_psi_FracDemand = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_Production = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_Flowback = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_PipelineCapacity = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_StorageCapacity = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_DisposalCapacity = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_TreatmentCapacity = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_ReuseCapacity = Param(
         default=99999,
-        units=model.model_units["currency"],
-        doc="Slack cost parameter [currency]",
+        units=model.model_units["currency_volume"],
+        doc="Slack cost parameter [currency/volume]",
     )
 
     # model.p_sigma_Freshwater.pprint()
@@ -1959,15 +2015,15 @@ def create_model(df_sets, df_parameters, default={}):
             return (
                 model.v_L_PadStorage[p, t]
                 == model.p_lambda_PadStorage[p]
-                + model.v_F_PadStorageIn[p, t]
-                - model.v_F_PadStorageOut[p, t]
+                + (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
+                * model.decision_period
             )
         else:
             return (
                 model.v_L_PadStorage[p, t]
                 == model.v_L_PadStorage[p, model.s_T.prev(t)]
-                + model.v_F_PadStorageIn[p, t]
-                - model.v_F_PadStorageOut[p, t]
+                + (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
+                * model.decision_period
             )
 
     model.CompletionsPadStorageBalance = Constraint(
@@ -2007,10 +2063,18 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TerminalCompletionsPadStorageLevel.pprint()
 
     def FreshwaterSourcingCapacityRule(model, f, t):
-        return (
-            sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
-            + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
-        ) <= model.p_sigma_Freshwater[f, t]
+
+        if sum(model.p_FCA[f, p] for p in model.s_CP) or sum(
+            model.p_FCT[f, p] for p in model.s_CP
+        ):
+            return (
+                sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
+                + sum(
+                    model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p]
+                )
+            ) <= model.p_sigma_Freshwater[f, t]
+        else:
+            return Constraint.Skip
 
     model.FreshwaterSourcingCapacity = Constraint(
         model.s_F,
@@ -2022,20 +2086,33 @@ def create_model(df_sets, df_parameters, default={}):
     # model.FreshwaterSourcingCapacity.pprint()
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-        return (
-            sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
-        ) <= model.p_sigma_OffloadingPad[p]
+
+        if (
+            sum(model.p_PCT[p_tilde, p] for p_tilde in model.s_PP)
+            or sum(model.p_SCT[s, p] for s in model.s_S)
+            or sum(model.p_CCT[p_tilde, p] for p_tilde in model.s_CP)
+            or sum(model.p_FCT[f, p] for f in model.s_F)
+        ):
+            return (
+                sum(
+                    model.v_F_Trucked[p_tilde, p, t]
+                    for p_tilde in model.s_PP
+                    if model.p_PCT[p_tilde, p]
+                )
+                + sum(
+                    model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
+                )
+                + sum(
+                    model.v_F_Trucked[p_tilde, p, t]
+                    for p_tilde in model.s_CP
+                    if model.p_CCT[p_tilde, p]
+                )
+                + sum(
+                    model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p]
+                )
+            ) <= model.p_sigma_OffloadingPad[p]
+        else:
+            return Constraint.Skip
 
     model.CompletionsPadTruckOffloadingCapacity = Constraint(
         model.s_CP,
@@ -2047,11 +2124,19 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadTruckOffloadingCapacity.pprint()
 
     def StorageSiteTruckOffloadingCapacityRule(model, s, t):
-        return (
-            sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
-            <= model.p_sigma_OffloadingStorage[s]
-        )
+        # If there are no CST or PST arcs, do not build constraint
+        if sum(model.p_PST[p, s] for p in model.s_PP) or sum(
+            model.p_CST[p, s] for p in model.s_CP
+        ):
+            return (
+                sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                )
+                <= model.p_sigma_OffloadingStorage[s]
+            )
+        else:
+            return Constraint.Skip
 
     model.StorageSiteTruckOffloadingCapacity = Constraint(
         model.s_S,
@@ -2063,13 +2148,25 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageSiteTruckOffloadingCapacity.pprint()
 
     def StorageSiteProcessingCapacityRule(model, s, t):
-        return (
-            sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-            + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
-            <= model.p_sigma_ProcessingStorage[s]
-        )
+        if (
+            sum(model.p_NSA[n, s] for n in model.s_N)
+            or sum(model.p_RSA[r, s] for r in model.s_R)
+            or sum(model.p_PST[p, s] for p in model.s_PP)
+            or sum(model.p_CST[p, s] for p in model.s_CP)
+        ):
+            return (
+                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                )
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                )
+                <= model.p_sigma_ProcessingStorage[s]
+            )
+        else:
+            return Constraint.skip
 
     model.StorageSiteProcessingCapacity = Constraint(
         model.s_S,
@@ -2470,54 +2567,106 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
-            return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
-                model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-            ) + sum(
-                model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-            ) - sum(
-                model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-            ) - sum(
-                model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p]
-            ) - sum(
-                model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-            ) - sum(
-                model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-            ) - sum(
-                model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-            ) - sum(
-                model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
-            ) - sum(
-                model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+            return (
+                model.v_L_Storage[s, t]
+                == model.p_lambda_Storage[s]
+                + (
+                    sum(
+                        model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
+                    )
+                    + sum(
+                        model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
+                    )
+                    + sum(
+                        model.v_F_Trucked[p, s, t]
+                        for p in model.s_PP
+                        if model.p_PST[p, s]
+                    )
+                    + sum(
+                        model.v_F_Trucked[p, s, t]
+                        for p in model.s_CP
+                        if model.p_CST[p, s]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, p, t]
+                        for p in model.s_CP
+                        if model.p_SCA[s, p]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
+                    )
+                    - sum(
+                        model.v_F_Trucked[s, p, t]
+                        for p in model.s_CP
+                        if model.p_SCT[s, p]
+                    )
+                    - sum(
+                        model.v_F_Trucked[s, k, t]
+                        for k in model.s_K
+                        if model.p_SKT[s, k]
+                    )
+                )
+                * model.decision_period
             )
         else:
-            return model.v_L_Storage[s, t] == model.v_L_Storage[
-                s, model.s_T.prev(t)
-            ] + sum(
-                model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-            ) + sum(
-                model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-            ) - sum(
-                model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-            ) - sum(
-                model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p]
-            ) - sum(
-                model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-            ) - sum(
-                model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-            ) - sum(
-                model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-            ) - sum(
-                model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
-            ) - sum(
-                model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+            return (
+                model.v_L_Storage[s, t]
+                == model.v_L_Storage[s, model.s_T.prev(t)]
+                + (
+                    sum(
+                        model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
+                    )
+                    + sum(
+                        model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
+                    )
+                    + sum(
+                        model.v_F_Trucked[p, s, t]
+                        for p in model.s_PP
+                        if model.p_PST[p, s]
+                    )
+                    + sum(
+                        model.v_F_Trucked[p, s, t]
+                        for p in model.s_CP
+                        if model.p_CST[p, s]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, p, t]
+                        for p in model.s_CP
+                        if model.p_SCA[s, p]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
+                    )
+                    - sum(
+                        model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
+                    )
+                    - sum(
+                        model.v_F_Trucked[s, p, t]
+                        for p in model.s_CP
+                        if model.p_SCT[s, p]
+                    )
+                    - sum(
+                        model.v_F_Trucked[s, k, t]
+                        for k in model.s_K
+                        if model.p_SKT[s, k]
+                    )
+                )
+                * model.decision_period
             )
 
     model.StorageSiteBalance = Constraint(
@@ -3047,15 +3196,33 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalCapacityExpansion1.pprint()
 
     def DisposalCapacityRule(model, k, t):
-        return (
-            sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-            + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-            + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
-            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
-            <= model.v_D_Capacity[k]
-        )
+        if (
+            sum(model.p_NKA[n, k] for n in model.s_N)
+            or sum(model.p_SKA[s, k] for s in model.s_S)
+            or sum(model.SKT[s, k] for s in model.s_S)
+            or sum(model.PKT[p, k] for p in model.s_PP)
+            or sum(model.CKT[p, k] for p in model.s_CP)
+            or sum(model.RKT[r, k] for r in model.s_R)
+        ):
+            return (
+                sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
+                + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
+                + sum(
+                    model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
+                )
+                + sum(
+                    model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
+                )
+                + sum(
+                    model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
+                )
+                + sum(
+                    model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
+                )
+                <= model.v_D_Capacity[k]
+            )
+        else:
+            return Constraint.Skip
 
     model.DisposalCapacity = Constraint(
         model.s_K, model.s_T, rule=DisposalCapacityRule, doc="Disposal capacity"
@@ -3083,13 +3250,25 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentCapacityExpansion.pprint()
 
     def TreatmentCapacityRule(model, r, t):
-        return (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-            <= model.v_T_Capacity[r]
-        )
+        if (
+            sum(model.p_NRA[n, r] for n in model.s_N)
+            or sum(model.p_SRA[s, r] for s in model.s_S)
+            or sum(model.p_PRT[p, r] for p in model.s_PP)
+            or sum(model.p_CRT[p, r] for p in model.s_CP)
+        ):
+            return (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+                <= model.v_T_Capacity[r]
+            )
+        else:
+            return Constraint.Skip
 
     model.TreatmentCapacity = Constraint(
         model.s_R, model.s_T, rule=TreatmentCapacityRule, doc="Treatment capacity"
@@ -3122,12 +3301,21 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentBalance.pprint()
 
     def BeneficialReuseCapacityRule(model, o, t):
-        return (
-            sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
-            + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
-            + sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
-            <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
-        )
+        if (
+            sum(model.p_NOA[n, o] for n in model.s_N)
+            or sum(model.p_SOA[s, o] for s in model.s_S)
+            or sum(model.p_POT[p, o] for p in model.s_PP)
+        ):
+            return (
+                sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
+                + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
+                + sum(
+                    model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
+                )
+                <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
+            )
+        else:
+            return Constraint.Skip
 
     model.BeneficialReuseCapacity = Constraint(
         model.s_O,
@@ -3173,7 +3361,11 @@ def create_model(df_sets, df_parameters, default={}):
     def TotalFreshSourcingCostRule(model):
         return model.v_C_TotalSourced == sum(
             sum(
-                sum(model.v_C_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
+                sum(
+                    model.v_C_Sourced[f, p, t] * model.decision_period
+                    for f in model.s_F
+                    if model.p_FCA[f, p]
+                )
                 for p in model.s_CP
             )
             for t in model.s_T
@@ -3186,29 +3378,33 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalFreshSourcingCost.pprint()
 
     def TotalFreshSourcingVolumeRule(model):
-        return model.v_F_TotalSourced == (
-            sum(
+        return (
+            model.v_F_TotalSourced
+            == (
                 sum(
                     sum(
-                        model.v_F_Sourced[f, p, t]
-                        for f in model.s_F
-                        if model.p_FCA[f, p]
+                        sum(
+                            model.v_F_Sourced[f, p, t]
+                            for f in model.s_F
+                            if model.p_FCA[f, p]
+                        )
+                        for p in model.s_CP
                     )
-                    for p in model.s_CP
+                    for t in model.s_T
                 )
-                for t in model.s_T
-            )
-            + sum(
-                sum(
+                + sum(
                     sum(
-                        model.v_F_Trucked[f, p, t]
-                        for f in model.s_F
-                        if model.p_FCT[f, p]
+                        sum(
+                            model.v_F_Trucked[f, p, t]
+                            for f in model.s_F
+                            if model.p_FCT[f, p]
+                        )
+                        for p in model.s_CP
                     )
-                    for p in model.s_CP
+                    for t in model.s_T
                 )
-                for t in model.s_T
             )
+            * model.decision_period
         )
 
     model.TotalFreshSourcingVolume = Constraint(
@@ -3248,7 +3444,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalDisposalCostRule(model):
         return model.v_C_TotalDisposal == sum(
-            sum(model.v_C_Disposal[k, t] for k in model.s_K) for t in model.s_T
+            sum(model.v_C_Disposal[k, t] * model.decision_period for k in model.s_K)
+            for t in model.s_T
         )
 
     model.TotalDisposalCost = Constraint(
@@ -3258,18 +3455,25 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalCost.pprint()
 
     def TotalDisposalVolumeRule(model):
-        return model.v_F_TotalDisposed == (
-            sum(
-                sum(sum(model.v_F_Piped[l, k, t] for l in model.s_L) for k in model.s_K)
-                for t in model.s_T
-            )
-            + sum(
+        return (
+            model.v_F_TotalDisposed
+            == (
                 sum(
-                    sum(model.v_F_Trucked[l, k, t] for l in model.s_L)
-                    for k in model.s_K
+                    sum(
+                        sum(model.v_F_Piped[l, k, t] for l in model.s_L)
+                        for k in model.s_K
+                    )
+                    for t in model.s_T
                 )
-                for t in model.s_T
+                + sum(
+                    sum(
+                        sum(model.v_F_Trucked[l, k, t] for l in model.s_L)
+                        for k in model.s_K
+                    )
+                    for t in model.s_T
+                )
             )
+            * model.decision_period
         )
 
     model.TotalDisposalVolume = Constraint(
@@ -3302,7 +3506,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalTreatmentCostRule(model):
         return model.v_C_TotalTreatment == sum(
-            sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
+            sum(model.v_C_Treatment[r, t] * model.decision_period for r in model.s_R)
+            for t in model.s_T
         )
 
     model.TotalTreatmentCost = Constraint(
@@ -3359,7 +3564,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalCompletionsReuseCostRule(model):
         return model.v_C_TotalReuse == sum(
-            sum(model.v_C_Reuse[p, t] for p in model.s_CP) for t in model.s_T
+            sum(model.v_C_Reuse[p, t] * model.decision_period for p in model.s_CP)
+            for t in model.s_T
         )
 
     model.TotalCompletionsReuseCost = Constraint(
@@ -3367,37 +3573,57 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalReuseVolumeRule(model):
-        return model.v_F_TotalReused == sum(
-            sum(
-                sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCA[p_tilde, p]
+        return (
+            model.v_F_TotalReused
+            == (
+                sum(
+                    sum(
+                        sum(
+                            model.v_F_Piped[n, p, t]
+                            for n in model.s_N
+                            if model.p_NCA[n, p]
+                        )
+                        + sum(
+                            model.v_F_Piped[p_tilde, p, t]
+                            for p_tilde in model.s_PP
+                            if model.p_PCA[p_tilde, p]
+                        )
+                        + sum(
+                            model.v_F_Piped[p_tilde, p, t]
+                            for p_tilde in model.s_CP
+                            if model.p_CCA[p_tilde, p]
+                        )
+                        + sum(
+                            model.v_F_Piped[s, p, t]
+                            for s in model.s_S
+                            if model.p_SCA[s, p]
+                        )
+                        + sum(
+                            model.v_F_Piped[r, p, t]
+                            for r in model.s_R
+                            if model.p_RCA[r, p]
+                        )
+                        + sum(
+                            model.v_F_Trucked[p_tilde, p, t]
+                            for p_tilde in model.s_PP
+                            if model.p_PCT[p_tilde, p]
+                        )
+                        + sum(
+                            model.v_F_Trucked[p_tilde, p, t]
+                            for p_tilde in model.s_CP
+                            if model.p_CCT[p_tilde, p]
+                        )
+                        + sum(
+                            model.v_F_Trucked[s, p, t]
+                            for s in model.s_S
+                            if model.p_SCT[s, p]
+                        )
+                        for p in model.s_CP
+                    )
+                    for t in model.s_T
                 )
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCA[p_tilde, p]
-                )
-                + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
-                )
-                for p in model.s_CP
             )
-            for t in model.s_T
+            * model.decision_period
         )
 
     model.TotalReuseVolume = Constraint(
@@ -3574,7 +3800,7 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.v_C_Piped[p, p_tilde, t]
+                        model.v_C_Piped[p, p_tilde, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PCA[p, p_tilde]
                     )
@@ -3582,7 +3808,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[p, n, t]
+                        model.v_C_Piped[p, n, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PNA[p, n]
                     )
@@ -3590,7 +3816,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[p, p_tilde, t]
+                        model.v_C_Piped[p, p_tilde, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PPA[p, p_tilde]
                     )
@@ -3598,7 +3824,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[p, p_tilde, t]
+                        model.v_C_Piped[p, p_tilde, t] * model.decision_period
                         for p in model.s_CP
                         if model.p_CCA[p, p_tilde]
                     )
@@ -3606,7 +3832,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[p, n, t]
+                        model.v_C_Piped[p, n, t] * model.decision_period
                         for p in model.s_CP
                         if model.p_CNA[p, n]
                     )
@@ -3614,7 +3840,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[n, n_tilde, t]
+                        model.v_C_Piped[n, n_tilde, t] * model.decision_period
                         for n in model.s_N
                         if model.p_NNA[n, n_tilde]
                     )
@@ -3622,79 +3848,105 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]
+                        model.v_C_Piped[n, p, t] * model.decision_period
+                        for n in model.s_N
+                        if model.p_NCA[n, p]
                     )
                     for p in model.s_CP
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k]
+                        model.v_C_Piped[n, k, t] * model.decision_period
+                        for n in model.s_N
+                        if model.p_NKA[n, k]
                     )
                     for k in model.s_K
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
+                        model.v_C_Piped[n, s, t] * model.decision_period
+                        for n in model.s_N
+                        if model.p_NSA[n, s]
                     )
                     for s in model.s_S
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r]
+                        model.v_C_Piped[n, r, t] * model.decision_period
+                        for n in model.s_N
+                        if model.p_NRA[n, r]
                     )
                     for r in model.s_R
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
+                        model.v_C_Piped[n, o, t] * model.decision_period
+                        for n in model.s_N
+                        if model.p_NOA[n, o]
                     )
                     for o in model.s_O
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[f, p, t] for f in model.s_F if model.p_FCA[f, p]
+                        model.v_C_Piped[f, p, t] * model.decision_period
+                        for f in model.s_F
+                        if model.p_FCA[f, p]
                     )
                     for p in model.s_CP
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
+                        model.v_C_Piped[r, n, t] * model.decision_period
+                        for r in model.s_R
+                        if model.p_RNA[r, n]
                     )
                     for n in model.s_N
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p]
+                        model.v_C_Piped[r, p, t] * model.decision_period
+                        for r in model.s_R
+                        if model.p_RCA[r, p]
                     )
                     for p in model.s_CP
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k]
+                        model.v_C_Piped[r, k, t] * model.decision_period
+                        for r in model.s_R
+                        if model.p_RKA[r, k]
                     )
                     for k in model.s_K
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
+                        model.v_C_Piped[s, n, t] * model.decision_period
+                        for s in model.s_S
+                        if model.p_SNA[s, n]
                     )
                     for n in model.s_N
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r]
+                        model.v_C_Piped[s, r, t] * model.decision_period
+                        for s in model.s_S
+                        if model.p_SRA[s, r]
                     )
                     for r in model.s_R
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]
+                        model.v_C_Piped[s, o, t] * model.decision_period
+                        for s in model.s_S
+                        if model.p_SOA[s, o]
                     )
                     for o in model.s_O
                 )
                 + sum(
                     sum(
-                        model.v_C_Piped[f, p, t] for f in model.s_F if model.p_FCA[f, p]
+                        model.v_C_Piped[f, p, t] * model.decision_period
+                        for f in model.s_F
+                        if model.p_FCA[f, p]
                     )
                     for p in model.s_CP
                 )
@@ -3731,7 +3983,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalStorageCostRule(model):
         return model.v_C_TotalStorage == sum(
-            sum(model.v_C_Storage[s, t] for s in model.s_S) for t in model.s_T
+            sum(model.v_C_Storage[s, t] * model.decision_period for s in model.s_S)
+            for t in model.s_T
         )
 
     model.TotalStorageCost = Constraint(
@@ -3769,7 +4022,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalStorageWithdrawalCreditRule(model):
         return model.v_R_TotalStorage == sum(
-            sum(model.v_R_Storage[s, t] for s in model.s_S) for t in model.s_T
+            sum(model.v_R_Storage[s, t] * model.decision_period for s in model.s_S)
+            for t in model.s_T
         )
 
     model.TotalStorageWithdrawalCredit = Constraint(
@@ -3949,7 +4203,7 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.v_C_Trucked[p, p_tilde, t]
+                        model.v_C_Trucked[p, p_tilde, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PCT[p, p_tilde]
                     )
@@ -3957,7 +4211,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, k, t]
+                        model.v_C_Trucked[p, k, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PKT[p, k]
                     )
@@ -3965,7 +4219,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, s, t]
+                        model.v_C_Trucked[p, s, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PST[p, s]
                     )
@@ -3973,7 +4227,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, r, t]
+                        model.v_C_Trucked[p, r, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_PRT[p, r]
                     )
@@ -3981,7 +4235,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, o, t]
+                        model.v_C_Trucked[p, o, t] * model.decision_period
                         for p in model.s_PP
                         if model.p_POT[p, o]
                     )
@@ -3989,7 +4243,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, k, t]
+                        model.v_C_Trucked[p, k, t] * model.decision_period
                         for p in model.s_CP
                         if model.p_CKT[p, k]
                     )
@@ -3997,7 +4251,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, s, t]
+                        model.v_C_Trucked[p, s, t] * model.decision_period
                         for p in model.s_CP
                         if model.p_CST[p, s]
                     )
@@ -4005,7 +4259,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, r, t]
+                        model.v_C_Trucked[p, r, t] * model.decision_period
                         for p in model.s_CP
                         if model.p_CRT[p, r]
                     )
@@ -4013,7 +4267,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[p, p_tilde, t]
+                        model.v_C_Trucked[p, p_tilde, t] * model.decision_period
                         for p in model.s_CP
                         if model.p_CCT[p, p_tilde]
                     )
@@ -4021,7 +4275,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[s, p, t]
+                        model.v_C_Trucked[s, p, t] * model.decision_period
                         for s in model.s_S
                         if model.p_SCT[s, p]
                     )
@@ -4029,7 +4283,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[s, k, t]
+                        model.v_C_Trucked[s, k, t] * model.decision_period
                         for s in model.s_S
                         if model.p_SKT[s, k]
                     )
@@ -4037,7 +4291,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[r, k, t]
+                        model.v_C_Trucked[r, k, t] * model.decision_period
                         for r in model.s_R
                         if model.p_RKT[r, k]
                     )
@@ -4045,7 +4299,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + sum(
                     sum(
-                        model.v_C_Trucked[f, p, t]
+                        model.v_C_Trucked[f, p, t] * model.decision_period
                         for f in model.s_F
                         if model.p_FCT[f, p]
                     )
@@ -4062,68 +4316,118 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalTruckingCost.pprint()
 
     def TotalTruckingVolumeRule(model):
-        return model.v_F_TotalTrucked == sum(
-            sum(
+        return (
+            model.v_F_TotalTrucked
+            == (
                 sum(
-                    model.v_F_Trucked[p, p_tilde, t]
-                    for p in model.s_PP
-                    if model.p_PCT[p, p_tilde]
+                    sum(
+                        sum(
+                            model.v_F_Trucked[p, p_tilde, t]
+                            for p in model.s_PP
+                            if model.p_PCT[p, p_tilde]
+                        )
+                        for p_tilde in model.s_CP
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, k, t]
+                            for p in model.s_PP
+                            if model.p_PKT[p, k]
+                        )
+                        for k in model.s_K
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, s, t]
+                            for p in model.s_PP
+                            if model.p_PST[p, s]
+                        )
+                        for s in model.s_S
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, r, t]
+                            for p in model.s_PP
+                            if model.p_PRT[p, r]
+                        )
+                        for r in model.s_R
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, o, t]
+                            for p in model.s_PP
+                            if model.p_POT[p, o]
+                        )
+                        for o in model.s_O
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, k, t]
+                            for p in model.s_CP
+                            if model.p_CKT[p, k]
+                        )
+                        for k in model.s_K
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, s, t]
+                            for p in model.s_CP
+                            if model.p_CST[p, s]
+                        )
+                        for s in model.s_S
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, r, t]
+                            for p in model.s_CP
+                            if model.p_CRT[p, r]
+                        )
+                        for r in model.s_R
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[p, p_tilde, t]
+                            for p in model.s_CP
+                            if model.p_CCT[p, p_tilde]
+                        )
+                        for p_tilde in model.s_CP
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[s, p, t]
+                            for s in model.s_S
+                            if model.p_SCT[s, p]
+                        )
+                        for p in model.s_CP
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[s, k, t]
+                            for s in model.s_S
+                            if model.p_SKT[s, k]
+                        )
+                        for k in model.s_K
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[r, k, t]
+                            for r in model.s_R
+                            if model.p_RKT[r, k]
+                        )
+                        for k in model.s_K
+                    )
+                    + sum(
+                        sum(
+                            model.v_F_Trucked[f, p, t]
+                            for f in model.s_F
+                            if model.p_FCT[f, p]
+                        )
+                        for p in model.s_CP
+                    )
+                    for t in model.s_T
                 )
-                for p_tilde in model.s_CP
             )
-            + sum(
-                sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-                for s in model.s_S
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-                for r in model.s_R
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
-                for o in model.s_O
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
-                for s in model.s_S
-            )
-            + sum(
-                sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-                for r in model.s_R
-            )
-            + sum(
-                sum(
-                    model.v_F_Trucked[p, p_tilde, t]
-                    for p in model.s_CP
-                    if model.p_CCT[p, p_tilde]
-                )
-                for p_tilde in model.s_CP
-            )
-            + sum(
-                sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-                for p in model.s_CP
-            )
-            + sum(
-                sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
-                for k in model.s_K
-            )
-            + sum(
-                sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
-                for p in model.s_CP
-            )
-            for t in model.s_T
+            * model.decision_period
         )
 
     model.TotalTruckingVolume = Constraint(
@@ -4720,25 +5024,35 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_Slack == (
             sum(
                 sum(
-                    model.v_S_FracDemand[p, t] * model.p_psi_FracDemand
+                    model.v_S_FracDemand[p, t]
+                    * model.decision_period
+                    * model.p_psi_FracDemand
                     for p in model.s_CP
                 )
                 for t in model.s_T
             )
             + sum(
                 sum(
-                    model.v_S_Production[p, t] * model.p_psi_Production
+                    model.v_S_Production[p, t]
+                    * model.decision_period
+                    * model.p_psi_Production
                     for p in model.s_PP
                 )
                 for t in model.s_T
             )
             + sum(
-                sum(model.v_S_Flowback[p, t] * model.p_psi_Flowback for p in model.s_CP)
+                sum(
+                    model.v_S_Flowback[p, t]
+                    * model.decision_period
+                    * model.p_psi_Flowback
+                    for p in model.s_CP
+                )
                 for t in model.s_T
             )
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
+                    * model.decision_period
                     * model.p_psi_PipelineCapacity
                     for p in model.s_PP
                     if model.p_PCA[p, p_tilde]
@@ -4748,6 +5062,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
+                    * model.decision_period
                     * model.p_psi_PipelineCapacity
                     for p in model.s_CP
                     if model.p_CCA[p, p_tilde]
@@ -4756,7 +5071,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[p, n]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for p in model.s_PP
                     if model.p_PNA[p, n]
                 )
@@ -4765,6 +5082,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
+                    * model.decision_period
                     * model.p_psi_PipelineCapacity
                     for p in model.s_PP
                     if model.p_PPA[p, p_tilde]
@@ -4773,7 +5091,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[p, n]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for p in model.s_CP
                     if model.p_CNA[p, n]
                 )
@@ -4782,6 +5102,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[n, n_tilde]
+                    * model.decision_period
                     * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NNA[n, n_tilde]
@@ -4790,7 +5111,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, p]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NCA[n, p]
                 )
@@ -4798,7 +5121,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, k] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, k]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NKA[n, k]
                 )
@@ -4806,7 +5131,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, s] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, s]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NSA[n, s]
                 )
@@ -4814,7 +5141,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, r] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, r]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NRA[n, r]
                 )
@@ -4822,7 +5151,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, o] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[n, o]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NOA[n, o]
                 )
@@ -4830,7 +5161,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[f, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[f, p]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for f in model.s_F
                     if model.p_FCA[f, p]
                 )
@@ -4838,7 +5171,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[r, n]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for r in model.s_R
                     if model.p_RNA[r, n]
                 )
@@ -4846,7 +5181,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[r, p]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for r in model.s_R
                     if model.p_RCA[r, p]
                 )
@@ -4854,7 +5191,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, k] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[r, k]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for r in model.s_R
                     if model.p_RKA[r, k]
                 )
@@ -4862,7 +5201,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, n] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, n]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SNA[s, n]
                 )
@@ -4870,7 +5211,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, p] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, p]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SCA[s, p]
                 )
@@ -4878,7 +5221,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, k] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, k]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SKA[s, k]
                 )
@@ -4886,7 +5231,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, r] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, r]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SRA[s, r]
                 )
@@ -4894,7 +5241,9 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, o] * model.p_psi_PipelineCapacity
+                    model.v_S_PipelineCapacity[s, o]
+                    * model.decision_period
+                    * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SOA[s, o]
                 )
@@ -4905,15 +5254,21 @@ def create_model(df_sets, df_parameters, default={}):
                 for s in model.s_S
             )
             + sum(
-                model.v_S_DisposalCapacity[k] * model.p_psi_DisposalCapacity
+                model.v_S_DisposalCapacity[k]
+                * model.decision_period
+                * model.p_psi_DisposalCapacity
                 for k in model.s_K
             )
             + sum(
-                model.v_S_TreatmentCapacity[r] * model.p_psi_TreatmentCapacity
+                model.v_S_TreatmentCapacity[r]
+                * model.decision_period
+                * model.p_psi_TreatmentCapacity
                 for r in model.s_R
             )
             + sum(
-                model.v_S_ReuseCapacity[o] * model.p_psi_ReuseCapacity
+                model.v_S_ReuseCapacity[o]
+                * model.decision_period
+                * model.p_psi_ReuseCapacity
                 for o in model.s_O
             )
         )

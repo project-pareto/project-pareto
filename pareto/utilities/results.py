@@ -31,7 +31,14 @@ class PrintValues(Enum):
     Essential = 2
 
 
-def generate_report(model, is_print=[], fname=None):
+class OutputUnits(Enum):
+    # All output units are defined by user
+    UserUnits = 0
+    # All output units are defined by user EXCEPT time which is determined by the decision period discretization
+    DecisionPeriodDefinedUnits = 1
+
+
+def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fname=None):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
@@ -406,14 +413,18 @@ def generate_report(model, is_print=[], fname=None):
         # If units are used, determine what the display units should be based off user input
         if units_true:
             from_unit_string = variable.get_units().to_string()
-            to_unit = model.model_to_user_units[from_unit_string]
+            # the display units (to_unit) is defined by output_units from module parameter
+            if output_units == OutputUnits.DecisionPeriodDefinedUnits:
+                to_unit = model.model_to_developer_units[from_unit_string]
+            elif output_units == OutputUnits.UserUnits:
+                to_unit = model.model_to_user_units[from_unit_string]
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
                 header = list(headers[str(variable.name) + "_dict"][0])
                 header[-1] = (
                     headers[str(variable.name) + "_dict"][0][-1]
                     + " ["
-                    + to_unit.to_string()
+                    + to_unit.to_string().replace("oil_bbl", "bbl")
                     + "]"
                 )
                 headers[str(variable.name) + "_dict"][0] = tuple(header)
@@ -440,7 +451,7 @@ def generate_report(model, is_print=[], fname=None):
                             (
                                 variable.name,
                                 variable.doc,
-                                to_unit.to_string(),
+                                to_unit.to_string().replace("oil_bbl", "bbl"),
                                 var_value,
                             )
                         )
