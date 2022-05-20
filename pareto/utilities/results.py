@@ -26,19 +26,21 @@ from enum import Enum
 
 
 class PrintValues(Enum):
-    Detailed = 0
-    Nominal = 1
-    Essential = 2
+    detailed = 0
+    nominal = 1
+    essential = 2
 
 
 class OutputUnits(Enum):
     # All output units are defined by user
-    UserUnits = 0
+    user_units = 0
     # All output units are defined by user EXCEPT time which is determined by the decision period discretization
-    DecisionPeriodDefinedUnits = 1
+    unscaled_model_units = 1
 
 
-def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fname=None):
+def generate_report(
+    model, is_print=[], output_units=OutputUnits.user_units, fname=None
+):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
@@ -53,7 +55,7 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
         if len(is_print) == 0:
             printing_list = []
         else:
-            # PrintValues.Detailed: Slacks values included, Same as "All"
+            # PrintValues.detailed: Slacks values included, Same as "All"
             if is_print[0].value == 0:
                 printing_list = [
                     "v_F_Piped",
@@ -90,7 +92,7 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
                     "v_Q",
                 ]
 
-            # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
+            # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
             elif is_print[0].value == 1:
                 printing_list = [
                     "v_F_Piped",
@@ -107,7 +109,7 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
                     "v_F_Overview",
                 ]
 
-            # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+            # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
             elif is_print[0].value == 2:
                 printing_list = ["v_F_Overview"]
 
@@ -236,7 +238,7 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
         if len(is_print) == 0:
             printing_list = []
         else:
-            # PrintValues.Detailed: Slacks values included, Same as "All"
+            # PrintValues.detailed: Slacks values included, Same as "All"
             if is_print[0].value == 0:
                 printing_list = [
                     "v_F_Piped",
@@ -276,7 +278,7 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
                     "v_F_Capacity",
                 ]
 
-            # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
+            # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
             elif is_print[0].value == 1:
                 printing_list = [
                     "v_F_Piped",
@@ -294,7 +296,7 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
                     "v_F_Overview",
                 ]
 
-            # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+            # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
             elif is_print[0].value == 2:
                 printing_list = ["v_F_Overview"]
 
@@ -414,9 +416,9 @@ def generate_report(model, is_print=[], output_units=OutputUnits.UserUnits, fnam
         if units_true:
             from_unit_string = variable.get_units().to_string()
             # the display units (to_unit) is defined by output_units from module parameter
-            if output_units == OutputUnits.DecisionPeriodDefinedUnits:
-                to_unit = model.model_to_developer_units[from_unit_string]
-            elif output_units == OutputUnits.UserUnits:
+            if output_units == OutputUnits.unscaled_model_units:
+                to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+            elif output_units == OutputUnits.user_units:
                 to_unit = model.model_to_user_units[from_unit_string]
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:

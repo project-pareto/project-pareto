@@ -206,7 +206,7 @@ def create_model(df_sets, df_parameters, default={}):
     }
 
     # Units that are most helpful for troubleshooting
-    model.developer_output_units = {
+    model.unscaled_model_display_units = {
         "volume": pyunits.oil_bbl,
         "distance": pyunits.mile,
         "diameter": pyunits.inch,
@@ -253,28 +253,30 @@ def create_model(df_sets, df_parameters, default={}):
         model.model_units["currency"] / model.model_units["volume_time"]
     )
 
-    model.developer_output_units["volume_time"] = (
-        model.developer_output_units["volume"] / model.decision_period
+    model.unscaled_model_display_units["volume_time"] = (
+        model.unscaled_model_display_units["volume"] / model.decision_period
     )
-    model.developer_output_units["currency_time"] = (
-        model.developer_output_units["currency"] / model.decision_period
+    model.unscaled_model_display_units["currency_time"] = (
+        model.unscaled_model_display_units["currency"] / model.decision_period
     )
-    model.developer_output_units["pipe_cost_distance"] = model.developer_output_units[
-        "currency"
-    ] / (
-        model.developer_output_units["diameter"]
-        * model.developer_output_units["distance"]
+    model.unscaled_model_display_units[
+        "pipe_cost_distance"
+    ] = model.unscaled_model_display_units["currency"] / (
+        model.unscaled_model_display_units["diameter"]
+        * model.unscaled_model_display_units["distance"]
     )
-    model.developer_output_units["pipe_cost_capacity"] = model.developer_output_units[
-        "currency"
-    ] / (model.developer_output_units["volume"] / model.decision_period)
-    model.developer_output_units["currency_volume"] = (
-        model.developer_output_units["currency"]
-        / model.developer_output_units["volume"]
+    model.unscaled_model_display_units[
+        "pipe_cost_capacity"
+    ] = model.unscaled_model_display_units["currency"] / (
+        model.unscaled_model_display_units["volume"] / model.decision_period
     )
-    model.developer_output_units["currency_volume_time"] = (
-        model.developer_output_units["currency"]
-        / model.developer_output_units["volume_time"]
+    model.unscaled_model_display_units["currency_volume"] = (
+        model.unscaled_model_display_units["currency"]
+        / model.unscaled_model_display_units["volume"]
+    )
+    model.unscaled_model_display_units["currency_volume_time"] = (
+        model.unscaled_model_display_units["currency"]
+        / model.unscaled_model_display_units["volume_time"]
     )
 
     # Create dictionary to map model units to user units to assist generating results in the user units
@@ -287,13 +289,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.model_to_user_units[model_unit] = user_unit
 
     # Create dictionary to map model units to user units to assist generating results in units relative to time discretization
-    model.model_to_developer_units = {}
+    model.model_to_unscaled_model_display_units = {}
     for unit in model.model_units:
         model_unit = model.model_units[unit].to_string()
         if "/" in model_unit:
             model_unit = "(" + model_unit + ")"
-        developer_output = model.developer_output_units[unit]
-        model.model_to_developer_units[model_unit] = developer_output
+        developer_output = model.unscaled_model_display_units[unit]
+        model.model_to_unscaled_model_display_units[model_unit] = developer_output
 
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
