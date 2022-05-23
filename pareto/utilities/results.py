@@ -163,6 +163,7 @@ def generate_report(
             "quality.v_Q_dict": [
                 ("Location", "Water Component", "Time", "Water Quality")
             ],
+            "v_Q_dict": [("Location", "Water Component", "Time", "Water Quality")],
             "v_F_UnusedTreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
             ],
