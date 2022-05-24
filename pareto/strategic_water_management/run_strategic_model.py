@@ -139,7 +139,7 @@ opt_options = {
     "scale_model": True,
     "scaling_factor": 1000000,
     "running_time": 60,  # in seconds
-    "gap": 5,
+    "gap": 0,
     "water_quality": True,
 }
 
