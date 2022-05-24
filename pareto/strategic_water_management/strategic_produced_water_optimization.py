@@ -51,6 +51,7 @@ from pyomo.environ import (
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
+from pyomo.core.expr.current import identify_variables
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In
@@ -1971,7 +1972,7 @@ def create_model(df_sets, df_parameters, default={}):
     ## Define constraints ##
 
     def CompletionsPadDemandBalanceRule(model, p, t):
-        return model.p_gamma_Completions[p, t] == (
+        constraint = model.p_gamma_Completions[p, t] == (
             sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
             + sum(
                 model.v_F_Piped[p_tilde, p, t]
@@ -2003,6 +2004,8 @@ def create_model(df_sets, df_parameters, default={}):
             + model.v_S_FracDemand[p, t]
         )
 
+        return process_constraint(constraint)
+
     model.CompletionsPadDemandBalance = Constraint(
         model.s_CP,
         model.s_T,
@@ -2014,19 +2017,21 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadStorageBalanceRule(model, p, t):
         if t == model.s_T.first():
-            return (
+            constraint = (
                 model.v_L_PadStorage[p, t]
                 == model.p_lambda_PadStorage[p]
                 + (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
                 * model.decision_period
             )
         else:
-            return (
+            constraint = (
                 model.v_L_PadStorage[p, t]
                 == model.v_L_PadStorage[p, model.s_T.prev(t)]
                 + (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
                 * model.decision_period
             )
+
+        return process_constraint(constraint)
 
     model.CompletionsPadStorageBalance = Constraint(
         model.s_CP,
@@ -2038,7 +2043,9 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadStorageBalance.pprint()
 
     def CompletionsPadStorageCapacityRule(model, p, t):
-        return model.v_L_PadStorage[p, t] <= model.p_sigma_PadStorage[p]
+        constraint = model.v_L_PadStorage[p, t] <= model.p_sigma_PadStorage[p]
+
+        return process_constraint(constraint)
 
     model.CompletionsPadStorageCapacity = Constraint(
         model.s_CP,
@@ -2051,9 +2058,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TerminalCompletionsPadStorageLevelRule(model, p, t):
         if t == model.s_T.last():
-            return model.v_L_PadStorage[p, t] <= model.p_theta_PadStorage[p]
+            constraint = model.v_L_PadStorage[p, t] <= model.p_theta_PadStorage[p]
         else:
             return Constraint.Skip
+
+        return process_constraint(constraint)
 
     model.TerminalCompletionsPadStorageLevel = Constraint(
         model.s_CP,
@@ -2065,18 +2074,13 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TerminalCompletionsPadStorageLevel.pprint()
 
     def FreshwaterSourcingCapacityRule(model, f, t):
+        constraint = (
+            sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
+            + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
+            <= model.p_sigma_Freshwater[f, t]
+        )
 
-        if sum(model.p_FCA[f, p] for p in model.s_CP) or sum(
-            model.p_FCT[f, p] for p in model.s_CP
-        ):
-            return (
-                sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
-                + sum(
-                    model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p]
-                )
-            ) <= model.p_sigma_Freshwater[f, t]
-        else:
-            return Constraint.Skip
+        return process_constraint(constraint)
 
     model.FreshwaterSourcingCapacity = Constraint(
         model.s_F,
@@ -2089,32 +2093,23 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
 
-        if (
-            sum(model.p_PCT[p_tilde, p] for p_tilde in model.s_PP)
-            or sum(model.p_SCT[s, p] for s in model.s_S)
-            or sum(model.p_CCT[p_tilde, p] for p_tilde in model.s_CP)
-            or sum(model.p_FCT[f, p] for f in model.s_F)
-        ):
-            return (
-                sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
-                )
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p]
-                )
-            ) <= model.p_sigma_OffloadingPad[p]
-        else:
-            return Constraint.Skip
+        constraint = (
+            sum(
+                model.v_F_Trucked[p_tilde, p, t]
+                for p_tilde in model.s_PP
+                if model.p_PCT[p_tilde, p]
+            )
+            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
+            + sum(
+                model.v_F_Trucked[p_tilde, p, t]
+                for p_tilde in model.s_CP
+                if model.p_CCT[p_tilde, p]
+            )
+            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+            <= model.p_sigma_OffloadingPad[p]
+        )
+
+        return process_constraint(constraint)
 
     model.CompletionsPadTruckOffloadingCapacity = Constraint(
         model.s_CP,
@@ -2126,19 +2121,13 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadTruckOffloadingCapacity.pprint()
 
     def StorageSiteTruckOffloadingCapacityRule(model, s, t):
-        # If there are no CST or PST arcs, do not build constraint
-        if sum(model.p_PST[p, s] for p in model.s_PP) or sum(
-            model.p_CST[p, s] for p in model.s_CP
-        ):
-            return (
-                sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-                )
-                <= model.p_sigma_OffloadingStorage[s]
-            )
-        else:
-            return Constraint.Skip
+        constraint = (
+            sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
+            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
+            <= model.p_sigma_OffloadingStorage[s]
+        )
+
+        return process_constraint(constraint)
 
     model.StorageSiteTruckOffloadingCapacity = Constraint(
         model.s_S,
@@ -2150,25 +2139,15 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageSiteTruckOffloadingCapacity.pprint()
 
     def StorageSiteProcessingCapacityRule(model, s, t):
-        if (
-            sum(model.p_NSA[n, s] for n in model.s_N)
-            or sum(model.p_RSA[r, s] for r in model.s_R)
-            or sum(model.p_PST[p, s] for p in model.s_PP)
-            or sum(model.p_CST[p, s] for p in model.s_CP)
-        ):
-            return (
-                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-                )
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-                )
-                <= model.p_sigma_ProcessingStorage[s]
-            )
-        else:
-            return Constraint.skip
+        constraint = (
+            sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+            + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
+            + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
+            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
+            <= model.p_sigma_ProcessingStorage[s]
+        )
+
+        return process_constraint(constraint)
 
     model.StorageSiteProcessingCapacity = Constraint(
         model.s_S,
@@ -2180,7 +2159,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageSiteProcessingCapacity.pprint()
 
     def ProductionPadSupplyBalanceRule(model, p, t):
-        return (
+        constraint = (
             model.p_beta_Production[p, t]
             == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_PNA[p, n])
             + sum(
@@ -2204,6 +2183,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(model.v_F_Trucked[p, o, t] for o in model.s_O if model.p_POT[p, o])
             + model.v_S_Production[p, t]
         )
+        return process_constraint(constraint)
 
     model.ProductionPadSupplyBalance = Constraint(
         model.s_PP,
@@ -2234,6 +2214,8 @@ def create_model(df_sets, df_parameters, default={}):
             + model.v_S_Flowback[p, t]
         )
 
+        return process_constraint(constraint)
+
     model.CompletionsPadSupplyBalance = Constraint(
         model.s_CP,
         model.s_T,
@@ -2244,7 +2226,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsPadSupplyBalance.pprint()
 
     def NetworkNodeBalanceRule(model, n, t):
-        return sum(
+        constraint = sum(
             model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n]
         ) + sum(
             model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n]
@@ -2270,6 +2252,8 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_F_Piped[n, o, t] for o in model.s_O if model.p_NOA[n, o]
         )
 
+        return process_constraint(constraint)
+
     model.NetworkBalance = Constraint(
         model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc="Network node balance"
     )
@@ -2279,121 +2263,138 @@ def create_model(df_sets, df_parameters, default={}):
     def BidirectionalFlowRule1(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -2412,146 +2413,164 @@ def create_model(df_sets, df_parameters, default={}):
     def BidirectionalFlowRule2(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -2569,7 +2588,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
-            return (
+            constraint = (
                 model.v_L_Storage[s, t]
                 == model.p_lambda_Storage[s]
                 + (
@@ -2620,7 +2639,7 @@ def create_model(df_sets, df_parameters, default={}):
                 * model.decision_period
             )
         else:
-            return (
+            constraint = (
                 model.v_L_Storage[s, t]
                 == model.v_L_Storage[s, model.s_T.prev(t)]
                 + (
@@ -2671,6 +2690,8 @@ def create_model(df_sets, df_parameters, default={}):
                 * model.decision_period
             )
 
+        return process_constraint(constraint)
+
     model.StorageSiteBalance = Constraint(
         model.s_S,
         model.s_T,
@@ -2682,9 +2703,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TerminalStorageLevelRule(model, s, t):
         if t == model.s_T.last():
-            return model.v_L_Storage[s, t] <= model.p_theta_Storage[s]
+            constraint = model.v_L_Storage[s, t] <= model.p_theta_Storage[s]
         else:
             return Constraint.Skip
+
+        return process_constraint(constraint)
 
     model.TerminalStorageLevel = Constraint(
         model.s_S,
@@ -2698,7 +2721,7 @@ def create_model(df_sets, df_parameters, default={}):
     def PipelineCapacityExpansionRule(model, l, l_tilde):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2707,11 +2730,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2720,11 +2744,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2737,11 +2762,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2750,11 +2776,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2767,11 +2794,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2780,11 +2808,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2793,11 +2822,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2810,11 +2840,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2827,11 +2858,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2840,11 +2872,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2853,11 +2886,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2870,11 +2904,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2883,11 +2918,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2900,11 +2936,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2917,11 +2954,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2934,11 +2972,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2947,11 +2986,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2960,11 +3000,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_S:
             if model.p_RSA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2973,11 +3014,12 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_F_Capacity[l, l_tilde]
                     == model.p_sigma_Pipeline[l, l_tilde]
                     + sum(
@@ -2986,6 +3028,7 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + model.v_S_PipelineCapacity[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -3009,97 +3052,154 @@ def create_model(df_sets, df_parameters, default={}):
     def PipelineCapacityRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                constraint = (
+                    model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -3118,7 +3218,7 @@ def create_model(df_sets, df_parameters, default={}):
 
         def NetworkNodeCapacityRule(model, n, t):
             if value(model.p_sigma_NetworkNode[n]) > 0:
-                return (
+                constraint = (
                     sum(
                         model.v_F_Piped[p, n, t]
                         for p in model.s_PP
@@ -3142,6 +3242,8 @@ def create_model(df_sets, df_parameters, default={}):
             else:
                 return Constraint.Skip
 
+            return process_constraint(constraint)
+
         # simple constraint rule required to prevent errors if there are no node flows
         model.NetworkCapacity = Constraint(
             model.s_N,
@@ -3153,7 +3255,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.PipelineCapacity['R01','CP01','T01'].pprint()
 
     def StorageCapacityExpansionRule(model, s):
-        return (
+        constraint = (
             model.v_X_Capacity[s]
             == model.p_sigma_Storage[s]
             + sum(
@@ -3161,6 +3263,8 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + model.v_S_StorageCapacity[s]
         )
+
+        return process_constraint(constraint)
 
     model.StorageCapacityExpansion = Constraint(
         model.s_S,
@@ -3171,7 +3275,9 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageCapacityExpansion.pprint()
 
     def StorageCapacityRule(model, s, t):
-        return model.v_L_Storage[s, t] <= model.v_X_Capacity[s]
+        constraint = model.v_L_Storage[s, t] <= model.v_X_Capacity[s]
+
+        return process_constraint(constraint)
 
     model.StorageCapacity = Constraint(
         model.s_S, model.s_T, rule=StorageCapacityRule, doc="Storage capacity"
@@ -3180,7 +3286,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageCapacity.pprint()
 
     def DisposalCapacityExpansionRule(model, k):
-        return (
+        constraint = (
             model.v_D_Capacity[k]
             == model.p_sigma_Disposal[k]
             + sum(
@@ -3188,6 +3294,8 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + model.v_S_DisposalCapacity[k]
         )
+
+        return process_constraint(constraint)
 
     model.DisposalCapacityExpansion = Constraint(
         model.s_K,
@@ -3198,33 +3306,16 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalCapacityExpansion1.pprint()
 
     def DisposalCapacityRule(model, k, t):
-        if (
-            sum(model.p_NKA[n, k] for n in model.s_N)
-            or sum(model.p_SKA[s, k] for s in model.s_S)
-            or sum(model.p_SKT[s, k] for s in model.s_S)
-            or sum(model.p_PKT[p, k] for p in model.s_PP)
-            or sum(model.p_CKT[p, k] for p in model.s_CP)
-            or sum(model.p_RKT[r, k] for r in model.s_R)
-        ):
-            return (
-                sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-                + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-                + sum(
-                    model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
-                )
-                + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
-                )
-                + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
-                )
-                + sum(
-                    model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
-                )
-                <= model.v_D_Capacity[k]
-            )
-        else:
-            return Constraint.Skip
+        constraint = (
+            sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
+            + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
+            + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
+            + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
+            + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
+            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
+            <= model.v_D_Capacity[k]
+        )
+        return process_constraint(constraint)
 
     model.DisposalCapacity = Constraint(
         model.s_K, model.s_T, rule=DisposalCapacityRule, doc="Disposal capacity"
@@ -3233,7 +3324,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalCapacity.pprint()
 
     def TreatmentCapacityExpansionRule(model, r):
-        return (
+        constraint = (
             model.v_T_Capacity[r]
             == model.p_sigma_Treatment[r]
             + sum(
@@ -3242,6 +3333,8 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + model.v_S_TreatmentCapacity[r]
         )
+
+        return process_constraint(constraint)
 
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
@@ -3252,25 +3345,14 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentCapacityExpansion.pprint()
 
     def TreatmentCapacityRule(model, r, t):
-        if (
-            sum(model.p_NRA[n, r] for n in model.s_N)
-            or sum(model.p_SRA[s, r] for s in model.s_S)
-            or sum(model.p_PRT[p, r] for p in model.s_PP)
-            or sum(model.p_CRT[p, r] for p in model.s_CP)
-        ):
-            return (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
-                )
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
-                )
-                <= model.v_T_Capacity[r]
-            )
-        else:
-            return Constraint.Skip
+        constraint = (
+            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
+            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            <= model.v_T_Capacity[r]
+        )
+        return process_constraint(constraint)
 
     model.TreatmentCapacity = Constraint(
         model.s_R, model.s_T, rule=TreatmentCapacityRule, doc="Treatment capacity"
@@ -3279,7 +3361,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentCapacity.pprint()
 
     def TreatmentBalanceRule(model, r, t):
-        return (
+        constraint = (
             model.p_epsilon_Treatment[r, model.p_W_TreatmentComponent[r]]
             * (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
@@ -3295,6 +3377,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
             + model.v_F_UnusedTreatedWater[r, t]
         )
+        return process_constraint(constraint)
 
     model.TreatmentBalance = Constraint(
         model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment balance"
@@ -3303,21 +3386,15 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentBalance.pprint()
 
     def BeneficialReuseCapacityRule(model, o, t):
-        if (
-            sum(model.p_NOA[n, o] for n in model.s_N)
-            or sum(model.p_SOA[s, o] for s in model.s_S)
-            or sum(model.p_POT[p, o] for p in model.s_PP)
-        ):
-            return (
-                sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
-                + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
-                + sum(
-                    model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
-                )
-                <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
-            )
-        else:
-            return Constraint.Skip
+
+        constraint = (
+            sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
+            + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
+            + sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
+            <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
+        )
+
+        return process_constraint(constraint)
 
     model.BeneficialReuseCapacity = Constraint(
         model.s_O,
@@ -3333,19 +3410,21 @@ def create_model(df_sets, df_parameters, default={}):
     def FreshSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
             if model.p_FCA[f, p]:
-                return (
+                constraint = (
                     model.v_C_Sourced[f, p, t]
                     == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
                     * model.p_pi_Sourcing[f]
                 )
             elif model.p_FCT[f, p]:
-                return (
+                constraint = (
                     model.v_C_Sourced[f, p, t]
                     == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
                     * model.p_pi_Sourcing[f]
                 )
             else:
                 return Constraint.Skip
+
+            return process_constraint(constraint)
         else:
             return Constraint.Skip
 
@@ -3361,7 +3440,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.FreshSourcingCost.pprint()
 
     def TotalFreshSourcingCostRule(model):
-        return model.v_C_TotalSourced == sum(
+        constraint = model.v_C_TotalSourced == sum(
             sum(
                 sum(
                     model.v_C_Sourced[f, p, t] * model.decision_period
@@ -3372,6 +3451,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for t in model.s_T
         )
+        return process_constraint(constraint)
 
     model.TotalFreshSourcingCost = Constraint(
         rule=TotalFreshSourcingCostRule, doc="Total fresh sourcing cost"
@@ -3380,7 +3460,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalFreshSourcingCost.pprint()
 
     def TotalFreshSourcingVolumeRule(model):
-        return (
+        constraint = (
             model.v_F_TotalSourced
             == (
                 sum(
@@ -3409,6 +3489,8 @@ def create_model(df_sets, df_parameters, default={}):
             * model.decision_period
         )
 
+        return process_constraint(constraint)
+
     model.TotalFreshSourcingVolume = Constraint(
         rule=TotalFreshSourcingVolumeRule, doc="Total fresh sourcing volume"
     )
@@ -3416,7 +3498,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalFreshSourcingVolume.pprint()
 
     def DisposalCostRule(model, k, t):
-        return (
+        constraint = (
             model.v_C_Disposal[k, t]
             == (
                 sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
@@ -3437,6 +3519,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.p_pi_Disposal[k]
         )
+        return process_constraint(constraint)
 
     model.DisposalCost = Constraint(
         model.s_K, model.s_T, rule=DisposalCostRule, doc="Disposal cost"
@@ -3445,10 +3528,12 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalCost.pprint()
 
     def TotalDisposalCostRule(model):
-        return model.v_C_TotalDisposal == sum(
+        constraint = model.v_C_TotalDisposal == sum(
             sum(model.v_C_Disposal[k, t] * model.decision_period for k in model.s_K)
             for t in model.s_T
         )
+
+        return process_constraint(constraint)
 
     model.TotalDisposalCost = Constraint(
         rule=TotalDisposalCostRule, doc="Total disposal cost"
@@ -3457,7 +3542,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalCost.pprint()
 
     def TotalDisposalVolumeRule(model):
-        return (
+        constraint = (
             model.v_F_TotalDisposed
             == (
                 sum(
@@ -3478,6 +3563,8 @@ def create_model(df_sets, df_parameters, default={}):
             * model.decision_period
         )
 
+        return process_constraint(constraint)
+
     model.TotalDisposalVolume = Constraint(
         rule=TotalDisposalVolumeRule, doc="Total disposal volume"
     )
@@ -3485,7 +3572,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalVolume.pprint()
 
     def TreatmentCostRule(model, r, t):
-        return (
+        constraint = (
             model.v_C_Treatment[r, t]
             == (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
@@ -3499,6 +3586,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.p_pi_Treatment[r]
         )
+        return process_constraint(constraint)
 
     model.TreatmentCost = Constraint(
         model.s_R, model.s_T, rule=TreatmentCostRule, doc="Treatment cost"
@@ -3507,10 +3595,12 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentCost.pprint()
 
     def TotalTreatmentCostRule(model):
-        return model.v_C_TotalTreatment == sum(
+        constraint = model.v_C_TotalTreatment == sum(
             sum(model.v_C_Treatment[r, t] * model.decision_period for r in model.s_R)
             for t in model.s_T
         )
+
+        return process_constraint(constraint)
 
     model.TotalTreatmentCost = Constraint(
         rule=TotalTreatmentCostRule, doc="Total treatment cost"
@@ -3523,7 +3613,7 @@ def create_model(df_sets, df_parameters, default={}):
         p,
         t,
     ):
-        return model.v_C_Reuse[p, t] == (
+        constraint = model.v_C_Reuse[p, t] == (
             (
                 sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
                 + sum(
@@ -3555,6 +3645,8 @@ def create_model(df_sets, df_parameters, default={}):
             * model.p_pi_Reuse[p]
         )
 
+        return process_constraint(constraint)
+
     model.CompletionsReuseCost = Constraint(
         model.s_CP,
         model.s_T,
@@ -3565,17 +3657,19 @@ def create_model(df_sets, df_parameters, default={}):
     # model.CompletionsReuseCost.pprint()
 
     def TotalCompletionsReuseCostRule(model):
-        return model.v_C_TotalReuse == sum(
+        constraint = model.v_C_TotalReuse == sum(
             sum(model.v_C_Reuse[p, t] * model.decision_period for p in model.s_CP)
             for t in model.s_T
         )
+
+        return process_constraint(constraint)
 
     model.TotalCompletionsReuseCost = Constraint(
         rule=TotalCompletionsReuseCostRule, doc="Total completions reuse cost"
     )
 
     def TotalReuseVolumeRule(model):
-        return (
+        constraint = (
             model.v_F_TotalReused
             == (
                 sum(
@@ -3627,6 +3721,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.decision_period
         )
+        return process_constraint(constraint)
 
     model.TotalReuseVolume = Constraint(
         rule=TotalReuseVolumeRule, doc="Total reuse volume"
@@ -3637,155 +3732,174 @@ def create_model(df_sets, df_parameters, default={}):
     def PipingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_CP:
             if model.p_CCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Sourced[l, l_tilde, t]
                     * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -3798,7 +3912,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.PipingCost.pprint()
 
     def TotalPipingCostRule(model):
-        return model.v_C_TotalPiping == (
+        constraint = model.v_C_TotalPiping == (
             sum(
                 sum(
                     sum(
@@ -3956,6 +4070,8 @@ def create_model(df_sets, df_parameters, default={}):
             )
         )
 
+        return process_constraint(constraint)
+
     model.TotalPipingCost = Constraint(
         rule=TotalPipingCostRule, doc="Total piping cost"
     )
@@ -3963,7 +4079,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalPipingCost.pprint()
 
     def StorageDepositCostRule(model, s, t):
-        return model.v_C_Storage[s, t] == (
+        constraint = model.v_C_Storage[s, t] == (
             (
                 sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
                 + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
@@ -3976,6 +4092,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.p_pi_Storage[s]
         )
+        return process_constraint(constraint)
 
     model.StorageDepositCost = Constraint(
         model.s_S, model.s_T, rule=StorageDepositCostRule, doc="Storage deposit cost"
@@ -3984,10 +4101,12 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageDepositCost.pprint()
 
     def TotalStorageCostRule(model):
-        return model.v_C_TotalStorage == sum(
+        constraint = model.v_C_TotalStorage == sum(
             sum(model.v_C_Storage[s, t] * model.decision_period for s in model.s_S)
             for t in model.s_T
         )
+
+        return process_constraint(constraint)
 
     model.TotalStorageCost = Constraint(
         rule=TotalStorageCostRule, doc="Total storage deposit cost"
@@ -3996,7 +4115,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalStorageCost.pprint()
 
     def StorageWithdrawalCreditRule(model, s, t):
-        return model.v_R_Storage[s, t] == (
+        constraint = model.v_R_Storage[s, t] == (
             (
                 sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
                 + sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
@@ -4013,6 +4132,8 @@ def create_model(df_sets, df_parameters, default={}):
             * model.p_rho_Storage[s]
         )
 
+        return process_constraint(constraint)
+
     model.StorageWithdrawalCredit = Constraint(
         model.s_S,
         model.s_T,
@@ -4023,10 +4144,11 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageWithdrawalCredit.pprint()
 
     def TotalStorageWithdrawalCreditRule(model):
-        return model.v_R_TotalStorage == sum(
+        constraint = model.v_R_TotalStorage == sum(
             sum(model.v_R_Storage[s, t] * model.decision_period for s in model.s_S)
             for t in model.s_T
         )
+        return process_constraint(constraint)
 
     model.TotalStorageWithdrawalCredit = Constraint(
         rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
@@ -4037,7 +4159,7 @@ def create_model(df_sets, df_parameters, default={}):
     def TruckingCostRule(model, l, l_tilde, t):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4045,11 +4167,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4057,11 +4180,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_K:
             if model.p_PKT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4069,11 +4193,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_S:
             if model.p_PST[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4081,11 +4206,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_R:
             if model.p_PRT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4093,11 +4219,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_O:
             if model.p_POT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4105,11 +4232,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_K:
             if model.p_CKT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4117,11 +4245,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_S:
             if model.p_CST[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4129,11 +4258,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_R:
             if model.p_CRT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4141,11 +4271,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_CP:
             if model.p_CCT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4153,11 +4284,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4165,11 +4297,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4177,11 +4310,12 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKT[l, l_tilde]:
-                return (
+                constraint = (
                     model.v_C_Trucked[l, l_tilde, t]
                     == model.v_F_Trucked[l, l_tilde, t]
                     * 1
@@ -4189,6 +4323,7 @@ def create_model(df_sets, df_parameters, default={}):
                     * model.p_tau_Trucking[l, l_tilde]
                     * model.p_pi_Trucking[l]
                 )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -4201,7 +4336,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TruckingCost.pprint()
 
     def TotalTruckingCostRule(model):
-        return model.v_C_TotalTrucking == (
+        constraint = model.v_C_TotalTrucking == (
             sum(
                 sum(
                     sum(
@@ -4310,6 +4445,7 @@ def create_model(df_sets, df_parameters, default={}):
                 for t in model.s_T
             )
         )
+        return process_constraint(constraint)
 
     model.TotalTruckingCost = Constraint(
         rule=TotalTruckingCostRule, doc="Total trucking cost"
@@ -4318,7 +4454,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalTruckingCost.pprint()
 
     def TotalTruckingVolumeRule(model):
-        return (
+        constraint = (
             model.v_F_TotalTrucked
             == (
                 sum(
@@ -4431,13 +4567,14 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.decision_period
         )
+        return process_constraint(constraint)
 
     model.TotalTruckingVolume = Constraint(
         rule=TotalTruckingVolumeRule, doc="Total trucking volume"
     )
 
     def DisposalExpansionCapExRule(model):
-        return model.v_C_DisposalCapEx == sum(
+        constraint = model.v_C_DisposalCapEx == sum(
             sum(
                 model.vb_y_Disposal[k, i]
                 * model.p_kappa_Disposal[k, i]
@@ -4446,6 +4583,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for k in model.s_K
         )
+        return process_constraint(constraint)
 
     model.DisposalExpansionCapEx = Constraint(
         rule=DisposalExpansionCapExRule,
@@ -4455,7 +4593,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalExpansionCapEx.pprint()
 
     def StorageExpansionCapExRule(model):
-        return model.v_C_StorageCapEx == sum(
+        constraint = model.v_C_StorageCapEx == sum(
             sum(
                 model.vb_y_Storage[s, c]
                 * model.p_kappa_Storage[s, c]
@@ -4464,6 +4602,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for c in model.s_C
         )
+        return process_constraint(constraint)
 
     model.StorageExpansionCapEx = Constraint(
         rule=StorageExpansionCapExRule,
@@ -4473,7 +4612,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageExpansionCapEx.pprint()
 
     def TreatmentExpansionCapExRule(model):
-        return model.v_C_TreatmentCapEx == sum(
+        constraint = model.v_C_TreatmentCapEx == sum(
             sum(
                 model.vb_y_Treatment[r, j]
                 * model.p_kappa_Treatment[r, j]
@@ -4482,6 +4621,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for j in model.s_J
         )
+        return process_constraint(constraint)
 
     model.TreatmentExpansionCapEx = Constraint(
         rule=TreatmentExpansionCapExRule,
@@ -4491,7 +4631,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TreatmentExpansionCapEx.pprint()
 
     def PipelineExpansionCapExDistanceBasedRule(model):
-        return model.v_C_PipelineCapEx == (
+        constraint = model.v_C_PipelineCapEx == (
             sum(
                 sum(
                     sum(
@@ -4760,8 +4900,10 @@ def create_model(df_sets, df_parameters, default={}):
             )
         )
 
+        return process_constraint(constraint)
+
     def PipelineExpansionCapExCapacityBasedRule(model):
-        return model.v_C_PipelineCapEx == (
+        constraint = model.v_C_PipelineCapEx == (
             sum(
                 sum(
                     sum(
@@ -5011,6 +5153,8 @@ def create_model(df_sets, df_parameters, default={}):
             )
         )
 
+        return process_constraint(constraint)
+
     if model.config.pipeline_cost == PipelineCost.distance_based:
         model.PipelineExpansionCapEx = Constraint(
             rule=PipelineExpansionCapExDistanceBasedRule,
@@ -5023,7 +5167,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     def SlackCostsRule(model):
-        return model.v_C_Slack == (
+        constraint = model.v_C_Slack == (
             sum(
                 sum(
                     model.v_S_FracDemand[p, t]
@@ -5274,13 +5418,15 @@ def create_model(df_sets, df_parameters, default={}):
                 for o in model.s_O
             )
         )
+        return process_constraint(constraint)
 
     model.SlackCosts = Constraint(rule=SlackCostsRule, doc="Slack costs")
 
     # model.SlackCosts.pprint()
 
     def LogicConstraintDisposalRule(model, k):
-        return sum(model.vb_y_Disposal[k, i] for i in model.s_I) == 1
+        constraint = sum(model.vb_y_Disposal[k, i] for i in model.s_I) == 1
+        return process_constraint(constraint)
 
     model.LogicConstraintDisposal = Constraint(
         model.s_K, rule=LogicConstraintDisposalRule, doc="Logic constraint disposal"
@@ -5289,7 +5435,8 @@ def create_model(df_sets, df_parameters, default={}):
     # model.LogicConstraintDisposal.pprint()
 
     def LogicConstraintStorageRule(model, s):
-        return sum(model.vb_y_Storage[s, c] for c in model.s_C) == 1
+        constraint = sum(model.vb_y_Storage[s, c] for c in model.s_C) == 1
+        return process_constraint(constraint)
 
     model.LogicConstraintStorage = Constraint(
         model.s_S, rule=LogicConstraintStorageRule, doc="Logic constraint storage"
@@ -5298,7 +5445,9 @@ def create_model(df_sets, df_parameters, default={}):
     # model.LogicConstraintStorage.pprint()
 
     def LogicConstraintTreatmentRule(model, r):
-        return sum(model.vb_y_Treatment[r, j] for j in model.s_J) == 1
+        constraint = sum(model.vb_y_Treatment[r, j] for j in model.s_J) == 1
+
+        return process_constraint(constraint)
 
     model.LogicConstraintTreatment = Constraint(
         model.s_R, rule=LogicConstraintTreatmentRule, doc="Logic constraint treatment"
@@ -5309,97 +5458,154 @@ def create_model(df_sets, df_parameters, default={}):
     def LogicConstraintPipelineRule(model, l, l_tilde):
         if l in model.s_PP and l_tilde in model.s_CP:
             if model.p_PCA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_N:
             if model.p_PNA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_PP and l_tilde in model.s_PP:
             if model.p_PPA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_CP and l_tilde in model.s_N:
             if model.p_CNA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_CP:
             if model.p_NCA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_R:
             if model.p_NRA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_K:
             if model.p_RKA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_N:
             if model.p_SNA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_K:
             if model.p_SKA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_R:
             if model.p_SRA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
-                return sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
             else:
                 return Constraint.Skip
         else:
@@ -5413,11 +5619,12 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ReuseDestinationDeliveriesRule(model, p, t):
-        return model.v_F_ReuseDestination[p, t] == sum(
+        constraint = model.v_F_ReuseDestination[p, t] == sum(
             model.v_F_Piped[l, p, t] + model.v_F_Trucked[l, p, t]
             for l in model.s_L
             if (l not in model.s_F)
         )
+        return process_constraint(constraint)
 
     model.ReuseDestinationDeliveries = Constraint(
         model.s_CP,
@@ -5429,9 +5636,11 @@ def create_model(df_sets, df_parameters, default={}):
     # model.ReuseDestinationDeliveries.pprint()
 
     def DisposalDestinationDeliveriesRule(model, k, t):
-        return model.v_F_DisposalDestination[k, t] == sum(
+        constraint = model.v_F_DisposalDestination[k, t] == sum(
             model.v_F_Piped[l, k, t] + model.v_F_Trucked[l, k, t] for l in model.s_L
         )
+
+        return process_constraint(constraint)
 
     model.DisposalDestinationDeliveries = Constraint(
         model.s_K,
@@ -5443,11 +5652,12 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalDestinationDeliveries.pprint()
 
     def BeneficialReuseDeliveriesRule(model, o, t):
-        return model.v_F_BeneficialReuseDestination[o, t] == sum(
+        constraint = model.v_F_BeneficialReuseDestination[o, t] == sum(
             model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
         ) + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + sum(
             model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
         )
+        return process_constraint(constraint)
 
     model.BeneficialReuseDeliveries = Constraint(
         model.s_O,
@@ -5457,7 +5667,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsWaterDeliveriesRule(model, p, t):
-        return model.v_F_CompletionsDestination[p, t] == (
+        constraint = model.v_F_CompletionsDestination[p, t] == (
             sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
             + sum(
                 model.v_F_Piped[p_tilde, p, t]
@@ -5486,6 +5696,8 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
             - model.v_F_PadStorageIn[p, t]
         )
+
+        return process_constraint(constraint)
 
     model.CompletionsWaterDeliveries = Constraint(
         model.s_CP,
@@ -5665,7 +5877,7 @@ def water_quality(model):
     # region Disposal
     # Material Balance
     def DisposalWaterQualityRule(b, k, w, t):
-        return (
+        constraint = (
             sum(
                 b.parent_block().v_F_Piped[n, k, t] * b.v_Q[n, w, t]
                 for n in b.parent_block().s_N
@@ -5698,6 +5910,7 @@ def water_quality(model):
             )
             == b.v_Q[k, w, t] * b.parent_block().v_F_DisposalDestination[k, t]
         )
+        return process_constraint(constraint)
 
     model.quality.DisposalWaterQuality = Constraint(
         model.s_K,
@@ -5711,7 +5924,7 @@ def water_quality(model):
     # region Storage
     def StorageSiteWaterQualityRule(b, s, w, t):
         if t == b.parent_block().s_T.first():
-            return b.parent_block().p_lambda_Storage[s] * b.p_xi_StorageSite[
+            constraint = b.parent_block().p_lambda_Storage[s] * b.p_xi_StorageSite[
                 s, w
             ] + sum(
                 b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
@@ -5770,7 +5983,7 @@ def water_quality(model):
                 )
             )
         else:
-            return b.parent_block().v_L_Storage[
+            constraint = b.parent_block().v_L_Storage[
                 s, b.parent_block().s_T.prev(t)
             ] * b.v_Q[s, w, b.parent_block().s_T.prev(t)] + sum(
                 b.parent_block().v_F_Piped[n, s, t] * b.v_Q[n, w, t]
@@ -5828,6 +6041,7 @@ def water_quality(model):
                     if b.parent_block().p_SKT[s, k]
                 )
             )
+        return process_constraint(constraint)
 
     model.quality.StorageSiteWaterQuality = Constraint(
         model.s_S,
@@ -5840,7 +6054,7 @@ def water_quality(model):
 
     # region Treatment
     def TreatmentWaterQualityRule(b, r, w, t):
-        return b.parent_block().p_epsilon_Treatment[r, w] * (
+        constraint = b.parent_block().p_epsilon_Treatment[r, w] * (
             sum(
                 b.parent_block().v_F_Piped[n, r, t] * b.v_Q[n, w, t]
                 for n in b.parent_block().s_N
@@ -5874,6 +6088,7 @@ def water_quality(model):
             )
             + b.parent_block().v_F_UnusedTreatedWater[r, t]
         )
+        return process_constraint(constraint)
 
     model.quality.TreatmentWaterQuality = Constraint(
         model.s_R,
@@ -5886,7 +6101,7 @@ def water_quality(model):
 
     # region Network
     def NetworkNodeWaterQualityRule(b, n, w, t):
-        return sum(
+        constraint = sum(
             b.parent_block().v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
             for p in b.parent_block().s_PP
             if b.parent_block().p_PNA[p, n]
@@ -5936,6 +6151,7 @@ def water_quality(model):
                 if b.parent_block().p_NOA[n, o]
             )
         )
+        return process_constraint(constraint)
 
     model.quality.NetworkWaterQuality = Constraint(
         model.s_N,
@@ -5948,7 +6164,7 @@ def water_quality(model):
 
     # region Beneficial Reuse
     def BeneficialReuseWaterQuality(b, o, w, t):
-        return (
+        constraint = (
             sum(
                 b.parent_block().v_F_Piped[n, o, t] * b.v_Q[n, w, t]
                 for n in b.parent_block().s_N
@@ -5966,6 +6182,7 @@ def water_quality(model):
             )
             == b.v_Q[o, w, t] * b.parent_block().v_F_BeneficialReuseDestination[o, t]
         )
+        return process_constraint(constraint)
 
     model.quality.BeneficialReuseWaterQuality = Constraint(
         model.s_O,
@@ -5986,7 +6203,7 @@ def water_quality(model):
     # The second is outgoing flow from the storage tank.
 
     def CompletionsPadIntermediateWaterQuality(b, p, w, t):
-        return sum(
+        constraint = sum(
             b.parent_block().v_F_Piped[n, p, t] * b.v_Q[n, w, t]
             for n in b.parent_block().s_N
             if b.parent_block().p_NCA[n, p]
@@ -6032,6 +6249,7 @@ def water_quality(model):
             b.parent_block().v_F_PadStorageIn[p, t]
             + b.parent_block().v_F_CompletionsDestination[p, t]
         )
+        return process_constraint(constraint)
 
     model.quality.CompletionsPadIntermediateWaterQuality = Constraint(
         model.s_CP,
@@ -6042,12 +6260,13 @@ def water_quality(model):
     )
 
     def CompletionsPadWaterQuality(b, p, w, t):
-        return (
+        constraint = (
             b.parent_block().v_F_PadStorageOut[p, t] * b.v_Q[p + storage_label, w, t]
             + b.parent_block().v_F_CompletionsDestination[p, t]
             * b.v_Q[p + intermediate_label, w, t]
             == b.v_Q[p, w, t] * b.parent_block().p_gamma_Completions[p, t]
         )
+        return process_constraint(constraint)
 
     model.quality.CompletionsPadWaterQuality = Constraint(
         model.s_CP,
@@ -6061,7 +6280,7 @@ def water_quality(model):
     # region Completion Pad Storage
     def CompletionsPadStorageWaterQuality(b, p, w, t):
         if t == b.parent_block().s_T.first():
-            return b.p_xi_PadStorage[p, w] * b.parent_block().p_lambda_PadStorage[
+            constraint = b.p_xi_PadStorage[p, w] * b.parent_block().p_lambda_PadStorage[
                 p
             ] + b.v_Q[p + intermediate_label, w, t] * b.parent_block().v_F_PadStorageIn[
                 p, t
@@ -6072,7 +6291,7 @@ def water_quality(model):
                 + b.parent_block().v_F_PadStorageOut[p, t]
             )
         else:
-            return b.v_Q[
+            constraint = b.v_Q[
                 p + storage_label, w, b.parent_block().s_T.prev(t)
             ] * b.parent_block().v_L_PadStorage[
                 p, b.parent_block().s_T.prev(t)
@@ -6086,6 +6305,7 @@ def water_quality(model):
                 b.parent_block().v_L_PadStorage[p, t]
                 + b.parent_block().v_F_PadStorageOut[p, t]
             )
+        return process_constraint(constraint)
 
     model.quality.CompletionsPadStorageWaterQuality = Constraint(
         model.s_CP,
@@ -6115,6 +6335,15 @@ def water_quality(model):
     )
 
     return model
+
+
+def process_constraint(constraint):
+    # Check if the constraint contains a variable
+    if list(identify_variables(constraint)):
+        return constraint
+    # Skip constraint if empty
+    else:
+        return Constraint.Skip
 
 
 def postprocess_water_quality_calculation(model, opt):
