@@ -110,23 +110,36 @@ input_files = [
 
 
 ### Optimization Settings
-"""Valid values of config arguments for the default parameter in the create_model() call
+"""Valid values of model creation config arguments for the default parameter 
+    in the create_model() call.
     objective: [Objectives.cost, Objectives.reuse]
     pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
     pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
     node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
-objective = Objectives.cost
-pipeline_cost = PipelineCost.distance_based
-pipeline_capacity = PipelineCapacity.input
-node_capacity = IncludeNodeCapacity.true
+model_options = {
+    "objective": Objectives.cost,
+    "pipeline_cost": PipelineCost.distance_based,
+    "pipeline_capacity": PipelineCapacity.input,
+    "node_capacity": IncludeNodeCapacity.true,
+}
+
 
 # General optimization settings
-options = {
+"""Valid values of optimization config arguments for the default parameter 
+    in the solve_model() call.
+    deactivate_slacks: [True, False]
+    scale_model: [True, False]
+    scaling_factor: nonnegative integer
+    running_time: nonnegative integer. Running time in seconds.
+    gap: nonnegative double
+    water_quality: [True, False]
+    """
+opt_options = {
     "deactivate_slacks": True,
     "scale_model": True,
     "scaling_factor": 1000000,
-    "running_time": 60,
-    "gap": 0,
+    "running_time": 60,  # in seconds
+    "gap": 5,
     "water_quality": True,
 }
 
@@ -153,21 +166,16 @@ for file in input_files:
     strategic_model = create_model(
         df_sets,
         df_parameters,
-        default={
-            "objective": objective,
-            "pipeline_cost": pipeline_cost,
-            "pipeline_capacity": pipeline_capacity,
-            "node_capacity": node_capacity,
-        },
+        default=model_options,
     )
 
-    solve_model(model=strategic_model, options=options)
+    solve_model(model=strategic_model, options=opt_options)
 
     # Define name of resultfile. Note that file already contains suffix ".xlsx"
     result_file = "strategic_opt_results_" + str(file)
 
     # Generate report with results in Excel
-    print("\nDisplaying Solution\n" + "-" * 60)
+    print("\nDisplaying Solution - " + str(file) + "\n" + "-" * 60)
     [model, results_dict] = generate_report(
         strategic_model,
         is_print=[PrintValues.Essential],
