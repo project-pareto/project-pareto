@@ -12,15 +12,13 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
-    create_model,
     Objectives,
-    solve_model,
     PipelineCost,
     PipelineCapacity,
     IncludeNodeCapacity,
 )
-from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.results import PrintValues
+from pareto.utilities.solve_scenarios import solve_scenarios
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -104,8 +102,10 @@ parameter_list = [
     different scenario and create a separate output file"""
 input_folder = "pareto.case_studies"
 input_files = [
-    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    "small_strategic_case_study.xlsx",
+    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+    "strategic_water_treatment_toy_case_study_t10.xlsx",
+    "strategic_water_treatment_toy_case_study_t10.xlsx",
+    # "small_strategic_case_study.xlsx",
 ]
 
 
@@ -117,10 +117,18 @@ input_files = [
     pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
     node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
 model_options = {
-    "objective": Objectives.cost,
-    "pipeline_cost": PipelineCost.distance_based,
-    "pipeline_capacity": PipelineCapacity.input,
-    "node_capacity": IncludeNodeCapacity.true,
+    "s1": {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": IncludeNodeCapacity.true,
+    },
+    "s2": {
+        "objective": Objectives.reuse,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": IncludeNodeCapacity.true,
+    },
 }
 
 
@@ -144,47 +152,7 @@ opt_options = {
 }
 
 
-### Optimization
-for file in input_files:
-    # run optimization for all files in input file
-
-    df_sets = []
-    df_parameters = []
-
-    with resources.path(
-        str(input_folder),
-        str(file),
-    ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
-
-    # create mathematical model
-    """Valid values of config arguments for the default parameter in the create_model() call
-    objective: [Objectives.cost, Objectives.reuse]
-    pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
-    pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
-    node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
-    strategic_model = create_model(
-        df_sets,
-        df_parameters,
-        default=model_options,
-    )
-
-    solve_model(model=strategic_model, options=opt_options)
-
-    # Define name of resultfile. Note that file already contains suffix ".xlsx"
-    result_file = "strategic_opt_results_" + str(file)
-
-    # Generate report with results in Excel
-    print("\nDisplaying Solution - " + str(file) + "\n" + "-" * 60)
-    [model, results_dict] = generate_report(
-        strategic_model,
-        is_print=[PrintValues.Essential],
-        fname=result_file,
-    )
-
-    # This shows how to read data from PARETO reports
-    set_list_report = []
-    parameter_list_report = ["v_F_Trucked", "v_C_Trucked"]
-    [sets_reports, parameters_report] = get_data(
-        result_file, set_list_report, parameter_list_report
-    )
+### Create and solve optimization model, print results
+solve_scenarios(
+    set_list, parameter_list, input_folder, input_files, model_options, opt_options
+)
