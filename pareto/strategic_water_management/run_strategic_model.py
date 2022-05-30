@@ -94,6 +94,7 @@ parameter_list = [
     "PadStorageInitialWaterQuality",
 ]
 
+
 ### Input Settings
 """ Please enter the path to folder in which the different input files reside
     for example: 'C:\\user\\Documents\\myfile.xlsx'
@@ -123,12 +124,12 @@ model_options = {
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
     },
-    "s2": {
-        "objective": Objectives.reuse,
-        "pipeline_cost": PipelineCost.distance_based,
-        "pipeline_capacity": PipelineCapacity.input,
-        "node_capacity": IncludeNodeCapacity.true,
-    },
+    # "s2": {
+    #     "objective": Objectives.reuse,
+    #     "pipeline_cost": PipelineCost.distance_based,
+    #     "pipeline_capacity": PipelineCapacity.input,
+    #     "node_capacity": IncludeNodeCapacity.true,
+    # },
 }
 
 
@@ -143,12 +144,14 @@ model_options = {
     water_quality: [True, False]
     """
 opt_options = {
-    "deactivate_slacks": True,
-    "scale_model": True,
-    "scaling_factor": 1000000,
-    "running_time": 60,  # in seconds
-    "gap": 0,
-    "water_quality": True,
+    "s1": {
+        "deactivate_slacks": True,
+        "scale_model": True,
+        "scaling_factor": 1000000,
+        "running_time": 60,  # in seconds
+        "gap": 0,
+        "water_quality": True,
+    }
 }
 
 

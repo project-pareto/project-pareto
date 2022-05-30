@@ -23,6 +23,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
 from importlib import resources
+import pandas as pd
 
 # set default values for model and opt options
 default_model_options = {
@@ -49,18 +50,22 @@ def solve_scenarios(
     input_files,
     model_options_input,
     opt_options_input,
+    fname=None,
 ):
+    # initialize result table
+    result_table = []
 
-    # Determine if model_options are entered per scenario
-    bool_model_options = any(isinstance(i, dict) for i in model_options_input.values())
-    bool_opt_options = any(isinstance(i, dict) for i in opt_options_input.values())
-
-    # TODO: check - this is a working option, not sure if only way to check if it
+    # TODO: check - this is a working option, not sure if best way to check if it
     # is a nested dictionary
 
-    count = 0
+    # Determine if model_options are entered per scenario
+    mod_options_multiple = any(
+        isinstance(i, dict) for i in model_options_input.values()
+    )
+    opt_options_multiple = any(isinstance(i, dict) for i in opt_options_input.values())
 
-    for file in input_files:
+    # solve each input file as separate scenario
+    for scenario_nr, file in enumerate(input_files):
         # run optimization for all files in input file
 
         df_sets = []
@@ -73,14 +78,21 @@ def solve_scenarios(
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
         # set model options
-        if bool_model_options:
-            model_options = list(model_options_input.values())[count]
+        if len(model_options_input.values()) > scenario_nr and mod_options_multiple:
+            # use settings corresponding to scenario number
+            model_options = list(model_options_input.values())[scenario_nr]
+        elif mod_options_multiple:
+            # settings are entered with scenario as index, use the first
+            model_options = list(model_options_input.values())[0]
         else:
+            # one set of options to be used for all scenarios
             model_options = model_options_input
 
         # set optimization options
-        if bool_opt_options:
-            opt_options = list(opt_options_input.values())[count]
+        if len(opt_options_input.values()) > scenario_nr and opt_options_multiple:
+            opt_options = list(opt_options_input.values())[scenario_nr]
+        elif opt_options_multiple:
+            opt_options = list(opt_options_input.values())[0]
         else:
             opt_options = opt_options_input
 
@@ -117,5 +129,47 @@ def solve_scenarios(
             result_file, set_list_report, parameter_list_report
         )
 
-        # update loop counter
-        count += 1
+        # add scenario results to result table
+        if not result_table:
+            # First time initialize with results dict to get headers
+            result_table = results_dict["v_F_Overview_dict"]
+        else:
+            # add results as column
+            for i in range(len(result_table)):
+                result_table[i] = (
+                    *result_table[i],
+                    results_dict["v_F_Overview_dict"][i][2],
+                )
+
+    ### Scenario Overview
+    print_scenario_results(result_table)
+    store_scenario_results(result_table, fname)
+
+
+def print_scenario_results(result_table):
+    # print results of all scenarios (v_F_Overview)
+
+    col_width = [27, 65, 20]
+    for row in result_table:
+        for count, col in enumerate(row):
+            # TODO: used if-statement for simplicity, col width should be dynamic
+            if count < 3:
+                width = col_width[count]
+            else:
+                width = col_width[2]
+
+            print(str(col).ljust(width), end=" | ")
+        print()
+
+
+def store_scenario_results(result_table, fname):
+    # save results of all scenarios in Excel file
+
+    # Creating the Excel report
+    if fname is None:
+        fname = "PARETO_Scenario_Overview.xlsx"
+
+    with pd.ExcelWriter(fname) as writer:
+        df = pd.DataFrame(result_table[1:], columns=result_table[0])
+        df.fillna("")
+        df.to_excel(writer, sheet_name="Scenario Overview", index=False, startrow=1)
