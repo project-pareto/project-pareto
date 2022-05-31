@@ -19,7 +19,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 )
 from pareto.utilities.results import PrintValues
 from pareto.utilities.solve_scenarios import solve_scenarios
-from importlib import resources
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -103,10 +102,15 @@ parameter_list = [
     different scenario and create a separate output file"""
 input_folder = "pareto.case_studies"
 input_files = [
-    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    "strategic_water_treatment_toy_case_study_t10.xlsx",
-    "strategic_water_treatment_toy_case_study_t10.xlsx",
-    # "small_strategic_case_study.xlsx",
+    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+    "small_strategic_case_study.xlsx",
+]
+
+### Scenario Settings
+""" Please provide a scenario name per input file"""
+scenario_names = [
+    "scenario_1",
+    "scenario_2",
 ]
 
 
@@ -124,12 +128,12 @@ model_options = {
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
     },
-    # "s2": {
-    #     "objective": Objectives.reuse,
-    #     "pipeline_cost": PipelineCost.distance_based,
-    #     "pipeline_capacity": PipelineCapacity.input,
-    #     "node_capacity": IncludeNodeCapacity.true,
-    # },
+    "s2": {
+        "objective": Objectives.reuse,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": IncludeNodeCapacity.true,
+    },
 }
 
 
@@ -144,18 +148,28 @@ model_options = {
     water_quality: [True, False]
     """
 opt_options = {
-    "s1": {
-        "deactivate_slacks": True,
-        "scale_model": True,
-        "scaling_factor": 1000000,
-        "running_time": 60,  # in seconds
-        "gap": 0,
-        "water_quality": True,
-    }
+    "deactivate_slacks": True,
+    "scale_model": True,
+    "scaling_factor": 1000000,
+    "running_time": 60,  # in seconds
+    "gap": 0,
+    "water_quality": True,
 }
+
+### Output Settings
+"""Please add name of scenario overview file. The main KPIs per scenario will 
+    be exported to this file."""
+scenario_overview_name = "PARETO_Scenario_Overview.xlsx"
 
 
 ### Create and solve optimization model, print results
 solve_scenarios(
-    set_list, parameter_list, input_folder, input_files, model_options, opt_options
+    set_list,
+    parameter_list,
+    input_folder,
+    input_files,
+    scenario_names,
+    model_options,
+    opt_options,
+    scenario_overview_name,
 )
