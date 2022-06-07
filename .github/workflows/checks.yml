@@ -56,7 +56,8 @@ jobs:
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
             pip-install-target: ".[testing]"
-          - python-version: '3.8'
+          - install-mode: dev
+            python-version: '3.8'
             cov-report: 'true'
     steps:
       - uses: actions/checkout@v2
