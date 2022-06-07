@@ -36,8 +36,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          # - '3.6'
-          # - '3.7'
           - '3.8'
           - '3.9'
         os:
@@ -58,6 +56,8 @@ jobs:
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
             pip-install-target: ".[testing]"
+          - python-version: '3.8'
+            cov-report: 'true'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -67,13 +67,18 @@ jobs:
         run: |
           pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
           idaes get-extensions --verbose
+      - name: Add pytest options to enable coverage report
+        if: matrix.cov-report
+        run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov-report=xml" >> $GITHUB_ENV
       - name: Run pytest
-        # TODO: add coverage
         run: |
           pytest -v
       - name: Run toy case study
         run: |
           python -m pareto.case_studies.toy_case_study
+      - name: Upload coverage report to Codecov
+        if: matrix.cov-report
+        uses: codecov/codecov-action@v2
 
   black:
     name: Run Black to verify that committed code is formatted
