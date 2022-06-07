@@ -58,7 +58,7 @@ jobs:
             pip-install-target: ".[testing]"
           - install-mode: dev
             python-version: '3.8'
-            cov-report: 'true'
+            cov-report: true
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -80,6 +80,8 @@ jobs:
       - name: Upload coverage report to Codecov
         if: matrix.cov-report
         uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
 
   black:
     name: Run Black to verify that committed code is formatted
