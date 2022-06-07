@@ -496,7 +496,6 @@ def plot_sankey(input_data={}, args=None):
     if "sections" in input_data.keys():
         is_sections = True
 
-
     # Taking in the lists and assigning them to list variables to be used in the method
     if input_data["type_of_data"] == "Labels":
         source = input_data["source"]
@@ -589,7 +588,7 @@ def plot_sankey(input_data={}, args=None):
     total_labels = source + destination
     label = sorted(set(total_labels), key=total_labels.index)
 
-    all_labels = label.copy() 
+    all_labels = label.copy()
 
     for s in source:
         for l in label:
@@ -631,13 +630,15 @@ def plot_sankey(input_data={}, args=None):
 
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
-    if is_sections:    
+    if is_sections:
         for key, val in input_data["sections"].items():
             for i, v in enumerate(val):
                 v_index = label.index(v)
                 val[i] = v_index
 
-            df_section = df_updated[(df_updated["source"].isin(val) | df_updated["destination"].isin(val))]
+            df_section = df_updated[
+                (df_updated["source"].isin(val) | df_updated["destination"].isin(val))
+            ]
             source = df_section["source"].to_list()
             destination = df_section["destination"].to_list()
             value = df_section["value"].to_list()
@@ -775,7 +776,7 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
             font_size = 20
         else:
             font_size = args["font_size"]
-            
+
         if "plot_title" not in args.keys() or args["plot_title"] is None:
             if "section_name" in args:
                 plot_title = args["section_name"]
@@ -783,7 +784,7 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
                 plot_title = "Sankey Diagram"
         else:
             if "section_name" in args:
-                plot_title = args["section_name"] + " " + args["plot_title"]                
+                plot_title = args["section_name"] + " " + args["plot_title"]
             else:
                 plot_title = args["plot_title"]
 
@@ -797,7 +798,6 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
                 figure_output = args["section_name"] + "_" + args["output_file"]
             else:
                 figure_output = args["output_file"]
-
 
     # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
     link = dict(source=source, target=destination, value=value)
@@ -852,8 +852,8 @@ def plot_bars(input_data, args):
     indexed_by_time = False
     date_time = False
     print_data = False
-    format_checklist = ['jpg', 'jpeg', 'pdf', 'png', 'svg']
-    figure_output = ''
+    format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
+    figure_output = ""
 
     if "output_file" not in args.keys() or args["output_file"] is None:
         figure_output = "first_bar.html"
@@ -904,7 +904,7 @@ def plot_bars(input_data, args):
             if "Time" in i:
                 indexed_by_time = True
                 time = "Time"
-        
+
         # Searching for the keyword "PROPRIETARY DATA"
         if "PROPRIETARY DATA" in variable[-1]:
             variable.pop()
@@ -948,13 +948,13 @@ def plot_bars(input_data, args):
         df_new = df_new.round(0)
         df_modified = df_new[[x_title, time, y_title]]
 
-        char_checklist = ['/', '-']
-        removed_char = ''
+        char_checklist = ["/", "-"]
+        removed_char = ""
         if any(x in df_modified[time][0] for x in char_checklist):
             df_modified[time] = pd.to_datetime(df_modified[time]).dt.date
             date_time = True
         else:
-            removed_char = df_modified[time][0][:1]   
+            removed_char = df_modified[time][0][:1]
             df_modified[time] = df_modified[time].apply(lambda x: x.strip(removed_char))
             df_modified[time] = df_modified[time].apply(lambda x: pd.to_numeric(x))
 
@@ -1001,7 +1001,9 @@ def plot_bars(input_data, args):
         if date_time:
             df_time_sort[time] = df_time_sort[time].apply(lambda x: str(x))
         else:
-            df_time_sort[time] = df_time_sort[time].apply(lambda x: removed_char + str(x))
+            df_time_sort[time] = df_time_sort[time].apply(
+                lambda x: removed_char + str(x)
+            )
 
         # Create bar chart with provided data and parameters
         fig = px.bar(
@@ -1029,21 +1031,32 @@ def plot_bars(input_data, args):
 
         if print_data:
             # Printing dataframe that is used in bar chart
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None,'display.precision', 1):  
+            with pd.option_context(
+                "display.max_rows",
+                None,
+                "display.max_columns",
+                None,
+                "display.precision",
+                1,
+            ):
                 print(df_time_sort)
 
         # Write the figure to html format and open in the browser
-        if '.html' in figure_output:
+        if ".html" in figure_output:
             fig.write_html(figure_output, auto_open=False, auto_play=False)
         elif any(x in figure_output for x in format_checklist):
             fig.write_image(figure_output, height=850, width=1800)
         else:
-            exception_string = ''
+            exception_string = ""
             for x in format_checklist:
-                exception_string = exception_string + ', ' + x
-            raise Exception("The file format provided is not supported. Please use either html{}.".format(exception_string))
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
+            )
 
-        iplot({"data": fig, "layout": fig.layout}, auto_play = False)
+        iplot({"data": fig, "layout": fig.layout}, auto_play=False)
     else:
 
         # Create dataframe for use in the method
@@ -1112,7 +1125,7 @@ def plot_bars(input_data, args):
                     exception_string
                 )
             )
-        
+
         iplot({"data": fig, "layout": fig.layout})
 
 
@@ -1232,7 +1245,7 @@ def plot_scatter(input_data, args):
         # Searching for the keyword "PROPRIETARY DATA"
         if "PROPRIETARY DATA" in variable_y[-1]:
             variable_y.pop()
-        
+
         formatted_variable_x = variable_x[1:]
         formatted_variable_y = variable_y[1:]
 
@@ -1631,7 +1644,7 @@ def plot_scatter(input_data, args):
                 )
             )
 
-        iplot({"data": fig, "layout": fig.layout}, auto_play = False)
+        iplot({"data": fig, "layout": fig.layout}, auto_play=False)
 
     else:
         # Creating dataframe based on the passed in variable and rounding the values
@@ -1843,9 +1856,13 @@ def plot_scatter(input_data, args):
         elif any(x in figure_output for x in format_checklist):
             fig.write_image(figure_output, height=850, width=1800)
         else:
-            exception_string = ''
+            exception_string = ""
             for x in format_checklist:
-                exception_string = exception_string + ', ' + x
-            raise Exception("The file format provided is not supported. Please use either html{}.".format(exception_string))
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
+            )
 
         iplot({"data": fig, "layout": fig.layout})

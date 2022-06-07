@@ -80,6 +80,7 @@ def plot_args_single_period():
 def test_plot_sankey_single_period(input_data_single_period, plot_args_single_period):
     plot_sankey(input_data_single_period, args=plot_args_single_period)
 
+
 @pytest.fixture(scope="module")
 def input_data_multi_regions():
     # Calling plot_sankey using the get_data format
@@ -93,10 +94,14 @@ def input_data_multi_regions():
     # One or more specific time periods can be selected. plot_sankey calculates the totals and create the plot
     return {
         "pareto_var": df_parameters["test_plot_sankey"],
-        "sections": {"Region 1": ["Appalachia", "West Virginia", "Ohio"], "Region 2": ["Washington, PA", "Company A", "Company B"]},
+        "sections": {
+            "Region 1": ["Appalachia", "West Virginia", "Ohio"],
+            "Region 2": ["Washington, PA", "Company A", "Company B"],
+        },
         "labels": [("Origin", "Destination", "Time", "Value")],
         "time_period": ["T01"],
     }
+
 
 @pytest.fixture
 def plot_args_multi_regions():
@@ -105,6 +110,7 @@ def plot_args_multi_regions():
         "plot_title": "Flow for T01",
         "output_file": "first_sankey.html",
     }
+
 
 def test_plot_sankey_multi_regions(input_data_multi_regions, plot_args_multi_regions):
     plot_sankey(input_data_multi_regions, args=plot_args_multi_regions)
