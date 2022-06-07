@@ -70,7 +70,7 @@ jobs:
           idaes get-extensions --verbose
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
-        run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov-report=xml" >> $GITHUB_ENV
+        run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
       - name: Run pytest
         run: |
           pytest -v
