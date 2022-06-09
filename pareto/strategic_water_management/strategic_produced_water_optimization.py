@@ -51,7 +51,7 @@ from pyomo.environ import (
 from pyomo.core.base.constraint import simple_constraint_rule
 
 # from gurobipy import *
-from pyomo.common.config import ConfigBlock, ConfigValue, In
+from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum
 
 from pareto.utilities.solvers import get_solver, set_timeout
@@ -114,6 +114,21 @@ CONFIG.declare(
         **Valid Values:** - {
         **PipelineCapacity.input** - use input for pipeline capacity,
         **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters 
+        }""",
+    ),
+)
+
+CONFIG.declare(
+    "hydraulics",
+    ConfigValue(
+        default=False,
+        domain=Bool,
+        description="add hydraulics constraints",
+        doc="""Alternate pipeline capacity selection (calculated or input)
+        ***default*** - False
+        **Valid Values:** - {
+        **True** - adds parameters and constraints for pipeline hydraulics,
+        **False** - does not add hydraulics feature
         }""",
     ),
 )
@@ -209,9 +224,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["InjectionCapacities"],
         doc="Injection (i.e. disposal) capacities",
     )
-
-    # model.s_P.pprint()
-    # model.s_L.pprint()
 
     ## Define continuous variables ##
 
@@ -924,6 +936,13 @@ def create_model(df_sets, df_parameters, default={}):
 
     FreshSourcingCostTable = {}
 
+    model.p_ELEVATION = Param(
+        model.s_L,
+        default=100,
+        domain=NonNegativeReals,
+        initialize=model.df_parameters["Elevation"],
+        doc="Elevation of each node in the network",
+    )
     model.p_alpha_AnnualizationRate = Param(
         default=1,
         initialize=model.df_parameters["AnnualizationRate"],
@@ -1196,11 +1215,32 @@ def create_model(df_sets, df_parameters, default={}):
             doc="Pipeline construction/expansion capital cost for selected increment [$/bbl]",
         )
 
-    # model.p_kappa_Disposal.pprint()
-    # model.p_kappa_Storage.pprint()
-    # model.p_kappa_Treatment.pprint()
-    # model.p_kappa_Pipeline.pprint()
-
+    _df_parameters = {}
+    # for keys in model.df_parameters["PipelineOperationalCost"]:
+    #     print(keys)
+    # raise Exception()
+    if model.config.hydraulics is True:
+        # determine the max change in elevation from the elevation data
+        max_elevation = max([abs(val) for val in model.df_parameters["Elevation"].values()])
+        min_elevation = min([abs(val) for val in model.df_parameters["Elevation"].values()])
+        max_elevation_change = max_elevation - min_elevation
+        # Set Pipleline Operational Cost based on the elevation changes
+        for k1 in model.s_L:
+            for k2 in model.s_L:
+                print(k1, k2)
+                elevation_delta = (model.df_parameters["Elevation"][k1] -
+                                   model.df_parameters["Elevation"][k2])
+                # _df_parameters[(k1, k2)] = (
+                #     model.df_parameters["PipelineOperationalCost"][k1, k2] +
+                #     (0.00005 * elevation_delta / max_elevation_change))
+                _df_parameters[(k1, k2)] = (0.0001 +
+                                            (0.0005 * elevation_delta /
+                                              max_elevation_change))
+    else:
+        for k1 in model.s_L:
+            for k2 in model.s_L:
+                _df_parameters[(k1, k2)] = 0.0001
+        
     model.p_pi_Disposal = Param(
         model.s_K,
         default=9999999,
@@ -1235,7 +1275,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         default=0.01,
-        initialize=model.df_parameters["PipelineOperationalCost"],
+        initialize=_df_parameters,
+        # initialize=model.df_parameters["PipelineOperationalCost"],
         doc="Pipeline operational cost [$/bbl]",
     )
     model.p_pi_Trucking = Param(
@@ -4586,6 +4627,45 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
+def pipeline_hydraulics(model):
+    # region Fix solved Strategic Model variables
+    for var in model.component_objects(Var):
+        for index in var:
+            # Check if the variable is indexed
+            if index is None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if abs(var.value) > 0.0000001:
+                    var.fix()
+                # Otherwise, fix to 0
+                else:
+                    var.fix(0)
+            elif index is not None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if var[index].value and abs(var[index].value) > 0.0000001:
+                    var[index].fix()
+                # Otherwise, fix to 0
+                else:
+                    var[index].fix(0)
+    # endregion
+
+    # Create block for calculating quality at each location in the model
+    model.hydraulics = Block()
+
+    model.hydraulics.p_diameter_Pipeline = Param(
+        model.s_L,
+        model.s_L,
+        default=0,
+        initialize=0,
+        doc="Diameter of pipeline between two locations [inch]",
+    )
+
+    for key in model.df_parameters["PipelineExpansionDistance"]:
+        if model.df_parameters["InitialPipelineDiameters"][key] is not None:
+            model.hydraulics.p_diameter_Pipeline[key] = model.df_parameters["InitialPipelineDiameters"][key]
+        else:
+            model.hydraulics.p_diameter_Pipeline[key] = sum(model.vb_y_Pipeline[key, d] * model.df_parameters["PipelineDiameterValues"][d] for d in model.s_D)
+
+
 def water_quality(model):
     # region Fix solved Strategic Model variables
     for var in model.component_objects(Var):
@@ -5453,6 +5533,9 @@ def solve_model(model, options=None):
             results = opt.solve(model, tee=True)
 
     if options["water_quality"] is True:
+        model = postprocess_water_quality_calculation(model, opt)
+
+    if options["hydraulics"] is True:
         model = postprocess_water_quality_calculation(model, opt)
 
     results.write()

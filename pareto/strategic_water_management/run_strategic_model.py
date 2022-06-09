@@ -39,6 +39,7 @@ set_list = [
     "StorageCapacities",
     "InjectionCapacities",
     "TreatmentCapacities",
+    "Locations",
 ]
 parameter_list = [
     "PNA",
@@ -59,12 +60,14 @@ parameter_list = [
     "CST",
     "CCT",
     "CKT",
+    "Elevation",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
     "NodeCapacities",
     "InitialPipelineCapacity",
+    "InitialPipelineDiameters",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
     "FreshwaterSourcingAvailability",
@@ -89,7 +92,8 @@ parameter_list = [
     "PipelineCapexCapacityBased",
     "PipelineCapacityIncrements",
     "PipelineExpansionDistance",
-    "Hydraulics",
+    "PipelineExpansionDistance",
+    "HWCoefficients",
     "Economics",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
@@ -101,8 +105,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    "small_strategic_case_study.xlsx",
+    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+    # "small_strategic_case_study.xlsx",
     # "strategic_water_treatment_toy_case_study_t10.xlsx"
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
@@ -121,6 +125,7 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
+        "hydraulics": True
     },
 )
 
@@ -128,7 +133,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": True,
     "scaling_factor": 1000000,
-    "running_time": 60,
+    "running_time": 6000,
     "gap": 0,
     "water_quality": True,
 }
