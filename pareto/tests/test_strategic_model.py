@@ -253,13 +253,13 @@ def test_strategic_model_unit_consistency(build_strategic_model):
             if condata.upper is not None and value(condata.upper) != 0.0:
                 args.append(condata.upper)
             pint_units = [visitor.walk_expression(arg) for arg in args]
-            flatten_list = flatten_list(pint_units)
-            flatten_list = [x for x in flatten_list if x]
+            flat_list = flatten_list(pint_units)
+            flat_list = [x for x in flat_list if x]
 
             # Assess if the unique values are valid
-            unique_units = [flatten_list[0]]
+            unique_units = [flat_list[0]]
             decision_period_pint_unit = m.decision_period._get_pint_unit()
-            for py_unit in flatten_list:
+            for py_unit in flat_list:
                 for unique_unit in unique_units:
                     if visitor._equivalent_pint_units(unique_unit, py_unit):
                         break
