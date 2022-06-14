@@ -15,10 +15,12 @@ Test strategic model
 """
 # Import Pyomo libraries
 import pyomo.environ as pyo
+from pyomo.util.check_units import assert_units_consistent
+from pyomo.core.base import value
+from pyomo.environ import Constraint
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
-from pyomo.util.check_units import assert_units_consistent
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     solve_model,
@@ -29,6 +31,10 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
+from pareto.utilities.units_support import (
+    flatten_list,
+    PintUnitExtractionVisitor,
+)
 from importlib import resources
 import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
@@ -228,7 +234,45 @@ def test_strategic_model_unit_consistency(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.calculated,
         }
     )
-    assert_units_consistent(m)
+    # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
+    visitor = PintUnitExtractionVisitor(m.pyunits)
+    for c in m.component_objects(Constraint):
+        for index in c:
+            if index is None:
+                condata = c
+
+            elif index is not None:
+                condata = c[index]
+
+            args = list()
+            if condata.lower is not None and value(condata.lower) != 0.0:
+                args.append(condata.lower)
+
+            args.append(condata.body)
+
+            if condata.upper is not None and value(condata.upper) != 0.0:
+                args.append(condata.upper)
+            pint_units = [visitor.walk_expression(arg) for arg in args]
+            flatten_list = flatten_list(pint_units)
+            flatten_list = [x for x in flatten_list if x]
+
+            # Assess if the unique values are valid
+            unique_units = [flatten_list[0]]
+            decision_period_pint_unit = m.decision_period._get_pint_unit()
+            for py_unit in flatten_list:
+                for unique_unit in unique_units:
+                    if visitor._equivalent_pint_units(unique_unit, py_unit):
+                        break
+                    elif visitor._equivalent_pint_units(
+                        unique_unit * decision_period_pint_unit, py_unit
+                    ):
+                        break
+                    elif visitor._equivalent_pint_units(
+                        unique_unit, py_unit * decision_period_pint_unit
+                    ):
+                        break
+                    else:
+                        assert_units_consistent(condata)
 
 
 # if solver cbc exists @solver
