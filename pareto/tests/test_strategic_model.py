@@ -24,6 +24,7 @@ from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     solve_model,
+    get_strategic_model_unit_container,
     Objectives,
     scale_model,
     PipelineCost,
@@ -235,7 +236,7 @@ def test_strategic_model_unit_consistency(build_strategic_model):
         }
     )
     # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
-    visitor = PintUnitExtractionVisitor(m.pyunits)
+    visitor = PintUnitExtractionVisitor(get_strategic_model_unit_container())
     for c in m.component_objects(Constraint):
         for index in c:
             if index is None:
