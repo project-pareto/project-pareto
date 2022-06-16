@@ -633,9 +633,18 @@ def plot_sankey(input_data={}, args=None):
     if is_sections:
         for key, val in input_data["sections"].items():
             for i, v in enumerate(val):
-                v_index = label.index(v)
-                val[i] = v_index
+                try:
+                    v_index = label.index(v)
+                    val[i] = v_index
+                except:
+                    print(
+                        "WARNING: {0} does not have a value for every specified time period and may not be shown in the sankey diagram.".format(
+                            val[i]
+                        )
+                    )
+                    pass
 
+            val = [x for x in val if not isinstance(x, str)]
             df_section = df_updated[
                 (df_updated["source"].isin(val) | df_updated["destination"].isin(val))
             ]
