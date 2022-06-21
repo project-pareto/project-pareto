@@ -3,7 +3,7 @@ pytest-cov
 black==22.3.0
 pre-commit==2.16.*
 sphinx
-myst-parser
+myst-parser[linkify]
 sphinx_rtd_theme
 nbsphinx
 addheader
