@@ -12,16 +12,13 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
-    create_model,
     Objectives,
-    solve_model,
     PipelineCost,
     PipelineCapacity,
     IncludeNodeCapacity,
 )
-from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
-from importlib import resources
+from pareto.utilities.results import PrintValues
+from pareto.utilities.solve_scenarios import solve_scenarios
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -96,54 +93,83 @@ parameter_list = [
     "PadStorageInitialWaterQuality",
 ]
 
-# user needs to provide the path to the case study data file
-# for example: 'C:\\user\\Documents\\myfile.xlsx'
-# note the double backslashes '\\' in that path reference
-with resources.path(
-    "pareto.case_studies",
-    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    "small_strategic_case_study.xlsx",
-    # "strategic_water_treatment_toy_case_study_t10.xlsx"
-) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-# create mathematical model
-"""Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse]
- pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
- pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
-strategic_model = create_model(
-    df_sets,
-    df_parameters,
-    default={
+### Input Settings
+""" Please enter the path to folder in which the different input files reside
+    for example: 'C:\\user\\Documents\\myfile.xlsx'
+    note the double backslashes '\\' in that path reference
+    input_files should contain all files to be read. Each file will be a 
+    different scenario and create a separate output file"""
+input_folder = "pareto.case_studies"
+input_files = [
+    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+    "small_strategic_case_study.xlsx",
+]
+
+### Scenario Settings
+""" Please provide a scenario name per input file"""
+scenario_names = [
+    "scenario_1",
+    "scenario_2",
+]
+
+
+### Optimization Settings
+"""Valid values of model creation config arguments for the default parameter 
+    in the create_model() call.
+    objective: [Objectives.cost, Objectives.reuse]
+    pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
+    pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+    node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+model_options = {
+    "s1": {
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
     },
-)
+    "s2": {
+        "objective": Objectives.reuse,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": IncludeNodeCapacity.true,
+    },
+}
 
-options = {
+
+# General optimization settings
+"""Valid values of optimization config arguments for the default parameter 
+    in the solve_model() call.
+    deactivate_slacks: [True, False]
+    scale_model: [True, False]
+    scaling_factor: nonnegative integer
+    running_time: nonnegative integer. Running time in seconds.
+    gap: nonnegative double
+    water_quality: [True, False]
+    """
+opt_options = {
     "deactivate_slacks": True,
     "scale_model": True,
     "scaling_factor": 1000000,
-    "running_time": 60,
+    "running_time": 60,  # in seconds
     "gap": 0,
     "water_quality": True,
 }
-solve_model(model=strategic_model, options=options)
 
-# Generate report with results in Excel
-print("\nDisplaying Solution\n" + "-" * 60)
-[model, results_dict] = generate_report(
-    strategic_model,
-    is_print=[PrintValues.Essential],
-    fname="strategic_optimization_results.xlsx",
+### Output Settings
+"""Please add name of scenario overview file. The main KPIs per scenario will 
+    be exported to this file."""
+scenario_overview_name = "PARETO_Scenario_Overview.xlsx"
+
+
+### Create and solve optimization model, print results
+solve_scenarios(
+    set_list,
+    parameter_list,
+    input_folder,
+    input_files,
+    scenario_names,
+    model_options,
+    opt_options,
+    scenario_overview_name,
 )
-
-# This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
