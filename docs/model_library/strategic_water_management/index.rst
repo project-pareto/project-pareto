@@ -281,30 +281,30 @@ Strategic Model Mathematical Notation
 
 
 
-:math:`\textcolor{green}{σ_{l,l}^{Pipeline}}` =	                       Initial weekly pipeline capacity between two locations
+:math:`\textcolor{green}{σ_{l,l}^{Pipeline}}` =	                       Initial pipeline capacity between two locations
 
-:math:`\textcolor{green}{σ_{k}^{Disposal}}` =	                       Initial weekly disposal capacity at a disposal site
+:math:`\textcolor{green}{σ_{k}^{Disposal}}` =	                       Initial disposal capacity at a disposal site
 
 :math:`\textcolor{green}{σ_{s}^{Storage}}` =                           Initial storage capacity at a storage site
 
 :math:`\textcolor{green}{σ_{p,t}^{PadStorage}}` =                      Storage capacity at completions site
 
-:math:`\textcolor{green}{σ_{r}^{Treatment}}` =                         Initial weekly treatment capacity at a treatment site
+:math:`\textcolor{green}{σ_{r}^{Treatment}}` =                         Initial treatment capacity at a treatment site
 
-:math:`\textcolor{green}{σ_{o}^{BeneficialReuse}}` =                   Initial weekly reuse capacity at a reuse site
+:math:`\textcolor{green}{σ_{o}^{BeneficialReuse}}` =                   Initial reuse capacity at a reuse site
 
-:math:`\textcolor{green}{σ_{f,t}^{Freshwater}}` =                      Weekly freshwater sourcing capacity at freshwater source
+:math:`\textcolor{green}{σ_{f,t}^{Freshwater}}` =                      Freshwater sourcing capacity at freshwater source
 
-:math:`\textcolor{green}{σ_{p}^{Offloading,Pad}}` =                    Weekly truck offloading sourcing capacity per pad
+:math:`\textcolor{green}{σ_{p}^{Offloading,Pad}}` =                    Truck offloading sourcing capacity per pad
 
-:math:`\textcolor{green}{σ_{s}^{Offloading,Storage}}` =	               Weekly truck offloading sourcing capacity per storage site
+:math:`\textcolor{green}{σ_{s}^{Offloading,Storage}}` =	               Truck offloading sourcing capacity per storage site
 
 
-:math:`\textcolor{green}{σ_{p}^{Processing,Pad}}` =                    Weekly processing (e.g. clarification) capacity per pad
+:math:`\textcolor{green}{σ_{p}^{Processing,Pad}}` =                    Processing (e.g. clarification) capacity per pad
 
-:math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Weekly processing (e.g. clarification) capacity at storage site
+:math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Processing (e.g. clarification) capacity at storage site
 
-:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Weekly capacity per network node
+:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Capacity per network node
 
 
 
@@ -313,8 +313,6 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{green}{ϵ_{r, w}^{Treatment}}` =                      Treatment efficiency at treatment site
 
 :math:`\textcolor{green}{α^{AnnualizationRate}}` =                     Annualization Rate [%]
-
-
 
 :math:`\textcolor{green}{δ_{i}^{Disposal}}` =                          Disposal capacity installation or expansion increments
 
@@ -365,17 +363,17 @@ Strategic Model Mathematical Notation
 
 **The cost parameter for expanding or constructing new pipeline capacity is structured differently depending on model configuration settings. If the pipeline cost configuration is distance based:**
 
-    :math:`\textcolor{green}{κ^{Pipeline}}` =                              Pipeline construction or expansion capital cost [$/inch-mile]
+    :math:`\textcolor{green}{κ^{Pipeline}}` =                              Pipeline construction or expansion capital cost [currency/(diameter-distance)]
 
-    :math:`\textcolor{green}{μ_{d}^{Pipeline}}` =                          Pipeline diameter installation or expansion increments  [inch]
+    :math:`\textcolor{green}{μ_{d}^{Pipeline}}` =                          Pipeline diameter installation or expansion increments  [diameter]
 
-    :math:`\textcolor{green}{λ_{l,l}^{Pipeline}}` = 	                   Pipeline segment length [miles]
+    :math:`\textcolor{green}{λ_{l,l}^{Pipeline}}` = 	                   Pipeline segment length [distance]
 
 **Otherwise, if the pipeline cost configuration is capacity based:**
 
-    :math:`\textcolor{green}{κ_{l,l,d}^{Pipeline}}` =                      Pipeline construction or expansion capital cost for selected diameter capacity [$/bbl/day]
+    :math:`\textcolor{green}{κ_{l,l,d}^{Pipeline}}` =                      Pipeline construction or expansion capital cost for selected diameter capacity [currency/(volume/time)]
 
-    :math:`\textcolor{green}{δ_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion capacity increments  [bbl/day]
+    :math:`\textcolor{green}{δ_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion capacity increments  [volume/time]
 
 
 :math:`\textcolor{green}{π_{k}^{Disposal}}` =                          Disposal operational cost
@@ -1219,7 +1217,7 @@ Terminology
 
 **Network Nodes:** These are branch points for pipelines only.
 
-.. note:: Well pads are not a subset of network nodes.
+.. note:: Well pads are not a subset of network nodesd.
 
 **[t]:** This notation indicates that timing of capacity expansion has not yet been implemented.
 

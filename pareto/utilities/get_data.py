@@ -73,7 +73,7 @@ def _read_data(_fname, _set_list, _parameter_list):
 
     _set_list = list(set(_set_list))
     _data_column = list(set(_data_column))
-    generic_words = ["index", "nodes", "time", "pads"]
+    generic_words = ["index", "nodes", "time", "pads", "quantity"]
     remove_columns = ["unnamed", "proprietary data"]
     keyword_strings = ["PROPRIETARY DATA", "proprietary data", "Proprietary Data"]
     for i in _df_parameters:
