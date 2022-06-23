@@ -21,7 +21,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.results import generate_report, PrintValues, OutputUnits
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -42,6 +42,7 @@ set_list = [
     "TreatmentCapacities",
 ]
 parameter_list = [
+    "Units",
     "PNA",
     "CNA",
     "CCA",
@@ -103,8 +104,8 @@ parameter_list = [
 with resources.path(
     "pareto.case_studies",
     # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    "small_strategic_case_study.xlsx",
-    # "strategic_water_treatment_toy_case_study_t10.xlsx"
+    # "small_strategic_case_study.xlsx",
+    "strategic_water_treatment_toy_case_study_t10.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -132,17 +133,22 @@ strategic_model = create_model(
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
-    "scaling_factor": 1000000,
+    "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,
 }
 solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
-print("\nDisplaying Solution\n" + "-" * 60)
+print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
+"""Valid values of parameters in the generate_report() call
+ is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
+ output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
+ """
 [model, results_dict] = generate_report(
     strategic_model,
-    is_print=[PrintValues.Essential],
+    is_print=[PrintValues.essential],
+    output_units=OutputUnits.unscaled_model_units,
     fname="strategic_optimization_results.xlsx",
 )
 

@@ -84,6 +84,16 @@ html_logo = "_static/logo-print-hd.jpg"
 #
 html_favicon = "_static/favicon.ico"
 
+# Options for LaTeX build
+# change default engine (pdflatex) to correctly display Unicode characters in source
+# https://docs.readthedocs.io/en/stable/guides/pdf-non-ascii-languages.html#sphinx-pdfs-with-unicode
+latex_engine = "xelatex"
+latex_elements = {
+    "preamble": r"""
+\usepackage[mono=false]{libertinus-otf}
+"""
+}
+
 ## for MyST (Markdown)
 
 myst_enable_extensions = [

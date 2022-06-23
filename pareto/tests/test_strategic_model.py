@@ -15,12 +15,17 @@ Test strategic model
 """
 # Import Pyomo libraries
 import pyomo.environ as pyo
+from pyomo.util.check_units import assert_units_consistent
+from pyomo.core.base import value
+from pyomo.environ import Constraint
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
     create_model,
+    solve_model,
+    get_strategic_model_unit_container,
     Objectives,
     scale_model,
     PipelineCost,
@@ -28,8 +33,11 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
+from pareto.utilities.units_support import (
+    flatten_list,
+    PintUnitExtractionVisitor,
+)
 from importlib import resources
-import pandas as pd
 import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
 
@@ -61,6 +69,7 @@ def build_strategic_model():
         "TreatmentCapacities",
     ]
     parameter_list = [
+        "Units",
         "PNA",
         "CNA",
         "CCA",
@@ -144,7 +153,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64048
+    assert degrees_of_freedom(m) == 64051
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -167,7 +176,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64048
+    assert degrees_of_freedom(m) == 64051
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -190,7 +199,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64048
+    assert degrees_of_freedom(m) == 64051
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -213,7 +222,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64048
+    assert degrees_of_freedom(m) == 64051
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -222,6 +231,76 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.component
+def test_strategic_model_unit_consistency(build_strategic_model):
+    """
+    Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
+    This test utilizes assert_units_consistent in addition to a special case test assertion.
+    The need for this special case comes from constraints that are mathematically the same, but are not
+    interpreted as such by Pyomo. An example is the storage balance constraint in time period T:
+    storage at time T [bbl] = flow in [bbl/week] - flow out [bbl/week] + storage at time T-1 [bbl]
+    The time unit of the flow in and flow out rate variables will always be the same as the
+    length of time T that is the decision period, so the units are consistent despite [bbl] and
+    [bbl/day] being inconsistent.
+    """
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+
+    # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
+    visitor = PintUnitExtractionVisitor(get_strategic_model_unit_container())
+    # Iterate through all Constraints
+    for c in m.component_objects(Constraint):
+        # If indexed, iterate through Constraint indexes
+        for index in c:
+            if index is None:
+                condata = c
+
+            elif index is not None:
+                condata = c[index]
+
+            # Obtain lower, upper, and body of constraint
+            args = list()
+            if condata.lower is not None and value(condata.lower) != 0.0:
+                args.append(condata.lower)
+
+            args.append(condata.body)
+
+            if condata.upper is not None and value(condata.upper) != 0.0:
+                args.append(condata.upper)
+            # Use the visitor to extract the units of lower, upper,
+            # and body of our constraint
+            pint_units = [visitor.walk_expression(arg) for arg in args]
+            # The units are in a nested list, flatten the list
+            flat_list = flatten_list(pint_units)
+            flat_list = [x for x in flat_list if x]
+
+            # Compare all units to the first unit. Assess if the unique units are valid.
+            first_unit = flat_list[0]
+            # The decision period will be used to assess if the unit is valid
+            decision_period_pint_unit = m.decision_period._get_pint_unit()
+            for py_unit in flat_list[1:]:
+                if visitor._equivalent_pint_units(first_unit, py_unit):
+                    break
+                # If the unit is equivalent when multiplying by the decision period,
+                # the unit is consistent
+                elif visitor._equivalent_pint_units(
+                    first_unit * decision_period_pint_unit, py_unit
+                ):
+                    break
+                elif visitor._equivalent_pint_units(
+                    first_unit, py_unit * decision_period_pint_unit
+                ):
+                    break
+                # otherwise, check if consistent with Pyomo's check
+                else:
+                    assert_units_consistent(condata)
 
 
 # if solver cbc exists @solver
@@ -237,7 +316,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 64048
+    assert degrees_of_freedom(m) == 64051
 
 
 @pytest.fixture(scope="module")
@@ -260,6 +339,7 @@ def build_reduced_strategic_model():
         "TreatmentCapacities",
     ]
     parameter_list = [
+        "Units",
         "PNA",
         "CNA",
         "CCA",
@@ -312,7 +392,6 @@ def build_reduced_strategic_model():
         "Economics",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
-        "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
     ]
 
@@ -344,7 +423,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63173
+    assert degrees_of_freedom(m) == 63177
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -368,7 +447,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63173
+    assert degrees_of_freedom(m) == 63177
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -392,7 +471,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63173
+    assert degrees_of_freedom(m) == 63177
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -514,13 +593,46 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
         }
     )
-    scaled_m = scale_model(m, scaling_factor=100000)
-    solver = get_solver("cbc")
-    solver.options["seconds"] = 60 * 7
-    results = solver.solve(scaled_m, tee=False)
-    pyo.TransformationFactory("core.scale_model").propagate_solution(scaled_m, m)
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": True,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+        "water_quality": False,
+    }
+    results = solve_model(model=m, options=options)
+
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 63173
+    assert degrees_of_freedom(m) == 61883
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(10188185.97, abs=1e-1) == pyo.value(m.v_Objective)
+    assert pytest.approx(10188.19, abs=1e-1) == pyo.value(m.v_Z)
+
+
+@pytest.mark.component
+def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": True,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+        "water_quality": True,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    # solutions obtained from running the reduced generic case study water quality
+    assert degrees_of_freedom(m) == -18826
+    assert pytest.approx(9.06, abs=1e-1) == pyo.value(m.quality.v_X)
