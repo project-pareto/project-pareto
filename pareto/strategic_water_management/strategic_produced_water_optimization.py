@@ -6480,7 +6480,9 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, l, l_tilde, t, w, q: model.v_F_DiscretePiped[l, l_tilde, t, w, q]
+            rule=lambda model, l, l_tilde, t, w, q: model.v_F_DiscretePiped[
+                l, l_tilde, t, w, q
+            ]
             <= (
                 model.p_sigma_Pipeline[l, l_tilde]
                 + get_max_value_for_parameter(model.p_delta_Pipeline)
@@ -6681,7 +6683,11 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             rule=lambda model, s, t, w, q: model.v_L_DiscreteStorage[s, t, w, q]
-            <= (model.p_sigma_Storage[s] + get_max_value_for_parameter(model.p_delta_Storage))  * model.v_DQ[s, t, w, q],
+            <= (
+                model.p_sigma_Storage[s]
+                + get_max_value_for_parameter(model.p_delta_Storage)
+            )
+            * model.v_DQ[s, t, w, q],
             doc="Only one quantity for storage site s can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -6833,9 +6839,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, o, t, w, q: model.v_F_DiscreteBRDestination[
-                o, t, w, q
-            ]
+            rule=lambda model, o, t, w, q: model.v_F_DiscreteBRDestination[o, t, w, q]
             <= (
                 sum(
                     model.p_sigma_Pipeline[n, o]
@@ -6864,8 +6868,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, o, t, w: sum(
-                model.v_F_DiscreteBRDestination[o, t, w, q]
-                for q in model.s_Q
+                model.v_F_DiscreteBRDestination[o, t, w, q] for q in model.s_Q
             )
             == model.v_F_BeneficialReuseDestination[o, t],
             doc="The sum of discretized quantities at beneficial reuse destination o equals the total quantity for beneficial reuse destination o",
@@ -6900,8 +6903,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, p, t, w: sum(
-                model.v_F_DiscreteFlowCPIntermediate[p, t, w, q]
-                for q in model.s_Q
+                model.v_F_DiscreteFlowCPIntermediate[p, t, w, q] for q in model.s_Q
             )
             == model.v_F_PadStorageIn[p, t] + model.v_F_CompletionsDestination[p, t],
             doc="The sum of discretized quantities for flowing out of intermediate at completion pad cp equals the total quantity for flowing out of intermediate at completion pad cp",
@@ -6923,9 +6925,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, p, t, w, q: model.v_F_DiscreteFlowCPStorage[
-                p, t, w, q
-            ]
+            rule=lambda model, p, t, w, q: model.v_F_DiscreteFlowCPStorage[p, t, w, q]
             <= (model.p_gamma_Completions[p, t] + model.p_sigma_PadStorage[p])
             * model.v_DQ[p + storage_label, t, w, q],
             doc="Only one quantity at pad storage at completion pad cp can be non-zero for quality component w and all discretized quality q",
@@ -6936,8 +6936,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, p, t, w: sum(
-                model.v_F_DiscreteFlowCPStorage[p, t, w, q]
-                for q in model.s_Q
+                model.v_F_DiscreteFlowCPStorage[p, t, w, q] for q in model.s_Q
             )
             == model.v_L_PadStorage[p, t] + model.v_F_PadStorageOut[p, t],
             doc="The sum of discretized quantities at pad storage at completion pad cp equals the total quantity at pad storage at completion pad cp",
@@ -7060,9 +7059,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, p, t, w, q: model.v_F_DiscreteCPDestination[
-                p, t, w, q
-            ]
+            rule=lambda model, p, t, w, q: model.v_F_DiscreteCPDestination[p, t, w, q]
             <= (model.p_gamma_Completions[p, t])
             * model.v_DQ[p + intermediate_label, t, w, q],
             doc="Only one quantity for flowing in from intermediate at completion pad cp can be non-zero for quality component w and all discretized quality q",
@@ -7327,8 +7324,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for p in model.s_PP
             if model.p_POT[p, o]
         ) <= sum(
-            model.v_F_DiscreteBRDestination[o, t, w, q]
-            * model.p_discrete_quality[w, q]
+            model.v_F_DiscreteBRDestination[o, t, w, q] * model.p_discrete_quality[w, q]
             for q in model.s_Q
         )
 
@@ -7608,22 +7604,16 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.v_L_DiscreteStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowTreatment] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowOutNode] = 1 / (scaling_factor)
-        model.scaling_factor[model.v_F_DiscreteBRDestination] = 1 / (
-            scaling_factor
-        )
+        model.scaling_factor[model.v_F_DiscreteBRDestination] = 1 / (scaling_factor)
 
         model.scaling_factor[model.v_F_DiscreteFlowCPIntermediate] = 1 / (
             scaling_factor
         )
-        model.scaling_factor[model.v_F_DiscreteFlowCPStorage] = 1 / (
-            scaling_factor
-        )
+        model.scaling_factor[model.v_F_DiscreteFlowCPStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_L_DiscretePadStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowOutPadStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowInPadStorage] = 1 / (scaling_factor)
-        model.scaling_factor[model.v_F_DiscreteCPDestination] = 1 / (
-            scaling_factor
-        )
+        model.scaling_factor[model.v_F_DiscreteCPDestination] = 1 / (scaling_factor)
         model.scaling_factor[model.v_Q_CompletionPad] = 1 / (scaling_factor)
         model.scaling_factor[model.v_ObjectiveWithQuality] = 1 / (scaling_factor)
         model.scaling_factor[model.ObjectiveFunction] = 1 / scaling_factor
