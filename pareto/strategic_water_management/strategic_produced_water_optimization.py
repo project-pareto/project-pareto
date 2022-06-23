@@ -6324,7 +6324,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for key, value in model.df_parameters["PadWaterQuality"].items()
         },
         units=model.model_units["concentration"],
-        doc="Water Quality at pad [mg/L]",
+        doc="Water Quality at pad [concentration]",
     )
     # Quality of Sourced Water
     model.p_nu_freshwater = Param(
@@ -6337,7 +6337,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             to_units=model.model_units["concentration"],
         ),
         units=model.model_units["concentration"],
-        doc="Water Quality of freshwater [mg/L]",
+        doc="Water Quality of freshwater [concentration]",
     )
     # Initial water quality at storage site
     model.p_xi_StorageSite = Param(
@@ -6353,7 +6353,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for key, value in model.df_parameters["StorageInitialWaterQuality"].items()
         },
         units=model.model_units["concentration"],
-        doc="Initial Water Quality at storage site [mg/L]",
+        doc="Initial Water Quality at storage site [concentration]",
     )
     # Initial water quality at completions pad storage tank
     model.p_xi_PadStorage = Param(
@@ -6371,7 +6371,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             ].items()
         },
         units=model.model_units["concentration"],
-        doc="Initial Water Quality at storage site [mg/L]",
+        doc="Initial Water Quality at storage site [concentration]",
     )
 
     # region discretization
@@ -6472,7 +6472,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
             initialize=0,
-            doc="Produced water quantity piped from location l to location l for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity piped from location l to location l for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxPipeFlow = Constraint(
@@ -6480,12 +6480,12 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, l1, l2, t, w, q: model.v_F_DiscretePiped[l1, l2, t, w, q]
+            rule=lambda model, l, l_tilde, t, w, q: model.v_F_DiscretePiped[l, l_tilde, t, w, q]
             <= (
-                model.p_sigma_Pipeline[l1, l2]
+                model.p_sigma_Pipeline[l, l_tilde]
                 + get_max_value_for_parameter(model.p_delta_Pipeline)
             )
-            * model.v_DQ[l1, t, w, q],
+            * model.v_DQ[l, t, w, q],
             doc="Only one flow can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -6493,10 +6493,10 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_NonPLP,
             model.s_T,
             model.s_W,
-            rule=lambda model, l1, l2, t, w: sum(
-                model.v_F_DiscretePiped[l1, l2, t, w, q] for q in model.s_Q
+            rule=lambda model, l, l_tilde, t, w: sum(
+                model.v_F_DiscretePiped[l, l_tilde, t, w, q] for q in model.s_Q
             )
-            == model.v_F_Piped[l1, l2, t],
+            == model.v_F_Piped[l, l_tilde, t],
             doc="Sum for each flow for component w equals the produced water quantity piped from location l to location l ",
         )
 
@@ -6510,7 +6510,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
             initialize=0,
-            doc="Produced water quantity trucked from location l to location l for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity trucked from location l to location l for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxTruckedFlow = Constraint(
@@ -6518,11 +6518,11 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, l1, l2, t, w, q: model.v_F_DiscreteTrucked[
-                l1, l2, t, w, q
+            rule=lambda model, l, l_tilde, t, w, q: model.v_F_DiscreteTrucked[
+                l, l_tilde, t, w, q
             ]
             <= (model.p_delta_Truck * model.p_max_number_of_trucks)
-            * model.v_DQ[l1, t, w, q],
+            * model.v_DQ[l, t, w, q],
             doc="Only one flow can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -6530,10 +6530,10 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_NonPLT,
             model.s_T,
             model.s_W,
-            rule=lambda model, l1, l2, t, w: sum(
-                model.v_F_DiscreteTrucked[l1, l2, t, w, q] for q in model.s_Q
+            rule=lambda model, l, l_tilde, t, w: sum(
+                model.v_F_DiscreteTrucked[l, l_tilde, t, w, q] for q in model.s_Q
             )
-            == model.v_F_Trucked[l1, l2, t],
+            == model.v_F_Trucked[l, l_tilde, t],
             doc="Sum for each flow for component w equals the produced water quantity trucked from location l to location l  ",
         )
 
@@ -6546,7 +6546,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at disposal k for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity at disposal k for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxDisposalDestination = Constraint(
@@ -6584,7 +6584,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity out of storage site s for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity out of storage site s for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxOutStorageFlow = Constraint(
@@ -6672,7 +6672,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume"],
-            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxStorage = Constraint(
@@ -6681,7 +6681,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             rule=lambda model, s, t, w, q: model.v_L_DiscreteStorage[s, t, w, q]
-            <= model.p_sigma_Storage[s] * model.v_DQ[s, t, w, q],
+            <= (model.p_sigma_Storage[s] + get_max_value_for_parameter(model.p_delta_Storage))  * model.v_DQ[s, t, w, q],
             doc="Only one quantity for storage site s can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -6704,7 +6704,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at treatment site r for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity at treatment site r for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxTreatmentFlow = Constraint(
@@ -6744,7 +6744,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity out of node n for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity out of node n for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxOutNodeFlow = Constraint(
@@ -6818,14 +6818,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeBeneficialReuseQuality(model):
-        model.v_F_DiscreteBeneficialReuseDestination = Var(
+        model.v_F_DiscreteBRDestination = Var(
             model.s_O,
             model.s_T,
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at beneficial reuse destination o for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity at beneficial reuse destination o for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxBeneficialReuseFlow = Constraint(
@@ -6833,7 +6833,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, o, t, w, q: model.v_F_DiscreteBeneficialReuseDestination[
+            rule=lambda model, o, t, w, q: model.v_F_DiscreteBRDestination[
                 o, t, w, q
             ]
             <= (
@@ -6864,7 +6864,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, o, t, w: sum(
-                model.v_F_DiscreteBeneficialReuseDestination[o, t, w, q]
+                model.v_F_DiscreteBRDestination[o, t, w, q]
                 for q in model.s_Q
             )
             == model.v_F_BeneficialReuseDestination[o, t],
@@ -6872,14 +6872,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeCompletionsPadIntermediateQuality(model):
-        model.v_F_DiscreteFlowCompletionsPadIntermediate = Var(
+        model.v_F_DiscreteFlowCPIntermediate = Var(
             model.s_CP,
             model.s_T,
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity flowing out of intermediate at completion pad cp for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity flowing out of intermediate at completion pad cp for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxCompletionsPadIntermediateFlow = Constraint(
@@ -6887,7 +6887,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, p, t, w, q: model.v_F_DiscreteFlowCompletionsPadIntermediate[
+            rule=lambda model, p, t, w, q: model.v_F_DiscreteFlowCPIntermediate[
                 p, t, w, q
             ]
             <= (model.p_gamma_Completions[p, t] + model.p_sigma_PadStorage[p])
@@ -6900,7 +6900,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, p, t, w: sum(
-                model.v_F_DiscreteFlowCompletionsPadIntermediate[p, t, w, q]
+                model.v_F_DiscreteFlowCPIntermediate[p, t, w, q]
                 for q in model.s_Q
             )
             == model.v_F_PadStorageIn[p, t] + model.v_F_CompletionsDestination[p, t],
@@ -6908,14 +6908,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeCompletionsPadStorageQuality(model):
-        model.v_F_DiscreteFlowCompletionsPadStorage = Var(
+        model.v_F_DiscreteFlowCPStorage = Var(
             model.s_CP,
             model.s_T,
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at pad storage at completion pad cp for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity at pad storage at completion pad cp for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxCompletionsPadStorageFlow = Constraint(
@@ -6923,7 +6923,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, p, t, w, q: model.v_F_DiscreteFlowCompletionsPadStorage[
+            rule=lambda model, p, t, w, q: model.v_F_DiscreteFlowCPStorage[
                 p, t, w, q
             ]
             <= (model.p_gamma_Completions[p, t] + model.p_sigma_PadStorage[p])
@@ -6936,7 +6936,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, p, t, w: sum(
-                model.v_F_DiscreteFlowCompletionsPadStorage[p, t, w, q]
+                model.v_F_DiscreteFlowCPStorage[p, t, w, q]
                 for q in model.s_Q
             )
             == model.v_L_PadStorage[p, t] + model.v_F_PadStorageOut[p, t],
@@ -6951,7 +6951,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume"],
-            doc="Produced water quantity at pad storage for completion pad cp for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity at pad storage for completion pad cp for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxPadStorage = Constraint(
@@ -6983,7 +6983,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity out of padstorage at completion pad cp for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity out of padstorage at completion pad cp for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxFlowOutPadStorage = Constraint(
@@ -7017,7 +7017,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity flowing in at padstorage at completion pad cp for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity flowing in at padstorage at completion pad cp for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxFlowInPadStorage = Constraint(
@@ -7045,14 +7045,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeCompletionsDestinationQuality(model):
-        model.v_F_DiscreteCompletionsDestination = Var(
+        model.v_F_DiscreteCPDestination = Var(
             model.s_CP,
             model.s_T,
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity flowing in from intermediate at completion pad cp for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity flowing in from intermediate at completion pad cp for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxCompletionsDestination = Constraint(
@@ -7060,7 +7060,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             model.s_Q,
-            rule=lambda model, p, t, w, q: model.v_F_DiscreteCompletionsDestination[
+            rule=lambda model, p, t, w, q: model.v_F_DiscreteCPDestination[
                 p, t, w, q
             ]
             <= (model.p_gamma_Completions[p, t])
@@ -7073,7 +7073,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_W,
             rule=lambda model, p, t, w: sum(
-                model.v_F_DiscreteCompletionsDestination[p, t, w, q] for q in model.s_Q
+                model.v_F_DiscreteCPDestination[p, t, w, q] for q in model.s_Q
             )
             == model.v_F_CompletionsDestination[p, t],
             doc="The sum of discretized quantities for flowing in from intermediate at completion pad cp equals the total quantity for flowing in from intermediate at completion pad cp",
@@ -7327,7 +7327,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for p in model.s_PP
             if model.p_POT[p, o]
         ) <= sum(
-            model.v_F_DiscreteBeneficialReuseDestination[o, t, w, q]
+            model.v_F_DiscreteBRDestination[o, t, w, q]
             * model.p_discrete_quality[w, q]
             for q in model.s_Q
         )
@@ -7405,7 +7405,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for f in model.s_F
             if model.p_FCT[f, p]
         ) <= sum(
-            model.v_F_DiscreteFlowCompletionsPadIntermediate[p, t, w, q]
+            model.v_F_DiscreteFlowCPIntermediate[p, t, w, q]
             * model.p_discrete_quality[w, q]
             for q in model.s_Q
         )
@@ -7425,7 +7425,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
-        doc="Water quality at completion pad [mg/L]",
+        doc="Water quality at completion pad [concentration]",
     )
 
     def CompletionsPadWaterQuality(b, p, w, t):
@@ -7436,7 +7436,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 for q in model.s_Q
             )
             + sum(
-                model.v_F_DiscreteCompletionsDestination[p, t, w, q]
+                model.v_F_DiscreteCPDestination[p, t, w, q]
                 * model.p_discrete_quality[w, q]
                 for q in model.s_Q
             )
@@ -7460,7 +7460,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 * model.p_discrete_quality[w, q]
                 for q in model.s_Q
             ) <= sum(
-                model.v_F_DiscreteFlowCompletionsPadStorage[p, t, w, q]
+                model.v_F_DiscreteFlowCPStorage[p, t, w, q]
                 * model.p_discrete_quality[w, q]
                 for q in model.s_Q
             )
@@ -7474,7 +7474,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 * model.p_discrete_quality[w, q]
                 for q in model.s_Q
             ) <= sum(
-                model.v_F_DiscreteFlowCompletionsPadStorage[p, t, w, q]
+                model.v_F_DiscreteFlowCPStorage[p, t, w, q]
                 * model.p_discrete_quality[w, q]
                 for q in model.s_Q
             )
@@ -7511,9 +7511,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
         rule=ObjectiveFunctionRule, doc="Objective function water quality"
     )
 
-    model.objective = Objective(
-        expr=model.v_ObjectiveWithQuality, sense=minimize, doc="Objective function"
-    )
+    model.objective.set_value(expr=model.v_ObjectiveWithQuality)
+
     return model
 
 
@@ -7609,20 +7608,20 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.v_L_DiscreteStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowTreatment] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowOutNode] = 1 / (scaling_factor)
-        model.scaling_factor[model.v_F_DiscreteBeneficialReuseDestination] = 1 / (
+        model.scaling_factor[model.v_F_DiscreteBRDestination] = 1 / (
             scaling_factor
         )
 
-        model.scaling_factor[model.v_F_DiscreteFlowCompletionsPadIntermediate] = 1 / (
+        model.scaling_factor[model.v_F_DiscreteFlowCPIntermediate] = 1 / (
             scaling_factor
         )
-        model.scaling_factor[model.v_F_DiscreteFlowCompletionsPadStorage] = 1 / (
+        model.scaling_factor[model.v_F_DiscreteFlowCPStorage] = 1 / (
             scaling_factor
         )
         model.scaling_factor[model.v_L_DiscretePadStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowOutPadStorage] = 1 / (scaling_factor)
         model.scaling_factor[model.v_F_DiscreteFlowInPadStorage] = 1 / (scaling_factor)
-        model.scaling_factor[model.v_F_DiscreteCompletionsDestination] = 1 / (
+        model.scaling_factor[model.v_F_DiscreteCPDestination] = 1 / (
             scaling_factor
         )
         model.scaling_factor[model.v_Q_CompletionPad] = 1 / (scaling_factor)
@@ -7884,13 +7883,13 @@ def solve_discrete_water_quality(strategic_model_scaled, opt):
         "scaled_v_L_DiscreteStorage",
         "scaled_v_F_DiscreteFlowTreatment",
         "scaled_v_F_DiscreteFlowOutNode",
-        "scaled_v_F_DiscreteBeneficialReuseDestination",
-        "scaled_v_F_DiscreteFlowCompletionsPadIntermediate",
-        "scaled_v_F_DiscreteFlowCompletionsPadStorage",
+        "scaled_v_F_DiscreteBRDestination",
+        "scaled_v_F_DiscreteFlowCPIntermediate",
+        "scaled_v_F_DiscreteFlowCPStorage",
         "scaled_v_L_DiscretePadStorage",
         "scaled_v_F_DiscreteFlowOutPadStorage",
         "scaled_v_F_DiscreteFlowInPadStorage",
-        "scaled_v_F_DiscreteCompletionsDestination",
+        "scaled_v_F_DiscreteCPDestination",
         "scaled_v_Q_CompletionPad",
         "scaled_v_ObjectiveWithQuality",
     }

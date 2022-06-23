@@ -1252,7 +1252,7 @@ For each location in time only for one discrete quality there can be water injec
 
 .. math::
 
-    \textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} <= \textcolor{green}{D_{k,[t]}^{Capacity}}⋅\textcolor{red}{Z_{l,t,w,q}} 
+    \textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} ≤ \textcolor{green}{D_{k,[t]}^{Capacity}}⋅\textcolor{red}{Z_{l,t,w,q}} 
 
 **Sum Flow Discrete Disposal Destinations is Flow Disposal Destination** ∀l ∈ L, t ∈ T, w ∈ W
 
@@ -1260,7 +1260,7 @@ For each location in time the sum of the flows for all the discrete qualities is
 
 .. math::
 
-    ∑_{(q)∈Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} == \textcolor{red}{F_{k,t}^{DisposalDestination}}
+    ∑_{(q)∈Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} = \textcolor{red}{F_{k,t}^{DisposalDestination}}
 
 
 We can now rewrite the non linear equation showed before to:
@@ -1307,11 +1307,11 @@ The water quality of disposed water is dependent on the flow rates into the disp
    
     +∑_{(r,k)∈RKT}∑_{(q)∈Q}\textcolor{red}{F_{l,l,t}^{DiscreteTrucked}}⋅\textcolor{green}{Q_{w,q}^{DiscreteQuality}}
 
-    <=∑_{(q)∈Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}}⋅\textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    ≤∑_{(q)∈Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}}⋅\textcolor{green}{Q_{w,q}^{DiscreteQuality}}
 
 The constraints for the DiscretePiped and DiscreteTrucked are similar to the DiscreteDisposalDestination.
 
-.. note:: The == sign in the original constraint is changed to <= sign in the discretized version. 
+.. note:: The = sign in the original constraint is changed to ≤ sign in the discretized version. 
 
 .. _strategic_model_terminology:
 

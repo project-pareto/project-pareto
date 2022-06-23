@@ -249,7 +249,7 @@ def generate_report(
                     "Total outflow node",
                 )
             ],
-            "v_F_DiscreteBeneficialReuseDestination_dict": [
+            "v_F_DiscreteBRDestination_dict": [
                 (
                     "Reuse Location",
                     "Time",
@@ -258,7 +258,7 @@ def generate_report(
                     "Beneficial water",
                 )
             ],
-            "v_F_DiscreteFlowCompletionsPadIntermediate_dict": [
+            "v_F_DiscreteFlowCPIntermediate_dict": [
                 (
                     "Completion pad intermediate",
                     "Time",
@@ -267,7 +267,7 @@ def generate_report(
                     "Intermediate water",
                 )
             ],
-            "v_F_DiscreteFlowCompletionsPadStorage_dict": [
+            "v_F_DiscreteFlowCPStorage_dict": [
                 (
                     "Completion pad storage",
                     "Time",
@@ -303,7 +303,7 @@ def generate_report(
                     "Inflow storage",
                 )
             ],
-            "v_F_DiscreteCompletionsDestination_dict": [
+            "v_F_DiscreteCPDestination_dict": [
                 (
                     "Completion pad intermediate",
                     "Time",
@@ -572,7 +572,7 @@ def generate_report(
                     "Total outflow node",
                 )
             ],
-            "v_F_DiscreteBeneficialReuseDestination_dict": [
+            "v_F_DiscreteBRDestination_dict": [
                 (
                     "Reuse Location",
                     "Time",
@@ -581,7 +581,7 @@ def generate_report(
                     "Beneficial water",
                 )
             ],
-            "v_F_DiscreteFlowCompletionsPadIntermediate_dict": [
+            "v_F_DiscreteFlowCPIntermediate_dict": [
                 (
                     "Completion pad intermediate",
                     "Time",
@@ -590,7 +590,7 @@ def generate_report(
                     "Intermediate water",
                 )
             ],
-            "v_F_DiscreteFlowCompletionsPadStorage_dict": [
+            "v_F_DiscreteFlowCPStorage_dict": [
                 (
                     "Completion pad storage",
                     "Time",
@@ -626,7 +626,7 @@ def generate_report(
                     "Inflow storage",
                 )
             ],
-            "v_F_DiscreteCompletionsDestination_dict": [
+            "v_F_DiscreteCPDestination_dict": [
                 (
                     "Completion pad intermediate",
                     "Time",
