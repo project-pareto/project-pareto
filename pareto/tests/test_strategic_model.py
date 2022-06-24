@@ -495,7 +495,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 109453
+    assert degrees_of_freedom(m) == 109457
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -591,6 +591,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
         }
     )
 
@@ -600,7 +601,6 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
-        "water_quality": False,
     }
     results = solve_model(model=m, options=options)
 
