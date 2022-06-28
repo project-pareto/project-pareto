@@ -450,42 +450,49 @@ The annualization rate is calculated using the formula described at this website
 The annualization rate takes the discount rate (rate) and the number of years the CAPEX investment is expected to be used (life) as input.
 
 .. math::
-    \textcolor{green}{α^{AnnualizationRate}} = \frac{\textcolor{green}{rate}}{(1-{(1+\textcolor{green}{rate})}^{-\textcolor{green}{life}})}
+    \textcolor{green}{\alpha^{AnnualizationRate}} = \frac{\textcolor{green}{rate}}{(1-{(1+\textcolor{green}{rate})}^{-\textcolor{green}{life}})}
 
 
-**Completions Pad Demand Balance:** ∀p ∈ CP, t ∈ T
+**Completions Pad Demand Balance:** :math:`\forall p  \in  CP, t  \in  T`
 
 Completions pad demand can be met by trucked or piped water moved into the pad in addition to water in completions pad storage. For each completions pad and for each time period, completions demand at the given pad is equal to the sum of all piped and trucked water moved into the completions pad plus water removed from the pad storage minus water put into the pad storage plus a slack.
 
 .. math::
 
-    \textcolor{green}{γ_{p,t}^{Completions}} = \sum\nolimits_{(n,p)∈NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,p)∈PCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,p)∈SCA}\textcolor{red}{F_{l,l,t}^{Piped}}
+    \textcolor{green}{\gamma_{p,t}^{Completions}} = \sum_{n \in N|(n,p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}+\sum_{\tilde{p} \in PP|(\tilde{p},p) \in PCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}+\sum_{s \in S|(s,p) \in SCA}\textcolor{red}{F_{s,p,t}^{Piped}}
 
-        +\sum\nolimits_{(p,c)∈CCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(r,p)∈RCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(f,p)∈FCA}\textcolor{red}{F_{l,l,t}^{Sourced}}
+        +\sum_{\tilde{p} \in CP|(\tilde{p},p) \in CCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}} +\sum_{r \in R|(r,p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}} +\sum_{f \in F|(f,p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
 
-        +\sum\nolimits_{(p,p)∈PCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(s,p)∈SCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(p,p)∈CCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
+        +\sum_{\tilde{p} \in PP|(\tilde{p},p) \in PCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}} +\sum_{\tilde{p} \in CP|(\tilde{p},p) \in CCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}} +\sum_{s \in S|(s,p) \in SCT}\textcolor{red}{F_{s,p,t}^{Trucked}}
 
-        +\sum\nolimits_{(f,p)∈FCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}+\textcolor{red}{S_{p,t}^{FracDemand}}
+        +\sum_{f \in F|(f,p) \in FCT}\textcolor{red}{F_{f,p,t}^{Trucked}} +\textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}+\textcolor{red}{S_{p,t}^{FracDemand}}
 
 
-**Completions Pad Storage Balance:** ∀p ∈ CP, t ∈ T
+**Completions Pad Storage Balance:** :math:`\forall p \in CP, t \in T`
 
 Sets the storage level at the completions pad. For each completions pad and for each time period, completions pad storage is equal to storage in last time period plus water put in minus water removed. If it is the first time period, the pad storage is the initial pad storage.
 
+for t = 1
 
 .. math::
 
-    \textcolor{red}{L_{p,t}^{PadStorage}} = \textcolor{green}{λ_{p,t=1}^{PadStorage}}+\textcolor{red}{L_{p,t-1}^{PadStorage}}+\textcolor{red}{F_{p,t}^{StorageIn}}-\textcolor{red}{F_{p,t}^{StorageOut}}
+    \textcolor{red}{L_{p,t}^{PadStorage}} = \textcolor{green}{\lambda_{p,t=1}^{PadStorage}}+\textcolor{red}{F_{p,t}^{PadStorageIn}}-\textcolor{red}{F_{p,t}^{PadStorageOut}}
 
 
+for t > 1
 
-**Completions Pad Storage Capacity:** ∀p ∈ CP, t ∈ T
+.. math::
+
+    \textcolor{red}{L_{p,t}^{PadStorage}} = \textcolor{red}{L_{p,t-1}^{PadStorage}}+\textcolor{red}{F_{p,t}^{PadStorageIn}}-\textcolor{red}{F_{p,t}^{PadStorageOut}}
+
+
+**Completions Pad Storage Capacity:** :math:`\forall p \in CP, t \in T`
 
 The storage at each completions pad must always be at or below its capacity in every time period.
 
 .. math::
 
-    \textcolor{red}{L_{p,t}^{PadStorage}}≤\textcolor{green}{σ_{p}^{PadStorage}}
+    \textcolor{red}{L_{p,t}^{PadStorage}}≤\textcolor{green}{\sigma_{p}^{PadStorage}}
 
 
 
