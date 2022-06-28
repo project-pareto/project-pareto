@@ -136,8 +136,9 @@ options = {
     "running_time": 6000,
     "gap": 0,
     "water_quality": True,
+    "hydraulics": True
 }
-solve_model(model=strategic_model, options=options)
+model = solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
 print("\nDisplaying Solution\n" + "-" * 60)
