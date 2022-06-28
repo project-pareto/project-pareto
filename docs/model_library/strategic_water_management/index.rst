@@ -431,7 +431,7 @@ Two objective functions can be considered for the optimization of a produced wat
 
         +\textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}
 
-        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{\a;pha^{AnnualizationRate}}⋅(\textcolor{red}{C^{DisposalCapEx}}
+        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{\alpha^{AnnualizationRate}}⋅(\textcolor{red}{C^{DisposalCapEx}}
 
         +\textcolor{red}{C^{StorageCapEx}}+\textcolor{red}{C^{TreatmentCapEx}}+\textcolor{red}{C^{PipelineCapEx}})
 
