@@ -7421,6 +7421,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
+        units=model.model_units["concentration"],
         doc="Water quality at completion pad [concentration]",
     )
 
@@ -7853,37 +7854,38 @@ def _preprocess_data(model):
         )
 
 
-def solve_discrete_water_quality(strategic_model_scaled, opt):
+def solve_discrete_water_quality(model, opt, scaled):
     # solve mathematical model
     print("\n")
     print("*" * 50)
-    print(" " * 15, "Solving discrete water quality scaled model")
+    print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
 
+    v_DQ = model.scaled_v_DQ if scaled else model.v_DQ 
     # First fix the discrete qualities to get the optimal flows
-    strategic_model_scaled.scaled_v_DQ.fix()
-    opt.solve(strategic_model_scaled, tee=True)
-
+    v_DQ.fix()
+    opt.solve(model, tee=True)
+    prefix = "scaled_" if scaled else ""
     # For solving the discrete qualities we fix or bound all the non quality variables
     discrete_variables_names = {
-        "scaled_v_F_DiscretePiped",
-        "scaled_v_F_DiscreteTrucked",
-        "scaled_v_F_DiscreteDisposalDestination",
-        "scaled_v_F_DiscreteFlowOutStorage",
-        "scaled_v_L_DiscreteStorage",
-        "scaled_v_F_DiscreteFlowTreatment",
-        "scaled_v_F_DiscreteFlowOutNode",
-        "scaled_v_F_DiscreteBRDestination",
-        "scaled_v_F_DiscreteFlowCPIntermediate",
-        "scaled_v_F_DiscreteFlowCPStorage",
-        "scaled_v_L_DiscretePadStorage",
-        "scaled_v_F_DiscreteFlowOutPadStorage",
-        "scaled_v_F_DiscreteFlowInPadStorage",
-        "scaled_v_F_DiscreteCPDestination",
-        "scaled_v_Q_CompletionPad",
-        "scaled_v_ObjectiveWithQuality",
+        prefix + "v_F_DiscretePiped",
+        prefix + "v_F_DiscreteTrucked",
+        prefix + "v_F_DiscreteDisposalDestination",
+        prefix + "v_F_DiscreteFlowOutStorage",
+        prefix + "v_L_DiscreteStorage",
+        prefix + "v_F_DiscreteFlowTreatment",
+        prefix + "v_F_DiscreteFlowOutNode",
+        prefix + "v_F_DiscreteBRDestination",
+        prefix + "v_F_DiscreteFlowCPIntermediate",
+        prefix + "v_F_DiscreteFlowCPStorage",
+        prefix + "v_L_DiscretePadStorage",
+        prefix + "v_F_DiscreteFlowOutPadStorage",
+        prefix + "v_F_DiscreteFlowInPadStorage",
+        prefix + "v_F_DiscreteCPDestination",
+        prefix + "v_Q_CompletionPad",
+        prefix + "v_ObjectiveWithQuality",
     }
-    for var in strategic_model_scaled.component_objects(Var):
+    for var in model.component_objects(Var):
         if var.name in discrete_variables_names:
             continue
         for index in var:
@@ -7896,13 +7898,13 @@ def solve_discrete_water_quality(strategic_model_scaled, opt):
                 index_var.setlb(0.99 * value)
                 index_var.setub(1.01 * value)
 
-    strategic_model_scaled.scaled_v_DQ.free()
+    v_DQ.free()
 
     # Solve for fixed non discrete quality variables to get the optimal discrete quality
-    opt.solve(strategic_model_scaled, tee=True, warmstart=True)
+    opt.solve(model, tee=True, warmstart=True)
 
     # Unbound or unfix all non quality variables
-    for var in strategic_model_scaled.component_objects(Var):
+    for var in model.component_objects(Var):
         if var.name in discrete_variables_names:
             continue
         for index in var:
@@ -7917,7 +7919,7 @@ def solve_discrete_water_quality(strategic_model_scaled, opt):
                 index_var.setub(None)
 
     # Solve whole model with initial solution
-    results = opt.solve(strategic_model_scaled, tee=True, warmstart=True)
+    results = opt.solve(model, tee=True, warmstart=True)
 
     return results
 
@@ -7953,14 +7955,14 @@ def solve_model(model, options=None):
     if options["scale_model"] is True:
         # Scale model
         scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
+        # solve mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving scaled model")
+        print("*" * 50)
         if model.config.water_quality is WaterQuality.discrete:
-            results = solve_discrete_water_quality(scaled_model, opt)
+            results = solve_discrete_water_quality(scaled_model, opt, scaled = True)
         else:
-            # solve mathematical model
-            print("\n")
-            print("*" * 50)
-            print(" " * 15, "Solving scaled model")
-            print("*" * 50)
             results = opt.solve(scaled_model, tee=True)
     else:
         # solve mathematical model
@@ -7968,7 +7970,10 @@ def solve_model(model, options=None):
         print("*" * 50)
         print(" " * 15, "Solving model")
         print("*" * 50)
-        results = opt.solve(model, tee=True)
+        if model.config.water_quality is WaterQuality.discrete:
+            results = solve_discrete_water_quality(model, opt, scaled = False)
+        else:
+            results = opt.solve(model, tee=True)
 
     # Check termination condition
     if results.solver.termination_condition != TerminationCondition.infeasible:
