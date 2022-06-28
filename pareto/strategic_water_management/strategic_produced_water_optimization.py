@@ -6453,6 +6453,11 @@ def water_quality(model):
                 if model.p_FRA[f, r]
             )
             + sum(
+                model.v_F_Piped[f, r, t] * model.p_nu_freshwater[f, w]
+                for f in model.s_F
+                if model.p_FRA[f, r]
+            )
+            + sum(
                 model.v_F_Trucked[p, r, t] * model.p_nu_pad[p, w]
                 for p in model.s_PP
                 if model.p_PRT[p, r]
@@ -6863,7 +6868,7 @@ def solve_MINLP_quality(model, opt):
             k for (node, k) in model.p_NKA if node == n and model.p_NKA[(n, k)] == 1
         )
         # get all variables which change value when changing the fresh water flow to treatment center
-        source_pipe_var = model.v_F_Piped[(f, r, t)]
+        source_var = model.v_F_Sourced[(f, r, t)]
         source_pipe_cost_var = model.v_C_Piped[(f, r, t)]
         source_cost_var = model.v_C_Sourced[(f, r, t)]
         node_to_treatment_var = model.v_F_Piped[(n, r, t)]
@@ -6874,8 +6879,8 @@ def solve_MINLP_quality(model, opt):
         flow_disposal_var = model.v_F_DisposalDestination[(k, t)]
 
         # Fix the fresh water flow to the treatment center
-        source_pipe_var.setlb(0.99 * fresh_water_needed)
-        source_pipe_var.setub(1.01 * fresh_water_needed)
+        source_var.setlb(0.99 * fresh_water_needed)
+        source_var.setub(1.01 * fresh_water_needed)
 
         # free all other variables
         free_variable(source_cost_var)
@@ -6900,7 +6905,7 @@ def solve_MINLP_quality(model, opt):
         k, m = divmod(len(a), n)
         return (a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
 
-    time_periods_split = list(split(range(len(model.s_T)), 8))
+    time_periods_split = list(split(range(len(model.s_T)), 2))
     for split in time_periods_split:
         time_periods = list()
         for i in split:
