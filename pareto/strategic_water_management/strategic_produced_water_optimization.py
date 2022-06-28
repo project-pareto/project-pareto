@@ -6862,7 +6862,7 @@ def water_quality(model):
 
 def add_quality_constraints(model):
     # Max Quality treatment center
-    model.p_max_water_quality_treatmentCenter = Param(
+    model.p_max_water_quality_treatment_center = Param(
         model.s_R,
         model.s_W,
         default=0,
@@ -6879,7 +6879,7 @@ def add_quality_constraints(model):
     )
 
     def TreatmentMaxWaterQuality(model, r, w, t):
-        return model.v_Q[r, w, t] <= model.p_max_water_quality_treatmentCenter[r, w]
+        return model.v_Q[r, w, t] <= model.p_max_water_quality_treatment_center[r, w]
 
     model.TreatmentMaxWaterQuality = Constraint(
         model.s_R,
@@ -6955,6 +6955,47 @@ def free_variables(model, exception_list, time_period=None):
                 index_var.setub(None)
 
 
+# Calculate the fresh water needed for each time periods and treatment center which violated the max water quality.
+# Fresh water is calculated by solving the following equation:
+# (treatment_flows(r,t) - treatment_fresh_water(r,t)) * treatment_quality_violated(r,t) == treatment_flows(r,t) * max_water_quality_treatment_center(r)
+# for each r in R and t in T
+def calculate_fresh_water_needed(model):
+    # Get the quality at all time periods where the quality of the treatment center is above the max set water quality
+    treatment_quality_violated = {
+        index: model.v_Q[index].value
+        for index in model.v_Q
+        if index[0] in model.s_R
+        and model.v_Q[index].value
+        > model.p_max_water_quality_treatment_center[(index[0], index[1])].value
+    }
+    # Get the outgoing flows at all time periods where the quality of the treatment center is above the max set water quality
+    treatment_flows = {
+        key: sum(
+            (model.v_F_Piped[index].value)
+            for index in model.v_F_Piped
+            if index[2] == key[2] and index[1] == key[0]
+        )
+        for key, value in treatment_quality_violated.items()
+    }
+
+    treatment_fresh_water = dict()
+    for (key, quality) in treatment_quality_violated.items():
+        flow = treatment_flows[key]
+        max_quality = model.p_max_water_quality_treatment_center[(key[0], key[1])].value
+        fresh_water_needed = flow - flow * max_quality / quality
+        treatment_time_index = (key[0], key[2])
+        previous_value = treatment_fresh_water.get(treatment_time_index, 0)
+        treatment_fresh_water[treatment_time_index] = max(
+            fresh_water_needed, previous_value
+        )
+    return treatment_fresh_water
+
+
+def free_variable(var):
+    var.setlb(0)
+    var.setub(None)
+
+
 def solve_MINLP_quality(model, opt):
     model = water_quality(model)
     opt.options["NonConvex"] = 2
@@ -6970,99 +7011,59 @@ def solve_MINLP_quality(model, opt):
 
     # Solve for fixed non discrete quality variables to get the optimal discrete quality
     opt.solve(model, tee=True, warmstart=True)
+    # Add constraints which add limits on quality
     model = add_quality_constraints(model)
-    treatment_quality_violated = {
-        index: model.v_Q[index].value
-        for index in model.v_Q
-        if index[0] in model.s_R
-        and model.v_Q[index].value
-        > model.p_max_water_quality_treatmentCenter[(index[0], index[1])].value
-    }
-    treatment_flows = {
-        key: sum(
-            (model.v_F_Piped[index].value)
-            for index in model.v_F_Piped
-            if index[2] == key[2] and index[1] == key[0]
-        )
-        for key, value in treatment_quality_violated.items()
-    }
-    treatment_fresh_water = dict()
-    for (key, quality) in treatment_quality_violated.items():
-        flow = treatment_flows[key]
-        max_quality = model.p_max_water_quality_treatmentCenter[(key[0], key[1])].value
-        fresh_water_needed = flow - flow * max_quality / quality
-        treatment_time_index = (key[0], key[2])
-        previous_value = treatment_fresh_water.get(treatment_time_index, 0)
-        treatment_fresh_water[treatment_time_index] = max(
-            fresh_water_needed, previous_value
-        )
+
+    # Get fresh water needs for each time period and treatment center which violates the max quality
+    treatment_fresh_water = calculate_fresh_water_needed(model)
+
     for ((r, t), fresh_water_needed) in treatment_fresh_water.items():
-        # Get first fresh water source to treatment center
+        # Get fresh water source to treatment center
         f = next(
             f
             for (f, treatment) in model.p_FRA
             if treatment == r and model.p_FRA[(f, treatment)] == 1
         )
-        source_var = model.v_F_Sourced[(f, r, t)]
-        source_pipe_var = model.v_F_Piped[(f, r, t)]
-        source_pipe_cost_var = model.v_C_Piped[(f, r, t)]
-        source_cost_var = model.v_C_Sourced[(f, r, t)]
-
-        # source_var.setlb(0.95 * fresh_water_needed)
-        # source_var.setub(1.05 * fresh_water_needed)
-        # source_var.setlb(0)
-        # source_var.setub(None)
-        source_pipe_var.setlb(0.99 * fresh_water_needed)
-        source_pipe_var.setub(1.01 * fresh_water_needed)
-        source_cost_var.setlb(0)
-        source_cost_var.setub(None)
-        source_pipe_cost_var.setlb(0)
-        source_pipe_cost_var.setub(None)
+        # Get node to treatment center
         n = next(
             n
             for (n, treatment) in model.p_NRA
             if treatment == r and model.p_NRA[(n, treatment)] == 1
         )
+        # get disposal site coming from node
         k = next(
             k for (node, k) in model.p_NKA if node == n and model.p_NKA[(n, k)] == 1
         )
+        # get all variables which change value when changing the fresh water flow to treatment center
+        source_pipe_var = model.v_F_Piped[(f, r, t)]
+        source_pipe_cost_var = model.v_C_Piped[(f, r, t)]
+        source_cost_var = model.v_C_Sourced[(f, r, t)]
         node_to_treatment_var = model.v_F_Piped[(n, r, t)]
         node_to_treatment_cost_var = model.v_C_Piped[(n, r, t)]
-
-        new_value = node_to_treatment_var.value - fresh_water_needed
-        # node_to_treatment_var.setlb(0.95 * new_value)
-        # node_to_treatment_var.setub(1.05 * new_value)
-        node_to_treatment_var.setlb(0)
-        node_to_treatment_var.setub(None)
-        node_to_treatment_cost_var.setlb(0)
-        node_to_treatment_cost_var.setub(None)
         node_to_disposal_var = model.v_F_Piped[(n, k, t)]
         node_to_disposal_cost_var = model.v_C_Piped[(n, k, t)]
-        # node_to_disposal_var.setlb(0.95 * fresh_water_needed)
-        # node_to_disposal_var.setub(1.05 * fresh_water_needed)
-        node_to_disposal_var.setlb(0)
-        node_to_disposal_var.setub(None)
-        node_to_disposal_cost_var.setlb(0)
-        node_to_disposal_cost_var.setub(None)
+        cost_disposal_var = model.v_C_Disposal[(k, t)]
+        flow_disposal_var = model.v_F_DisposalDestination[(k, t)]
 
-        model.v_C_TotalPiping.setlb(0)
-        model.v_C_TotalPiping.setub(None)
-        model.v_C_TotalSourced.setlb(0)
-        model.v_C_TotalSourced.setub(None)
-        model.v_C_TotalDisposal.setlb(0)
-        model.v_C_TotalDisposal.setub(None)
-        model.v_F_TotalSourced.setlb(0)
-        model.v_F_TotalSourced.setub(None)
-        model.v_F_TotalDisposed.setlb(0)
-        model.v_F_TotalDisposed.setub(None)
+        # Fix the fresh water flow to the treatment center
+        source_pipe_var.setlb(0.99 * fresh_water_needed)
+        source_pipe_var.setub(1.01 * fresh_water_needed)
 
-        model.v_F_TotalReused.setlb(0)
-        model.v_F_TotalReused.setub(None)
-
-        model.v_C_Disposal[(k, t)].setlb(0)
-        model.v_C_Disposal[(k, t)].setub(None)
-        model.v_F_DisposalDestination[(k, t)].setlb(0)
-        model.v_F_DisposalDestination[(k, t)].setub(None)
+        # free all other variables
+        free_variable(source_cost_var)
+        free_variable(source_pipe_cost_var)
+        free_variable(node_to_treatment_var)
+        free_variable(node_to_treatment_cost_var)
+        free_variable(node_to_disposal_var)
+        free_variable(node_to_disposal_cost_var)
+        free_variable(cost_disposal_var)
+        free_variable(flow_disposal_var)
+        free_variable(model.v_C_TotalPiping)
+        free_variable(model.v_C_TotalSourced)
+        free_variable(model.v_C_TotalDisposal)
+        free_variable(model.v_F_TotalSourced)
+        free_variable(model.v_F_TotalDisposed)
+        free_variable(model.v_F_TotalReused)
 
     results = opt.solve(model, tee=True, symbolic_solver_labels=True)
 
@@ -7083,24 +7084,9 @@ def solve_MINLP_quality(model, opt):
 
         results = opt.solve(model, tee=True, warmstart=True)
 
+    # Solve whole model with initial solution
     free_variables(model, discrete_variables_names)
     results = opt.solve(model, tee=True, warmstart=True)
-
-    # for var in model.component_objects(Var):
-    #     if var.name in discrete_variables_names:
-    #         continue
-    #     for index in var:
-    #         index_var = var if index is None else var[index]
-    #         value = index_var.value
-    #         # unfix binary variables and unbound the continuous variables
-
-    #         if index_var.domain is Binary:
-    #             index_var.free()
-    #         else:
-    #             index_var.setlb(0)
-    #             index_var.setub(None)
-
-    # Solve whole model with initial solution
 
     return results
 

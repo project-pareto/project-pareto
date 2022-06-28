@@ -106,8 +106,8 @@ parameter_list = [
 with resources.path(
     "pareto.case_studies",
     # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    # "strategic_water_treatment_toy_case_study_t10.xlsx",
-    "small_strategic_case_study.xlsx",
+    "strategic_water_treatment_toy_case_study_t10.xlsx",
+    # "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
