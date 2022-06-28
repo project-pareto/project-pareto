@@ -273,145 +273,145 @@ Strategic Model Mathematical Notation
 
 
 
-:math:`\textcolor{green}{β_{p,t}^{Production}}` = 	                   Produced water supply forecast for a production pad
+:math:`\textcolor{green}{\beta_{p,t}^{Production}}` = 	                   Produced water supply forecast for a production pad
 
-:math:`\textcolor{green}{β_{p,t}^{Flowback}}` =	                       Flowback supply forecast for a completions pad
+:math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =	                       Flowback supply forecast for a completions pad
 
-:math:`\textcolor{green}{β^{TotalProd}}` =                             Total water production (production & flowback) over the planning horizon
-
-
-
-:math:`\textcolor{green}{σ_{l,l}^{Pipeline}}` =	                       Initial pipeline capacity between two locations
-
-:math:`\textcolor{green}{σ_{k}^{Disposal}}` =	                       Initial disposal capacity at a disposal site
-
-:math:`\textcolor{green}{σ_{s}^{Storage}}` =                           Initial storage capacity at a storage site
-
-:math:`\textcolor{green}{σ_{p,t}^{PadStorage}}` =                      Storage capacity at completions site
-
-:math:`\textcolor{green}{σ_{r}^{Treatment}}` =                         Initial treatment capacity at a treatment site
-
-:math:`\textcolor{green}{σ_{o}^{BeneficialReuse}}` =                   Initial reuse capacity at a reuse site
-
-:math:`\textcolor{green}{σ_{f,t}^{Freshwater}}` =                      Freshwater sourcing capacity at freshwater source
-
-:math:`\textcolor{green}{σ_{p}^{Offloading,Pad}}` =                    Truck offloading sourcing capacity per pad
-
-:math:`\textcolor{green}{σ_{s}^{Offloading,Storage}}` =	               Truck offloading sourcing capacity per storage site
+:math:`\textcolor{green}{\beta^{TotalProd}}` =                             Total water production (production & flowback) over the planning horizon
 
 
-:math:`\textcolor{green}{σ_{p}^{Processing,Pad}}` =                    Processing (e.g. clarification) capacity per pad
 
-:math:`\textcolor{green}{σ_{s}^{Processing,Storage}}` =                Processing (e.g. clarification) capacity at storage site
+:math:`\textcolor{green}{\sigma_{l,l}^{Pipeline}}` =	                       Initial pipeline capacity between two locations
 
-:math:`\textcolor{green}{σ_{n}^{Node}}` =                              Capacity per network node
+:math:`\textcolor{green}{\sigma_{k}^{Disposal}}` =	                       Initial disposal capacity at a disposal site
+
+:math:`\textcolor{green}{\sigma_{s}^{Storage}}` =                           Initial storage capacity at a storage site
+
+:math:`\textcolor{green}{\sigma_{p,t}^{PadStorage}}` =                      Storage capacity at completions site
+
+:math:`\textcolor{green}{\sigma_{r}^{Treatment}}` =                         Initial treatment capacity at a treatment site
+
+:math:`\textcolor{green}{\sigma_{o}^{BeneficialReuse}}` =                   Initial reuse capacity at a reuse site
+
+:math:`\textcolor{green}{\sigma_{f,t}^{Freshwater}}` =                      Freshwater sourcing capacity at freshwater source
+
+:math:`\textcolor{green}{\sigma_{p}^{Offloading,Pad}}` =                    Truck offloading sourcing capacity per pad
+
+:math:`\textcolor{green}{\sigma_{s}^{Offloading,Storage}}` =	               Truck offloading sourcing capacity per storage site
+
+
+:math:`\textcolor{green}{\sigma_{p}^{Processing,Pad}}` =                    Processing (e.g. clarification) capacity per pad
+
+:math:`\textcolor{green}{\sigma_{s}^{Processing,Storage}}` =                Processing (e.g. clarification) capacity at storage site
+
+:math:`\textcolor{green}{\sigma_{n}^{Node}}` =                              Capacity per network node
 
 
 
 :math:`\textcolor{green}{W_{r}^{TreatmentComponent}}` =                Water quality component treated for at treatment site
 
-:math:`\textcolor{green}{ϵ_{r, w}^{Treatment}}` =                      Treatment efficiency at treatment site
+:math:`\textcolor{green}{\epsilon_{r, w}^{Treatment}}` =                      Treatment efficiency at treatment site
 
-:math:`\textcolor{green}{α^{AnnualizationRate}}` =                     Annualization Rate [%]
+:math:`\textcolor{green}{\alpha^{AnnualizationRate}}` =                     Annualization Rate [%]
 
-:math:`\textcolor{green}{δ_{i}^{Disposal}}` =                          Disposal capacity installation or expansion increments
+:math:`\textcolor{green}{\delta_{i}^{Disposal}}` =                          Disposal capacity installation or expansion increments
 
-:math:`\textcolor{green}{δ_{c}^{Storage}}` =                           Storage capacity installation or expansion increments
+:math:`\textcolor{green}{\delta_{c}^{Storage}}` =                           Storage capacity installation or expansion increments
 
-:math:`\textcolor{green}{δ_{j}^{Treatment}}` =                         Treatment capacity installation or expansion increments
+:math:`\textcolor{green}{\delta_{j}^{Treatment}}` =                         Treatment capacity installation or expansion increments
 
-:math:`\textcolor{green}{δ^{Truck}}` =                                 Truck capacity
+:math:`\textcolor{green}{\delta^{Truck}}` =                                 Truck capacity
 
 
 
-:math:`\textcolor{green}{τ_{k}^{Disposal}}` =                          Disposal construction or expansion lead time
+:math:`\textcolor{green}{\tau_{k}^{Disposal}}` =                          Disposal construction or expansion lead time
 
-:math:`\textcolor{green}{τ_{s}^{Storage}}` =                           Storage construction or expansion lead time
+:math:`\textcolor{green}{\tau_{s}^{Storage}}` =                           Storage construction or expansion lead time
 
-:math:`\textcolor{green}{τ_{l,l}^{Pipeline}}` =                        Pipeline construction or expansion lead time
+:math:`\textcolor{green}{\tau_{l,l}^{Pipeline}}` =                        Pipeline construction or expansion lead time
 
-:math:`\textcolor{green}{τ_{p,p}^{Trucking}}` =                        Drive time between two pads
+:math:`\textcolor{green}{\tau_{p,p}^{Trucking}}` =                        Drive time between two pads
 
-:math:`\textcolor{green}{τ_{p,k}^{Trucking}}` =	                       Drive time from a pad to a disposal site
+:math:`\textcolor{green}{\tau_{p,k}^{Trucking}}` =	                       Drive time from a pad to a disposal site
 
-:math:`\textcolor{green}{τ_{p,s}^{Trucking}}` =	                       Drive time from a pad to a storage site
+:math:`\textcolor{green}{\tau_{p,s}^{Trucking}}` =	                       Drive time from a pad to a storage site
 
-:math:`\textcolor{green}{τ_{p,r}^{Trucking}}` =	                       Drive time from a pad to a treatment site
+:math:`\textcolor{green}{\tau_{p,r}^{Trucking}}` =	                       Drive time from a pad to a treatment site
 
-:math:`\textcolor{green}{τ_{p,o}^{Trucking}}` =                        Drive time from a pad to a beneficial reuse site
+:math:`\textcolor{green}{\tau_{p,o}^{Trucking}}` =                        Drive time from a pad to a beneficial reuse site
 
-:math:`\textcolor{green}{τ_{s,p}^{Trucking}}` =	                       Drive time from a storage site to a completions site
+:math:`\textcolor{green}{\tau_{s,p}^{Trucking}}` =	                       Drive time from a storage site to a completions site
 
-:math:`\textcolor{green}{τ_{s,k}^{Trucking}}` =                        Drive time from a storage site to a disposal site
+:math:`\textcolor{green}{\tau_{s,k}^{Trucking}}` =                        Drive time from a storage site to a disposal site
 
-:math:`\textcolor{green}{τ_{r,k}^{Trucking}}` =                        Drive time from a treatment site to a disposal site
+:math:`\textcolor{green}{\tau_{r,k}^{Trucking}}` =                        Drive time from a treatment site to a disposal site
 
-:math:`\textcolor{green}{λ_{s}^{Storage}}` =                           Initial storage level at storage site
+:math:`\textcolor{green}{\lambda_{s}^{Storage}}` =                           Initial storage level at storage site
 
-:math:`\textcolor{green}{λ_{p}^{PadStorage}}` =                        Initial storage level at completions site
+:math:`\textcolor{green}{\lambda_{p}^{PadStorage}}` =                        Initial storage level at completions site
 
-:math:`\textcolor{green}{θ_{s}^{Storage}}` =                           Terminal storage level at storage site
+:math:`\textcolor{green}{\theta_{s}^{Storage}}` =                           Terminal storage level at storage site
 
-:math:`\textcolor{green}{θ_{p}^{PadStorage}}` =                        Terminal storage level at completions site
+:math:`\textcolor{green}{\theta_{p}^{PadStorage}}` =                        Terminal storage level at completions site
 
-:math:`\textcolor{green}{κ_{k,i}^{Disposal}}` =                        Disposal construction or expansion capital cost for selected capacity increment
+:math:`\textcolor{green}{\kappa_{k,i}^{Disposal}}` =                        Disposal construction or expansion capital cost for selected capacity increment
 
-:math:`\textcolor{green}{κ_{s,c}^{Storage}}` =                         Storage construction or expansion capital cost for selected capacity increment
+:math:`\textcolor{green}{\kappa_{s,c}^{Storage}}` =                         Storage construction or expansion capital cost for selected capacity increment
 
-:math:`\textcolor{green}{κ_{r,j}^{Treatment}}` =                       Treatment construction or expansion capital cost for selected capacity increment
+:math:`\textcolor{green}{\kappa_{r,j}^{Treatment}}` =                       Treatment construction or expansion capital cost for selected capacity increment
 
 
 **The cost parameter for expanding or constructing new pipeline capacity is structured differently depending on model configuration settings. If the pipeline cost configuration is distance based:**
 
-    :math:`\textcolor{green}{κ^{Pipeline}}` =                              Pipeline construction or expansion capital cost [currency/(diameter-distance)]
+    :math:`\textcolor{green}{\kappa^{Pipeline}}` =                              Pipeline construction or expansion capital cost [currency/(diameter-distance)]
 
-    :math:`\textcolor{green}{μ_{d}^{Pipeline}}` =                          Pipeline diameter installation or expansion increments  [diameter]
+    :math:`\textcolor{green}{\mu_{d}^{Pipeline}}` =                          Pipeline diameter installation or expansion increments  [diameter]
 
-    :math:`\textcolor{green}{λ_{l,l}^{Pipeline}}` = 	                   Pipeline segment length [distance]
+    :math:`\textcolor{green}{\lambda_{l,l}^{Pipeline}}` = 	                   Pipeline segment length [distance]
 
 **Otherwise, if the pipeline cost configuration is capacity based:**
 
-    :math:`\textcolor{green}{κ_{l,l,d}^{Pipeline}}` =                      Pipeline construction or expansion capital cost for selected diameter capacity [currency/(volume/time)]
+    :math:`\textcolor{green}{\kappa_{l,l,d}^{Pipeline}}` =                      Pipeline construction or expansion capital cost for selected diameter capacity [currency/(volume/time)]
 
-    :math:`\textcolor{green}{δ_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion capacity increments  [volume/time]
+    :math:`\textcolor{green}{\delta_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion capacity increments  [volume/time]
 
 
-:math:`\textcolor{green}{π_{k}^{Disposal}}` =                          Disposal operational cost
+:math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                          Disposal operational cost
 
-:math:`\textcolor{green}{π_{r}^{Treatment}}` =	                       Treatment operational cost (may include “clean brine”)
+:math:`\textcolor{green}{\pi_{r}^{Treatment}}` =	                       Treatment operational cost (may include “clean brine”)
 
-:math:`\textcolor{green}{π_{p}^{CompletionReuse}}` =                   Completions reuse operational cost
+:math:`\textcolor{green}{\pi_{p}^{CompletionReuse}}` =                   Completions reuse operational cost
 
-:math:`\textcolor{green}{π_{s}^{Storage}}` =                           Storage deposit operational cost
+:math:`\textcolor{green}{\pi_{s}^{Storage}}` =                           Storage deposit operational cost
 
-:math:`\textcolor{green}{ρ_{s}^{Storage}}` =                           Storage withdrawal operational credit
+:math:`\textcolor{green}{\rho_{s}^{Storage}}` =                           Storage withdrawal operational credit
 
-:math:`\textcolor{green}{π_{l,l}^{Pipeline}}` =	                       Pipeline operational cost
+:math:`\textcolor{green}{\pi_{l,l}^{Pipeline}}` =	                       Pipeline operational cost
 
-:math:`\textcolor{green}{π_{l}^{Trucking}}` =                          Trucking hourly cost (by source)
+:math:`\textcolor{green}{\pi_{l}^{Trucking}}` =                          Trucking hourly cost (by source)
 
-:math:`\textcolor{green}{π_{f}^{Sourcing}}` =                          Fresh sourcing cost
+:math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                          Fresh sourcing cost
 
 
 :math:`\textcolor{green}{M^{Flow}}` =                                  Big-M flow parameter
 
 
 
-:math:`\textcolor{green}{ψ^{FracDemand}}` =                            Slack cost parameter
+:math:`\textcolor{green}{\psi^{FracDemand}}` =                            Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{Production}}` =                            Slack cost parameter
+:math:`\textcolor{green}{\psi^{Production}}` =                            Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{Flowback}}` =                              Slack cost parameter
+:math:`\textcolor{green}{\psi^{Flowback}}` =                              Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{PipelineCapacity}}` =                      Slack cost parameter
+:math:`\textcolor{green}{\psi^{PipelineCapacity}}` =                      Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{StorageCapacity}}` =  	                   Slack cost parameter
+:math:`\textcolor{green}{\psi^{StorageCapacity}}` =  	                   Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{DisposalCapacity}}` =                      Slack cost parameter
+:math:`\textcolor{green}{\psi^{DisposalCapacity}}` =                      Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{TreamentCapacity}}` =                      Slack cost parameter
+:math:`\textcolor{green}{\psi^{TreamentCapacity}}` =                      Slack cost parameter
 
-:math:`\textcolor{green}{ψ^{BeneficialReuseCapacity}}` =  	           Slack cost parameter
+:math:`\textcolor{green}{\psi^{BeneficialReuseCapacity}}` =  	           Slack cost parameter
 
 
 
@@ -431,7 +431,7 @@ Two objective functions can be considered for the optimization of a produced wat
 
         +\textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}
 
-        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{α^{AnnualizationRate}}⋅(\textcolor{red}{C^{DisposalCapEx}}
+        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{\a;pha^{AnnualizationRate}}⋅(\textcolor{red}{C^{DisposalCapEx}}
 
         +\textcolor{red}{C^{StorageCapEx}}+\textcolor{red}{C^{TreatmentCapEx}}+\textcolor{red}{C^{PipelineCapEx}})
 
@@ -440,7 +440,7 @@ Two objective functions can be considered for the optimization of a produced wat
 
 .. math::
 
-    max = \textcolor{red}{F^{TotalCompletionsReuse}}/\textcolor{green}{β^{TotalProd}}
+    max = \textcolor{red}{F^{TotalCompletionsReuse}}/\textcolor{green}{\beta^{TotalProd}}
 
 
 
@@ -496,7 +496,7 @@ The storage at each completions pad must always be at or below its capacity in e
 
 
 
-**Terminal Completions Pad Storage Level:** ∀p ∈ CP, t ∈ T
+**Terminal Completions Pad Storage Level:** :math:`\forall p \in CP, t \in T`
 
 The storage in the last period must be at or below its terminal storage level.
 
