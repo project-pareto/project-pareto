@@ -84,9 +84,10 @@ class IncludeNodeCapacity(Enum):
 
 class WaterQuality(Enum):
     false = 0
-    post_process = 1
-    mindtpy = (2,)
-    minlp = 3
+    post_process_minlp = 1
+    post_process_block = 2
+    mindtpy = 3
+    minlp = 4
 
 
 # create config dictionary
@@ -170,14 +171,15 @@ def get_strategic_model_unit_container():
 CONFIG.declare(
     "water_quality",
     ConfigValue(
-        default=WaterQuality.post_process,
+        default=WaterQuality.post_process_block,
         domain=In(WaterQuality),
         description="Water quality",
         doc="""Selection to include water quality
         ***default*** - WaterQuality.continuous
         **Valid Values:** - {
         **WaterQuality.False** - Exclude water quality from model,
-        **WaterQuality.post_process** - Include water quality as post process
+        **WaterQuality.post_process_minlp** - Include water quality as post process using minlp solver
+        **WaterQuality.post_process_block** - Include water quality as post process using block sturcutre
         **WaterQuality.mindtpy** - Solve water quality with MindtPy
         **WaterQuality.minlp** - Solve water quality as MINLP
         }""",
@@ -6300,13 +6302,6 @@ def water_quality(model):
         units=model.model_units["concentration"],
         doc="Water quality at location [concentration]",
     )
-    # v_X is solely used to make sure model has an objective value
-    # model.v_X = Var(
-    #     within=Reals,
-    #     units=model.model_units["concentration"],
-    #     doc="Water quality objective value ",
-    # )
-    # endregion
 
     # region Disposal
     # Material Balance
@@ -6667,28 +6662,7 @@ def water_quality(model):
         rule=CompletionsPadStorageWaterQuality,
         doc="Completions pad storage water quality",
     )
-
     # endregion
-
-    # Define Objective with quality included
-    # def ObjectiveFunctionRule(model):
-    #     return (
-    #         model.v_X
-    #         == sum(
-    #             sum(sum(model.v_Q[p, w, t] for p in model.s_P) for w in model.s_W)
-    #             for t in model.s_T
-    #         )
-    #         * 10
-    #         + model.v_Z
-    #     )
-
-    # model.ObjectiveFunction = Constraint(
-    #     rule=ObjectiveFunctionRule, doc="Objective function water quality"
-    # )
-
-    # model.objective = Objective(
-    #     expr=model.v_X, sense=minimize, doc="Objective function"
-    # )
 
     return model
 
@@ -6792,20 +6766,22 @@ def free_variables(model, exception_list, time_period=None):
 # Fresh water is calculated by solving the following equation:
 # (treatment_flows(r,t) - treatment_fresh_water(r,t)) * treatment_quality_violated(r,t) == treatment_flows(r,t) * max_water_quality_treatment_center(r)
 # for each r in R and t in T
-def calculate_fresh_water_needed(model):
+def calculate_fresh_water_needed(model, scaled):
+    v_Q = model.scaled_v_Q if scaled else model.v_Q
     # Get the quality at all time periods where the quality of the treatment center is above the max set water quality
     treatment_quality_violated = {
-        index: model.v_Q[index].value
-        for index in model.v_Q
+        index: v_Q[index].value
+        for index in v_Q
         if index[0] in model.s_R
-        and model.v_Q[index].value
+        and v_Q[index].value
         > model.p_max_water_quality_treatment_center[(index[0], index[1])].value
     }
     # Get the outgoing flows at all time periods where the quality of the treatment center is above the max set water quality
+    v_F_Piped = model.scaled_v_F_Piped if scaled else model.v_F_Piped
     treatment_flows = {
         key: sum(
-            (model.v_F_Piped[index].value)
-            for index in model.v_F_Piped
+            (v_F_Piped[index].value)
+            for index in v_F_Piped
             if index[2] == key[2] and index[1] == key[0]
         )
         for key, value in treatment_quality_violated.items()
@@ -6829,7 +6805,8 @@ def free_variable(var):
     var.setub(None)
 
 
-def solve_MINLP_quality(model, opt):
+def solve_water_quality(model, opt, options):
+    scaled = options["scale_model"] is True
     model = water_quality(model)
     opt.options["NonConvex"] = 2
     # solve mathematical model
@@ -6837,46 +6814,97 @@ def solve_MINLP_quality(model, opt):
     print("*" * 100)
     print(" " * 15, "Solving model with water quality model as MINLP")
     print("*" * 100)
-
+    scaled_prefix = "scaled_" if scaled else ""
     # First solve the model by bounding all non quality variables
-    discrete_variables_names = {"v_Q", "v_X", "v_Z"}
+    discrete_variables_names = {"v_Q", "v_Z"}
     bound_variables_to_value(model, discrete_variables_names)
 
     # Solve for fixed non discrete quality variables to get the optimal discrete quality
     opt.solve(model, tee=True, warmstart=True)
-    # Add constraints which add limits on quality
-    model = add_quality_constraints(model)
 
+    if model.config.water_quality == WaterQuality.post_process_minlp:
+        return model
+    # Add constraints which add limits on quality
+    model_quality = add_quality_constraints(model)
+    if options["scale_model"] is True:
+        # Scale model
+        model_quality = scale_model(model, scaling_factor=options["scaling_factor"])
+
+    scaled_prefix = "scaled_" if scaled else ""
+    # First solve the model by bounding all non quality variables
+    discrete_variables_names = {
+        scaled_prefix + "v_Q",
+        scaled_prefix + "v_X",
+        scaled_prefix + "v_Z",
+    }
     # Get fresh water needs for each time period and treatment center which violates the max quality
-    treatment_fresh_water = calculate_fresh_water_needed(model)
+    treatment_fresh_water = calculate_fresh_water_needed(model_quality, scaled)
 
     for ((r, t), fresh_water_needed) in treatment_fresh_water.items():
         # Get fresh water source to treatment center
         f = next(
             f
-            for (f, treatment) in model.p_FRA
-            if treatment == r and model.p_FRA[(f, treatment)] == 1
+            for (f, treatment) in model_quality.p_FRA
+            if treatment == r and model_quality.p_FRA[(f, treatment)] == 1
         )
         # Get node to treatment center
         n = next(
             n
-            for (n, treatment) in model.p_NRA
-            if treatment == r and model.p_NRA[(n, treatment)] == 1
+            for (n, treatment) in model_quality.p_NRA
+            if treatment == r and model_quality.p_NRA[(n, treatment)] == 1
         )
         # get disposal site coming from node
         k = next(
-            k for (node, k) in model.p_NKA if node == n and model.p_NKA[(n, k)] == 1
+            k
+            for (node, k) in model_quality.p_NKA
+            if node == n and model_quality.p_NKA[(n, k)] == 1
         )
         # get all variables which change value when changing the fresh water flow to treatment center
-        source_var = model.v_F_Sourced[(f, r, t)]
-        source_pipe_cost_var = model.v_C_Piped[(f, r, t)]
-        source_cost_var = model.v_C_Sourced[(f, r, t)]
-        node_to_treatment_var = model.v_F_Piped[(n, r, t)]
-        node_to_treatment_cost_var = model.v_C_Piped[(n, r, t)]
-        node_to_disposal_var = model.v_F_Piped[(n, k, t)]
-        node_to_disposal_cost_var = model.v_C_Piped[(n, k, t)]
-        cost_disposal_var = model.v_C_Disposal[(k, t)]
-        flow_disposal_var = model.v_F_DisposalDestination[(k, t)]
+        source_var = (
+            model_quality.scaled_v_F_Sourced[(f, r, t)]
+            if scaled
+            else model_quality.v_F_Sourced[(f, r, t)]
+        )
+        source_pipe_cost_var = (
+            model_quality.scaled_v_C_Piped[(f, r, t)]
+            if scaled
+            else model_quality.v_C_Piped[(f, r, t)]
+        )
+        source_cost_var = (
+            model_quality.scaled_v_C_Sourced[(f, r, t)]
+            if scaled
+            else model_quality.v_C_Sourced[(f, r, t)]
+        )
+        node_to_treatment_var = (
+            model_quality.scaled_v_F_Piped[(n, r, t)]
+            if scaled
+            else model_quality.v_F_Piped[(n, r, t)]
+        )
+        node_to_treatment_cost_var = (
+            model_quality.scaled_v_C_Piped[(n, r, t)]
+            if scaled
+            else model_quality.v_C_Piped[(n, r, t)]
+        )
+        node_to_disposal_var = (
+            model_quality.scaled_v_F_Piped[(n, k, t)]
+            if scaled
+            else model_quality.v_F_Piped[(n, k, t)]
+        )
+        node_to_disposal_cost_var = (
+            model_quality.scaled_v_C_Piped[(n, k, t)]
+            if scaled
+            else model_quality.v_C_Piped[(n, k, t)]
+        )
+        cost_disposal_var = (
+            model_quality.scaled_v_C_Disposal[(k, t)]
+            if scaled
+            else model_quality.v_C_Disposal[(k, t)]
+        )
+        flow_disposal_var = (
+            model_quality.scaled_v_F_DisposalDestination[(k, t)]
+            if scaled
+            else model_quality.v_F_DisposalDestination[(k, t)]
+        )
 
         # Fix the fresh water flow to the treatment center
         source_var.setlb(0.99 * fresh_water_needed)
@@ -6891,77 +6919,76 @@ def solve_MINLP_quality(model, opt):
         free_variable(node_to_disposal_cost_var)
         free_variable(cost_disposal_var)
         free_variable(flow_disposal_var)
-        free_variable(model.v_C_TotalPiping)
-        free_variable(model.v_C_TotalSourced)
-        free_variable(model.v_C_TotalDisposal)
-        free_variable(model.v_F_TotalSourced)
-        free_variable(model.v_F_TotalDisposed)
-        free_variable(model.v_F_TotalReused)
+        free_variable(
+            model_quality.scaled_v_C_TotalPiping
+            if scaled
+            else model_quality.v_C_TotalPiping
+        )
+        free_variable(
+            model_quality.scaled_v_C_TotalSourced
+            if scaled
+            else model_quality.v_C_TotalSourced
+        )
+        free_variable(
+            model_quality.scaled_v_C_TotalDisposal
+            if scaled
+            else model_quality.v_C_TotalDisposal
+        )
+        free_variable(
+            model_quality.scaled_v_F_TotalSourced
+            if scaled
+            else model_quality.v_F_TotalSourced
+        )
+        free_variable(
+            model_quality.scaled_v_F_TotalDisposed
+            if scaled
+            else model_quality.v_F_TotalDisposed
+        )
+        free_variable(
+            model_quality.scaled_v_F_TotalReused
+            if scaled
+            else model_quality.v_F_TotalReused
+        )
 
-    results = opt.solve(model, tee=True, symbolic_solver_labels=True)
+    results = opt.solve(model_quality, tee=True, symbolic_solver_labels=True)
 
-    # Unbound or unfix all non quality variables
     def split(a, n):
         k, m = divmod(len(a), n)
         return (a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
 
-    time_periods_split = list(split(range(len(model.s_T)), 2))
+    # Unbound or unfix all non quality variables
+    time_periods_split = list(split(range(len(model_quality.s_T)), 2))
     for split in time_periods_split:
         time_periods = list()
         for i in split:
-            time_periods.append(model.s_T[i + 1])
+            time_periods.append(model_quality.s_T[i + 1])
 
-        bound_variables_to_value(model, discrete_variables_names)
-        free_variables(model, discrete_variables_names, time_periods)
+        bound_variables_to_value(model_quality, discrete_variables_names)
+        free_variables(model_quality, discrete_variables_names, time_periods)
         print("solve model for time periods: [%s]" % ", ".join(map(str, time_periods)))
 
-        results = opt.solve(model, tee=True, warmstart=True)
+        results = opt.solve(model_quality, tee=True, warmstart=True)
 
     # Solve whole model with initial solution
-    free_variables(model, discrete_variables_names)
-    results = opt.solve(model, tee=True, warmstart=True)
+    free_variables(model_quality, discrete_variables_names)
+    if model.config.water_quality == WaterQuality.minlp:
+        results = opt.solve(model_quality, tee=True, warmstart=True)
 
-    return results
-
-
-def solve_Mindtpy_quality(model):
-    model = water_quality(model)
-
-    # solve mathematical model
-    print("\n")
-    print("*" * 100)
-    print(" " * 15, "Solving model including water quality with Mindt")
-    print("*" * 100)
-
-    # Before solving with mindt fix or bound all the non quality variables
-    discrete_variables_names = {
-        "v_Q",
-        "v_X",
-    }
-    bound_variables_to_value(model, discrete_variables_names)
-
-    # Solve with bounded variables
-    results = SolverFactory("mindtpy").solve(
-        model,
-        mip_solver="gurobi",
-        nlp_solver="ipopt",
-        strategy="OA",
-        time_limit=3600,
-        tee=True,
-    )
-
-    # Unbound or unfix all non quality variables
-    free_variables(model, discrete_variables_names)
-
-    # Solve whole model with initial solution
-    results = SolverFactory("mindtpy").solve(
-        model,
-        mip_solver="gurobi",
-        nlp_solver="ipopt",
-        strategy="OA",
-        time_limit=3600,
-        tee=True,
-    )
+    if model.config.water_quality == WaterQuality.mindtpy:
+        results = SolverFactory("mindtpy").solve(
+            model_quality,
+            mip_solver="gurobi",
+            nlp_solver="ipopt",
+            strategy="OA",
+            time_limit=3600,
+            tee=True,
+        )
+    if options["scale_model"] is True:
+        TransformationFactory("core.scale_model").propagate_solution(
+            model_quality, model
+        )
+    else:
+        model = model_quality
 
     return results
 
@@ -7270,15 +7297,10 @@ def solve_model(model, options=None):
             print(" " * 15, "Solving model")
             print("*" * 50)
             results = opt.solve(model, tee=True)
-
-    if model.config.water_quality == WaterQuality.post_process:
+    if model.config.water_quality == WaterQuality.post_process_block:
         model = postprocess_water_quality_calculation(model, opt)
-
-    if model.config.water_quality == WaterQuality.minlp:
-        solve_MINLP_quality(model, opt)
-
-    if model.config.water_quality == WaterQuality.mindtpy:
-        solve_Mindtpy_quality(model)
+    elif model.config.water_quality != WaterQuality.false:
+        results = solve_water_quality(model, opt, options)
 
     results.write()
     return results
