@@ -505,6 +505,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["currency_time"],
         doc="Cost of unused treated water [$/week]",
     )
     model.v_C_Reuse = Var(
@@ -1734,6 +1735,14 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume"],
         ),
         initialize=DisposalOperationalCost_convert_to_model,
+        units=model.model_units["currency_volume"],
+        doc="Disposal operational cost [currency/volume]",
+    )
+    model.p_pi_UnusedTreatedWater = Param(
+        default=0,
+        initialize=max(DisposalOperationalCost_convert_to_model.values()) * 2
+        if DisposalOperationalCost_convert_to_model
+        else 0,
         units=model.model_units["currency_volume"],
         doc="Disposal operational cost [currency/volume]",
     )
@@ -3547,9 +3556,12 @@ def create_model(df_sets, df_parameters, default={}):
 
     # TODO: Figure out what happens with unused treated water. For now assume it gets disposed at the maximal disposal rate.
     def UnusedTreatedWatertCostRule(model, r, t):
-        return model.v_C_UnusedTreatedWater[r, t] == model.v_F_UnusedTreatedWater[
-            r, t
-        ] * max(model.p_pi_Disposal.values())
+        constraint = (
+            model.v_C_UnusedTreatedWater[r, t]
+            == model.v_F_UnusedTreatedWater[r, t] * model.p_pi_UnusedTreatedWater
+        )
+
+        return process_constraint(constraint)
 
     model.UnusedTreatedWaterCost = Constraint(
         model.s_R,
@@ -3559,10 +3571,12 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalUnusedTreatedWaterCostRule(model):
-        return model.v_C_TotalUnusedTreatedWater == sum(
+        constraint = model.v_C_TotalUnusedTreatedWater == sum(
             sum(model.v_C_UnusedTreatedWater[r, t] for r in model.s_R)
             for t in model.s_T
         )
+
+        return process_constraint(constraint)
 
     model.TotalUnusedTreatedWaterCost = Constraint(
         rule=TotalUnusedTreatedWaterCostRule, doc="Total unused treated water cost"
