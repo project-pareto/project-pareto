@@ -7861,7 +7861,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
 
-    v_DQ = model.scaled_v_DQ if scaled else model.v_DQ 
+    v_DQ = model.scaled_v_DQ if scaled else model.v_DQ
     # First fix the discrete qualities to get the optimal flows
     v_DQ.fix()
     opt.solve(model, tee=True)
@@ -7961,7 +7961,7 @@ def solve_model(model, options=None):
         print(" " * 15, "Solving scaled model")
         print("*" * 50)
         if model.config.water_quality is WaterQuality.discrete:
-            results = solve_discrete_water_quality(scaled_model, opt, scaled = True)
+            results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
         else:
             results = opt.solve(scaled_model, tee=True)
     else:
@@ -7971,7 +7971,7 @@ def solve_model(model, options=None):
         print(" " * 15, "Solving model")
         print("*" * 50)
         if model.config.water_quality is WaterQuality.discrete:
-            results = solve_discrete_water_quality(model, opt, scaled = False)
+            results = solve_discrete_water_quality(model, opt, scaled=False)
         else:
             results = opt.solve(model, tee=True)
 
