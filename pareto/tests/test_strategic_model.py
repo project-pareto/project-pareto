@@ -21,6 +21,7 @@ from pyomo.environ import Constraint
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
+from pyomo.util.check_units import assert_units_consistent
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     create_model,
     solve_model,
