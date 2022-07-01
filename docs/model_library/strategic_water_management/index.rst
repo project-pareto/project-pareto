@@ -9,16 +9,38 @@ Given a set of existing network components (completion pads, storage pads, produ
 +---------------------------------------------------------+
 | Section                                                 |
 +=========================================================+
+| :ref:`strategic_model_terminology`                      |
++---------------------------------------------------------+
 | :ref:`strategic_model_mathematical_notation`            |
 +---------------------------------------------------------+
 | :ref:`strategic_model_mathematical_program_formulation` |
 +---------------------------------------------------------+
 | :ref:`strategic_model_water_quality_extension`          |
 +---------------------------------------------------------+
-| :ref:`strategic_model_terminology`                      |
-+---------------------------------------------------------+
 | :ref:`strategic_model_references`                       |
 +---------------------------------------------------------+
+
+
+.. _strategic_model_terminology:
+
+Terminology
+-----------
+
+**Beneficial Reuse Options:** This term refers to the reuse of water at mining facilities, farms, etc.
+
+**Completions Demand:** Demand set by completions pads.  This demand can be met by produced water, treated water, or freshwater.
+
+**Completions Reuse Water:** Water that meets demand at a completions site. This does not include freshwater or water for beneficial reuse.
+
+**Network Nodes:** These are branch points for pipelines only.
+
+.. note:: Well pads are not a subset of network nodesd.
+
+**[t]:** This notation indicates that timing of capacity expansion has not yet been implemented.
+
+**Terminal Storage Level:** These are goal storage levels for the final time period. Without this, the storage levels would likely be depleted in the last time period.
+
+**Water Boosting:** Moving large volumes of water requires water pumps. Water boosting refers to the infrastructure required to maintain water pressure.
 
 
 .. _strategic_model_mathematical_notation:
@@ -104,8 +126,6 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(p,p) \in PCT}`	                               Production-to-completions trucking arcs
 
-:math:`\textcolor{blue}{(f,c) \in FCT}`                                 Freshwater-to-completions trucking arcs
-
 :math:`\textcolor{blue}{(p,k) \in PKT}`	                               Production-to-disposal trucking arcs
 
 :math:`\textcolor{blue}{(p,s) \in PST}`                                 Production-to-storage trucking arcs
@@ -113,6 +133,8 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{blue}{(p,r) \in PRT}`	                               Production-to-treatment trucking arcs
 
 :math:`\textcolor{blue}{(p,o) \in POT}`	                               Production-to-beneficial reuse trucking arcs
+
+:math:`\textcolor{blue}{(f,c) \in FCT}`                                 Freshwater-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(p,k) \in CKT}`	                               Completions-to-disposal trucking arcs
 
@@ -134,7 +156,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{l,l,t}^{Piped}}` =                           Produced water piped from one location to another location
 
-:math:`\textcolor{red}{F_{1,1,t}^{Trucked}}` =	                       Produced water trucked from one location to another location
+:math:`\textcolor{red}{F_{l,l,t}^{Trucked}}` =	                       Water trucked from one location to another location
 
 :math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                         Fresh water sourced from source to completions
 
@@ -257,29 +279,26 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{y_{l,l,t}^{Flow}}` =                            Directional flow between two locations
 
-:math:`\textcolor{red}{z_{l,l,d,t}^{Pipeline}}` =                      Timing of pipeline installation between one location and another location with specific diameter
+..
+    :math:`\textcolor{red}{z_{l,l,d,t}^{Pipeline}}` =                      Timing of pipeline installation between one location and another location with specific diameter
 
-:math:`\textcolor{red}{z_{s,c,t}^{Storage}}` =                         Timing of storage facility installation at storage site with specific storage capacity
+    :math:`\textcolor{red}{z_{s,c,t}^{Storage}}` =                         Timing of storage facility installation at storage site with specific storage capacity
 
-:math:`\textcolor{red}{z_{k,i,t}^{Disposal}}` =                        Timing of disposal facility installation at disposal site with specific injection capacity
+    :math:`\textcolor{red}{z_{k,i,t}^{Disposal}}` =                        Timing of disposal facility installation at disposal site with specific injection capacity
 
 
 
 **Parameters**
 
-:math:`\textcolor{green}{y_{p,t}^{Completions}}` = 	                   Completions demand at a completions site in a time period
+:math:`\textcolor{green}{\gamma_{p,t}^{Completions}}` = 	                   Completions demand at a completions site in a time period
 
-:math:`\textcolor{green}{y^{TotalDemand}}` =                           Total water demand over the planning horizon
-
-
+:math:`\textcolor{green}{\gamma^{TotalDemand}}` =                           Total water demand over the planning horizon
 
 :math:`\textcolor{green}{\beta_{p,t}^{Production}}` = 	                   Produced water supply forecast for a production pad
 
 :math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =	                       Flowback supply forecast for a completions pad
 
 :math:`\textcolor{green}{\beta^{TotalProd}}` =                             Total water production (production & flowback) over the planning horizon
-
-
 
 :math:`\textcolor{green}{\sigma_{l,l}^{Pipeline}}` =	                       Initial pipeline capacity between two locations
 
@@ -314,11 +333,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\alpha^{AnnualizationRate}}` =                     Annualization Rate [%]
 
-:math:`\textcolor{green}{\delta_{i}^{Disposal}}` =                          Disposal capacity installation or expansion increments
+:math:`\textcolor{green}{\delta_{i}^{Disposal}}` =                          Increments for installation/expansion of disposal capacity
 
-:math:`\textcolor{green}{\delta_{c}^{Storage}}` =                           Storage capacity installation or expansion increments
+:math:`\textcolor{green}{\delta_{c}^{Storage}}` =                           Increments for installation/expansion of storage capacity
 
-:math:`\textcolor{green}{\delta_{j}^{Treatment}}` =                         Treatment capacity installation or expansion increments
+:math:`\textcolor{green}{\delta_{j}^{Treatment}}` =                         Increments for installation/expansion of treatment capacity
 
 :math:`\textcolor{green}{\delta^{Truck}}` =                                 Truck capacity
 
@@ -373,7 +392,7 @@ Strategic Model Mathematical Notation
 
     :math:`\textcolor{green}{\kappa_{l,l,d}^{Pipeline}}` =                      Pipeline construction or expansion capital cost for selected diameter capacity [currency/(volume/time)]
 
-    :math:`\textcolor{green}{\delta_{d}^{Pipeline}}` =                          Pipeline capacity installation or expansion capacity increments  [volume/time]
+    :math:`\textcolor{green}{\delta_{d}^{Pipeline}}` =                          Increments for installation/expansion of pipeline capacity [volume/time]
 
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                          Disposal operational cost
@@ -427,7 +446,7 @@ Two objective functions can be considered for the optimization of a produced wat
 
 .. math::
 
-    min = \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}
+    \min \ \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}
 
         +\textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}
 
@@ -440,13 +459,13 @@ Two objective functions can be considered for the optimization of a produced wat
 
 .. math::
 
-    max = \textcolor{red}{F^{TotalCompletionsReuse}}/\textcolor{green}{\beta^{TotalProd}}
+    \max \ \textcolor{red}{F^{TotalCompletionsReuse}}/\textcolor{green}{\beta^{TotalProd}}
 
 
 
 **Annualization Rate Calculation:**
 
-The annualization rate is calculated using the formula described at this website:  http://www.energycommunity.org/webhelppro/Expressions/AnnualizedCost.htm.
+The annualization rate is calculated using the formula described at this website: https://www.investopedia.com/terms/e/eac.asp. 
 The annualization rate takes the discount rate (rate) and the number of years the CAPEX investment is expected to be used (life) as input.
 
 .. math::
@@ -1210,27 +1229,6 @@ The water quality at beneficial reuse sites is dependent on the flow rates into 
 
     = \textcolor{red}{Q_{o,w,t}}⋅\textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
 
-
-.. _strategic_model_terminology:
-
-Terminology
------------
-
-**Beneficial Reuse Options:** This term refers to the reuse of water at mining facilities, farms, etc.
-
-**Completions Demand:** Demand set by completions pads.  This demand can be met by produced water, treated water, or freshwater.
-
-**Completions Reuse Water:** Water that meets demand at a completions site. This does not include freshwater or water for beneficial reuse.
-
-**Network Nodes:** These are branch points for pipelines only.
-
-.. note:: Well pads are not a subset of network nodesd.
-
-**[t]:** This notation indicates that timing of capacity expansion has not yet been implemented.
-
-**Terminal Storage Level:** These are goal storage levels for the final time period. Without this, the storage levels would likely be depleted in the last time period.
-
-**Water Boosting:** Moving large volumes of water requires water pumps. Water boosting refers to the infrastructure required to maintain water pressure.
 
 .. _strategic_model_references:
 
