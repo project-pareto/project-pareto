@@ -28,105 +28,105 @@ Strategic Model Mathematical Notation
 
 **Sets**
 
-:math:`\textcolor{blue}{t ∈ T}`			                               Time periods (i.e. days)
+:math:`\textcolor{blue}{t \in T}`			                               Time periods (i.e. days)
 
-:math:`\textcolor{blue}{p ∈ P}`			                               Well pads
+:math:`\textcolor{blue}{p \in P}`			                               Well pads
 
-:math:`\textcolor{blue}{p ∈ PP}`			                           Production pads (subset of well pads P)
+:math:`\textcolor{blue}{p \in PP}`			                           Production pads (subset of well pads P)
 
-:math:`\textcolor{blue}{p ∈ CP}`		                               Completions pads (subset of well pads P)
+:math:`\textcolor{blue}{p \in CP}`		                               Completions pads (subset of well pads P)
 
-:math:`\textcolor{blue}{f ∈ F}`			                               Freshwater sources
+:math:`\textcolor{blue}{f \in F}`			                               Freshwater sources
 
-:math:`\textcolor{blue}{k ∈ K}`			                               Disposal sites
+:math:`\textcolor{blue}{k \in K}`			                               Disposal sites
 
-:math:`\textcolor{blue}{s ∈ S}`			                               Storage sites
+:math:`\textcolor{blue}{s \in S}`			                               Storage sites
 
-:math:`\textcolor{blue}{r ∈ R}`			                               Treatment sites
+:math:`\textcolor{blue}{r \in R}`			                               Treatment sites
 
-:math:`\textcolor{blue}{o ∈ O}`			                               Beneficial Reuse options
+:math:`\textcolor{blue}{o \in O}`			                               Beneficial Reuse options
 
-:math:`\textcolor{blue}{n ∈ N}`			                               Network nodes
+:math:`\textcolor{blue}{n \in N}`			                               Network nodes
 
-:math:`\textcolor{blue}{l ∈ L}`			                               Locations (superset of well pads, disposal sites, nodes, …)
+:math:`\textcolor{blue}{l \in L}`			                               Locations (superset of well pads, disposal sites, nodes, …)
 
-:math:`\textcolor{blue}{d ∈ D}`			                               Pipeline Diameters
+:math:`\textcolor{blue}{d \in D}`			                               Pipeline Diameters
 
-:math:`\textcolor{blue}{c ∈ C}`				                           Storage capacities
+:math:`\textcolor{blue}{c \in C}`				                           Storage capacities
 
-:math:`\textcolor{blue}{j ∈ J}`				                           Treatment capacities
+:math:`\textcolor{blue}{j \in J}`				                           Treatment capacities
 
-:math:`\textcolor{blue}{i ∈ I}`				                           Injection (i.e. disposal) capacities
-
-
-:math:`\textcolor{blue}{(p,p) ∈ PCA}`	                               Production-to-completions pipeline arcs
-
-:math:`\textcolor{blue}{(p,n) ∈ PNA}`                                 Production-to-node pipeline arcs
-
-:math:`\textcolor{blue}{(p,p) ∈ PPA}`                                 Production-to-production pipeline arcs
-
-:math:`\textcolor{blue}{(p,n) ∈ CNA}`	                               Completions-to-node pipeline arcs
-
-:math:`\textcolor{blue}{(p,p) ∈ CCA}`	                               Completions-to-completions pipeline arcs
-
-:math:`\textcolor{blue}{(n,n) ∈ NNA}`                                 Node-to-node pipeline arcs
-
-:math:`\textcolor{blue}{(n,p) ∈ NCA}`                                 Node-to-completions pipeline arcs
-
-:math:`\textcolor{blue}{(n,k) ∈ NKA}`	                               Node-to-disposal pipeline arcs
-
-:math:`\textcolor{blue}{(n,s) ∈ NSA}`	                               Node-to-storage pipeline arcs
-
-:math:`\textcolor{blue}{(n,r) ∈ NRA}`                                 Node-to-treatment pipeline arcs
-
-:math:`\textcolor{blue}{(n,o) ∈ NOA}`	                               Node-to-beneficial reuse pipeline arcs
-
-:math:`\textcolor{blue}{(f,p) ∈ FCA}`	                               Freshwater-to-completions pipeline arcs
-
-:math:`\textcolor{blue}{(r,n) ∈ RNA}`	                               Treatment-to-node pipeline arcs
-
-:math:`\textcolor{blue}{(r,p) ∈ RCA}`	                               Treatment-to-completions pipeline arcs
-
-:math:`\textcolor{blue}{(r,k) ∈ RKA}`	                               Treatment-to-disposal pipeline arcs
-
-:math:`\textcolor{blue}{(r,s) ∈ RSA}`			                       Treatment-to-storage pipeline arcs
-
-:math:`\textcolor{blue}{(s,n) ∈ SNA}`	                               Storage-to-node pipeline arcs
-
-:math:`\textcolor{blue}{(s,p) ∈ SCA}`	                               Storage-to-completions pipeline arcs
-
-:math:`\textcolor{blue}{(s,k) ∈ SKA}`	                               Storage-to-disposal pipeline arcs
-
-:math:`\textcolor{blue}{(s,r) ∈ SRA}`	                               Storage-to-treatment pipeline arcs
-
-:math:`\textcolor{blue}{(s,o) ∈ SOA}`	                               Storage-to-beneficial reuse pipeline arcs
+:math:`\textcolor{blue}{i \in I}`				                           Injection (i.e. disposal) capacities
 
 
-:math:`\textcolor{blue}{(p,p) ∈ PCT}`	                               Production-to-completions trucking arcs
+:math:`\textcolor{blue}{(p,p) \in PCA}`	                               Production-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(f,c) ∈ FCT}`                                 Freshwater-to-completions trucking arcs
+:math:`\textcolor{blue}{(p,n) \in PNA}`                                 Production-to-node pipeline arcs
 
-:math:`\textcolor{blue}{(p,k) ∈ PKT}`	                               Production-to-disposal trucking arcs
+:math:`\textcolor{blue}{(p,p) \in PPA}`                                 Production-to-production pipeline arcs
 
-:math:`\textcolor{blue}{(p,s) ∈ PST}`                                 Production-to-storage trucking arcs
+:math:`\textcolor{blue}{(p,n) \in CNA}`	                               Completions-to-node pipeline arcs
 
-:math:`\textcolor{blue}{(p,r) ∈ PRT}`	                               Production-to-treatment trucking arcs
+:math:`\textcolor{blue}{(p,p) \in CCA}`	                               Completions-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(p,o) ∈ POT}`	                               Production-to-beneficial reuse trucking arcs
+:math:`\textcolor{blue}{(n,n) \in NNA}`                                 Node-to-node pipeline arcs
 
-:math:`\textcolor{blue}{(p,k) ∈ CKT}`	                               Completions-to-disposal trucking arcs
+:math:`\textcolor{blue}{(n,p) \in NCA}`                                 Node-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(p,s) ∈ CST}`	                               Completions-to-storage trucking arcs
+:math:`\textcolor{blue}{(n,k) \in NKA}`	                               Node-to-disposal pipeline arcs
 
-:math:`\textcolor{blue}{(p,r) ∈ CRT}`                                 Completions-to-treatment trucking arcs
+:math:`\textcolor{blue}{(n,s) \in NSA}`	                               Node-to-storage pipeline arcs
 
-:math:`\textcolor{blue}{(p,p) ∈ CCT}`	                               Completions-to-completions trucking arcs (flowback reuse)
+:math:`\textcolor{blue}{(n,r) \in NRA}`                                 Node-to-treatment pipeline arcs
 
-:math:`\textcolor{blue}{(s,p) ∈ SCT}`                                 Storage-to-completions trucking arcs
+:math:`\textcolor{blue}{(n,o) \in NOA}`	                               Node-to-beneficial reuse pipeline arcs
 
-:math:`\textcolor{blue}{(s,k) ∈ SKT}`                                 Storage-to-disposal trucking arcs
+:math:`\textcolor{blue}{(f,p) \in FCA}`	                               Freshwater-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(r,k) ∈ RKT}`	                               Treatment-to-disposal trucking arcs
+:math:`\textcolor{blue}{(r,n) \in RNA}`	                               Treatment-to-node pipeline arcs
+
+:math:`\textcolor{blue}{(r,p) \in RCA}`	                               Treatment-to-completions pipeline arcs
+
+:math:`\textcolor{blue}{(r,k) \in RKA}`	                               Treatment-to-disposal pipeline arcs
+
+:math:`\textcolor{blue}{(r,s) \in RSA}`			                       Treatment-to-storage pipeline arcs
+
+:math:`\textcolor{blue}{(s,n) \in SNA}`	                               Storage-to-node pipeline arcs
+
+:math:`\textcolor{blue}{(s,p) \in SCA}`	                               Storage-to-completions pipeline arcs
+
+:math:`\textcolor{blue}{(s,k) \in SKA}`	                               Storage-to-disposal pipeline arcs
+
+:math:`\textcolor{blue}{(s,r) \in SRA}`	                               Storage-to-treatment pipeline arcs
+
+:math:`\textcolor{blue}{(s,o) \in SOA}`	                               Storage-to-beneficial reuse pipeline arcs
+
+
+:math:`\textcolor{blue}{(p,p) \in PCT}`	                               Production-to-completions trucking arcs
+
+:math:`\textcolor{blue}{(f,c) \in FCT}`                                 Freshwater-to-completions trucking arcs
+
+:math:`\textcolor{blue}{(p,k) \in PKT}`	                               Production-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(p,s) \in PST}`                                 Production-to-storage trucking arcs
+
+:math:`\textcolor{blue}{(p,r) \in PRT}`	                               Production-to-treatment trucking arcs
+
+:math:`\textcolor{blue}{(p,o) \in POT}`	                               Production-to-beneficial reuse trucking arcs
+
+:math:`\textcolor{blue}{(p,k) \in CKT}`	                               Completions-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(p,s) \in CST}`	                               Completions-to-storage trucking arcs
+
+:math:`\textcolor{blue}{(p,r) \in CRT}`                                 Completions-to-treatment trucking arcs
+
+:math:`\textcolor{blue}{(p,p) \in CCT}`	                               Completions-to-completions trucking arcs (flowback reuse)
+
+:math:`\textcolor{blue}{(s,p) \in SCT}`                                 Storage-to-completions trucking arcs
+
+:math:`\textcolor{blue}{(s,k) \in SKT}`                                 Storage-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(r,k) \in RKT}`	                               Treatment-to-disposal trucking arcs
 
 
 
