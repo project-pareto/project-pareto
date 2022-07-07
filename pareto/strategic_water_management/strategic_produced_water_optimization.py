@@ -7855,12 +7855,12 @@ def _preprocess_data(model):
 
 
 def solve_discrete_water_quality(model, opt, scaled):
-    # solve mathematical model
-    print("\n")
-    print("*" * 50)
-    print(" " * 15, "Solving discrete water quality model")
-    print("*" * 50)
+    # Discrete water quality method consists of 5 steps:
+    # Step 1 - initialization
+    # Step 1a - fix water quality
+    # Step 1b - Solve model
 
+    # Initialization
     v_DQ = model.scaled_v_DQ if scaled else model.v_DQ
     # First fix the discrete qualities to get the optimal flows
     v_DQ.fix()
@@ -7900,6 +7900,10 @@ def solve_discrete_water_quality(model, opt, scaled):
 
     v_DQ.free()
 
+    print("\n")
+    print("*" * 50)
+    print(" " * 15, "Solving non-discrete water quality model")
+    print("*" * 50)
     # Solve for fixed non discrete quality variables to get the optimal discrete quality
     opt.solve(model, tee=True, warmstart=True)
 
@@ -7917,7 +7921,10 @@ def solve_discrete_water_quality(model, opt, scaled):
             else:
                 index_var.setlb(0)
                 index_var.setub(None)
-
+    print("\n")
+    print("*" * 50)
+    print(" " * 15, "Solving discrete water quality model")
+    print("*" * 50)
     # Solve whole model with initial solution
     results = opt.solve(model, tee=True, warmstart=True)
 
@@ -7934,9 +7941,9 @@ def solve_model(model, options=None):
             "running_time": 60,
             "gap": 0,
         }
-    # initialize pyomo solver
+    # load pyomo solver
     opt = get_solver("gurobi_direct", "gurobi", "cbc")
-    # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
+
     set_timeout(opt, timeout_s=options["running_time"])
     opt.options["mipgap"] = options["gap"]
     opt.options["NumericFocus"] = 1
@@ -7953,82 +7960,67 @@ def solve_model(model, options=None):
         model.v_S_ReuseCapacity.fix(0)
 
     if options["scale_model"] is True:
-        # Scale model
+        # Step 1: scale model
         scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
-        # solve mathematical model
+        # Step 2: solve scaled mathematical model
         print("\n")
         print("*" * 50)
         print(" " * 15, "Solving scaled model")
         print("*" * 50)
+        # Step 3: check model to be solved
+        #       option 3.1 - full space model,
+        #       option 3.2 - post process water quality,
+        #       option 3.3 - discrete water quality,
         if model.config.water_quality is WaterQuality.discrete:
+            # option 3.3:
             results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
-        else:
+        elif model.config.water_quality is WaterQuality.post_process:
+            # option 3.2:
             results = opt.solve(scaled_model, tee=True)
+            if results.solver.termination_condition != TerminationCondition.infeasible:
+                TransformationFactory("core.scale_model").propagate_solution(
+                    scaled_model, model
+                )
+                model = postprocess_water_quality_calculation(model, opt)
+        else:
+            # option 3.1:
+            results = opt.solve(scaled_model, tee=True)
+
+        # Step 4: propagate scaled model results to original model
+        if results.solver.termination_condition != TerminationCondition.infeasible:
+            # if model is optimal propagate scaled model results to original model
+            if options["scale_model"] is True:
+                TransformationFactory("core.scale_model").propagate_solution(
+                    scaled_model, model
+                )
     else:
-        # solve mathematical model
+        # Step 1: solve unscaled mathematical model
         print("\n")
         print("*" * 50)
-        print(" " * 15, "Solving model")
+        print(" " * 15, "Solving unscaled model")
         print("*" * 50)
+        # Step 2: check model to be solved
+        #       option 2.1 - full space model,
+        #       option 2.2 - post process water quality,
+        #       option 2.3 - discrete water quality,
         if model.config.water_quality is WaterQuality.discrete:
+            # option 2.3:
             results = solve_discrete_water_quality(model, opt, scaled=False)
+        elif model.config.water_quality is WaterQuality.post_process:
+            # option 2.2:
+            results = opt.solve(model, tee=True)
+            if results.solver.termination_condition != TerminationCondition.infeasible:
+                model = postprocess_water_quality_calculation(model, opt)
         else:
+            # option 2.1:
             results = opt.solve(model, tee=True)
 
-    # Check termination condition
-    if results.solver.termination_condition != TerminationCondition.infeasible:
-        if options["scale_model"] is True:
-            TransformationFactory("core.scale_model").propagate_solution(
-                scaled_model, model
-            )
-
-    else:
+    if results.solver.termination_condition == TerminationCondition.infeasible:
         print(
-            "WARNING: Model is infeasible. Adding Slack variables to avoid infeasibilities\n, \
-            however this is an indication that the input data should be revised"
+            "WARNING: Model is infeasible. We recommend adding Slack variables to avoid infeasibilities\n, \
+                however this is an indication that the input data should be revised. \
+                This can be done by selecting 'deactivate_slacks': False in the options"
         )
-
-        if options["scale_model"] is True:
-            scaled_model.scaled_v_C_Slack.unfix()
-            scaled_model.scaled_v_S_FracDemand.unfix()
-            scaled_model.scaled_v_S_Production.unfix()
-            scaled_model.scaled_v_S_Flowback.unfix()
-            scaled_model.scaled_v_S_PipelineCapacity.unfix()
-            scaled_model.scaled_v_S_StorageCapacity.unfix()
-            scaled_model.scaled_v_S_DisposalCapacity.unfix()
-            scaled_model.scaled_v_S_TreatmentCapacity.unfix()
-            scaled_model.scaled_v_S_ReuseCapacity.unfix()
-
-            # solve mathematical model
-            print("\n")
-            print("*" * 50)
-            print(" " * 15, "Solving scaled model")
-            print("*" * 50)
-            results = opt.solve(scaled_model, tee=True)
-            TransformationFactory("core.scale_model").propagate_solution(
-                scaled_model, model
-            )
-        else:
-
-            model.v_C_Slack.unfix()
-            model.v_S_FracDemand.unfix()
-            model.v_S_Production.unfix()
-            model.v_S_Flowback.unfix()
-            model.v_S_PipelineCapacity.unfix()
-            model.v_S_StorageCapacity.unfix()
-            model.v_S_DisposalCapacity.unfix()
-            model.v_S_TreatmentCapacity.unfix()
-            model.v_S_ReuseCapacity.unfix()
-
-            # solve mathematical model
-            print("\n")
-            print("*" * 50)
-            print(" " * 15, "Solving model")
-            print("*" * 50)
-            results = opt.solve(model, tee=True)
-
-    if model.config.water_quality is WaterQuality.post_process:
-        model = postprocess_water_quality_calculation(model, opt)
 
     results.write()
     return results

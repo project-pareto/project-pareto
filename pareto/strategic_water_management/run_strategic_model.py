@@ -126,10 +126,11 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
-        "water_quality": WaterQuality.discrete,
+        "water_quality": WaterQuality.false,
     },
 )
 
+# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
@@ -137,6 +138,7 @@ options = {
     "running_time": 60,
     "gap": 0,
 }
+
 solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
