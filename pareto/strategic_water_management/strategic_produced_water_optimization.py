@@ -58,7 +58,7 @@ from enum import Enum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
-
+from idaes.core.util.model_statistics import degrees_of_freedom
 
 class Objectives(Enum):
     cost = 0
@@ -4656,6 +4656,7 @@ def pipeline_hydraulics(model, opt):
     model.hydraulics = Block()
 
     model.hydraulics.p_diameter_Pipeline = Param(
+    # model.p_diameter_Pipeline = Param(
         model.s_L,
         model.s_L,
         default=0,
@@ -4664,6 +4665,7 @@ def pipeline_hydraulics(model, opt):
         doc="Diameter of pipeline between two locations [inch]",
     )
     model.hydraulics.p_HW_loss = Param(
+    # model.p_HW_loss = Param(
         model.s_L,
         model.s_L,
         default=0,
@@ -4672,6 +4674,7 @@ def pipeline_hydraulics(model, opt):
         doc="Hazen-Williams Frictional loss",
     )
     model.hydraulics.v_Pressure = Var(
+    # model.v_Pressure = Var(
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
@@ -4683,14 +4686,17 @@ def pipeline_hydraulics(model, opt):
         try:
             if model.df_parameters["InitialPipelineDiameters"][key] is not None:
                 model.hydraulics.p_diameter_Pipeline[key] = (
+                # model.p_diameter_Pipeline[key] = (
                     model.df_parameters["InitialPipelineDiameters"][key])
             else:
                 model.hydraulics.p_diameter_Pipeline[key] = (
+                # model.p_diameter_Pipeline[key] = (
                     sum(model.vb_y_Pipeline[key, d] *
                         model.df_parameters["PipelineDiameterValues"][d]
                         for d in model.s_D))
         except:
             model.hydraulics.p_diameter_Pipeline[key] = (
+            # model.p_diameter_Pipeline[key] = (
                 sum(model.vb_y_Pipeline[key, d] *
                     model.df_parameters["PipelineDiameterValues"][d]
                     for d in model.s_D))
@@ -4698,17 +4704,21 @@ def pipeline_hydraulics(model, opt):
     print("Diameter PP01 to N01", value(model.hydraulics.p_diameter_Pipeline['PP01', 'N01']))
     print("Diameter PP02 to N05", value(model.hydraulics.p_diameter_Pipeline['PP02', 'N05']))
     print("Diameter PP03 to N06", value(model.hydraulics.p_diameter_Pipeline['PP03', 'N06']))
+    # print("Diameter PP01 to N01", value(model.p_diameter_Pipeline['PP01', 'N01']))
+    # print("Diameter PP02 to N05", value(model.p_diameter_Pipeline['PP02', 'N05']))
+    # print("Diameter PP03 to N06", value(model.p_diameter_Pipeline['PP03', 'N06']))
 
     for key in model.df_parameters["PipelineExpansionDistance"]:
         if model.df_parameters["PipelineExpansionDistance"][key] > 0:
-            if value(model.hydraulics.p_diameter_Pipeline[key]) == 2.0:
-                model.hydraulics.p_HW_loss[key] = (
-                    2e6 * model.df_parameters["PipelineExpansionDistance"][key]
-                    + 10.704)
-                print('Pipeline Segment', key,
-                      'HW loss', value(model.hydraulics.p_HW_loss[key]))
-                # raise Exception()
-            elif value(model.hydraulics.p_diameter_Pipeline[key]) == 4.0:
+            # if value(model.hydraulics.p_diameter_Pipeline[key]) == 2.0:
+            #     model.hydraulics.p_HW_loss[key] = (
+            #         2e6 * model.df_parameters["PipelineExpansionDistance"][key]
+            #         + 10.704)
+            #     print('Pipeline Segment', key,
+            #           'HW loss', value(model.hydraulics.p_HW_loss[key]))
+            #     # raise Exception()
+            # elif value(model.hydraulics.p_diameter_Pipeline[key]) == 4.0:
+            if value(model.hydraulics.p_diameter_Pipeline[key]) == 4.0:
                 model.hydraulics.p_HW_loss[key] = (
                     68616 * model.df_parameters["PipelineExpansionDistance"][key]
                     + 10.704)
@@ -4732,30 +4742,68 @@ def pipeline_hydraulics(model, opt):
                 model.hydraulics.p_HW_loss[key] = (
                     325.7 * model.df_parameters["PipelineExpansionDistance"][key]
                     + 10.704)
+
+    # for key in model.df_parameters["PipelineExpansionDistance"]:
+    #     if model.df_parameters["PipelineExpansionDistance"][key] > 0:
+    #         if value(model.p_diameter_Pipeline[key]) == 2.0:
+    #             model.p_HW_loss[key] = (
+    #                 2e6 * model.df_parameters["PipelineExpansionDistance"][key]
+    #                 + 10.704)
+    #             print('Pipeline Segment', key,
+    #                   'HW loss', value(model.p_HW_loss[key]))
+    #             # raise Exception()
+    #         elif value(model.p_diameter_Pipeline[key]) == 4.0:
+    #             model.p_HW_loss[key] = (
+    #                 68616 * model.df_parameters["PipelineExpansionDistance"][key]
+    #                 + 10.704)
+    #             print('Pipeline Segment', key,
+    #                   'HW loss', value(model.p_HW_loss[key]))
+    #         elif value(model.p_diameter_Pipeline[key]) == 6.0:
+    #             model.p_HW_loss[key] = (
+    #                 9525 * model.df_parameters["PipelineExpansionDistance"][key]
+    #                 + 10.704)
+    #             print('Pipeline Segment', key,
+    #                   'HW loss', value(model.p_HW_loss[key]))
+    #         elif value(model.p_diameter_Pipeline[key]) == 8.0:
+    #             model.p_HW_loss[key] = (
+    #                 2346.5 * model.df_parameters["PipelineExpansionDistance"][key]
+    #                 + 10.704)
+    #         elif value(model.p_diameter_Pipeline[key]) == 10.0:
+    #             model.p_HW_loss[key] = (
+    #                 791.5 * model.df_parameters["PipelineExpansionDistance"][key]
+    #                 + 10.704)
+    #         elif value(model.p_diameter_Pipeline[key]) == 12.0:
+    #             model.p_HW_loss[key] = (
+    #                 325.7 * model.df_parameters["PipelineExpansionDistance"][key]
+    #                 + 10.704)
                     
-    # for t0 in model.s_T:
-    #     for l0 in model.s_PP:
-    #         model.hydraulics.v_Pressure[l0, t0].fix(1.034e7)
+    # # for t0 in model.s_T:
+    # #     for l0 in model.s_PP:
+    # #         model.hydraulics.v_Pressure[l0, t0].fix(1.034e7)
     # for t0 in model.s_T:
     #     if t0 is not model.s_T.last():
-    #         model.hydraulics.v_Pressure['PP01', t0].fix(1.034e8)
-    #         # model.hydraulics.v_Pressure['PP02', t0].fix(1.034e8)
-    #         # model.hydraulics.v_Pressure['PP03', t0].fix(1.034e8)
+    #         model.v_Pressure['PP01', t0].fix(1.034e8)
+    #         # model.v_Pressure['PP02', t0].fix(1.034e8)
+    #         # model.v_Pressure['PP03', t0].fix(1.034e8)
+    #         # model.v_Pressure['PP01', t0].fix(1.034e8)
+    #         # # model.v_Pressure['PP02', t0].fix(1.034e8)
+    #         # # model.v_Pressure['PP03', t0].fix(1.034e8)
     
     def NodePressureRule(b, l1, l2, t1):
         # for t1 in model.s_T:
         #     for l2 in model.s_L:
         #         for l1 in model.s_L:
-        if value(model.v_F_Piped[l1, l2, t1]) > 0:
+        if value(b.parent_block().v_F_Piped[l1, l2, t1]) > 0:
         # if model.df_parameters["PipelineExpansionDistance"][l1, l2] > 0:
             return (b.v_Pressure[l1, t1] +
-             model.df_parameters["Elevation"][l1] * 0.31 * 1e4 ==
+             b.parent_block().df_parameters["Elevation"][l1] * 0.31 * 1e4 ==
              b.v_Pressure[l2, t1] +
-             model.df_parameters["Elevation"][l2] * 0.31 * 1e4 +
+             b.parent_block().df_parameters["Elevation"][l2] * 0.31 * 1e4 +
              b.p_HW_loss[l1, l2] * 1e4)
         else:
             return Constraint.Skip
 
+    # model.NodePressure = Constraint(
     model.hydraulics.NodePressure = Constraint(
         model.s_L,
         model.s_L,
@@ -4764,13 +4812,36 @@ def pipeline_hydraulics(model, opt):
         doc="Pressure at Node L",
     )
 
+    # model.objective = Objective(
+    #     expr=model.v_Pressure["PP01", "T52"], sense=minimize, doc="Objective function"
+    # )
     model.hydraulics.objective = Objective(
         expr=model.hydraulics.v_Pressure["PP01", "T52"], sense=minimize, doc="Objective function"
     )
-    # solver = get_solver("ipopt")
+    print("         ")
+    print("Degress of Freedom = ", degrees_of_freedom(model.hydraulics))
+    print("         ")
+    solver = get_solver("ipopt")
+    solver.solve(model.hydraulics, tee=True)
 
-    opt.solve(model, tee=True)
+    # opt.solve(model, tee=True)
     
+    # print("flow from PP01 to N01", value(model.v_F_Piped['PP01', 'N01', 'T01']),
+    #       'pressure at PP01', value(model.v_Pressure['PP01', 'T01']),
+    #       'pressure at N01', value(model.v_Pressure['N01', 'T01']))
+    # print("flow from PP02 to N05", value(model.v_F_Piped['PP02', 'N05', 'T01']),
+    #       'pressure at PP02', value(model.v_Pressure['PP02', 'T01']),
+    #       'pressure at N05', value(model.v_Pressure['N05', 'T01']))
+    # print("flow from PP03 to N06", value(model.v_F_Piped['PP03', 'N06', 'T01']),
+    #       'pressure at PP03', value(model.v_Pressure['PP03', 'T01']),
+    #       'pressure at N06', value(model.v_Pressure['N06', 'T01']))
+    # print("flow from N01 to K01", value(model.v_F_Piped['N01', 'K01', 'T01']),
+    #       'pressure at N01', value(model.v_Pressure['N01', 'T01']),
+    #       'pressure at K01', value(model.v_Pressure['K01', 'T01']))
+    # print("flow from N04 to K02", value(model.v_F_Piped['N04', 'K02', 'T01']),
+    #       'pressure at N04', value(model.v_Pressure['N04', 'T01']),
+    #       'pressure at K02', value(model.v_Pressure['K02', 'T01']))
+
     print("flow from PP01 to N01", value(model.v_F_Piped['PP01', 'N01', 'T01']),
           'pressure at PP01', value(model.hydraulics.v_Pressure['PP01', 'T01']),
           'pressure at N01', value(model.hydraulics.v_Pressure['N01', 'T01']))
@@ -5575,92 +5646,93 @@ def solve_model(model, options=None):
     opt.options["mipgap"] = options["gap"]
     opt.options["NumericFocus"] = 1
 
-    # if options["deactivate_slacks"] is True:
-    #     model.v_C_Slack.fix(0)
-    #     model.v_S_FracDemand.fix(0)
-    #     model.v_S_Production.fix(0)
-    #     model.v_S_Flowback.fix(0)
-    #     model.v_S_PipelineCapacity.fix(0)
-    #     model.v_S_StorageCapacity.fix(0)
-    #     model.v_S_DisposalCapacity.fix(0)
-    #     model.v_S_TreatmentCapacity.fix(0)
-    #     model.v_S_ReuseCapacity.fix(0)
+    if options["deactivate_slacks"] is True:
+        model.v_C_Slack.fix(0)
+        model.v_S_FracDemand.fix(0)
+        model.v_S_Production.fix(0)
+        model.v_S_Flowback.fix(0)
+        model.v_S_PipelineCapacity.fix(0)
+        model.v_S_StorageCapacity.fix(0)
+        model.v_S_DisposalCapacity.fix(0)
+        model.v_S_TreatmentCapacity.fix(0)
+        model.v_S_ReuseCapacity.fix(0)
 
-    # if options["scale_model"] is True:
-    #     # Scale model
-    #     scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
+    if options["scale_model"] is True:
+        # Scale model
+        scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
 
-    #     # solve mathematical model
-    #     print("\n")
-    #     print("*" * 50)
-    #     print(" " * 15, "Solving scaled model")
-    #     print("*" * 50)
-    #     results = opt.solve(scaled_model, tee=True)
-    # else:
-    #     # solve mathematical model
-    #     print("\n")
-    #     print("*" * 50)
-    #     print(" " * 15, "Solving model")
-    #     print("*" * 50)
-    #     results = opt.solve(model, tee=True)
+        # solve mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving scaled model")
+        print("*" * 50)
+        results = opt.solve(scaled_model, tee=True)
+    else:
+        # solve mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving model")
+        print("*" * 50)
+        results = opt.solve(model, tee=True)
 
-    # # Check termination condition
-    # if results.solver.termination_condition != TerminationCondition.infeasible:
-    #     if options["scale_model"] is True:
-    #         TransformationFactory("core.scale_model").propagate_solution(
-    #             scaled_model, model
-    #         )
+    # Check termination condition
+    if results.solver.termination_condition != TerminationCondition.infeasible:
+        if options["scale_model"] is True:
+            TransformationFactory("core.scale_model").propagate_solution(
+                scaled_model, model
+            )
 
-    # else:
-    #     print(
-    #         "WARNING: Model is infeasible. Adding Slack variables to avoid infeasibilities\n, \
-    #         however this is an indication that the input data should be revised"
-    #     )
+    else:
+        print(
+            "WARNING: Model is infeasible. Adding Slack variables to avoid infeasibilities\n, \
+            however this is an indication that the input data should be revised"
+        )
 
-    #     if options["scale_model"] is True:
-    #         scaled_model.scaled_v_C_Slack.unfix()
-    #         scaled_model.scaled_v_S_FracDemand.unfix()
-    #         scaled_model.scaled_v_S_Production.unfix()
-    #         scaled_model.scaled_v_S_Flowback.unfix()
-    #         scaled_model.scaled_v_S_PipelineCapacity.unfix()
-    #         scaled_model.scaled_v_S_StorageCapacity.unfix()
-    #         scaled_model.scaled_v_S_DisposalCapacity.unfix()
-    #         scaled_model.scaled_v_S_TreatmentCapacity.unfix()
-    #         scaled_model.scaled_v_S_ReuseCapacity.unfix()
+        if options["scale_model"] is True:
+            scaled_model.scaled_v_C_Slack.unfix()
+            scaled_model.scaled_v_S_FracDemand.unfix()
+            scaled_model.scaled_v_S_Production.unfix()
+            scaled_model.scaled_v_S_Flowback.unfix()
+            scaled_model.scaled_v_S_PipelineCapacity.unfix()
+            scaled_model.scaled_v_S_StorageCapacity.unfix()
+            scaled_model.scaled_v_S_DisposalCapacity.unfix()
+            scaled_model.scaled_v_S_TreatmentCapacity.unfix()
+            scaled_model.scaled_v_S_ReuseCapacity.unfix()
 
-    #         # solve mathematical model
-    #         print("\n")
-    #         print("*" * 50)
-    #         print(" " * 15, "Solving scaled model")
-    #         print("*" * 50)
-    #         results = opt.solve(scaled_model, tee=True)
-    #         TransformationFactory("core.scale_model").propagate_solution(
-    #             scaled_model, model
-    #         )
-    #     else:
+            # solve mathematical model
+            print("\n")
+            print("*" * 50)
+            print(" " * 15, "Solving scaled model")
+            print("*" * 50)
+            results = opt.solve(scaled_model, tee=True)
+            TransformationFactory("core.scale_model").propagate_solution(
+                scaled_model, model
+            )
+        else:
 
-    #         model.v_C_Slack.unfix()
-    #         model.v_S_FracDemand.unfix()
-    #         model.v_S_Production.unfix()
-    #         model.v_S_Flowback.unfix()
-    #         model.v_S_PipelineCapacity.unfix()
-    #         model.v_S_StorageCapacity.unfix()
-    #         model.v_S_DisposalCapacity.unfix()
-    #         model.v_S_TreatmentCapacity.unfix()
-    #         model.v_S_ReuseCapacity.unfix()
+            model.v_C_Slack.unfix()
+            model.v_S_FracDemand.unfix()
+            model.v_S_Production.unfix()
+            model.v_S_Flowback.unfix()
+            model.v_S_PipelineCapacity.unfix()
+            model.v_S_StorageCapacity.unfix()
+            model.v_S_DisposalCapacity.unfix()
+            model.v_S_TreatmentCapacity.unfix()
+            model.v_S_ReuseCapacity.unfix()
 
-    #         # solve mathematical model
-    #         print("\n")
-    #         print("*" * 50)
-    #         print(" " * 15, "Solving model")
-    #         print("*" * 50)
-    #         results = opt.solve(model, tee=True)
+            # solve mathematical model
+            print("\n")
+            print("*" * 50)
+            print(" " * 15, "Solving model")
+            print("*" * 50)
+            results = opt.solve(model, tee=True)
 
-    # if options["water_quality"] is True:
-    #     model = postprocess_water_quality_calculation(model, opt)
+    if options["water_quality"] is True:
+        model = postprocess_water_quality_calculation(model, opt)
 
-    # ms.to_json(model, fname='optimal_strategic_model_solution_quality.json')
-    ms.from_json(model, fname='optimal_strategic_model_solution_quality.json')
+    ms.to_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
+    # ms.from_json(model, fname='optimal_strategic_model_solution_quality.json')
+    # ms.from_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
     if options["hydraulics"] is True:
         model = pipeline_hydraulics(model, opt)
 
