@@ -132,7 +132,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(p,o) \in POT}`     Production-to-beneficial reuse trucking arcs
 
-:math:`\textcolor{blue}{(f,c) \in FCT}`     Freshwater-to-completions trucking arcs
+:math:`\textcolor{blue}{(f,p) \in FCT}`     Freshwater-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(p,k) \in CKT}`     Completions-to-disposal trucking arcs
 
@@ -165,9 +165,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{r,t}^{UnusedTreatedWater}}` =             Treated water that is not used
 
+:math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}` =    Water delivered to completions pad for reuse
+
 :math:`\textcolor{red}{F_{k,t}^{DisposalDestination}}` =            Water injected at disposal site
 
-:math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}` =    Water delivered to completions pad for reuse
+:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse
 
 :math:`\textcolor{red}{F_{p,t}^{CompletionsDestination}}` =         All water delivered to completions pad
 
@@ -254,13 +256,13 @@ Strategic Model Mathematical Notation
 
 **Binary Variables**
 
-:math:`\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}` =     New pipeline installed between one location and another location with specific diameter
+:math:`\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}}` =     New pipeline installed between one location and another location with specific diameter
 
-:math:`\textcolor{red}{y_{s,c}^{Storage}}` =        New or additional storage facility installed at storage site with specific storage capacity
+:math:`\textcolor{red}{y_{s,c,[t]}^{Storage}}` =        New or additional storage facility installed at storage site with specific storage capacity
 
-:math:`\textcolor{red}{y_{r,j}^{Treatment}}` =      New or additional treatment facility installed at treatment site with specific treatment capacity
+:math:`\textcolor{red}{y_{r,j,[t]}^{Treatment}}` =      New or additional treatment facility installed at treatment site with specific treatment capacity
 
-:math:`\textcolor{red}{y_{k,i}^{Disposal}}` =       New or additional disposal facility installed at disposal site with specific injection capacity
+:math:`\textcolor{red}{y_{k,i,[t]}^{Disposal}}` =       New or additional disposal facility installed at disposal site with specific injection capacity
 
 :math:`\textcolor{red}{y_{l,\tilde{l},t}^{Flow}}` =         Directional flow between two locations
 
@@ -924,7 +926,8 @@ The total reuse volume is the total volume of produced water reused, or the tota
 
 .. math::
 
-    \textcolor{red}{F^{TotalCompletionsReused}} = \sum_{t \in T}(\sum_{(n,p) \in NCA}\textcolor{red}{F_{l,l,t}^{Piped}}
+    \textcolor{red}{F^{TotalCompletionsReused}}
+        = \sum_{t \in T}(\sum_{(n,p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}
         + \sum_{(p, \tilde{p}) \in PCA}\textcolor{red}{F_{p,\tilde{p},t}^{Piped}}
 
         + \sum_{(s, p) \in SCA}\textcolor{red}{F_{s,p,t}^{Piped}}
@@ -959,10 +962,14 @@ Cost of depositing into storage is equal to the total volume of water moved into
 
 .. math::
 
-    \textcolor{red}{C_{s,t}^{Storage}} = (\sum_{(l,s) \in {NSA}}\textcolor{red}{F_{l,s,t}^{Piped}} +\sum_{(l,s) \in {RSA}}\textcolor{red}{F_{l,s,t}^{Piped}}
+    \textcolor{red}{C_{s,t}^{Storage}}
+        = (\sum_{n \in N | (n, s) \in {NSA}}\textcolor{red}{F_{n,s,t}^{Piped}}
+        + \sum_{r \in R | (r, s) \in {RSA}}\textcolor{red}{F_{r,s,t}^{Piped}}
 
-        +\sum_{(l,s) \in {CST}}\textcolor{red}{F_{l,s,t}^{Trucked}}+\sum_{(l,s) \in {PST}}\textcolor{red}{F_{l,s,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{s}^{Storage}}
+        + \sum_{p \in P | (p, s) \in {CST}}\textcolor{red}{F_{p,s,t}^{Trucked}}
+        + \sum_{p \in P | (p, s) \in {PST}}\textcolor{red}{F_{p,s,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{s}^{Storage}}
 
+.. math::
     \textcolor{red}{C^{TotalStorage}} = \sum_{t \in T}\sum_{s \in S}\textcolor{red}{C_{s,t}^{Storage}}
 
 
@@ -972,8 +979,11 @@ Credits from withdrawing from storage is equal to the total volume of water move
 
 .. math::
 
-    \textcolor{red}{R_{s,t}^{Storage}} = (\sum_{(s,l) \in {SNA,SCA,SKA,SRA,SOA}}\textcolor{red}{F_{s,l,t}^{Piped}}+\sum_{(s,l) \in {SCT,SKT}}\textcolor{red}{F_{s,l,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{s}^{Storage}}
+    \textcolor{red}{R_{s,t}^{Storage}}
+        = (\sum_{l \in L | (s, l) \in \{SNA,SCA,SKA,SRA,SOA\}}\textcolor{red}{F_{s,l,t}^{Piped}}
+        + \sum_{l \in L | (s, l) \in \{SCT,SKT\}}\textcolor{red}{F_{s,l,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{s}^{Storage}}
 
+.. math::
     \textcolor{red}{R^{TotalStorage}} = \sum_{t \in T}\sum_{s \in S}\textcolor{red}{R_{s,t}^{Storage}}
 
 ..
@@ -981,16 +991,16 @@ Credits from withdrawing from storage is equal to the total volume of water move
 
 **Trucking Cost (Simplified)**
 
-Trucking cost between two locations for time period is equal to the trucking volume between locations in time t divided by the truck capacity [this gets # of truckloads] multiplied by the lead time between two locations and hourly trucking cost.
+Trucking cost between two locations for time period is equal to the trucking volume between locations in time :math:`\textcolor{blue}{t}` divided by the truck capacity [this gets # of truckloads] multiplied by the lead time between two locations and hourly trucking cost.
 
 .. math::
 
     \textcolor{red}{C_{l,\tilde{l},t}^{Trucked}} = \textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{green}{1 / \delta^{Truck}}  \cdot\textcolor{green}{\tau_{l,\tilde{l}}^{Trucking}} \cdot \textcolor{green}{\pi_{l}^{Trucking}}
 
-    \textcolor{red}{C^{TotalTrucking}} = \sum_{t \in T}\sum_{(l,l) \in {PPA, \ldots ,CCT}}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
+    \textcolor{red}{C^{TotalTrucking}} = \sum_{t \in T}\sum_{(l, \tilde{l}) \in \{PCT, \ldots, RKT\}}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
 
 
-.. note:: The constraints above explicitly consider freshwater trucking via FCT arcs.
+.. note:: The constraints above explicitly consider freshwater trucking via :math:`\textcolor{blue}{FCT}` arcs.
 
 
 **Total Trucking Volume:** :math:`\forall \textcolor{blue}{t \in T}`
@@ -999,7 +1009,7 @@ The total trucking volume is estimated as the summation of trucking movements ov
 
 .. math::
 
-    \textcolor{red}{F^{TotalTrucking}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in {PPA, \ldots ,CCT}}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}
+    \textcolor{red}{F^{TotalTrucking}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in \{PCT, \ldots, RKT\}}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}
 
 
 **Disposal Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
@@ -1038,13 +1048,13 @@ If the pipeline cost configuration is **capacity based**, pipeline expansion cos
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{l \in L}\sum_{d \in D_0}\textcolor{green}{\kappa_{l,l,d}^{Pipeline}} \cdot \textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,l,d}^{Pipeline}}
+    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}} \cdot \textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 If the pipeline cost configuration is **distance based**, pipeline expansion cost is calculated using pipeline distances, pipeline diameters, cost per inch mile, and if the construction/expansion is selected to occur.
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{l \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,l}^{Pipeline}} \cdot \textcolor{red}{y_{l,l,d}^{Pipeline}}
+    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 
 **Slack Costs:**
@@ -1053,13 +1063,18 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 
 .. math::
 
-    \textcolor{red}{C^{Slack}} = \sum_{p \in CP}\sum_{t \in T}\textcolor{red}{S_{p,t}^{FracDemand}} \cdot \textcolor{green}{\psi^{FracDemand}}+\sum_{p \in PP}\sum_{t \in T}\textcolor{red}{S_{p,t}^{Production}}  \cdot \textcolor{green}{\psi^{Production}}
+    \textcolor{red}{C^{Slack}}
+        = \sum_{p \in CP}\sum_{t \in T}\textcolor{red}{S_{p,t}^{FracDemand}} \cdot \textcolor{green}{\psi^{FracDemand}}
+        + \sum_{p \in PP}\sum_{t \in T}\textcolor{red}{S_{p,t}^{Production}} \cdot \textcolor{green}{\psi^{Production}}
 
-        +\sum_{p \in CP}\sum_{t \in T}\textcolor{red}{S_{p,t}^{Flowback}} \cdot \textcolor{green}{\psi^{Flowback}}+\sum_{(l,l) \in { \ldots }}\textcolor{red}{S_{l,l}^{PipelineCapacity}}  \cdot \textcolor{green}{\psi^{PipeCapacity}}
+        + \sum_{p \in CP}\sum_{t \in T}\textcolor{red}{S_{p,t}^{Flowback}} \cdot \textcolor{green}{\psi^{Flowback}}
+        + \sum_{(l, \tilde{l}) \in { \ldots }}\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}} \cdot \textcolor{green}{\psi^{PipeCapacity}}
 
-         +\sum_{s \in S}\textcolor{red}{S_{s}^{StorageCapacity}}  \cdot \textcolor{green}{\psi^{StorageCapacity}}+\sum_{k \in K}\textcolor{red}{S_{k}^{DisposalCapacity}} \cdot \textcolor{green}{\psi^{DisposalCapacity}}
+        + \sum_{s \in S}\textcolor{red}{S_{s}^{StorageCapacity}} \cdot \textcolor{green}{\psi^{StorageCapacity}}
+        + \sum_{k \in K}\textcolor{red}{S_{k}^{DisposalCapacity}} \cdot \textcolor{green}{\psi^{DisposalCapacity}}
 
-         +\sum_{r \in R}\textcolor{red}{S_{r}^{TreatmentCapacity}} \cdot \textcolor{green}{\psi^{TreatmentCapacity}}+\sum_{o \in O}\textcolor{red}{S_{o}^{BeneficialReuseCapacity}}  \cdot \textcolor{green}{\psi^{BeneficialReuseCapacity}}
+        + \sum_{r \in R}\textcolor{red}{S_{r}^{TreatmentCapacity}} \cdot \textcolor{green}{\psi^{TreatmentCapacity}}
+        + \sum_{o \in O}\textcolor{red}{S_{o}^{BeneficialReuseCapacity}} \cdot \textcolor{green}{\psi^{BeneficialReuseCapacity}}
 
 
 **Logic Constraints:**
@@ -1084,41 +1099,62 @@ New pipeline or facility capacity constraints: e.g., only one injection capacity
 
     \sum_{j \in J_0}\textcolor{red}{y_{r,j,[t]}^{Treatment}} = 1
 
-:math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{l \in L}`
+:math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}`
 
 .. math::
 
-    \sum_{d \in D_0}\textcolor{red}{y_{l,l,d,[t]}^{Pipeline}} = 1
+    \sum_{d \in D_0}\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}} = 1
 
 
 **Deliveries Destination Constraints:**
 
-Completions reuse deliveries at a completions pad in time period t is equal to all piped and trucked water moved into the completions pad, excluding freshwater.
+Completions reuse deliveries at a completions pad in time period :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved into the completions pad, excluding freshwater.
 :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
 
 .. math::
 
-    \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}} = \sum_{l \in {P,N,R,S}}\textcolor{red}{F_{l,p,t}^{Piped}}+\textcolor{red}{F_{l,p,t}^{Trucked}}
+    \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}
+        = \sum_{l \in L | (l, p) \in \{PCA, CCA, NCA, RCA, SCA, PCT, CCT, SCT\}}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \textcolor{red}{F_{l,p,t}^{Trucked}}
 
-Disposal deliveries for disposal site k at time t is equal to all piped and trucked water moved to the disposal site k.
+Disposal deliveries for disposal site :math:`\textcolor{blue}{k}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the disposal site :math:`\textcolor{blue}{k}`.
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
 
 .. math::
 
-    \textcolor{red}{F_{k,t}^{DisposalDestination}} = \sum_{l \in L}\textcolor{red}{F_{l,k,t}^{Piped}}+\textcolor{red}{F_{l,k,t}^{Trucked}}
+    \textcolor{red}{F_{k,t}^{DisposalDestination}}
+        = \sum_{l \in L | (l, k) \in \{NKA, RKA, SKA, PKT, CKT, SKT, RKT\}}\textcolor{red}{F_{l,k,t}^{Piped}}
+        + \textcolor{red}{F_{l,k,t}^{Trucked}}
 
-Completions deliveries destination for completions pad p at time t is equal to all piped and trucked water moved to the completions pad.
+Beneficial reuse deliveries for beneficial reuse site :math:`\textcolor{blue}{o}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the beneficial reuse site :math:`\textcolor{blue}{o}`.
+:math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+.. math::
+
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+        = \sum_{l \in L | (l, o) \in \{NOA, SOA, POT\}}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \textcolor{red}{F_{l,o,t}^{Trucked}}
+
+Completions deliveries destination for completions pad :math:`\textcolor{blue}{p}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the completions pad.
 :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
 
 .. math::
 
-    \textcolor{red}{F_{p,t}^{CompletionsDestination}}  = \sum_{(n,p) \in NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum_{(p,p) \in PCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum_{(s,p) \in SCA}\textcolor{red}{F_{l,l,t}^{Piped}}
+    \textcolor{red}{F_{p,t}^{CompletionsDestination}}
+        = \sum_{n \in N | (n, p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}
+        + \sum_{s \in S | (s, p) \in SCA}\textcolor{red}{F_{s,p,t}^{Piped}}
 
-        +\sum_{(p,c) \in CCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum_{(r,p) \in RCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum_{(f,p) \in FCA}\textcolor{red}{F_{l,l,t}^{Sourced}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}
+        + \sum_{r \in R | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
+        + \sum_{f \in F | (f, p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
 
-        +\sum_{(p,p) \in PCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum_{(s,p) \in SCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum_{(p,p) \in CCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}}
+        + \sum_{s \in S | (s, p) \in SCT}\textcolor{red}{F_{s,p,t}^{Trucked}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}}
 
-        +\sum_{(f,p) \in FCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}
+        + \sum_{f \in F | (f, p) \in FCT}\textcolor{red}{F_{f,p,t}^{Trucked}}
+        + \textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}
 
 .. _strategic_model_water_quality_extension:
 
@@ -1198,7 +1234,7 @@ The water quality at treatment sites is dependent on the flow rates into the tre
 
     = \textcolor{red}{Q_{r,w,t}} \cdot (\sum_{(r,p) \in RCA}\textcolor{purple}{F_{l,l,t}^{Piped}} + \textcolor{purple}{F_{r,t}^{UnusedTreatedWater}})
 
-where :math:`\textcolor{green}{\epsilon_{r,w}^{Treatment}}` <1
+where :math:`\textcolor{green}{\epsilon_{r,w}^{Treatment}} \leq 1`.
 
 **Network Node Water Quality** :math:`\forall \textcolor{blue}{n \in N}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
 
@@ -1251,7 +1287,6 @@ The water quality at the completions pad input is dependent on the flow rates of
 **Completions Pad Storage Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
 
 The water quality at pad storage sites is dependent on the flow rates into the pad storage site, the volume of water in pad storage in the previous time period, and the quality of each of these flows. Even mixing is assumed, so the outgoing flow to completions pad and water in storage at the end of the period have the same water quality. If it is the first time period, the initial storage level and initial water quality replaces the water stored and water quality in the previous time period, respectively.
-
 
 .. math::
 
