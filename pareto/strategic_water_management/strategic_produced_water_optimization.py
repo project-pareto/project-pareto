@@ -7855,18 +7855,26 @@ def _preprocess_data(model):
 
 
 def solve_discrete_water_quality(model, opt, scaled):
-    # Discrete water quality method consists of 5 steps:
-    # Step 1 - initialization
-    # Step 1a - fix water quality
-    # Step 1b - Solve model
+    # Discrete water quality method consists of 3 steps:
+    # Step 1 - generate a feasible initial solution
+    # Step 1a -- fix discrete water quality variables
+    # Step 1b -- solve model, obtain optimal flows without considering quality
+    # Step 1c -- fix or bound all non quality variables
+    # Step 1d -- free discrete water quality variables
+    # Step 1e -- solve model again for a feasible initial solution for discrete water quality
+    # Step 2 - solve full discrete water quality
+    # Step 2a -- free or remove bounds for all non quality variables
+    # Step 2b -- call solver to solve whole model using previous solve as initial solution
+    # Step 3 - Return solution
 
-    # Initialization
+    # Step 1 - generate a feasible initial solution
     v_DQ = model.scaled_v_DQ if scaled else model.v_DQ
-    # First fix the discrete qualities to get the optimal flows
+    # Step 1a - fix discrete water quality variables
     v_DQ.fix()
+    # Step 1b - solve model, obtain optimal flows without considering quality
     opt.solve(model, tee=True)
+    # Step 1c - fix or bound all non quality variables
     prefix = "scaled_" if scaled else ""
-    # For solving the discrete qualities we fix or bound all the non quality variables
     discrete_variables_names = {
         prefix + "v_F_DiscretePiped",
         prefix + "v_F_DiscreteTrucked",
@@ -7897,17 +7905,18 @@ def solve_discrete_water_quality(model, opt, scaled):
             else:
                 index_var.setlb(0.99 * value)
                 index_var.setub(1.01 * value)
-
+    # Step 1d - free discrete water quality variables
     v_DQ.free()
 
+    # Step 1e - solve model again for a feasible initial solution for discrete water quality
     print("\n")
     print("*" * 50)
     print(" " * 15, "Solving non-discrete water quality model")
     print("*" * 50)
-    # Solve for fixed non discrete quality variables to get the optimal discrete quality
     opt.solve(model, tee=True, warmstart=True)
 
-    # Unbound or unfix all non quality variables
+    # Step 2 - solve full discrete water quality
+    # Step 2a - free or remove bounds for all non quality variables
     for var in model.component_objects(Var):
         if var.name in discrete_variables_names:
             continue
@@ -7921,13 +7930,15 @@ def solve_discrete_water_quality(model, opt, scaled):
             else:
                 index_var.setlb(0)
                 index_var.setub(None)
+
+    # Step 2b - call solver to solve whole model using previous solve as initial solution
     print("\n")
     print("*" * 50)
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
-    # Solve whole model with initial solution
     results = opt.solve(model, tee=True, warmstart=True)
 
+    # Step 3 - Return solution
     return results
 
 
