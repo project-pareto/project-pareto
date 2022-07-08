@@ -5956,6 +5956,10 @@ def water_quality(model):
             b.parent_block().v_F_Piped[n_tilde, n, t] * b.v_Q[n_tilde, w, t]
             for n_tilde in b.parent_block().s_N
             if b.parent_block().p_NNA[n_tilde, n]
+        ) + sum(
+            b.parent_block().v_F_Piped[r, n, t] * b.v_Q[r, w, t]
+            for r in b.parent_block().s_R
+            if b.parent_block().p_RNA[r, n]
         ) == b.v_Q[
             n, w, t
         ] * (
