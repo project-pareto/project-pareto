@@ -11,6 +11,7 @@
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
+    WaterQuality,
     create_model,
     ProdTank,
     postprocess_water_quality_calculation,
@@ -85,7 +86,11 @@ df_parameters["MaxTruckFlow"] = 37000
 operational_model = create_model(
     df_sets,
     df_parameters,
-    default={"has_pipeline_constraints": True, "production_tanks": ProdTank.equalized},
+    default={
+        "has_pipeline_constraints": True,
+        "production_tanks": ProdTank.equalized,
+        "water_quality": WaterQuality.discrete,
+    },
 )
 
 # initialize pyomo solver
@@ -96,9 +101,10 @@ set_timeout(opt, timeout_s=60)
 results = opt.solve(operational_model, tee=True)
 results.write()
 
-operational_model = postprocess_water_quality_calculation(
-    operational_model, df_sets, df_parameters, opt
-)
+if operational_model.config.water_quality is WaterQuality.post_process:
+    operational_model = postprocess_water_quality_calculation(
+        operational_model, df_sets, df_parameters, opt
+    )
 
 # pyomo_postprocess(None, model, results)
 # set is_print=[PrintValues.Nominal] in generate_report() below to print results
