@@ -1814,9 +1814,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_pi_UnusedTreatedWater = Param(
         default=0,
-        initialize=max(DisposalOperationalCost_convert_to_model.values()) * 2
-        if DisposalOperationalCost_convert_to_model
-        else 0,
+        initialize=999,
         units=model.model_units["currency_volume"],
         doc="Disposal operational cost [currency/volume]",
     )
