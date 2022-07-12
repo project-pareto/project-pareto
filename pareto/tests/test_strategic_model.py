@@ -608,7 +608,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 61883
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(10226.91, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(10353.56, abs=1e-1) == pyo.value(m.v_Z)
 
 
 @pytest.mark.component
