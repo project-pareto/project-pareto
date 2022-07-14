@@ -17,6 +17,8 @@ Given a set of existing network components (completion pads, storage pads, produ
 +---------------------------------------------------------+
 | :ref:`strategic_model_water_quality_extension`          |
 +---------------------------------------------------------+
+| :ref:`strategic_model_discrete_water_quality_extension` |
++---------------------------------------------------------+
 | :ref:`strategic_model_references`                       |
 +---------------------------------------------------------+
 
@@ -1377,6 +1379,112 @@ The water quality at beneficial reuse sites is dependent on the flow rates into 
 
         = \textcolor{red}{Q_{o,w,t}} \cdot \textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
 
+
+.. _strategic_model_discrete_water_quality_extension:
+
+Strategic Model Discrete Water Quality Extension
+---------------------------------------------------
+In the previous chapter a model for tracking the water quality was shown. Without fixing the flows this model is non-linear. By discretizing the number of water qualities for all locations over time we can make the model linear again.
+
+The discretization works as follows.
+
+Take for example this term from the Disposal Site Water Quality:
+
+.. math::
+
+    \textcolor{red}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,w,t}}
+
+Both terms are continuous, so this is non-linear.
+
+First we introduce a set, parameter, variables and constraints
+
+**Discrete Water Quality Sets**
+
+:math:`\textcolor{blue}{q \in Q}`			                     Discrete Water Qualities
+
+**Discrete Water Quality Parameters**
+
+:math:`\textcolor{green}{Q_{w,q}^{DiscreteQuality}}` = 	        Values for discrete Water Qualities
+
+**Discrete Water Quality Variables**
+
+:math:`\textcolor{red}{Z_{l,t,w,q}}` =           Binary decision variable for which discrete quality chosen
+
+:math:`\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}}` =           Water injected at disposal site for each discrete quality
+
+**Only One Discrete Quality Per Location** ∀l \in L, t \in T, w \in W
+
+For each location in time only one discrete water quality can be chosen for a water quality component.
+
+.. math::
+    \sum_{(q) \in Q}\textcolor{red}{Z_{l,t,w,q}} = 1
+
+**Discrete Max Disposal Destination** ∀l \in L, t \in T, w \in W, q \in Q
+
+For each location in time only for one discrete quality there can be water injected at the disposal site and at most the capacity for that disposal site. For all the others it is equal to zero.
+
+.. math::
+
+    \textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} \leq \textcolor{green}{D_{k,[t]}^{Capacity}} \cdot \textcolor{red}{Z_{l,t,w,q}} 
+
+**Sum Flow Discrete Disposal Destinations is Flow Disposal Destination** ∀l \in L, t \in T, w \in W
+
+For each location in time the sum of the flows for all the discrete qualities is equal to the actual flow going to the disposal site.
+
+.. math::
+
+    \sum_{(q) \in Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} = \textcolor{red}{F_{k,t}^{DisposalDestination}}
+
+
+We can now rewrite the non linear equation showed before to:
+
+.. math::
+
+    \sum_{(q) \in Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+Rewriting the whole constraints goes as follows:
+
+**Disposal Site Water Quality** ∀k \in K, w \in W, t \in T
+
+The water quality of disposed water is dependent on the flow rates into the disposal site and the quality of each of these flows.
+
+.. math::
+
+    \sum_{n \in N | (n,k) \in NKA}\textcolor{red}{F_{n,k,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum_{s \in S | (s,k) \in SKA}\textcolor{red}{F_{s,k,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum_{r \in R | (r,k) \in RKA}\textcolor{red}{F_{r,k,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
+
+    +\sum_{s \in S | (s,k) \in SKT}\textcolor{red}{F_{s,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum_{p \in P | (p,k) \in PKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}
+
+    +\sum_{p \in P | (p,k) \in CKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}+\sum_{r \in R | (r,k) \in RKT}\textcolor{red}{F_{r,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{r,w,t}}
+
+    =\textcolor{red}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,w,t}}
+
+Can be rewritten as
+
+**Discrete Disposal Site Water Quality** ∀k \in K, w \in W, t \in T
+
+The water quality of disposed water is dependent on the flow rates into the disposal site and the quality of each of these flows.
+
+.. math::
+
+    \sum_{n \in N | (n,k) \in NKA}\sum_{(q) \in Q}\textcolor{red}{F_{n,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+    +\sum_{s \in S | (s,k) \in SKA}\sum_{(q) \in Q}\textcolor{red}{F_{s,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+    +\sum_{r \in R | (r,k) \in RKA}\sum_{(q) \in Q}\textcolor{red}{F_{r,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+    +\sum_{s \in S | (s,k) \in SKT}\sum_{(q) \in Q}\textcolor{red}{F_{s,k,t,q}^{DiscreteTrucked}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+    +\sum_{p \in P | (p,k) \in PKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}
+
+    +\sum_{p \in P | (p,k) \in CKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}
+   
+    +\sum_{r \in R | (r,k) \in RKT}\sum_{(q) \in Q}\textcolor{red}{F_{r,k,t,q}^{DiscreteTrucked}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+    \leq \sum_{(q) \in Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+
+The constraints for the DiscretePiped and DiscreteTrucked are similar to the DiscreteDisposalDestination.
+
+.. note:: The = sign in the original constraint is changed to :math:`\leq` sign in the discretized version.
 
 .. _strategic_model_references:
 

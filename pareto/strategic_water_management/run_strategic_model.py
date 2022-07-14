@@ -12,6 +12,7 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    WaterQuality,
     create_model,
     Objectives,
     solve_model,
@@ -102,8 +103,9 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
     # "small_strategic_case_study.xlsx",
+    "strategic_water_treatment_toy_case_study_t10.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -112,7 +114,10 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+ node_capacity: [IncludeNodeCapacity.true, IncludeNodeCapacity.false]
+ water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ """
+
 strategic_model = create_model(
     df_sets,
     df_parameters,
@@ -121,17 +126,19 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
+        "water_quality": WaterQuality.false,
     },
 )
 
+# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
     "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,
-    "water_quality": True,
 }
+
 solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
