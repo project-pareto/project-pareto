@@ -355,6 +355,10 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Injection (i.e. disposal) capacities",
     )
 
+    model.s_B = Set(
+        initialize=model.df_sets["TreatmentTechnologies"],
+        doc="Treatment Technologies")
+
     # model.s_P.pprint()
     # model.s_L.pprint()
 
@@ -410,7 +414,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Water from completions pad storage used for fracturing [volume/time]",
     )
-    model.v_F_UnusedTreatedWater = Var(
+    model.v_F_WaterRemoved = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
@@ -707,6 +711,30 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Slack variable to provide necessary reuse capacity [volume/time]",
     )
 
+    model.v_F_StorageEvaporationStream = Var(
+        model.s_S,
+        model.s_T,
+        initialize=0,
+        within=NonNegativeReals,
+        doc="Water at storage lost to evaporation [bbl/week]",
+    )
+
+    model.v_F_ResidualWater = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Flow of residual out at a treatment site [volume/time]",
+    )
+
+    model.v_F_TreatedWater = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Flow of treated water out at a treatment site [volume/time]",
+    )
+
     ## Define binary variables ##
 
     model.vb_y_Pipeline = Var(
@@ -726,11 +754,19 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.vb_y_Treatment = Var(
         model.s_R,
+        model.s_B,
         model.s_J,
         within=Binary,
         initialize=0,
         doc="New or additional treatment capacity installed at treatment site with specific treatment capacity",
     )
+    # model.vb_y_Treatment = Var(
+    #     model.s_R,
+    #     model.s_J,
+    #     within=Binary,
+    #     initialize=0,
+    #     doc="New or additional treatment capacity installed at treatment site with specific treatment capacity",
+    # )
     model.vb_y_Disposal = Var(
         model.s_K,
         model.s_I,
@@ -1266,6 +1302,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_sigma_Treatment = Param(
         model.s_R,
+        model.s_B,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -1468,6 +1505,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Storage capacity installation/expansion increments [volume]",
     )
     model.p_delta_Treatment = Param(
+        model.s_B,
         model.s_J,
         default=pyunits.convert_value(
             10,
@@ -1626,6 +1664,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_kappa_Treatment = Param(
         model.s_R,
+        model.s_B,
         model.s_J,
         default=pyunits.convert_value(
             10,
@@ -1642,6 +1681,16 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["currency_volume_time"],
         doc="Treatment construction/expansion capital cost for selected increment [currency/(volume/time)]",
+    )
+
+    model.p_omega_EvaporationRate = Param(
+        default=pyunits.convert_value(
+            3000,
+            from_units=pyunits.oil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
+        units=model.model_units["volume_time"],
+        doc="Evaporation Rate per week [volume/time]",
     )
 
     if model.config.pipeline_cost == PipelineCost.distance_based:
@@ -2214,7 +2263,7 @@ def create_model(df_sets, df_parameters, default={}):
             + model.v_S_Flowback[p, t]
         )
 
-        return process_constraint(constraint)
+        # return process_constraint(constraint)
 
     model.CompletionsPadSupplyBalance = Constraint(
         model.s_CP,
@@ -2608,6 +2657,7 @@ def create_model(df_sets, df_parameters, default={}):
                 - sum(
                     model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
                 )
+                - model.v_F_StorageEvaporationStream[s, t]
             )
         else:
             constraint = model.v_L_Storage[s, t] == model.v_L_Storage[
@@ -2632,6 +2682,7 @@ def create_model(df_sets, df_parameters, default={}):
                 - sum(
                     model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
                 )
+                - model.v_F_StorageEvaporationStream[s, t]
             )
 
         return process_constraint(constraint)
@@ -3268,23 +3319,35 @@ def create_model(df_sets, df_parameters, default={}):
     # model.DisposalCapacity.pprint()
 
     def TreatmentCapacityExpansionRule(model, r):
-        constraint = (
-            model.v_T_Capacity[r]
-            == model.p_sigma_Treatment[r]
-            + sum(
-                model.p_delta_Treatment[j] * model.vb_y_Treatment[r, j]
-                for j in model.s_J
-            )
-            + model.v_S_TreatmentCapacity[r]
-        )
-
-        return process_constraint(constraint)
-
+        return model.v_T_Capacity[r] == sum((model.p_sigma_Treatment[r, b] * sum(
+            model.vb_y_Treatment[r, b, j] for j in model.s_J) + sum(
+            model.p_delta_Treatment[b, j] * model.vb_y_Treatment[r, b, j]
+            for j in model.s_J)) for b in model.s_B)
+    
+    
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
         rule=TreatmentCapacityExpansionRule,
         doc="Treatment capacity construction/expansion",
     )
+    # def TreatmentCapacityExpansionRule(model, r):
+    #     constraint = (
+    #         model.v_T_Capacity[r]
+    #         == model.p_sigma_Treatment[r]
+    #         + sum(
+    #             model.p_delta_Treatment[j] * model.vb_y_Treatment[r, j]
+    #             for j in model.s_J
+    #         )
+    #         + model.v_S_TreatmentCapacity[r]
+    #     )
+
+    #     return process_constraint(constraint)
+
+    # model.TreatmentCapacityExpansion = Constraint(
+    #     model.s_R,
+    #     rule=TreatmentCapacityExpansionRule,
+    #     doc="Treatment capacity construction/expansion",
+    # )
 
     # model.TreatmentCapacityExpansion.pprint()
 
@@ -3306,8 +3369,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentBalanceRule(model, r, t):
         constraint = (
-            model.p_epsilon_Treatment[r, model.p_W_TreatmentComponent[r]]
-            * (
+              (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
                 + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
                 + sum(
@@ -3317,17 +3379,52 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
                 )
             )
-            == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-            + model.v_F_UnusedTreatedWater[r, t]
+            == model.v_F_ResidualWater[r, t] + model.v_F_TreatedWater[r, t]
         )
         return process_constraint(constraint)
-
+    
     model.TreatmentBalance = Constraint(
-        model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment balance"
+        model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment center flow balance"
     )
+    # def TreatmentBalanceRule(model, r, t):
+    #     constraint = (
+    #         model.p_epsilon_Treatment[r, model.p_W_TreatmentComponent[r]]
+    #         * (
+    #             sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+    #             + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+    #             + sum(
+    #                 model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+    #             )
+    #             + sum(
+    #                 model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+    #             )
+    #         )
+    #         == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+    #         + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+    #         + model.v_F_UnusedTreatedWater[r, t]
+    #     )
+    #     return process_constraint(constraint)
+
+    # model.TreatmentBalance = Constraint(
+    #     model.s_R, model.s_T, rule=TreatmentBalanceRule, doc="Treatment balance"
+    # )
 
     # model.TreatmentBalance.pprint()
+
+    def TreatedWaterRule(model, r, t):
+        constraint = (
+            model.v_F_TreatedWater[r, t]
+            == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+            + model.v_F_WaterRemoved[r, t]
+        )
+        return process_constraint(constraint)
+    
+    model.TreatedWater = Constraint(
+        model.s_R, model.s_T, rule=TreatedWaterRule,
+        doc="Treated water balance"
+    )
+
 
     def BeneficialReuseCapacityRule(model, o, t):
 
@@ -4496,21 +4593,38 @@ def create_model(df_sets, df_parameters, default={}):
     # model.StorageExpansionCapEx.pprint()
 
     def TreatmentExpansionCapExRule(model):
-        constraint = model.v_C_TreatmentCapEx == sum(
+        return model.v_C_TreatmentCapEx == sum(
             sum(
-                model.vb_y_Treatment[r, j]
-                * model.p_kappa_Treatment[r, j]
-                * model.p_delta_Treatment[j]
-                for r in model.s_R
+                sum(
+                    model.vb_y_Treatment[r, b, j]
+                    * model.p_kappa_Treatment[r, b, j]
+                    * model.p_delta_Treatment[b, j]
+                    for r in model.s_R
+                    ) for j in model.s_J
+                ) for b in model.s_B
             )
-            for j in model.s_J
-        )
-        return process_constraint(constraint)
-
+    
     model.TreatmentExpansionCapEx = Constraint(
         rule=TreatmentExpansionCapExRule,
         doc="Treatment construction or capacity expansion cost",
     )
+
+    # def TreatmentExpansionCapExRule(model):
+    #     constraint = model.v_C_TreatmentCapEx == sum(
+    #         sum(
+    #             model.vb_y_Treatment[r, j]
+    #             * model.p_kappa_Treatment[r, j]
+    #             * model.p_delta_Treatment[j]
+    #             for r in model.s_R
+    #         )
+    #         for j in model.s_J
+    #     )
+    #     return process_constraint(constraint)
+
+    # model.TreatmentExpansionCapEx = Constraint(
+    #     rule=TreatmentExpansionCapExRule,
+    #     doc="Treatment construction or capacity expansion cost",
+    # )
 
     # model.TreatmentExpansionCapEx.pprint()
 
@@ -5278,13 +5392,103 @@ def create_model(df_sets, df_parameters, default={}):
     # model.LogicConstraintStorage.pprint()
 
     def LogicConstraintTreatmentRule(model, r):
-        constraint = sum(model.vb_y_Treatment[r, j] for j in model.s_J) == 1
-
+        constraint = (
+            sum(
+                sum(
+                    model.vb_y_Treatment[r, b, j] for j in model.s_J
+                    )
+                for b in model.s_B
+                ) == 1
+            )
         return process_constraint(constraint)
-
-    model.LogicConstraintTreatment = Constraint(
-        model.s_R, rule=LogicConstraintTreatmentRule, doc="Logic constraint treatment"
+    
+    model.LogicConstraintTreatmentAssignment = Constraint(
+        model.s_R, rule=LogicConstraintTreatmentRule,
+        doc="Treatment technology assignment"
     )
+
+    def LogicConstraintTreatmentRule2(model, r, t):
+        constraint = (
+            (
+                sum(model.v_F_Piped[r, p, t]
+                    for p in model.s_CP if model.p_RCA[r, p])
+                + sum(model.v_F_Piped[r, s, t]
+                      for s in model.s_S if model.p_RSA[r, s])
+            ) <= 1e8 * (
+                1 - sum(model.vb_y_Treatment[r, "DS", j]
+                     for j in model.s_J
+                     )
+             )
+            )
+        return process_constraint(constraint)
+    
+    model.LogicConstraintDesalinationFlow = Constraint(
+        model.s_R, model.s_T,
+        rule=LogicConstraintTreatmentRule2,
+        doc="Logic constraint for flow after desalination"
+    )
+    
+    def LogicConstraintTreatmentRule3(model, r, t):
+        constraint = (
+            model.v_F_WaterRemoved[r, t] <=
+            1e8 * sum(model.vb_y_Treatment[r, "DS", j] for j in model.s_J)
+            )
+        return process_constraint(constraint)
+    
+    model.LogicConstraintNoDesalinationFlow = Constraint(
+        model.s_R, model.s_T,
+        rule=LogicConstraintTreatmentRule3,
+        doc="Logic constraint for flow if not desalination"
+    )
+    
+    # def LogicConstraintTreatmentRule4(model, r, t):
+    #     constraint = (
+    #         model.v_F_WaterRemoved[r, t] <=
+    #         1e8 * sum(model.vb_y_Treatment[r, "EV", j] for j in model.s_J)
+    #         )
+    #     return process_constraint(constraint)
+    
+    # model.LogicConstraintNoDesalinationFlow = Constraint(
+    #     model.s_R, model.s_T,
+    #     rule=LogicConstraintTreatmentRule4,
+    #     doc="Logic constraint for flow if evaporation"
+    # )
+
+    # TODO: make this more general by checking if there is water at t = 1
+    # TODO: generalize to not set evaporation at all storage sites 
+    def LogicConstraintTreatmentRule5(model, s, t):
+        if t == model.s_T.first():
+            constraint = (
+                model.v_F_StorageEvaporationStream[s, t] ==
+                0
+                )
+        else:
+            constraint = (
+                model.v_F_StorageEvaporationStream[s, t] ==
+                model.p_omega_EvaporationRate
+                * sum(
+                    sum(
+                        model.vb_y_Treatment[r, "EV", j]
+                        for j in model.s_J
+                        ) for r in model.s_R
+                )
+                )
+        return process_constraint(constraint)
+    
+    model.LogicConstraintEvaporationFlow = Constraint(
+        model.s_S, model.s_T,
+        rule=LogicConstraintTreatmentRule5,
+        doc="Logic constraint for flow if evaporation"
+    )
+
+    # def LogicConstraintTreatmentRule(model, r):
+    #     constraint = sum(model.vb_y_Treatment[r, j] for j in model.s_J) == 1
+
+    #     return process_constraint(constraint)
+
+    # model.LogicConstraintTreatment = Constraint(
+    #     model.s_R, rule=LogicConstraintTreatmentRule, doc="Logic constraint treatment"
+    # )
 
     # model.LogicConstraintTreatment.pprint()
 
@@ -5919,7 +6123,7 @@ def water_quality(model):
                 for s in b.parent_block().s_S
                 if b.parent_block().p_RSA[r, s]
             )
-            + b.parent_block().v_F_UnusedTreatedWater[r, t]
+            # + b.parent_block().v_F_UnusedTreatedWater[r, t]
         )
         return process_constraint(constraint)
 
@@ -6228,7 +6432,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
-    model.scaling_factor[model.v_F_UnusedTreatedWater] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_WaterRemoved] = 1 / scaling_factor
     model.scaling_factor[model.v_F_BeneficialReuseDestination] = 1 / scaling_factor
     model.scaling_factor[model.v_F_CompletionsDestination] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
@@ -6284,7 +6488,7 @@ def scale_model(model, scaling_factor=None):
     # This constraint contains only binary variables
     model.scaling_factor[model.LogicConstraintStorage] = 1
     # This constraint contains only binary variables
-    model.scaling_factor[model.LogicConstraintTreatment] = 1
+    model.scaling_factor[model.LogicConstraintTreatmentAssignment] = 1
     model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
