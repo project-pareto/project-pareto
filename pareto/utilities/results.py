@@ -18,7 +18,7 @@ Authors: PARETO Team
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
 )
-from pyomo.environ import Var
+from pyomo.environ import Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
@@ -26,12 +26,21 @@ from enum import Enum
 
 
 class PrintValues(Enum):
-    Detailed = 0
-    Nominal = 1
-    Essential = 2
+    detailed = 0
+    nominal = 1
+    essential = 2
 
 
-def generate_report(model, is_print=[], fname=None):
+class OutputUnits(Enum):
+    # All output units are defined by user
+    user_units = 0
+    # All output units are defined by user EXCEPT time which is determined by the decision period discretization
+    unscaled_model_units = 1
+
+
+def generate_report(
+    model, is_print=[], output_units=OutputUnits.user_units, fname=None
+):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
@@ -46,7 +55,7 @@ def generate_report(model, is_print=[], fname=None):
         if len(is_print) == 0:
             printing_list = []
         else:
-            # PrintValues.Detailed: Slacks values included, Same as "All"
+            # PrintValues.detailed: Slacks values included, Same as "All"
             if is_print[0].value == 0:
                 printing_list = [
                     "v_F_Piped",
@@ -83,7 +92,7 @@ def generate_report(model, is_print=[], fname=None):
                     "v_Q",
                 ]
 
-            # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
+            # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
             elif is_print[0].value == 1:
                 printing_list = [
                     "v_F_Piped",
@@ -100,7 +109,7 @@ def generate_report(model, is_print=[], fname=None):
                     "v_F_Overview",
                 ]
 
-            # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+            # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
             elif is_print[0].value == 2:
                 printing_list = ["v_F_Overview"]
 
@@ -108,7 +117,7 @@ def generate_report(model, is_print=[], fname=None):
                 raise Exception("Report {0} not supported".format(is_print))
 
         headers = {
-            "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
+            "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
             "v_F_Piped_dict": [("Origin", "destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
@@ -145,18 +154,6 @@ def generate_report(model, is_print=[], fname=None):
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
             "v_F_Capacity_dict": [("Origin", "Destination", "Flow Capacity")],
-            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
-            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
-            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
-            "v_S_PipelineCapacity_dict": [
-                ("Origin", "Destination", "Slack Pipeline Capacity")
-            ],
-            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
-            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
-            "v_S_TreatmentCapacity_dict": [
-                ("Treatment site", "Slack Treatment Capacity")
-            ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_F_ReuseDestination_dict": [
                 ("Completion Pad", "Time", "Total Deliveries to Completion Pad")
             ],
@@ -175,13 +172,172 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_CompletionsDestination_dict": [
                 ("Pads", "Time", "Total deliveries to completions pads")
             ],
+            "v_Q_CompletionPad_dict": [
+                ("Completion pad", "Water Component", "Time", "Water Quality")
+            ],
+            "v_DQ_dict": [
+                (
+                    "Location",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    " Water Quality",
+                )
+            ],
+            "v_F_DiscretePiped_dict": [
+                (
+                    "Origin",
+                    "Destination",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Piped water",
+                )
+            ],
+            "v_F_DiscreteTrucked_dict": [
+                (
+                    "Origin",
+                    "Destination",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Trucked water",
+                )
+            ],
+            "v_F_DiscreteDisposalDestination_dict": [
+                (
+                    "Disposal Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Total Deliveries to Disposal Site",
+                )
+            ],
+            "v_F_DiscreteFlowOutStorage_dict": [
+                (
+                    "Storage Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Total outflow storage site",
+                )
+            ],
+            "v_L_DiscreteStorage_dict": [
+                (
+                    "Storage Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Storage Levels",
+                )
+            ],
+            "v_F_DiscreteFlowTreatment_dict": [
+                (
+                    "Treatment Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Treated water",
+                )
+            ],
+            "v_F_DiscreteFlowOutNode_dict": [
+                (
+                    "Node",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Total outflow node",
+                )
+            ],
+            "v_F_DiscreteBRDestination_dict": [
+                (
+                    "Reuse Location",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Beneficial water",
+                )
+            ],
+            "v_F_DiscreteFlowCPIntermediate_dict": [
+                (
+                    "Completion pad intermediate",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Intermediate water",
+                )
+            ],
+            "v_F_DiscreteFlowCPStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Storage level out",
+                )
+            ],
+            "v_L_DiscretePadStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Storage levels in",
+                )
+            ],
+            "v_F_DiscreteFlowOutPadStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Outflow storage",
+                )
+            ],
+            "v_F_DiscreteFlowInPadStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Inflow storage",
+                )
+            ],
+            "v_F_DiscreteCPDestination_dict": [
+                (
+                    "Completion pad intermediate",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Intermediate water completion pad",
+                )
+            ],
+            "v_F_BeneficialReuseDestination_dict": [
+                (
+                    "Beneficial Reuse Site",
+                    "Time",
+                    "Total deliveries to beneficial reuse",
+                )
+            ],
+            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
+            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
+            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
+            "v_S_PipelineCapacity_dict": [
+                ("Origin", "Destination", "Slack Pipeline Capacity")
+            ],
+            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
+            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
+            "v_S_TreatmentCapacity_dict": [
+                ("Treatment site", "Slack Treatment Capacity")
+            ],
+            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
         }
 
         # Defining KPIs for strategic model
         model.reuse_WaterKPI = Var(doc="Reuse Fraction Produced Water [%]")
         if model.p_beta_TotalProd.value and model.v_F_TotalReused.value:
-            reuseWater_value = (
-                (model.v_F_TotalReused.value) / (model.p_beta_TotalProd.value) * 100
+            reuseWater_value = value(
+                (model.v_F_TotalReused / model.p_beta_TotalProd) * 100
             )
         else:
             reuseWater_value = 0
@@ -189,8 +345,8 @@ def generate_report(model, is_print=[], fname=None):
 
         model.disposal_WaterKPI = Var(doc="Disposal Fraction Produced Water [%]")
         if model.v_F_TotalDisposed.value and model.p_beta_TotalProd.value:
-            disposalWater_value = (
-                (model.v_F_TotalDisposed.value) / (model.p_beta_TotalProd.value) * 100
+            disposalWater_value = value(
+                (model.v_F_TotalDisposed / model.p_beta_TotalProd) * 100
             )
         else:
             disposalWater_value = 0
@@ -200,8 +356,8 @@ def generate_report(model, is_print=[], fname=None):
             doc="Fresh Fraction Completions Demand [%]"
         )
         if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
-            freshDemand_value = (
-                (model.v_F_TotalSourced.value) / (model.p_gamma_TotalDemand.value) * 100
+            freshDemand_value = value(
+                (model.v_F_TotalSourced / model.p_gamma_TotalDemand) * 100
             )
         else:
             freshDemand_value = 0
@@ -211,8 +367,8 @@ def generate_report(model, is_print=[], fname=None):
             doc="Reuse Fraction Completions Demand [%]"
         )
         if model.v_F_TotalReused.value and model.p_gamma_TotalDemand.value:
-            reuseDemand_value = (
-                (model.v_F_TotalReused.value) / (model.p_gamma_TotalDemand.value) * 100
+            reuseDemand_value = value(
+                (model.v_F_TotalReused / model.p_gamma_TotalDemand) * 100
             )
         else:
             reuseDemand_value = 0
@@ -222,7 +378,7 @@ def generate_report(model, is_print=[], fname=None):
         if len(is_print) == 0:
             printing_list = []
         else:
-            # PrintValues.Detailed: Slacks values included, Same as "All"
+            # PrintValues.detailed: Slacks values included, Same as "All"
             if is_print[0].value == 0:
                 printing_list = [
                     "v_F_Piped",
@@ -262,7 +418,7 @@ def generate_report(model, is_print=[], fname=None):
                     "v_F_Capacity",
                 ]
 
-            # PrintValues.Nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
+            # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
             elif is_print[0].value == 1:
                 printing_list = [
                     "v_F_Piped",
@@ -280,7 +436,7 @@ def generate_report(model, is_print=[], fname=None):
                     "v_F_Overview",
                 ]
 
-            # PrintValues.Essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
+            # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
             elif is_print[0].value == 2:
                 printing_list = ["v_F_Overview"]
 
@@ -288,7 +444,7 @@ def generate_report(model, is_print=[], fname=None):
                 raise Exception("Report {0} not supported".format(is_print))
 
         headers = {
-            "v_F_Overview_dict": [("Variable Name", "Documentation", "Total")],
+            "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
@@ -323,18 +479,6 @@ def generate_report(model, is_print=[], fname=None):
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
             "v_F_Capacity_dict": [("Origin", "Destination", "Flow Capacity")],
-            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
-            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
-            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
-            "v_S_PipelineCapacity_dict": [
-                ("Origin", "Destination", "Slack Pipeline Capacity")
-            ],
-            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
-            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
-            "v_S_TreatmentCapacity_dict": [
-                ("Treatment site", "Slack Treatment Capacity")
-            ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_F_ReuseDestination_dict": [
                 ("Completion Pad", "Time", "Total Deliveries to Completion Pad")
             ],
@@ -351,6 +495,158 @@ def generate_report(model, is_print=[], fname=None):
             "v_F_UnusedTreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
             ],
+            "v_Q_CompletionPad_dict": [
+                ("Completion pad", "Water Component", "Time", "Water Quality")
+            ],
+            "v_DQ_dict": [
+                (
+                    "Location",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    " Water Quality",
+                )
+            ],
+            "v_F_DiscretePiped_dict": [
+                (
+                    "Origin",
+                    "Destination",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Piped water",
+                )
+            ],
+            "v_F_DiscreteTrucked_dict": [
+                (
+                    "Origin",
+                    "Destination",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Trucked water",
+                )
+            ],
+            "v_F_DiscreteDisposalDestination_dict": [
+                (
+                    "Disposal Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Total Deliveries to Disposal Site",
+                )
+            ],
+            "v_F_DiscreteFlowOutStorage_dict": [
+                (
+                    "Storage Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Total outflow storage site",
+                )
+            ],
+            "v_L_DiscreteStorage_dict": [
+                (
+                    "Storage Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Storage Levels",
+                )
+            ],
+            "v_F_DiscreteFlowTreatment_dict": [
+                (
+                    "Treatment Site",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Treated water",
+                )
+            ],
+            "v_F_DiscreteFlowOutNode_dict": [
+                (
+                    "Node",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Total outflow node",
+                )
+            ],
+            "v_F_DiscreteBRDestination_dict": [
+                (
+                    "Reuse Location",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Beneficial water",
+                )
+            ],
+            "v_F_DiscreteFlowCPIntermediate_dict": [
+                (
+                    "Completion pad intermediate",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Intermediate water",
+                )
+            ],
+            "v_F_DiscreteFlowCPStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Storage level out",
+                )
+            ],
+            "v_L_DiscretePadStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Storage levels in",
+                )
+            ],
+            "v_F_DiscreteFlowOutPadStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Outflow storage",
+                )
+            ],
+            "v_F_DiscreteFlowInPadStorage_dict": [
+                (
+                    "Completion pad storage",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Inflow storage",
+                )
+            ],
+            "v_F_DiscreteCPDestination_dict": [
+                (
+                    "Completion pad intermediate",
+                    "Time",
+                    "Water Component",
+                    "Discrete Water Quality",
+                    "Intermediate water completion pad",
+                )
+            ],
+            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
+            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
+            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
+            "v_S_PipelineCapacity_dict": [
+                ("Origin", "Destination", "Slack Pipeline Capacity")
+            ],
+            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
+            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
+            "v_S_TreatmentCapacity_dict": [
+                ("Treatment site", "Slack Treatment Capacity")
+            ],
+            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
@@ -394,20 +690,65 @@ def generate_report(model, is_print=[], fname=None):
 
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
+        # Not all of our variables have units (binary variables)
+        units_true = variable.get_units() is not None
+        # If units are used, determine what the display units should be based off user input
+        if units_true:
+            from_unit_string = variable.get_units().to_string()
+            # the display units (to_unit) is defined by output_units from module parameter
+            if output_units == OutputUnits.unscaled_model_units:
+                to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+            elif output_units == OutputUnits.user_units:
+                to_unit = model.model_to_user_units[from_unit_string]
+            # if variable data is not none and indexed, update headers to display unit
+            if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
+                header = list(headers[str(variable.name) + "_dict"][0])
+                header[-1] = (
+                    headers[str(variable.name) + "_dict"][0][-1]
+                    + " ["
+                    + to_unit.to_string().replace("oil_bbl", "bbl")
+                    + "]"
+                )
+                headers[str(variable.name) + "_dict"][0] = tuple(header)
+        else:
+            to_unit = None
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
-                var_value = variable._data[i].value
+                # convert the value to display units
+                if units_true:
+                    var_value = pyunits.convert_value(
+                        variable._data[i].value,
+                        from_units=variable.get_units(),
+                        to_units=to_unit,
+                    )
+                else:
+                    var_value = variable._data[i].value
+
                 if i is None:
                     # Create the overview report with variables that are not indexed, e.g.:
                     # total piped water, total trucked water, total fresh water, etc.
-                    headers["v_F_Overview_dict"].append(
-                        (variable.name, variable.doc, var_value)
-                    )
+                    if to_unit is not None:
+                        headers["v_F_Overview_dict"].append(
+                            (
+                                variable.name,
+                                variable.doc,
+                                to_unit.to_string().replace("oil_bbl", "bbl"),
+                                var_value,
+                            )
+                        )
+                    else:
+                        headers["v_F_Overview_dict"].append(
+                            (variable.name, variable.doc, to_unit, var_value)
+                        )
+
                 # if a variable contains only one index, then "i" is recognized as a string and not a tupel,
                 # in that case, "i" is redefined by adding a comma so that it becomes a tuple
                 elif i is not None and isinstance(i, str):
                     i = (i,)
+                # replace the discrete qualities by their actual values
+                if str(variable.name) == "v_DQ" and var_value > 0:
+                    var_value = model.p_discrete_quality[i[2], i[3]]
                 if i is not None and var_value is not None and var_value > 0:
                     headers[str(variable.name) + "_dict"].append((*i, var_value))
 
@@ -437,7 +778,7 @@ def generate_report(model, is_print=[], fname=None):
                 ]:  # Conditional that checks if the header for a section should be added
                     print(j[0].upper())
                 else:
-                    print("{0} = {1}".format(j[1], j[2]))
+                    print("{0} = {1}".format(j[1], j[3]))
 
     # Printing warning if "proprietary_data" is True
     if len(printing_list) > 0 and model.proprietary_data is True:
@@ -691,7 +1032,7 @@ def handle_time(variable, input_data):
             raise Exception("User must provide labels when using Get_data format.")
 
 
-def outlet_flow(source=[], destination=[], label=[], value=[]):
+def outlet_flow(source=[], destination=[], label=[], value=[], qualityDict=[]):
     """
     The outlet_flow method receives source, destination, label, and value lists and
     sums the total value for each label. This value is then added to the label string and
@@ -719,6 +1060,10 @@ def outlet_flow(source=[], destination=[], label=[], value=[]):
             integer_output = str(int(integer_output / 1000)) + "k"
         elif value_length >= 8:
             integer_output = str(int(integer_output / 1000000)) + "M"
+        label_string = "{0}:{1}".format(l, integer_output)
+        if qualityDict:
+            quality_output = str(int(qualityDict[l] / 1000)) + "k"
+            label_string = "{0}:{1} TDS:{2}".format(l, integer_output, quality_output)
 
         label[x] = "{0}:{1}".format(l, integer_output)
 
