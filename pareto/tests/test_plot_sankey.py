@@ -43,6 +43,7 @@ def plot_args():
         "font_size": 15,
         "plot_title": "Total Flows",
         "output_file": "first_sankey.html",
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -74,6 +75,7 @@ def plot_args_single_period():
         "font_size": 15,
         "plot_title": "Flow for T01",
         "output_file": "first_sankey.html",
+        "jupyter_notebook": False,
     }
 
 
@@ -109,6 +111,7 @@ def plot_args_multi_regions():
         "font_size": 15,
         "plot_title": "Flow for T01",
         "output_file": "first_sankey.html",
+        "jupyter_notebook": False,
     }
 
 

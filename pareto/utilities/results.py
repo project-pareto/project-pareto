@@ -470,7 +470,7 @@ def generate_report(model, is_print=[], fname=None):
 def plot_sankey(input_data={}, args=None):
 
     """
-    This method receives data in the form of 3 seperate lists (origin, destination, value lists), generate_report dictionary
+    This method receives data in the form of 3 separate lists (origin, destination, value lists), generate_report dictionary
     output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
     proper indexes can be assigned for each list so that the elements will correspond with each other based off of the indexes.
     These lists are then passed into the outlet_flow method which gives an output which is passed into the method to generate the
@@ -780,6 +780,7 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
         font_size = 20
         plot_title = "Sankey Diagram"
         figure_output = "first_sankey.html"
+        jupyter_notebook = False
     else:
         if "font_size" not in args.keys() or args["font_size"] is None:
             font_size = 20
@@ -807,6 +808,11 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
                 figure_output = args["section_name"] + "_" + args["output_file"]
             else:
                 figure_output = args["output_file"]
+
+        if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
+            jupyter_notebook = False
+        else:
+            jupyter_notebook = args["jupyter_notebook"]
 
     # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
     link = dict(source=source, target=destination, value=value)
@@ -837,8 +843,8 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
                 exception_string
             )
         )
-
-    iplot({"data": fig, "layout": fig.layout})
+    if jupyter_notebook:
+        iplot({"data": fig, "layout": fig.layout})
 
 
 def plot_bars(input_data, args):
@@ -863,6 +869,7 @@ def plot_bars(input_data, args):
     print_data = False
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
     figure_output = ""
+    jupyter_notebook = False
 
     if "output_file" not in args.keys() or args["output_file"] is None:
         figure_output = "first_bar.html"
@@ -899,6 +906,11 @@ def plot_bars(input_data, args):
         yaxis_type = "log"
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
+
+    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
+        jupyter_notebook = False
+    else:
+        jupyter_notebook = args["jupyter_notebook"]
 
     # Check the type of variable passed in and assign labels/Check for time indexing
     if isinstance(variable, list):
@@ -1064,8 +1076,8 @@ def plot_bars(input_data, args):
                     exception_string
                 )
             )
-
-        iplot({"data": fig, "layout": fig.layout}, auto_play=False)
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
     else:
 
         # Create dataframe for use in the method
@@ -1134,8 +1146,8 @@ def plot_bars(input_data, args):
                     exception_string
                 )
             )
-
-        iplot({"data": fig, "layout": fig.layout})
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout})
 
 
 def plot_scatter(input_data, args):
@@ -1171,6 +1183,7 @@ def plot_scatter(input_data, args):
     size = "Size"
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
     figure_output = ""
+    jupyter_notebook = False
 
     # Checks if output_file has been passed in as a user argument
     if "output_file" not in args.keys() or args["output_file"] is None:
@@ -1223,6 +1236,11 @@ def plot_scatter(input_data, args):
             raise Exception(
                 'Invalid type for argument "group_by_category". Must be of type boolean, list variable or dictionary variable.'
             )
+
+    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
+        jupyter_notebook = False
+    else:
+        jupyter_notebook = args["jupyter_notebook"]
 
     variable_x = input_data["pareto_var_x"]
     variable_y = input_data["pareto_var_y"]
@@ -1652,8 +1670,8 @@ def plot_scatter(input_data, args):
                     exception_string
                 )
             )
-
-        iplot({"data": fig, "layout": fig.layout}, auto_play=False)
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
 
     else:
         # Creating dataframe based on the passed in variable and rounding the values
@@ -1873,5 +1891,5 @@ def plot_scatter(input_data, args):
                     exception_string
                 )
             )
-
-        iplot({"data": fig, "layout": fig.layout})
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout})
