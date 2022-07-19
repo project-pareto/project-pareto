@@ -12,6 +12,7 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    WaterQuality,
     create_model,
     Objectives,
     solve_model,
@@ -20,7 +21,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.results import generate_report, PrintValues, OutputUnits
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -41,6 +42,7 @@ set_list = [
     "TreatmentCapacities",
 ]
 parameter_list = [
+    "Units",
     "PNA",
     "CNA",
     "CCA",
@@ -102,8 +104,8 @@ parameter_list = [
 with resources.path(
     "pareto.case_studies",
     # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    "small_strategic_case_study.xlsx",
-    # "strategic_water_treatment_toy_case_study_t10.xlsx"
+    # "small_strategic_case_study.xlsx",
+    "strategic_water_treatment_toy_case_study_t10.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -112,7 +114,10 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+ node_capacity: [IncludeNodeCapacity.true, IncludeNodeCapacity.false]
+ water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ """
+
 strategic_model = create_model(
     df_sets,
     df_parameters,
@@ -121,24 +126,31 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
+        "water_quality": WaterQuality.false,
     },
 )
 
+# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
-    "scaling_factor": 1000000,
+    "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,
-    "water_quality": True,
 }
+
 solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
-print("\nDisplaying Solution\n" + "-" * 60)
+print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
+"""Valid values of parameters in the generate_report() call
+ is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
+ output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
+ """
 [model, results_dict] = generate_report(
     strategic_model,
-    is_print=[PrintValues.Essential],
+    is_print=[PrintValues.essential],
+    output_units=OutputUnits.unscaled_model_units,
     fname="strategic_optimization_results.xlsx",
 )
 
