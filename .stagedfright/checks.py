@@ -21,10 +21,10 @@ def test_allowfile_matches_if_present(staged: StagedFile, allowfile: AllowFile):
 
 MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/operational_water_management/run_operational_model.py": 5,
-    "pareto/operational_water_management/operational_produced_water_optimization_model.py": 71,
+    "pareto/operational_water_management/operational_produced_water_optimization_model.py": 78,
     "pareto/strategic_water_management/run_strategic_model.py": 7,
     "pareto/strategic_water_management/run_strategic_model_water_quality.py": 7,
-    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 269,
+    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 352,
     "pareto/tests/test_operational_model.py": 11,
     "pareto/utilities/get_data.py": 24,
     "pareto/utilities/results.py": 149,

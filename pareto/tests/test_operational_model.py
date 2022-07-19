@@ -111,7 +111,7 @@ def test_basic_build(build_operational_model):
     m = build_operational_model
     assert degrees_of_freedom(m) == 133
     # Check unit config arguments
-    assert len(m.config) == 2
+    assert len(m.config) == 3
     assert m.config.production_tanks
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -127,7 +127,7 @@ def test_run_operational_model(build_operational_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 133
     # solutions obtained from running the generic case study
-    assert pytest.approx(327997.5, abs=1e-3) == pyo.value(m.v_Z)
+    assert pytest.approx(327997.5, abs=1e-3) == pyo.value(m.v_Objective)
     assert pytest.approx(993.0, abs=1e-3) == pyo.value(
         m.v_F_Trucked["PP04", "CP01", "T1"]
     )
