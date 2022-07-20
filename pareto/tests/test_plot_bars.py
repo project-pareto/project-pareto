@@ -37,6 +37,7 @@ def plot_args():
         "output_file": "first_bar.html",
         "group_by": "Destination",
         "print_data": True,
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
