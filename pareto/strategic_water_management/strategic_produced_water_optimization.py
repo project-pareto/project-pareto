@@ -5849,9 +5849,9 @@ def pipeline_hydraulics(model, opt):
     # # for t0 in model.s_T:
     # #     for l0 in model.s_PP:
     # #         model.hydraulics.v_Pressure[l0, t0].fix(1.034e7)
-    # for t0 in model.s_T:
-    #     if t0 is not model.s_T.last():
-    #         model.v_Pressure['PP01', t0].fix(1.034e8)
+    for t0 in model.s_T:
+        # if t0 is model.s_T.first():
+        model.hydraulics.v_Pressure['PP01', t0].setub(5.034e9)
     #         # model.v_Pressure['PP02', t0].fix(1.034e8)
     #         # model.v_Pressure['PP03', t0].fix(1.034e8)
     #         # model.v_Pressure['PP01', t0].fix(1.034e8)
@@ -5859,19 +5859,19 @@ def pipeline_hydraulics(model, opt):
     #         # # model.v_Pressure['PP03', t0].fix(1.034e8)
     
     def NodePressureRule(b, l1, l2, t1):
-        # for t1 in model.s_T:
-        #     for l2 in model.s_L:
-        #         for l1 in model.s_L:
         if value(b.parent_block().v_F_Piped[l1, l2, t1]) > 0:
-        # if model.df_parameters["PipelineExpansionDistance"][l1, l2] > 0:
             constraint = (b.v_Pressure[l1, t1] +
-             b.parent_block().df_parameters["Elevation"][l1] * 0.3048 * 9800 ==
-             b.v_Pressure[l2, t1] +
-             b.parent_block().df_parameters["Elevation"][l2] * 0.3048 * 9800 +
-             b.p_HW_loss[l1, l2] * 9800)
+              b.parent_block().df_parameters["Elevation"][l1] * 0.3048 * 9800 ==
+              b.v_Pressure[l2, t1] +
+              b.parent_block().df_parameters["Elevation"][l2] * 0.3048 * 9800 +
+              b.p_HW_loss[l1, l2] * 9800)
+        else:
+            Constraint.Skip
+            constraint = (b.v_Pressure[l1, t1] >= 0)
         return process_constraint(constraint)
+        # else:
+        #     Constraint.Skip
 
-    # model.NodePressure = Constraint(
     model.hydraulics.NodePressure = Constraint(
         model.s_L,
         model.s_L,
@@ -5889,10 +5889,10 @@ def pipeline_hydraulics(model, opt):
     print("         ")
     print("Degress of Freedom = ", degrees_of_freedom(model.hydraulics))
     print("         ")
-    solver = get_solver("ipopt")
-    solver.solve(model.hydraulics, tee=True)
+    # solver = get_solver("ipopt")
+    # solver.solve(model.hydraulics, tee=True)
 
-    # opt.solve(model, tee=True)
+    opt.solve(model, tee=True)
     
     # print("flow from PP01 to N01", value(model.v_F_Piped['PP01', 'N01', 'T01']),
     #       'pressure at PP01', value(model.v_Pressure['PP01', 'T01']),
@@ -8239,83 +8239,83 @@ def solve_model(model, options=None):
     opt.options["mipgap"] = options["gap"]
     opt.options["NumericFocus"] = 1
 
-    if options["deactivate_slacks"] is True:
-        model.v_C_Slack.fix(0)
-        model.v_S_FracDemand.fix(0)
-        model.v_S_Production.fix(0)
-        model.v_S_Flowback.fix(0)
-        model.v_S_PipelineCapacity.fix(0)
-        model.v_S_StorageCapacity.fix(0)
-        model.v_S_DisposalCapacity.fix(0)
-        model.v_S_TreatmentCapacity.fix(0)
-        model.v_S_ReuseCapacity.fix(0)
+    # if options["deactivate_slacks"] is True:
+    #     model.v_C_Slack.fix(0)
+    #     model.v_S_FracDemand.fix(0)
+    #     model.v_S_Production.fix(0)
+    #     model.v_S_Flowback.fix(0)
+    #     model.v_S_PipelineCapacity.fix(0)
+    #     model.v_S_StorageCapacity.fix(0)
+    #     model.v_S_DisposalCapacity.fix(0)
+    #     model.v_S_TreatmentCapacity.fix(0)
+    #     model.v_S_ReuseCapacity.fix(0)
 
-    if options["scale_model"] is True:
-        # Step 1: scale model
-        scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
-        # Step 2: solve scaled mathematical model
-        print("\n")
-        print("*" * 50)
-        print(" " * 15, "Solving scaled model")
-        print("*" * 50)
-        # Step 3: check model to be solved
-        #       option 3.1 - full space model,
-        #       option 3.2 - post process water quality,
-        #       option 3.3 - discrete water quality,
-        if model.config.water_quality is WaterQuality.discrete:
-            # option 3.3:
-            results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
-        elif model.config.water_quality is WaterQuality.post_process:
-            # option 3.2:
-            results = opt.solve(scaled_model, tee=True)
-            if results.solver.termination_condition != TerminationCondition.infeasible:
-                TransformationFactory("core.scale_model").propagate_solution(
-                    scaled_model, model
-                )
-                model = postprocess_water_quality_calculation(model, opt)
-        else:
-            # option 3.1:
-            results = opt.solve(scaled_model, tee=True)
+    # if options["scale_model"] is True:
+    #     # Step 1: scale model
+    #     scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
+    #     # Step 2: solve scaled mathematical model
+    #     print("\n")
+    #     print("*" * 50)
+    #     print(" " * 15, "Solving scaled model")
+    #     print("*" * 50)
+    #     # Step 3: check model to be solved
+    #     #       option 3.1 - full space model,
+    #     #       option 3.2 - post process water quality,
+    #     #       option 3.3 - discrete water quality,
+    #     if model.config.water_quality is WaterQuality.discrete:
+    #         # option 3.3:
+    #         results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
+    #     elif model.config.water_quality is WaterQuality.post_process:
+    #         # option 3.2:
+    #         results = opt.solve(scaled_model, tee=True)
+    #         if results.solver.termination_condition != TerminationCondition.infeasible:
+    #             TransformationFactory("core.scale_model").propagate_solution(
+    #                 scaled_model, model
+    #             )
+    #             model = postprocess_water_quality_calculation(model, opt)
+    #     else:
+    #         # option 3.1:
+    #         results = opt.solve(scaled_model, tee=True)
 
-        # Step 4: propagate scaled model results to original model
-        if results.solver.termination_condition != TerminationCondition.infeasible:
-            # if model is optimal propagate scaled model results to original model
-            if options["scale_model"] is True:
-                TransformationFactory("core.scale_model").propagate_solution(
-                    scaled_model, model
-                )
-    else:
-        # Step 1: solve unscaled mathematical model
-        print("\n")
-        print("*" * 50)
-        print(" " * 15, "Solving unscaled model")
-        print("*" * 50)
-        # Step 2: check model to be solved
-        #       option 2.1 - full space model,
-        #       option 2.2 - post process water quality,
-        #       option 2.3 - discrete water quality,
-        if model.config.water_quality is WaterQuality.discrete:
-            # option 2.3:
-            results = solve_discrete_water_quality(model, opt, scaled=False)
-        elif model.config.water_quality is WaterQuality.post_process:
-            # option 2.2:
-            results = opt.solve(model, tee=True)
-            if results.solver.termination_condition != TerminationCondition.infeasible:
-                model = postprocess_water_quality_calculation(model, opt)
-        else:
-            # option 2.1:
-            results = opt.solve(model, tee=True)
+    #     # Step 4: propagate scaled model results to original model
+    #     if results.solver.termination_condition != TerminationCondition.infeasible:
+    #         # if model is optimal propagate scaled model results to original model
+    #         if options["scale_model"] is True:
+    #             TransformationFactory("core.scale_model").propagate_solution(
+    #                 scaled_model, model
+    #             )
+    # else:
+    #     # Step 1: solve unscaled mathematical model
+    #     print("\n")
+    #     print("*" * 50)
+    #     print(" " * 15, "Solving unscaled model")
+    #     print("*" * 50)
+    #     # Step 2: check model to be solved
+    #     #       option 2.1 - full space model,
+    #     #       option 2.2 - post process water quality,
+    #     #       option 2.3 - discrete water quality,
+    #     if model.config.water_quality is WaterQuality.discrete:
+    #         # option 2.3:
+    #         results = solve_discrete_water_quality(model, opt, scaled=False)
+    #     elif model.config.water_quality is WaterQuality.post_process:
+    #         # option 2.2:
+    #         results = opt.solve(model, tee=True)
+    #         if results.solver.termination_condition != TerminationCondition.infeasible:
+    #             model = postprocess_water_quality_calculation(model, opt)
+    #     else:
+    #         # option 2.1:
+    #         results = opt.solve(model, tee=True)
 
-    if results.solver.termination_condition == TerminationCondition.infeasible:
-        print(
-            "WARNING: Model is infeasible. We recommend adding Slack variables to avoid infeasibilities\n, \
-                however this is an indication that the input data should be revised. \
-                This can be done by selecting 'deactivate_slacks': False in the options"
-        )
+    # if results.solver.termination_condition == TerminationCondition.infeasible:
+    #     print(
+    #         "WARNING: Model is infeasible. We recommend adding Slack variables to avoid infeasibilities\n, \
+    #             however this is an indication that the input data should be revised. \
+    #             This can be done by selecting 'deactivate_slacks': False in the options"
+    #     )
 
-    ms.to_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
+    # ms.to_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
     # ms.from_json(model, fname='optimal_strategic_model_solution_quality.json')
-    # ms.from_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
+    ms.from_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
     if options["hydraulics"] is True:
         model = pipeline_hydraulics(model, opt)
 
