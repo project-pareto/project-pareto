@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "PARETO"
-copyright = "2021, PARETO"
-author = "Marcus Holly and Miguel Zamarripa"
+copyright = "2022, PARETO"
+author = "The PARETO Project"
 
 # The full version, including alpha/beta/rc tags
 release = "latest"
@@ -83,6 +83,16 @@ html_logo = "_static/logo-print-hd.jpg"
 # pixels large.
 #
 html_favicon = "_static/favicon.ico"
+
+# Options for LaTeX build
+# change default engine (pdflatex) to correctly display Unicode characters in source
+# https://docs.readthedocs.io/en/stable/guides/pdf-non-ascii-languages.html#sphinx-pdfs-with-unicode
+latex_engine = "xelatex"
+latex_elements = {
+    "preamble": r"""
+\usepackage[mono=false]{libertinus-otf}
+"""
+}
 
 ## for MyST (Markdown)
 
