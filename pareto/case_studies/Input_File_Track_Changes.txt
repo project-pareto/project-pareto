@@ -1,3 +1,9 @@
+PR Add Cost for unused treated water #130
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
+	• Updated PipelineExpansionDistance to smaller, more reasonalb
+	• PipelineCapexDistanceBased - increased cost to compensate for reduction in pipeline distances
+
 PR Adding Support for Units #125 (5/5/2022)
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 Layflat (input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx)
