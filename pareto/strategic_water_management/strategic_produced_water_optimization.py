@@ -2329,6 +2329,8 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NNA[n_tilde, n]
         ) + sum(
             model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
+        ) + sum(
+            model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
         ) == sum(
             model.v_F_Piped[n, n_tilde, t]
             for n_tilde in model.s_N
@@ -3274,6 +3276,9 @@ def create_model(df_sets, df_parameters, default={}):
                     + sum(
                         model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
                     )
+                    + sum(
+                        model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
+                    )
                     <= model.p_sigma_NetworkNode[n]
                 )
             else:
@@ -3346,6 +3351,7 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = (
             sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
             + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
+            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKA[r, k])
             + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
             + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
             + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
@@ -6072,6 +6078,10 @@ def water_quality(model):
             b.parent_block().v_F_Piped[n_tilde, n, t] * b.v_Q[n_tilde, w, t]
             for n_tilde in b.parent_block().s_N
             if b.parent_block().p_NNA[n_tilde, n]
+        ) + sum(
+            b.parent_block().v_F_Piped[r, n, t] * b.v_Q[r, w, t]
+            for r in b.parent_block().s_R
+            if b.parent_block().p_RNA[r, n]
         ) == b.v_Q[
             n, w, t
         ] * (

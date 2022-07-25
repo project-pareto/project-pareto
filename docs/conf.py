@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "PARETO"
-copyright = "2021, PARETO"
-author = "Marcus Holly and Miguel Zamarripa"
+copyright = "2022, PARETO"
+author = "The PARETO Project"
 
 # The full version, including alpha/beta/rc tags
 release = "latest"
