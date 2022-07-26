@@ -912,7 +912,7 @@ For each treatment site, for each time period, the unused treated water cost is 
 
 .. math::
 
-    \textcolor{red}{C_{r,t}^{UnusedTreatedWater}} = \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}⋅ \textcolor{green}{\pi^{UnusedTreatedWater}}
+    \textcolor{red}{C_{r,t}^{UnusedTreatedWater}} = \textcolor{red}{F_{r,t}^{UnusedTreatedWater}} \cdot \textcolor{green}{\pi^{UnusedTreatedWater}}
 
     \textcolor{red}{C^{TotalUnusedTreatedWater}} = \sum_{t \in T}\sum_{r \in R}\textcolor{red}{C_{r,t}^{UnusedTreatedWater}}
 
