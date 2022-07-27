@@ -1427,7 +1427,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_epsilon_Treatment = Param(
         model.s_R,
-        model.s_W,
+        model.s_B,
         default=1.0,
         initialize=model.df_parameters["TreatmentEfficiency"],
         doc="Treatment efficiency [%]",
@@ -1777,6 +1777,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_pi_Treatment = Param(
         model.s_R,
+        model.s_B,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -3411,6 +3412,25 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.TreatmentBalance.pprint()
 
+    def ResidualWaterRule(model, r, t):
+        constraint = (
+              (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+            )
+            == model.v_F_ResidualWater[r, t]
+        )
+        return process_constraint(constraint)
+    
+    model.ResidualWater = Constraint(
+        model.s_R, model.s_T, rule=ResidualWaterRule, doc="Residual water based on treatment efficiency"
+    )
     def TreatedWaterRule(model, r, t):
         constraint = (
             model.v_F_TreatedWater[r, t]
@@ -3609,7 +3629,7 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
                 )
             )
-            * model.p_pi_Treatment[r]
+            * model.p_pi_Treatment[r, "CB"]
         )
         return process_constraint(constraint)
 
@@ -5415,7 +5435,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + sum(model.v_F_Piped[r, s, t]
                       for s in model.s_S if model.p_RSA[r, s])
             ) <= 1e8 * (
-                1 - sum(model.vb_y_Treatment[r, "DS", j]
+                1 - sum(model.vb_y_Treatment[r, "FF", j] + model.vb_y_Treatment[r, "HDH", j]
                      for j in model.s_J
                      )
              )
@@ -5431,7 +5451,8 @@ def create_model(df_sets, df_parameters, default={}):
     def LogicConstraintTreatmentRule3(model, r, t):
         constraint = (
             model.v_F_WaterRemoved[r, t] <=
-            1e8 * sum(model.vb_y_Treatment[r, "DS", j] for j in model.s_J)
+            1e8 * sum(model.vb_y_Treatment[r, "FF", j] + model.vb_y_Treatment[r, "HDH", j]
+                      for j in model.s_J)
             )
         return process_constraint(constraint)
     
@@ -5468,7 +5489,7 @@ def create_model(df_sets, df_parameters, default={}):
                 model.p_omega_EvaporationRate
                 * sum(
                     sum(
-                        model.vb_y_Treatment[r, "EV", j]
+                        model.vb_y_Treatment[r, "CB-EV", j]
                         for j in model.s_J
                         ) for r in model.s_R
                 )
