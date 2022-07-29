@@ -966,7 +966,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         model.s_S,
         default=0,
-        initialize=RSA_Table,
+        initialize=model.df_parameters["RSA"],
         doc="Valid treatment-to-storage pipeline arcs [-]",
     )
     model.p_SNA = Param(
@@ -980,7 +980,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         model.s_CP,
         default=0,
-        initialize=SCA_Table,
+        initialize=model.df_parameters["SCA"],
         doc="Valid storage-to-completions pipeline arcs [-]",
     )
     model.p_SKA = Param(
@@ -1097,6 +1097,16 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Valid treatment-to-disposal trucking arcs [-]",
     )
 
+    model.p_chi_OutsideCompletionPads = Param(
+        model.s_CP,
+        initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        doc="Designates the Completion Pads that are outside the system",
+    )
+    model.p_chi_DesalinaionTechnology = Param(
+        model.s_B,
+        initialize=model.df_parameters["DesalinationTechnologies"],
+        doc="Designates the treatment technoloogies for Deslination",
+    )
     # model.p_NNC = Param(
     #     model.s_N,
     #     default=0
@@ -1911,6 +1921,12 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Fresh sourcing cost [currency/volume]",
     )
 
+    # model.p_BigM = Param(
+    #     default=1e8,
+    #     units=model.model_units["volume_time"],
+    #     doc="Big-M flow parameter [volume/time]",
+    # )
+
     model.p_M_Flow = Param(
         default=99999,
         units=model.model_units["volume_time"],
@@ -2028,37 +2044,70 @@ def create_model(df_sets, df_parameters, default={}):
     ## Define constraints ##
 
     def CompletionsPadDemandBalanceRule(model, p, t):
-        constraint = model.p_gamma_Completions[p, t] == (
-            sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-            + sum(
-                model.v_F_Piped[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCA[p_tilde, p]
+        if model.p_chi_OutsideCompletionPads[p] == 1:
+            constraint = model.p_gamma_Completions[p, t] >= (
+                sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
+                + sum(
+                    model.v_F_Piped[p_tilde, p, t]
+                    for p_tilde in model.s_PP
+                    if model.p_PCA[p_tilde, p]
+                )
+                + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
+                + sum(
+                    model.v_F_Piped[p_tilde, p, t]
+                    for p_tilde in model.s_CP
+                    if model.p_CCA[p_tilde, p]
+                )
+                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
+                + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
+                + sum(
+                    model.v_F_Trucked[p_tilde, p, t]
+                    for p_tilde in model.s_PP
+                    if model.p_PCT[p_tilde, p]
+                )
+                + sum(
+                    model.v_F_Trucked[p_tilde, p, t]
+                    for p_tilde in model.s_CP
+                    if model.p_CCT[p_tilde, p]
+                )
+                + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
+                + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+                + model.v_F_PadStorageOut[p, t]
+                - model.v_F_PadStorageIn[p, t]
+                + model.v_S_FracDemand[p, t]
             )
-            + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
-            + sum(
-                model.v_F_Piped[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCA[p_tilde, p]
+        else:
+            constraint = model.p_gamma_Completions[p, t] == (
+                sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
+                + sum(
+                    model.v_F_Piped[p_tilde, p, t]
+                    for p_tilde in model.s_PP
+                    if model.p_PCA[p_tilde, p]
+                )
+                + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
+                + sum(
+                    model.v_F_Piped[p_tilde, p, t]
+                    for p_tilde in model.s_CP
+                    if model.p_CCA[p_tilde, p]
+                )
+                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
+                + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
+                + sum(
+                    model.v_F_Trucked[p_tilde, p, t]
+                    for p_tilde in model.s_PP
+                    if model.p_PCT[p_tilde, p]
+                )
+                + sum(
+                    model.v_F_Trucked[p_tilde, p, t]
+                    for p_tilde in model.s_CP
+                    if model.p_CCT[p_tilde, p]
+                )
+                + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
+                + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+                + model.v_F_PadStorageOut[p, t]
+                - model.v_F_PadStorageIn[p, t]
+                + model.v_S_FracDemand[p, t]
             )
-            + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
-            + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCT[p_tilde, p]
-            )
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
-            + model.v_F_PadStorageOut[p, t]
-            - model.v_F_PadStorageIn[p, t]
-            + model.v_S_FracDemand[p, t]
-        )
 
         return process_constraint(constraint)
 
@@ -3412,7 +3461,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.TreatmentBalance.pprint()
 
-    def ResidualWaterRule(model, r, t):
+    def ResidualWaterLHSRule(model, r, b, t):
         constraint = (
               (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
@@ -3423,13 +3472,32 @@ def create_model(df_sets, df_parameters, default={}):
                 + sum(
                     model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
                 )
-            )
-            == model.v_F_ResidualWater[r, t]
+            ) * (1 - model.p_epsilon_Treatment[r, b]) - model.p_M_Flow * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
+            <= model.v_F_ResidualWater[r, t]
         )
         return process_constraint(constraint)
     
-    model.ResidualWater = Constraint(
-        model.s_R, model.s_T, rule=ResidualWaterRule, doc="Residual water based on treatment efficiency"
+    model.ResidualWaterLHS = Constraint(
+        model.s_R, model.s_B, model.s_T, rule=ResidualWaterLHSRule, doc="Residual water based on treatment efficiency"
+    )
+    def ResidualWaterRHSRule(model, r, b, t):
+        constraint = (
+              (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+            ) * (1 - model.p_epsilon_Treatment[r, b]) + model.p_M_Flow * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
+            >= model.v_F_ResidualWater[r, t]
+        )
+        return process_constraint(constraint)
+    
+    model.ResidualWaterRHS = Constraint(
+        model.s_R, model.s_B, model.s_T, rule=ResidualWaterRHSRule, doc="Residual water based on treatment efficiency"
     )
     def TreatedWaterRule(model, r, t):
         constraint = (
@@ -3616,10 +3684,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     # model.TotalDisposalVolume.pprint()
 
-    def TreatmentCostRule(model, r, t):
+    def TreatmentCostLHSRule(model, r, b, t):
         constraint = (
             model.v_C_Treatment[r, t]
-            == (
+            >= (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
                 + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
                 + sum(
@@ -3629,12 +3697,32 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
                 )
             )
-            * model.p_pi_Treatment[r, "CB"]
+            * model.p_pi_Treatment[r, b] - model.p_M_Flow * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
         )
         return process_constraint(constraint)
 
-    model.TreatmentCost = Constraint(
-        model.s_R, model.s_T, rule=TreatmentCostRule, doc="Treatment cost"
+    model.TreatmentCostLHS = Constraint(
+        model.s_R, model.s_B, model.s_T, rule=TreatmentCostLHSRule, doc="Treatment cost"
+    )
+    def TreatmentCostRHSRule(model, r, b, t):
+        constraint = (
+            model.v_C_Treatment[r, t]
+            <= (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+            )
+            * model.p_pi_Treatment[r, b] + model.p_M_Flow * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
+        )
+        return process_constraint(constraint)
+
+    model.TreatmentCostRHS = Constraint(
+        model.s_R, model.s_B, model.s_T, rule=TreatmentCostRHSRule, doc="Treatment cost"
     )
 
     # model.TreatmentCost.pprint()
@@ -5434,14 +5522,13 @@ def create_model(df_sets, df_parameters, default={}):
                     for p in model.s_CP if model.p_RCA[r, p])
                 + sum(model.v_F_Piped[r, s, t]
                       for s in model.s_S if model.p_RSA[r, s])
-            ) <= 1e8 * (
-                1 - sum(model.vb_y_Treatment[r, "FF", j] + model.vb_y_Treatment[r, "HDH", j]
-                     for j in model.s_J
-                     )
+            ) <= model.p_M_Flow * (
+                1 - sum(sum(model.vb_y_Treatment[r, b, j] for j in model.s_J
+                     ) for b in model.s_B if model.p_chi_DesalinaionTechnology[b])
              )
             )
         return process_constraint(constraint)
-    
+    # sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
     model.LogicConstraintDesalinationFlow = Constraint(
         model.s_R, model.s_T,
         rule=LogicConstraintTreatmentRule2,
@@ -5451,8 +5538,10 @@ def create_model(df_sets, df_parameters, default={}):
     def LogicConstraintTreatmentRule3(model, r, t):
         constraint = (
             model.v_F_WaterRemoved[r, t] <=
-            1e8 * sum(model.vb_y_Treatment[r, "FF", j] + model.vb_y_Treatment[r, "HDH", j]
-                      for j in model.s_J)
+            model.p_M_Flow * sum(sum(model.vb_y_Treatment[r, b, j]
+                                     for j in model.s_J
+                                     )
+                                 for b in model.s_B if model.p_chi_DesalinaionTechnology[b]) 
             )
         return process_constraint(constraint)
     
@@ -5462,6 +5551,38 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Logic constraint for flow if not desalination"
     )
     
+    def LogicConstraintDesalinationAssignmentRule(model, r):
+        if r in ['R01', 'R03', 'R06']:
+            constraint = (
+                sum(sum(model.vb_y_Treatment[r, b, j] for j in model.s_J
+                        )
+                  for b in model.s_B if model.p_chi_DesalinaionTechnology[b]) == 1
+                )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+    
+    model.LogicConstraintDesalinationAssignment = Constraint(
+        model.s_R,
+        rule=LogicConstraintDesalinationAssignmentRule,
+        doc="Logic constraint for flow if not desalination"
+    )
+    def LogicConstraintNoDesalinationAssignmentRule(model, r):
+        if r in ['R02', 'R04', 'R05']:
+            constraint = (
+                sum(sum(model.vb_y_Treatment[r, b, j] for j in model.s_J
+                        )
+                  for b in model.s_B if not model.p_chi_DesalinaionTechnology[b]) == 1
+                )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+    
+    model.LogicConstraintNoDesalinationAssignment = Constraint(
+        model.s_R,
+        rule=LogicConstraintNoDesalinationAssignmentRule,
+        doc="Logic constraint for flow if not desalination"
+    )
     # def LogicConstraintTreatmentRule4(model, r, t):
     #     constraint = (
     #         model.v_F_WaterRemoved[r, t] <=
@@ -6545,7 +6666,8 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
-    model.scaling_factor[model.TreatmentCost] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCostLHS] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentCostRHS] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
 
