@@ -135,7 +135,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": True,
     "scaling_factor": 1000,
-    "running_time": 600,
+    "running_time": 6000,
     "gap": 0.01,
     "water_quality": False,
 }

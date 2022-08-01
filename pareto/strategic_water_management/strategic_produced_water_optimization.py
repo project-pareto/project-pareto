@@ -716,6 +716,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
+        units=model.model_units["volume_time"],
         doc="Water at storage lost to evaporation [bbl/week]",
     )
 

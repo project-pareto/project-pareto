@@ -172,6 +172,9 @@ def generate_report(
             "v_F_TreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
             ],
+           "v_F_StorageEvaporationStream_dict": [
+               ("Storage site", "Time")
+           ],
             "v_F_CompletionsWater_dict": [
                 ("Pads", "Time", "Deliveries to completions not stored")
             ],
