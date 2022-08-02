@@ -2269,7 +2269,7 @@ def create_model(df_sets, df_parameters, default={}):
     # model.ProductionPadSupplyBalance.pprint()
 
     def CompletionsPadSupplyBalanceRule(model, p, t):
-        return (
+        constraint = (
             model.p_beta_Flowback[p, t]
             == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_CNA[p, n])
             + sum(
