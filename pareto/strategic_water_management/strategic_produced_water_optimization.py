@@ -1697,7 +1697,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_omega_EvaporationRate = Param(
         default=pyunits.convert_value(
             3000,
-            from_units=pyunits.oil_bbl / pyunits.week,
+            from_units=pyunits.oil_bbl / pyunits.day,
             to_units=model.model_units["volume_time"],
         ),
         units=model.model_units["volume_time"],
@@ -4952,10 +4952,11 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     sum(
-                        model.vb_y_Pipeline[s, p, d]
+                        (model.vb_y_Pipeline[s, p, d] * model.p_lambda_Pipeline[s, p]
+                         + model.vb_y_Pipeline[p, s, d] * model.p_lambda_Pipeline[p, s])
                         * model.p_kappa_Pipeline
                         * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, p]
+                        
                         for s in model.s_S
                         if model.p_SCA[s, p]
                     )
@@ -5613,7 +5614,7 @@ def create_model(df_sets, df_parameters, default={}):
                     sum(
                         model.vb_y_Treatment[r, "CB-EV", j]
                         for j in model.s_J
-                        ) for r in model.s_R
+                        ) for r in model.s_R if model.p_RSA[r, s]
                 )
                 )
         return process_constraint(constraint)
@@ -5660,14 +5661,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_N:
-            if model.p_CNA[l, l_tilde]:
-                constraint = (
-                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_N:
             if model.p_NNA[l, l_tilde]:
                 constraint = (
@@ -5676,14 +5669,23 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_CP:
-            if model.p_NCA[l, l_tilde]:
+        elif l in model.s_CP and l_tilde in model.s_N:
+            if model.p_CNA[l, l_tilde]:
                 constraint = (
-                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                    sum((model.vb_y_Pipeline[l, l_tilde, d] +
+                         model.vb_y_Pipeline[l_tilde, l, d]) for d in model.s_D) == 1
                 )
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
+        # elif l in model.s_N and l_tilde in model.s_CP:
+        #     if model.p_NCA[l, l_tilde]:
+        #         constraint = (
+        #             sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+        #         )
+        #         return process_constraint(constraint)
+        #     else:
+        #         return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_K:
             if model.p_NKA[l, l_tilde]:
                 constraint = (
@@ -5694,14 +5696,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_S:
             if model.p_NSA[l, l_tilde]:
-                constraint = (
-                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_R:
-            if model.p_NRA[l, l_tilde]:
                 constraint = (
                     sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
                 )
@@ -5724,14 +5718,23 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
+        elif l in model.s_N and l_tilde in model.s_R:
+            if model.p_NRA[l, l_tilde]:
                 constraint = (
-                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                    sum((model.vb_y_Pipeline[l, l_tilde, d] +
+                         model.vb_y_Pipeline[l_tilde, l, d]) for d in model.s_D) == 1
                 )
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
+        # elif l in model.s_N and l_tilde in model.s_R:
+        #     if model.p_NRA[l, l_tilde]:
+        #         constraint = (
+        #             sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+        #         )
+        #         return process_constraint(constraint)
+        #     else:
+        #         return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
                 constraint = (
@@ -5759,7 +5762,8 @@ def create_model(df_sets, df_parameters, default={}):
         elif l in model.s_S and l_tilde in model.s_CP:
             if model.p_SCA[l, l_tilde]:
                 constraint = (
-                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                    sum((model.vb_y_Pipeline[l, l_tilde, d] +
+                         model.vb_y_Pipeline[l_tilde, l, d]) for d in model.s_D) == 1
                 )
                 return process_constraint(constraint)
             else:
@@ -5772,14 +5776,23 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_R:
-            if model.p_SRA[l, l_tilde]:
+        elif l in model.s_R and l_tilde in model.s_S:
+            if model.p_RSA[l, l_tilde]:
                 constraint = (
-                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                    sum((model.vb_y_Pipeline[l, l_tilde, d] +
+                         model.vb_y_Pipeline[l_tilde, l, d]) for d in model.s_D) == 1
                 )
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
+        # elif l in model.s_S and l_tilde in model.s_R:
+        #     if model.p_SRA[l, l_tilde]:
+        #         constraint = (
+        #             sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+        #         )
+        #         return process_constraint(constraint)
+        #     else:
+        #         return Constraint.Skip
         elif l in model.s_S and l_tilde in model.s_O:
             if model.p_SOA[l, l_tilde]:
                 constraint = (
@@ -5886,6 +5899,22 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Completions water volume",
     )
 
+
+    # def SeismicActivityExceptionRule(model, k, t):
+    #     constraint = (
+    #         (
+    #             model.v_F_DisposalDestination["K04", t] == 0
+    #             # model.v_F_DisposalDestination["K04", t] == model.p_chi_SRA[k, t] * model.v_D_Capacity[k]
+    #           )
+    #         )
+    #     return process_constraint(constraint)
+    # # sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
+    # model.SeismicResponseArea = Constraint(
+    #     model.s_K, model.s_T,
+    #     rule=SeismicActivityExceptionRule,
+    #     doc="Constraint to restrict flow to a seimic response area"
+    # )
+    
     # model.LogicConstraintPipeline['N17','CP03'].pprint()
 
     ## Fixing Decision Variables ##
