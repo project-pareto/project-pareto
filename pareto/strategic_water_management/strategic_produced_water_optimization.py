@@ -1990,7 +1990,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_SRAOperatingCapacity = Param(
         model.s_K,
         default=0,
-        initialize={"K01": 1, "K02": 1, "K03": 0.5, "K04": 0, "K05": 0.5},
+        initialize={"K01": 1, "K02": 1, "K03": 1, "K04": 1, "K05": 1},
         doc="Indicates if Expansion is allowed at site k",
     )
 
@@ -4451,7 +4451,16 @@ def create_model(df_sets, df_parameters, default={}):
     model.TruckingCost = Constraint(
         model.s_L, model.s_L, model.s_T, rule=TruckingCostRule, doc="Trucking cost"
     )
+    def TotalTruckingFreshFlowRule(model):
+        constraint = sum(sum(sum(model.v_F_Trucked[f, k, t] for f in model.s_F|model.s_K)
+                         for k in model.s_K)
+                         for t in model.s_T) == 0
+        return process_constraint(constraint)
 
+    model.TotalTruckingFreshFlow = Constraint(
+        rule=TotalTruckingFreshFlowRule, doc="Total trucking fresh water flow"
+    )
+        
     # model.TruckingCost.pprint()
 
     def TotalTruckingCostRule(model):
