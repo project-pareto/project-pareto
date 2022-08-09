@@ -150,7 +150,8 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     is_print=[PrintValues.essential],
-    output_units=OutputUnits.unscaled_model_units,
+    # output_units=OutputUnits.unscaled_model_units,
+    output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )
 
