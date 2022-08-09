@@ -1990,7 +1990,8 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_SRAOperatingCapacity = Param(
         model.s_K,
         default=0,
-        initialize={"K01": 1, "K02": 1, "K03": 1, "K04": 1, "K05": 1},
+        initialize={"K01": 1, "K02": 1, "K03": 0.5, "K04": 0, "K05": 0.5},
+        # initialize={"K01": 1, "K02": 1, "K03": 1, "K04": 1, "K05": 1},
         doc="Indicates if Expansion is allowed at site k",
     )
 
@@ -4938,6 +4939,20 @@ def create_model(df_sets, df_parameters, default={}):
                         * model.p_lambda_Pipeline[r, n]
                         for r in model.s_R
                         if model.p_RNA[r, n]
+                    )
+                    for n in model.s_N
+                )
+                for d in model.s_D
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.vb_y_Pipeline[n, r, d]
+                        * model.p_kappa_Pipeline
+                        * model.p_mu_Pipeline[d]
+                        * model.p_lambda_Pipeline[n, r]
+                        for r in model.s_R
+                        if model.p_NRA[n, r]
                     )
                     for n in model.s_N
                 )
