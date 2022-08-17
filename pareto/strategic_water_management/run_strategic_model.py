@@ -18,7 +18,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
-    IncludeNodeCapacity,
+    # IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues, OutputUnits
@@ -125,7 +125,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
-        "node_capacity": IncludeNodeCapacity.true,
+        "node_capacity": True,
         "water_quality": WaterQuality.false,
     },
 )
