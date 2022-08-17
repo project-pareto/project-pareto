@@ -1897,7 +1897,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Completions pad storage balance",
     )
 
-
     def CompletionsPadStorageCapacityRule(model, p, t):
         constraint = model.v_L_PadStorage[p, t] <= model.p_sigma_PadStorage[p]
 
