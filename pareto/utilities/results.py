@@ -169,14 +169,10 @@ def generate_report(
                 ("Location", "Water Component", "Time", "Water Quality")
             ],
             "v_F_WaterRemoved_dict": [
-                ("Treatment site", "Time", "Treatment Waste Water")
+                ("Treatment site", "Time", "Treated removed water")
             ],
-            "v_F_ResidualWater_dict": [
-                ("Treatment site", "Time", "Treatment Waste Water")
-            ],
-            "v_F_TreatedWater_dict": [
-                ("Treatment site", "Time", "Treatment Waste Water")
-            ],
+            "v_F_ResidualWater_dict": [("Treatment site", "Time", "Residual Water")],
+            "v_F_TreatedWater_dict": [("Treatment site", "Time", "Treated Water")],
             "v_F_StorageEvaporationStream_dict": [("Storage site", "Time")],
             "v_F_CompletionsWater_dict": [
                 ("Pads", "Time", "Deliveries to completions not stored")

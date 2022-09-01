@@ -101,7 +101,7 @@ parameter_list = [
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
-    "DisposalSRAOperatingCapacity",
+    "DisposalOperatingCapacity",
 ]
 
 # user needs to provide the path to the case study data file
