@@ -108,9 +108,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    # "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
     "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
-    # "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -160,6 +158,3 @@ set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
-
-strategic_model.v_F_WaterRemoved.display()
-strategic_model.vb_y_Treatment.display()
