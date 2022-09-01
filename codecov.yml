@@ -1,0 +1,20 @@
+coverage:
+  precision: 2
+  round: down
+  range: "1...100"
+  status:
+    patch:
+      default:
+        target: auto
+        threshold: 5%
+    project:
+      default:
+        target: auto
+        threshold: 1%
+codecov:
+  require_ci_to_pass: false
+  notify:
+    wait_for_ci: false
+    # after_n_builds should match the number of CI jobs configured to upload reports to Codecov
+    # in PARETO the number of jobs is 1 (1 Python version x 1 OS)
+    after_n_builds: 1

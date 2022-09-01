@@ -5,9 +5,17 @@ Getting Started
 
 Installation
 ------------
-To install the PARETO framework on Windows operating systems, follow the set
-of instructions below that are appropriate for your needs. If you need assistance
-please contact `pareto-support@pareto.org`.
+
+To install the PARETO framework on Windows operating systems, follow the set of instructions below
+that are appropriate for your needs. If you need assistance please contact start a new discussion on
+our `GitHub Discussion form <https://github.com/project-pareto/project-pareto/discussions>`_ or send
+an email to `pareto-support@project-pareto.org <mailto: pareto-support@project-pareto.org>`_.
+
+Developer Role
+^^^^^^^^^^^^^^
+
+The installation instructions vary slightly depending on the role you will have with Project Pareto.
+Below are the roles we've identified:
 
 **Users**: Use the PARETO platform to develop models, but never contribute to
 development of the framework (i.e. never commit changes to the project-pareto
@@ -20,7 +28,7 @@ protected data.
 repo (even occasionally) - needs approval from PhD. Markus Drouven
 
 +------------------+-----------------------------+
-| Developer Role   | Section                     |
+| Developer Role   | Installation Section        |
 +==================+=============================+
 | Users            | :ref:`min_install_users`    |
 +------------------+-----------------------------+
@@ -105,24 +113,17 @@ Hybrid
 Building Documentation
 ----------------------
 
-A convenient way of building documentation is to use Sphinx,
-which is able to translate a set of plain text source files into various output formats, such as a series HTML or PDF (via Latex) files.
-In addition to following the `Sphinx Quickstart <https://www.sphinx-doc.org/en/master/usage/quickstart.html>`_
-and `Installation Guide <https://www.sphinx-doc.org/en/master/usage/installation.html>`_,
-the following libraries are needed in order to use Sphinx (these packages have been included in the requirements-dev.txt file).::
+We use `Sphinx <https://www.sphinx-doc.org/>`_ for writing and building our on-line documentation.
+This is a tool that translates a set of plain text `.rst` (`reStructuredText
+<https://docutils.sourceforge.io/rst.html>`_) files into various output formats, such as HTML or PDF
+(via Latex).
 
-    pip install -U sphinx
-
-    pip install myst-parser
-
-    pip install sphinx_rtd_theme
-
-    pip install nbsphinx
-
-To build the project documentation locally in your system, users must go to the docs folder and run the make file::
+After installing as a :ref:`min_install_core-dev` or :ref:`min_install_users` (as described above)
+you can build the documentation locally on your system by running the `make` command in the `docs`
+folder, as follows::
 
     $ cd project-pareto/docs/
-
     $ make html
 
-Visit the `Sphinx Style Guide <https://gdal.org/contributing/rst_style.html>`_ for information on syntax rules, tips, and FAQ.
+Visit the `Sphinx Style Guide <https://gdal.org/contributing/rst_style.html>`_ for information on
+syntax rules, tips, and FAQ.

@@ -1,0 +1,4 @@
+/* allow wider pages */
+.wy-nav-content {
+    max-width: 95%; /* default=800px */
+}

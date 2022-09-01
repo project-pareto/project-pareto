@@ -12,6 +12,7 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    WaterQuality,
     create_model,
     Objectives,
     solve_model,
@@ -118,7 +119,10 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.True, IncludeNodeCapacity.False]"""
+ node_capacity: [IncludeNodeCapacity.true, IncludeNodeCapacity.false]
+ water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ """
+
 strategic_model = create_model(
     df_sets,
     df_parameters,
@@ -127,17 +131,20 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
+        "water_quality": WaterQuality.false,
     },
 )
 
+# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
     "scale_model": True,
     "scaling_factor": 1000,
-    "running_time": 6000,
-    "gap": 0.0,
+    "running_time": 60,
+    "gap": 0,
     "water_quality": False,
 }
+
 solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
