@@ -67,6 +67,7 @@ def build_strategic_model():
         "StorageCapacities",
         "InjectionCapacities",
         "TreatmentCapacities",
+        "TreatmentTechnologies",
     ]
     parameter_list = [
         "Units",
@@ -81,6 +82,8 @@ def build_strategic_model():
         "FCA",
         "RCA",
         "RNA",
+        "RSA",
+        "SCA",
         "SNA",
         "PCT",
         "PKT",
@@ -88,6 +91,8 @@ def build_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -122,14 +127,14 @@ def build_strategic_model():
         "Economics",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
-        "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
     ]
 
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+        "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -153,7 +158,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -176,7 +181,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -199,7 +204,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -222,7 +227,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -316,7 +321,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
 
 
 @pytest.fixture(scope="module")
@@ -337,6 +342,7 @@ def build_reduced_strategic_model():
         "StorageCapacities",
         "InjectionCapacities",
         "TreatmentCapacities",
+        "TreatmentTechnologies",
     ]
     parameter_list = [
         "Units",
@@ -351,6 +357,8 @@ def build_reduced_strategic_model():
         "FCA",
         "RCA",
         "RNA",
+        "RSA",
+        "SCA",
         "SNA",
         "PCT",
         "PKT",
@@ -358,6 +366,8 @@ def build_reduced_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -393,6 +403,7 @@ def build_reduced_strategic_model():
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
     ]
 
     # note the double backslashes '\\' in that path reference

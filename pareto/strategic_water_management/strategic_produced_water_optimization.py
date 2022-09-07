@@ -3747,13 +3747,21 @@ def create_model(df_sets, df_parameters, default={}):
     # model.TotalDisposalVolume.pprint()
 
     def TreatmentCostLHSRule(model, r, b, t):
-        constraint = model.v_C_Treatment[r, t] >= (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) * model.p_pi_Treatment[r, b] - model.p_M_Flow * (
-            1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
+        constraint = (
+            model.v_C_Treatment[r, t]
+            >= (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+                - model.p_M_Flow
+                * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
+            )
+            * model.p_pi_Treatment[r, b]
         )
         return process_constraint(constraint)
 
@@ -3762,13 +3770,21 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TreatmentCostRHSRule(model, r, b, t):
-        constraint = model.v_C_Treatment[r, t] <= (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) * model.p_pi_Treatment[r, b] + model.p_M_Flow * (
-            1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
+        constraint = (
+            model.v_C_Treatment[r, t]
+            <= (
+                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
+                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                )
+                + sum(
+                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                )
+                + model.p_M_Flow
+                * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
+            )
+            * model.p_pi_Treatment[r, b]
         )
         return process_constraint(constraint)
 
@@ -7948,6 +7964,9 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
     model.scaling_factor[model.v_F_WaterRemoved] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_StorageEvaporationStream] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_ResidualWater] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TreatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_BeneficialReuseDestination] = 1 / scaling_factor
     model.scaling_factor[model.v_F_CompletionsDestination] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
@@ -8028,6 +8047,10 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.LogicConstraintStorage] = 1
     # This constraint contains only binary variables
     model.scaling_factor[model.LogicConstraintTreatmentAssignment] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintDesalinationAssignment] = 1
+    # This constraint contains only binary variables
+    model.scaling_factor[model.LogicConstraintNoDesalinationAssignment] = 1
     model.scaling_factor[model.NetworkBalance] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacity] = 1 / scaling_factor
     model.scaling_factor[model.PipelineCapacityExpansion] = 1 / scaling_factor
@@ -8061,12 +8084,20 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
+    model.scaling_factor[model.TreatedWater] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCostLHS] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCostRHS] = 1 / scaling_factor
+    model.scaling_factor[model.ResidualWaterLHS] = 1 / scaling_factor
+    model.scaling_factor[model.ResidualWaterRHS] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
+    model.scaling_factor[model.TotalTruckingFreshFlow] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
+    model.scaling_factor[model.LogicConstraintDesalinationFlow] = 1 / scaling_factor
+    model.scaling_factor[model.LogicConstraintNoDesalinationFlow] = 1 / scaling_factor
+    model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
+    model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
 
     if model.config.node_capacity == IncludeNodeCapacity.true:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
