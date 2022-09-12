@@ -5637,7 +5637,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintDesalinationAssignmentRule(model, r):
-        if r in ["R01", "R03", "R06"]:
+        if r in []:
             constraint = (
                 sum(
                     sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
@@ -5657,7 +5657,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintNoDesalinationAssignmentRule(model, r):
-        if r in ["R02", "R04", "R05"]:
+        if r in ["R01", "R02"]:
             constraint = (
                 sum(
                     sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
