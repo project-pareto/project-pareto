@@ -465,14 +465,14 @@ For each storage site and each time period, the volume of water being trucked in
 
 If there are individual production tanks, the water level must be tracked at each tank. The water level at a given tank at the end of each period is equal to the water level at the previous period plus the flowback supply forecast at the pad minus the water that is drained.  If it is the first period, it is equal to the initial water level.
 
-For individual production tanks: \forall (p,a) \in PAL, t \in T
+For individual production tanks: :math:`\forall (p,a) \in PAL, t \in T`
 
 .. math::
 
     \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
 
-For equalized production tanks: \forall p \in P, t \in T
+For equalized production tanks: :math:`\forall p \in P, t \in T`
 
 .. math::
 
@@ -484,14 +484,14 @@ For equalized production tanks: \forall p \in P, t \in T
 
 The water level at the production tanks must always be below the production tank capacity.
 
-For individual production tanks: \forall (p,a) \in PAL, t \in T
+For individual production tanks: :math:`\forall (p,a) \in PAL, t \in T`
 
 .. math::
 
     \textcolor{red}{L_{p,a,t}^{ProdTank}}≤\textcolor{green}{\sigma_{p,a}^{ProdTank}}
 
 
-For equalized production tanks: \forall p \in P, t \in T
+For equalized production tanks: :math:`\forall p \in P, t \in T`
 
 .. math::
 
@@ -503,14 +503,14 @@ For equalized production tanks: \forall p \in P, t \in T
 
 The water level at the production tanks in the final time period must be below the terminal production tank water level parameter.
 
-For individual production tanks: \forall (p,a) \in PAL, t \in T
+For individual production tanks: :math:`\forall (p,a) \in PAL, t \in T`
 
 .. math::
 
     \textcolor{red}{L_{p,a,t=T}^{ProdTank}}≤\textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}
 
 
-For equalized production tanks: \forall p \in P,t \in T
+For equalized production tanks: :math:`\forall p \in P,t \in T`
 
 .. math::
 
@@ -522,7 +522,7 @@ For equalized production tanks: \forall p \in P,t \in T
 
 If there are individual production tanks, the water drained across all tanks at the completions pad must be equal to the produced water for transport at the pad.
 
-For individual production tanks: \forall p \in P, t \in T
+For individual production tanks: :math:`\forall p \in P, t \in T`
 
 .. math::
 
@@ -531,7 +531,7 @@ For individual production tanks: \forall p \in P, t \in T
 
 Otherwise, if the production tanks are equalized, the production water drained is measured on an aggregated production pad level.
 
-For equalized production tanks: \forall p \in P, t \in T
+For equalized production tanks: :math:`\forall p \in P, t \in T`
 
 .. math::
 
@@ -613,13 +613,15 @@ For each storage site and for each time period, if it is the first time period, 
 
 
 
-**Pipeline Capacity:** :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, [t \in T]`
+**Pipeline Capacity:**
+
+ :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, [t \in T]`
 
 .. math::
 
     \textcolor{red}{F_{l,l,[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,l}^{Pipeline}}+\textcolor{red}{S_{l,l}^{PipelineCapacity}}
 
-\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, t \in T
+ :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, t \in T`
 
 .. math::
 
@@ -631,13 +633,13 @@ For each storage site and for each time period, if it is the first time period, 
 
 The total stored water in a given time period must be less than the capacity. If the storage capacity limits the feasibility, the slack variable will be nonzero, and the storage capacity will be increased to allow a feasible solution.
 
-\forall s \in S,[t \in T]
+ :math:`\forall s \in S,[t \in T]`
 
 .. math::
 
     \textcolor{red}{X_{s,[t]}^{Capacity}} = \textcolor{green}{\sigma_{s}^{Storage}}+\textcolor{red}{S_{s}^{StorageCapacity}}
 
-\forall s \in S, t \in T
+ :math:`\forall s \in S, t \in T`
 
 .. math::
 
@@ -649,13 +651,13 @@ The total stored water in a given time period must be less than the capacity. If
 
 The total disposed water in a given time period must be less than the capacity. If the disposal capacity limits the feasibility, the slack variable will be nonzero, and the disposal capacity will be increased to allow a feasible solution.
 
-\forall k \in K, [t \in T]
+ :math:`\forall k \in K, [t \in T]`
 
 .. math::
 
     \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
 
-\forall k \in K, t \in T
+ :math:`\forall k \in K, t \in T`
 
 .. math::
 
@@ -664,7 +666,7 @@ The total disposed water in a given time period must be less than the capacity. 
 
         +\sum\nolimits_{(p,k)\in CKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(r,k)\in RKT}\textcolor{red}{F_{l,l,t}^{Trucked}} ≤\textcolor{red}{D_{k,[t]}^{Capacity}}
 
-\forall k \in K, t \in T
+ :math:`\forall k \in K, t \in T`
 
 .. math::
 
@@ -679,7 +681,7 @@ The total disposed water in a given time period must be less than the capacity. 
 
 The total treated water in a given time period must be less than the capacity. If the treatment capacity limits the feasibility, the slack variable will be nonzero, and the treatment capacity will be increased to allow a feasible solution.
 
-\forall r \in R, t \in T
+ :math:`\forall r \in R, t \in T`
 
 .. math::
 
@@ -687,7 +689,7 @@ The total treated water in a given time period must be less than the capacity. I
 
         +\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}}≤\textcolor{green}{\sigma_{r}^{Treatment}}+\textcolor{red}{S_{r}^{TreatmentCapacity}}
 
-\forall r \in R, t \in T
+ :math:`\forall r \in R, t \in T`
 
 .. math::
 
@@ -700,13 +702,13 @@ The total treated water in a given time period must be less than the capacity. I
 
 The total water for beneficial reuse in a given time period must be less than the capacity. If the beneficial reuse capacity limits the feasibility, the slack variable will be nonzero, and the beneficial reuse capacity will be increased to allow a feasible solution.
 
-\forall o \in O, t \in T
+ :math:`\forall o \in O, t \in T`
 
 .. math::
 
     \sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,o)\in POT}\textcolor{red}{F_{l,l,t}^{Trucked}} ≤\textcolor{green}{\sigma_{o}^{Reuse}}+\textcolor{red}{S_{o}^{ReuseCapacity}}
 
-\forall o \in O, t \in T
+ :math:`\forall o \in O, t \in T`
 
 .. math::
 
