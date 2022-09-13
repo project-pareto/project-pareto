@@ -573,9 +573,9 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
 
 .. math::
 
-    \sum\nolimits_{(p,n)\in PNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,n)\in CNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n TILDETILDETILDE,n)\in NNA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{red}{F_{l,l,t}^{Piped}}
+    \sum\nolimits_{(p,n)\in PNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,n)\in CNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(\tilde{n},n)\in NNA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{red}{F_{l,l,t}^{Piped}}
 
-        = \sum\nolimits_{(n,n TILDETILDETILDE )\in NNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(n,k)\in NKA}\textcolor{red}{F_{l,l,t}^{Piped}}
+        = \sum\nolimits_{(n,\tilde{n})\in NNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(n,k)\in NKA}\textcolor{red}{F_{l,l,t}^{Piped}}
 
         +\sum\nolimits_{(n,r)\in NRA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,s)\in NSA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}}
 
@@ -941,9 +941,9 @@ The water quality at nodes is dependent on the flow rates into the node and the 
 
     \sum\nolimits_{(p,n)\in PNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,n)\in CNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{p,w,t}}
 
-    +\sum\nolimits_{(n TILDETILDETILDE,n)\in NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
+    +\sum\nolimits_{(\tilde{n},n)\in NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
 
-    = \textcolor{red}{Q_{n,w,t}} \cdot (\sum\nolimits_{(n,n TILDETILDETILDE)\in NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+    = \textcolor{red}{Q_{n,w,t}} \cdot (\sum\nolimits_{(n,\tilde{n})\in NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{purple}{F_{l,l,t}^{Piped}}
 
     +\sum\nolimits_{(n,k)\in NKA}\textcolor{purple}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,r)\in NRA}\textcolor{purple}{F_{l,l,t}^{Piped}}
 
