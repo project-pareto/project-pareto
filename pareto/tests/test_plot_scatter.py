@@ -264,6 +264,7 @@ def plot_args1():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": True,
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -275,6 +276,7 @@ def plot_args2():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": False,
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -286,6 +288,7 @@ def plot_args3():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": False,
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -297,6 +300,7 @@ def plot_args4():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": True,
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -325,6 +329,7 @@ def plot_args5():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": df_parameters["plot_scatter_Categories"],
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -353,6 +358,7 @@ def plot_args5_static():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": df_parameters["plot_scatter_static_Categories"],
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
