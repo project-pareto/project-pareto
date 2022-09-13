@@ -615,13 +615,13 @@ For each storage site and for each time period, if it is the first time period, 
 
 **Pipeline Capacity:**
 
- :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, [t \in T]`
+:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, [t \in T]`
 
 .. math::
 
     \textcolor{red}{F_{l,l,[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,l}^{Pipeline}}+\textcolor{red}{S_{l,l}^{PipelineCapacity}}
 
- :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, t \in T`
+:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,…,SOA}, t \in T`
 
 .. math::
 
@@ -633,13 +633,13 @@ For each storage site and for each time period, if it is the first time period, 
 
 The total stored water in a given time period must be less than the capacity. If the storage capacity limits the feasibility, the slack variable will be nonzero, and the storage capacity will be increased to allow a feasible solution.
 
- :math:`\forall s \in S,[t \in T]`
+:math:`\forall s \in S,[t \in T]`
 
 .. math::
 
     \textcolor{red}{X_{s,[t]}^{Capacity}} = \textcolor{green}{\sigma_{s}^{Storage}}+\textcolor{red}{S_{s}^{StorageCapacity}}
 
- :math:`\forall s \in S, t \in T`
+:math:`\forall s \in S, t \in T`
 
 .. math::
 
@@ -651,13 +651,13 @@ The total stored water in a given time period must be less than the capacity. If
 
 The total disposed water in a given time period must be less than the capacity. If the disposal capacity limits the feasibility, the slack variable will be nonzero, and the disposal capacity will be increased to allow a feasible solution.
 
- :math:`\forall k \in K, [t \in T]`
+:math:`\forall k \in K, [t \in T]`
 
 .. math::
 
     \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
 
- :math:`\forall k \in K, t \in T`
+:math:`\forall k \in K, t \in T`
 
 .. math::
 
@@ -666,7 +666,7 @@ The total disposed water in a given time period must be less than the capacity. 
 
         +\sum\nolimits_{(p,k)\in CKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(r,k)\in RKT}\textcolor{red}{F_{l,l,t}^{Trucked}} ≤\textcolor{red}{D_{k,[t]}^{Capacity}}
 
- :math:`\forall k \in K, t \in T`
+:math:`\forall k \in K, t \in T`
 
 .. math::
 
@@ -681,7 +681,7 @@ The total disposed water in a given time period must be less than the capacity. 
 
 The total treated water in a given time period must be less than the capacity. If the treatment capacity limits the feasibility, the slack variable will be nonzero, and the treatment capacity will be increased to allow a feasible solution.
 
- :math:`\forall r \in R, t \in T`
+:math:`\forall r \in R, t \in T`
 
 .. math::
 
@@ -689,7 +689,7 @@ The total treated water in a given time period must be less than the capacity. I
 
         +\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}}≤\textcolor{green}{\sigma_{r}^{Treatment}}+\textcolor{red}{S_{r}^{TreatmentCapacity}}
 
- :math:`\forall r \in R, t \in T`
+:math:`\forall r \in R, t \in T`
 
 .. math::
 
@@ -702,20 +702,20 @@ The total treated water in a given time period must be less than the capacity. I
 
 The total water for beneficial reuse in a given time period must be less than the capacity. If the beneficial reuse capacity limits the feasibility, the slack variable will be nonzero, and the beneficial reuse capacity will be increased to allow a feasible solution.
 
- :math:`\forall o \in O, t \in T`
+:math:`\forall o \in O, t \in T`
 
 .. math::
 
     \sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,o)\in POT}\textcolor{red}{F_{l,l,t}^{Trucked}} ≤\textcolor{green}{\sigma_{o}^{Reuse}}+\textcolor{red}{S_{o}^{ReuseCapacity}}
 
- :math:`\forall o \in O, t \in T`
+:math:`\forall o \in O, t \in T`
 
 .. math::
 
     \sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,o)\in POT}\textcolor{red}{F_{l,l,t}^{Trucked}} =\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
 
 
-**Fresh Sourcing Cost:** :math:`\forall f \in F, p \in CP, t \in T`
+**Fresh Sourcing Cost:**  :math:`\forall f \in F, p \in CP, t \in T`
 
 For each freshwater source, for each completions pad, and for each time period, the freshwater sourcing cost is equal to all output from the freshwater source times the freshwater sourcing cost.
 
@@ -761,7 +761,7 @@ Water input into treatment facility is treated with a level of efficiency, meani
 
         +\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}} )=\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,l,t}^{Piped}} + \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}
 
-where :math:`\textcolor{green}{\varepsilon^{Treatment}}` \le1
+where :math:`\textcolor{green}{\varepsilon^{Treatment}}` \le 1
 
 
 
@@ -933,7 +933,7 @@ The water quality at treatment sites is dependent on the flow rates into the tre
 
     = \textcolor{red}{Q_{r,w,t}} \cdot (\sum\nolimits_{(r,p)\in RCA}\textcolor{purple}{F_{l,l,t}^{Piped}} + \textcolor{purple}{F_{r,t}^{UnusedTreatedWater}})
 
-where :math:`\textcolor{green}{\varepsilon_{r,w}^{Treatment}}` \le1
+where :math:`\textcolor{green}{\varepsilon_{r,w}^{Treatment}}` \le 1
 
 **Network Node Water Quality** :math:`\forall n \in N, w \in W, t \in T`
 
