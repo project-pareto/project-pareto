@@ -6086,11 +6086,23 @@ def water_quality(model):
         initialize=model.df_sets["CompletionsPadsIntermediate"],
         doc="Completions Pad Intermediate Flows",
     )
+    # Create a set for water quality tracked at the intermediate node between treatment facility and treated water end points
+    treatment_intermediate_label = "-PostTreatmentIntermediateNode"
+    model.df_sets["TreatedWaterIntermediateNodes"] = [
+        r + treatment_intermediate_label for r in model.df_sets["TreatmentSites"]
+    ]
+    model.quality.s_R_TreatedWaterIntermediateNode = Set(
+        initialize=model.df_sets["TreatedWaterIntermediateNodes"],
+        doc="Treated Water Node",
+    )
 
     # Create a set of locations to track water quality over
     model.quality.s_WQL = Set(
         initialize=(
-            model.s_L | model.quality.s_CP_Storage | model.quality.s_CP_Intermediate
+            model.s_L
+            | model.quality.s_CP_Storage
+            | model.quality.s_CP_Intermediate
+            | model.quality.s_R_TreatedWaterIntermediateNode
         ),
         doc="Locations with tracked water quality ",
     )
@@ -6283,6 +6295,7 @@ def water_quality(model):
                     for k in b.parent_block().s_K
                     if b.parent_block().p_SKT[s, k]
                 )
+                + b.parent_block().v_F_StorageEvaporationStream[s, t]
             )
         else:
             constraint = b.parent_block().v_L_Storage[
@@ -6342,6 +6355,7 @@ def water_quality(model):
                     for k in b.parent_block().s_K
                     if b.parent_block().p_SKT[s, k]
                 )
+                + b.parent_block().v_F_StorageEvaporationStream[s, t]
             )
         return process_constraint(constraint)
 
@@ -6356,7 +6370,7 @@ def water_quality(model):
 
     # region Treatment
     def TreatmentWaterQualityRule(b, r, w, t):
-        constraint = b.parent_block().p_epsilon_Treatment[r, w] * (
+        constraint = (
             sum(
                 b.parent_block().v_F_Piped[n, r, t] * b.v_Q[n, w, t]
                 for n in b.parent_block().s_N
@@ -6378,6 +6392,24 @@ def water_quality(model):
                 if b.parent_block().p_CRT[p, r]
             )
         ) == b.v_Q[r, w, t] * (
+            b.parent_block().v_F_ResidualWater[r, t]
+            + b.parent_block().v_F_TreatedWater[r, t]
+        )
+        return process_constraint(constraint)
+
+    model.quality.TreatmentWaterQuality = Constraint(
+        model.s_R,
+        model.s_W,
+        model.s_T,
+        rule=TreatmentWaterQualityRule,
+        doc="Treatment water quality",
+    )
+    # Water quality of water that has been treated
+    # NOTE: Water quality changes by treatment technologies is not currently modeled
+    def TreatedWaterWaterQualityRule(b, r, w, t):
+        constraint = (b.parent_block().v_F_TreatedWater[r, t]) == b.v_Q[
+            r + treatment_intermediate_label, w, t
+        ] * (
             sum(
                 b.parent_block().v_F_Piped[r, p, t]
                 for p in b.parent_block().s_CP
@@ -6388,16 +6420,16 @@ def water_quality(model):
                 for s in b.parent_block().s_S
                 if b.parent_block().p_RSA[r, s]
             )
-            # + b.parent_block().v_F_UnusedTreatedWater[r, t]
+            + b.parent_block().v_F_WaterRemoved[r, t]
         )
         return process_constraint(constraint)
 
-    model.quality.TreatmentWaterQuality = Constraint(
+    model.quality.TreatmedWaterWaterQuality = Constraint(
         model.s_R,
         model.s_W,
         model.s_T,
-        rule=TreatmentWaterQualityRule,
-        doc="Treatment water quality",
+        rule=TreatedWaterWaterQualityRule,
+        doc="Treatmed water water quality",
     )
     # endregion
 

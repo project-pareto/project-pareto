@@ -82,6 +82,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{i \in I}`           Injection (i.e. disposal) capacities
 
+..
+    TODO#1 : Add Set B
+
 :math:`\textcolor{blue}{(p,p) \in PCA}`     Production-to-completions pipeline arcs
 
 :math:`\textcolor{blue}{(p,n) \in PNA}`     Production-to-node pipeline arcs
@@ -165,7 +168,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{r,t}^{TreatmentDestination}}` =           Water delivered to treatment site
 
-:math:`\textcolor{red}{F_{r,t}^{UnusedTreatedWater}}` =             Treated water that is not used
+..
+    TODO#2: Add v_F_WaterRemoved, model.v_F_StorageEvaporationStream, model.v_F_ResidualWater, model.v_F_TreatedWater
+
 
 :math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}` =    Water delivered to completions pad for reuse
 
@@ -262,6 +267,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{y_{s,c,[t]}^{Storage}}` =        New or additional storage facility installed at storage site with specific storage capacity
 
+..
+    TODO: Update vb_y_treatment
+
 :math:`\textcolor{red}{y_{r,j,[t]}^{Treatment}}` =      New or additional treatment facility installed at treatment site with specific treatment capacity
 
 :math:`\textcolor{red}{y_{k,i,[t]}^{Disposal}}` =       New or additional disposal facility installed at disposal site with specific injection capacity
@@ -296,6 +304,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{p,t}^{PadStorage}}` =          Storage capacity at completions site
 
+..
+    TODO#4: Update p_sigma_treatment
+
 :math:`\textcolor{green}{\sigma_{r}^{Treatment}}` =             Initial treatment capacity at a treatment site
 
 :math:`\textcolor{green}{\sigma_{o}^{BeneficialReuse}}` =       Initial reuse capacity at a reuse site
@@ -314,9 +325,15 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{W_{r}^{TreatmentComponent}}` =         Water quality component treated for at treatment site
 
+..
+    TODO#5: Update p_epsilon_treatment, add p_epsilon_disposaloperatingcapacity
+
 :math:`\textcolor{green}{\epsilon_{r, w}^{Treatment}}` =        Treatment efficiency at treatment site for quality component :math:`\textcolor{blue}{w}`
 
 :math:`\textcolor{green}{\alpha^{AnnualizationRate}}` =         Annualization Rate [%]
+
+..
+    TODO#6: Add p_chi_outsidecompletionspads, add p_chidesalinationtechnology, add p_omega_evaporationrate, add p_chi_diposalexpansionallowed
 
 :math:`\textcolor{green}{\delta_{i}^{Disposal}}` =              Increments for installation/expansion of disposal capacity
 
@@ -346,6 +363,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\kappa_{s,c}^{Storage}}` =             Storage construction or expansion capital cost for selected capacity increment
 
+..
+    TODO#7: Update p_kappa_treatment
+
 :math:`\textcolor{green}{\kappa_{r,j}^{Treatment}}` =           Treatment construction or expansion capital cost for selected capacity increment
 
 
@@ -365,6 +385,8 @@ Strategic Model Mathematical Notation
 
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                 Disposal operational cost
+..
+    TODO#8: Update p_pi_treatment
 
 :math:`\textcolor{green}{\pi_{r}^{Treatment}}` =                Treatment operational cost (may include "clean brine")
 
@@ -435,7 +457,8 @@ The annualization rate takes the discount rate (rate) and the number of years th
 .. math::
     \textcolor{green}{\alpha^{AnnualizationRate}} = \frac{\textcolor{green}{rate}}{(1-{(1+\textcolor{green}{rate})}^{-\textcolor{green}{life}})}
 
-
+..
+    TODO#9: Completions Pad Demand Balance
 **Completions Pad Demand Balance:** :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
 
 Completions pad demand can be met by trucked or piped water moved into the pad in addition to water in completions pad storage. For each completions pad and for each time period, completions demand at the given pad is equal to the sum of all piped and trucked water moved into the completions pad plus water removed from the pad storage minus water put into the pad storage plus a slack.
@@ -642,6 +665,8 @@ There can only be flow in one direction for a given pipeline arc in a given time
 
     \textcolor{red}{F_{l,\tilde{l},t}^{Piped}} \leq \textcolor{red}{y_{l,\tilde{l},t}^{Flow}} \cdot \textcolor{green}{M^{Flow}}
 
+..
+    TODO#10: Update storage site balance
 
 **Storage Site Balance:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
 
@@ -781,6 +806,8 @@ This constraint accounts for the expansion of available disposal sites or instal
         + \sum_{r \in R | (r, k) \in RKT}\textcolor{red}{F_{r,k,t}^{Trucked}}
         \leq \textcolor{red}{D_{k,[t]}^{Capacity}}
 
+..
+    TODO#11: Update Treatment capacity construction constraint
 
 **Treatment Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{r \in R}, [\textcolor{blue}{t \in T}]`
 
@@ -801,6 +828,9 @@ Similarly to disposal and storage capacity construction/expansion constraints, t
         + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
         \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
 
+..
+    TODO#12: Update Treatment balance constraint and add new supporting constriants (ResidualWaterLHSRule, ResidualWaterRHSRule,
+    treated water rule)
 
 **Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
@@ -881,6 +911,8 @@ Total disposed volume over all time is the sum of all piped and trucked water to
         = \sum_{t \in T}(\sum_{(l,k) \in \{NKA,RKA,SKA\}}\textcolor{red}{F_{l,k,t}^{Piped}}
         + \sum_{(l,k) \in \{PKT,CKT,SKT,RKT\}}\textcolor{red}{F_{l,k,t}^{Trucked}})
 
+..
+    TODO#13: Update Treatment cost constraint and add new supporting constriants (treatmentcostLHSRule, TreatmentCostLHSRule)
 
 **Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
@@ -1031,6 +1063,8 @@ Cost related to expanding or constructing new storage capacity. Takes into consi
 
     \textcolor{red}{C_{[t]}^{StorageCapEx}} = \sum_{s \in S} \sum_{c \in C_0}\textcolor{green}{\kappa_{s,c}^{Storage}} \cdot \textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}
 
+..
+    TODO#14: Update Treatment construction CAPEX
 
 **Treatment Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
 
@@ -1040,6 +1074,8 @@ Cost related to expanding or constructing new treatment capacity. Takes into con
 
     \textcolor{red}{C_{[t]}^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J_0}\textcolor{green}{\kappa_{r,j}^{Treatment}} \cdot \textcolor{green}{\delta_{j}^{Treatment}} \cdot \textcolor{red}{y_{r,j}^{Treatment}}
 
+..
+    TODO#15: Update Pipeline construction CAPEX
 
 **Pipeline Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
 
@@ -1058,6 +1094,8 @@ If the pipeline cost configuration is **distance based**, pipeline expansion cos
 
     \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
+..
+    TODO: Add SeismicActivityExceptionRule
 
 **Slack Costs:**
 
@@ -1077,7 +1115,11 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 
         + \sum_{r \in R}\textcolor{red}{S_{r}^{TreatmentCapacity}} \cdot \textcolor{green}{\psi^{TreatmentCapacity}}
         + \sum_{o \in O}\textcolor{red}{S_{o}^{BeneficialReuseCapacity}} \cdot \textcolor{green}{\psi^{BeneficialReuseCapacity}}
-
+..
+    TODO#17: Add treatment logic constraints (LogicConstraintTreatmentRule, LogicConstraintTreatmentRule2, LogicConstraintTreatmentRule3,
+    LogicConstraintDesalinationAssignmentRule, LogicConstraintNoDesalinationAssignmentRule, EvaporationFlowRule)
+    determine if an update is needed for LogicConstraintEvaporationFlow (Github sometimes has trouble determining difference
+    if there are many changes)
 
 **Logic Constraints:**
 
@@ -1157,6 +1199,9 @@ Completions deliveries destination for completions pad :math:`\textcolor{blue}{p
 
         + \sum_{f \in F | (f, p) \in FCT}\textcolor{red}{F_{f,p,t}^{Trucked}}
         + \textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}
+
+..
+    TODO#18: Update water quality with relevant constraints
 
 .. _strategic_model_water_quality_extension:
 
@@ -1379,6 +1424,8 @@ The water quality at beneficial reuse sites is dependent on the flow rates into 
 
         = \textcolor{red}{Q_{o,w,t}} \cdot \textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
 
+..
+    TODO#19: Update discrete water quality with relevant constraints
 
 .. _strategic_model_discrete_water_quality_extension:
 
