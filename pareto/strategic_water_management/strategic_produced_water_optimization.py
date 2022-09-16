@@ -439,7 +439,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Water from completions pad storage used for fracturing [volume/time]",
     )
-    model.v_F_WaterRemoved = Var(
+    model.v_F_DesalinationWaterRemoved = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
@@ -691,7 +691,11 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_parameters["DesalinationTechnologies"],
         doc="Binary parameter designating the treatment technologies for Desalination",
     )
-
+    model.p_chi_DesalinationSites = Param(
+        model.s_R,
+        initialize=model.df_parameters["DesalinationSites"],
+        doc="Binary parameter designating which sites are for desalination (1) and which are not (0)",
+    )
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -3568,7 +3572,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_F_TreatedWater[r, t]
             == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
             + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-            + model.v_F_WaterRemoved[r, t]
+            + model.v_F_DesalinationWaterRemoved[r, t]
         )
         return process_constraint(constraint)
 
@@ -5622,7 +5626,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintTreatmentRule3(model, r, t):
-        constraint = model.v_F_WaterRemoved[r, t] <= model.p_M_Flow * sum(
+        constraint = model.v_F_DesalinationWaterRemoved[r, t] <= model.p_M_Flow * sum(
             sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
             for b in model.s_B
             if model.p_chi_DesalinationTechnology[b]
@@ -5637,7 +5641,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintDesalinationAssignmentRule(model, r):
-        if r in []:
+        if model.p_chi_DesalinationSites[r]:
             constraint = (
                 sum(
                     sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
@@ -5657,7 +5661,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintNoDesalinationAssignmentRule(model, r):
-        if r in ["R01", "R02"]:
+        if not model.p_chi_DesalinationSites[r]:
             constraint = (
                 sum(
                     sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
@@ -7963,7 +7967,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
-    model.scaling_factor[model.v_F_WaterRemoved] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_DesalinationWaterRemoved] = 1 / scaling_factor
     model.scaling_factor[model.v_F_StorageEvaporationStream] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ResidualWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TreatedWater] = 1 / scaling_factor

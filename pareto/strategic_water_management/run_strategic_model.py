@@ -67,6 +67,7 @@ parameter_list = [
     "CKT",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
+    "DesalinationSites",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
