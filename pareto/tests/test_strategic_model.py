@@ -93,6 +93,7 @@ def build_strategic_model():
         "CKT",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
+        "DesalinationSites",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -368,6 +369,7 @@ def build_reduced_strategic_model():
         "CKT",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
+        "DesalinationSites",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -434,7 +436,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 62415
+    assert degrees_of_freedom(m) == 63715
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -458,7 +460,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 62415
+    assert degrees_of_freedom(m) == 63715
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -482,7 +484,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 62415
+    assert degrees_of_freedom(m) == 63175
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -506,7 +508,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 109457
+    assert degrees_of_freedom(m) == 112075
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -645,5 +647,5 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m) == -18826
+    assert degrees_of_freedom(m) == -19101
     assert pytest.approx(9.06, abs=1e-1) == pyo.value(m.quality.v_X)

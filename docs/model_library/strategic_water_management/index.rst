@@ -268,7 +268,7 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{red}{y_{s,c,[t]}^{Storage}}` =        New or additional storage facility installed at storage site with specific storage capacity
 
 ..
-    TODO: Update vb_y_treatment
+    TODO#3: Update vb_y_treatment
 
 :math:`\textcolor{red}{y_{r,j,[t]}^{Treatment}}` =      New or additional treatment facility installed at treatment site with specific treatment capacity
 
@@ -1095,7 +1095,7 @@ If the pipeline cost configuration is **distance based**, pipeline expansion cos
     \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 ..
-    TODO: Add SeismicActivityExceptionRule
+    TODO#16: Add SeismicActivityExceptionRule
 
 **Slack Costs:**
 

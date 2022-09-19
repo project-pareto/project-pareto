@@ -1050,6 +1050,8 @@ def create_model(df_sets, df_parameters, default={}):
         **df_parameters["RCA"],
         **df_parameters["RNA"],
         **df_parameters["SNA"],
+        **df_parameters["RSA"],
+        **df_parameters["SCA"],
     }
 
     model.p_LLP = Param(
@@ -1514,12 +1516,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment efficiency [%]",
     )
 
-    model.p_W_TreatmentComponent = Param(
-        model.s_R,
-        default=model.s_W.first(),
-        within=model.s_W,
-        doc="Water quality component treated at site",
-    )
     # Note PipelineCapacityIncrements_Calculated is set in _pre_process. These values are already in model units, they
     # do not need to be calculated
     if model.config.pipeline_capacity == PipelineCapacity.calculated:
@@ -6420,7 +6416,7 @@ def water_quality(model):
                 for s in b.parent_block().s_S
                 if b.parent_block().p_RSA[r, s]
             )
-            + b.parent_block().v_F_WaterRemoved[r, t]
+            + b.parent_block().v_F_DesalinationWaterRemoved[r, t]
         )
         return process_constraint(constraint)
 
@@ -6728,6 +6724,16 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="Completions Pad Storage Tanks",
     )
 
+    # Create a set for water quality tracked at the intermediate node between treatment facility and treated water end points
+    treatment_intermediate_label = "-PostTreatmentIntermediateNode"
+    model.df_sets["TreatedWaterIntermediateNodes"] = [
+        r + treatment_intermediate_label for r in model.df_sets["TreatmentSites"]
+    ]
+    model.s_R_TreatedWaterIntermediateNode = Set(
+        initialize=model.df_sets["TreatedWaterIntermediateNodes"],
+        doc="Treated Water Node",
+    )
+
     # Create a set for water quality at Completions Pads intermediate flows (i.e. the blended trucked and piped water to pad)
     intermediate_label = "-intermediate"
     df_sets["CompletionsPadsIntermediate"] = [
@@ -6863,6 +6869,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             | model.s_N
             | model.s_CP_Storage
             | model.s_CP_Intermediate
+            | model.s_R_TreatedWaterIntermediateNode
         ),
         doc="Locations with discrete quality",
     )
@@ -7090,6 +7097,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 + sum(
                     model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
                 )
+                + model.v_F_StorageEvaporationStream[s, t]
             ),
             doc="The sum of discretized outflows at storage site s equals the total outflow for storage site s",
         )
@@ -7148,7 +7156,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             rule=lambda model, r, t, w, q: model.v_F_DiscreteFlowTreatment[r, t, w, q]
             <= (
-                model.p_sigma_Treatment[r]
+                get_max_value_for_parameter(model.p_sigma_Treatment)
                 + get_max_value_for_parameter(model.p_delta_Treatment)
             )
             * model.v_DQ[r, t, w, q],
@@ -7162,11 +7170,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             rule=lambda model, r, t, w: sum(
                 model.v_F_DiscreteFlowTreatment[r, t, w, q] for q in model.s_Q
             )
-            == (
-                sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-                + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-                + model.v_F_UnusedTreatedWater[r, t]
-            ),
+            == (model.v_F_ResidualWater[r, t] + model.v_F_TreatedWater[r, t]),
             doc="The sum of discretized quantities at treatment site r equals the total quantity for treatment site r",
         )
 
@@ -7649,7 +7653,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
 
     # region Treatment
     def TreatmentWaterQualityRule(b, r, w, t):
-        return model.p_epsilon_Treatment[r, w] * (
+        return (
             sum(
                 sum(
                     model.v_F_DiscretePiped[n, r, t, w, q]
