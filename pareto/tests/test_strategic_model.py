@@ -484,7 +484,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63175
+    assert degrees_of_freedom(m) == 63715
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -648,4 +648,4 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
     assert degrees_of_freedom(m) == -19101
-    assert pytest.approx(9.06, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert pytest.approx(7.72, abs=1e-1) == pyo.value(m.quality.v_X)
