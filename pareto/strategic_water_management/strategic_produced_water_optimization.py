@@ -681,7 +681,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Flow capacity along pipeline arc [volume/time]",
     )
-    model.p_chi_OutsideCompletionPads = Param(
+    model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
         doc="Binary parameter designating the Completion Pads that are outside the system",
@@ -2126,7 +2126,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadDemandBalanceRule(model, p, t):
         # If completions pad is outside the system, the completions demand is not required to be met
-        if model.p_chi_OutsideCompletionPads[p] == 1:
+        if model.p_chi_OutsideCompletionsPad[p] == 1:
             constraint = model.p_gamma_Completions[p, t] >= (
                 sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
                 + sum(
