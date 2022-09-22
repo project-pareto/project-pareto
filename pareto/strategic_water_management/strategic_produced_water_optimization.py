@@ -439,7 +439,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Water from completions pad storage used for fracturing [volume/time]",
     )
-    model.v_F_DesalinationWaterRemoved = Var(
+    model.v_F_DesalinatedWater = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
@@ -3568,7 +3568,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_F_TreatedWater[r, t]
             == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
             + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-            + model.v_F_DesalinationWaterRemoved[r, t]
+            + model.v_F_DesalinatedWater[r, t]
         )
         return process_constraint(constraint)
 
@@ -5622,7 +5622,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintTreatmentRule3(model, r, t):
-        constraint = model.v_F_DesalinationWaterRemoved[r, t] <= model.p_M_Flow * sum(
+        constraint = model.v_F_DesalinatedWater[r, t] <= model.p_M_Flow * sum(
             sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
             for b in model.s_B
             if model.p_chi_DesalinationTechnology[b]
@@ -6416,7 +6416,7 @@ def water_quality(model):
                 for s in b.parent_block().s_S
                 if b.parent_block().p_RSA[r, s]
             )
-            + b.parent_block().v_F_DesalinationWaterRemoved[r, t]
+            + b.parent_block().v_F_DesalinatedWater[r, t]
         )
         return process_constraint(constraint)
 
@@ -8003,7 +8003,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
-    model.scaling_factor[model.v_F_DesalinationWaterRemoved] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_DesalinatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_StorageEvaporationStream] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ResidualWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TreatedWater] = 1 / scaling_factor
