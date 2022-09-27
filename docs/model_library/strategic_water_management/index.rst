@@ -82,6 +82,10 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{i \in I}`           Injection (i.e. disposal) capacities
 
+.. note::
+    The sets for capacity sizes :math:`\textcolor{blue}{d \in D}`, :math:`\textcolor{blue}{c \in C}`, :math:`\textcolor{blue}{j \in J}`, :math:`\textcolor{blue}{i \in I}` should also include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
+    Alternatively, if it is desired to only consider sizes to build, the 0th case can be left out.
+
 :math:`\textcolor{blue}{b \in B}`           Treatment technologies
 
 :math:`\textcolor{blue}{(p,p) \in PCA}`     Production-to-completions pipeline arcs
@@ -759,6 +763,7 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
 **Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in \{PCA,PNA,PPA,NKA,CNA,NCA,NSA,NOA,FCA,RCA,SKA,SOA,RSA,SRA\}}, [\textcolor{blue}{t \in T}]`
 
 Sets the flow capacity in a given pipeline during a given time period. Different constraints apply depending on if the pipeline is reversible or not.
+The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
 
 .. math::
 
@@ -790,11 +795,12 @@ Sets the flow capacity in a given pipeline during a given time period. Different
 
 **Storage Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{s \in S}, [\textcolor{blue}{t \in T}]`
 
-This constraint accounts for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon. The :math:`C_0` notation indicates that we also include the 0th case, meaning that there is no selection in the set :math:`\textcolor{blue}{C}` where no capacity is added.
+This constraint accounts for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon.
+The set :math:`\textcolor{blue}{C}` should also include the 0th case (0 bbl) that indicates the choice to not expand capacity.
 
 .. math::
 
-    \textcolor{red}{X_{s,[t]}^{Capacity}} = \textcolor{green}{\sigma_{s}^{Storage}}+\sum_{c \in C_0}\textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}+\textcolor{red}{S_{s}^{StorageCapacity}}
+    \textcolor{red}{X_{s,[t]}^{Capacity}} = \textcolor{green}{\sigma_{s}^{Storage}}+\sum_{c \in C}\textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}+\textcolor{red}{S_{s}^{StorageCapacity}}
 
 :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
 
@@ -806,10 +812,11 @@ This constraint accounts for the expansion of available storage capacity or inst
 **Disposal Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{k \in K}, [\textcolor{blue}{t \in T}]`
 
 This constraint accounts for the expansion of available disposal sites or installation of new disposal sites. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
+The set :math:`\textcolor{blue}{I}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
 
 .. math::
 
-    \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\sum_{i \in I_0}\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
+    \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\sum_{i \in I}\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
 
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
 
@@ -829,6 +836,7 @@ This constraint accounts for the expansion of available disposal sites or instal
 **Treatment Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{r \in R}`
 
 Similarly to disposal and storage capacity construction/expansion constraints, the current treatment capacity can be expanded as required or new facilities may be installed.
+The set :math:`\textcolor{blue}{J}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
 
 .. math::
 
@@ -1121,7 +1129,7 @@ Cost related to expanding or constructing new disposal capacity. Takes into cons
 
 .. math::
 
-    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I_0} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
+    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
 
 
 **Storage Construction or Capacity Expansion Cost:**
@@ -1130,7 +1138,7 @@ Cost related to expanding or constructing new storage capacity. Takes into consi
 
 .. math::
 
-    \textcolor{red}{C^{StorageCapEx}} = \sum_{s \in S} \sum_{c \in C_0}\textcolor{green}{\kappa_{s,c}^{Storage}} \cdot \textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}
+    \textcolor{red}{C^{StorageCapEx}} = \sum_{s \in S} \sum_{c \in C}\textcolor{green}{\kappa_{s,c}^{Storage}} \cdot \textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}
 
 
 **Treatment Construction or Capacity Expansion Cost:**
@@ -1139,7 +1147,7 @@ Cost related to expanding or constructing new treatment capacity. Takes into con
 
 .. math::
 
-    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J_0}\sum_{b \in B}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J}\sum_{b \in B}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
 
 
 **Pipeline Construction or Capacity Expansion Cost:**
@@ -1151,13 +1159,13 @@ If the pipeline cost configuration is **capacity based**, pipeline expansion cos
 
 .. math::
 
-    \textcolor{red}{C^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}} \cdot \textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
+    \textcolor{red}{C^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D}\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}} \cdot \textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 If the pipeline cost configuration is **distance based**, pipeline expansion cost is calculated using pipeline distances, pipeline diameters, cost per inch mile, and if the construction/expansion is selected to occur.
 
 .. math::
 
-    \textcolor{red}{C^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
+    \textcolor{red}{C^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 **Seismic Response Area - Disposal Operating Capacity Reduction:** :math:`\forall \textcolor{blue}{k \in K} \textcolor{blue}{t \in T}`
 
@@ -1189,25 +1197,27 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 
 **Logic Constraints:**
 
-New pipeline or facility capacity constraints: e.g., only one injection capacity can be used for a given site
+New pipeline or facility capacity constraints: e.g., only one injection capacity can be used for a given site.
+The sets for capacity sizes should also include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
+Alternatively, if it is desired to only consider sizes to build, the 0th case can be left out.
 
 :math:`\forall \textcolor{blue}{k \in K}`
 
 .. math::
 
-    \sum_{i \in I_0}\textcolor{red}{y_{k,i,[t]}^{Disposal}} = 1
+    \sum_{i \in I}\textcolor{red}{y_{k,i,[t]}^{Disposal}} = 1
 
 :math:`\forall \textcolor{blue}{s \in S}`
 
 .. math::
 
-    \sum_{c \in C_0}\textcolor{red}{y_{s,c,[t]}^{Storage}} = 1
+    \sum_{c \in C}\textcolor{red}{y_{s,c,[t]}^{Storage}} = 1
 
 :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}`
 
 .. math::
 
-    \sum_{d \in D_0}\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}} = 1
+    \sum_{d \in D}\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}} = 1
 
 :math:`\forall \textcolor{blue}{r \in R}`
 
