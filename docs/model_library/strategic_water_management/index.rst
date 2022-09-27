@@ -320,7 +320,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{W_{r}^{TreatmentComponent}}` =         Water quality component treated for at treatment site
 
-:math:`\textcolor{green}{\epsilon_{r, b, w}^{Treatment}}` =        Treatment efficiency at treatment site for quality component :math:`\textcolor{blue}{w}`
+:math:`\textcolor{green}{\epsilon_{r, b}^{Treatment}}` =        Treatment efficiency for technology :math:`\textcolor{blue}{b}` at treatment site
 
 :math:`\textcolor{green}{\epsilon_{k,t}^{DisposalOperatingCapacity}}` = Operating capacity of disposal site [%]
 
@@ -826,15 +826,19 @@ This constraint accounts for the expansion of available disposal sites or instal
         \leq \textcolor{red}{D_{k,[t]}^{Capacity}}
 
 ..
-    TODO#11: Update Treatment capacity construction constraint
+    Done: TODO#11: Update Treatment capacity construction constraint
 
-**Treatment Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{r \in R}, [\textcolor{blue}{t \in T}]`
+**Treatment Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{r \in R}`
 
 Similarly to disposal and storage capacity construction/expansion constraints, the current treatment capacity can be expanded as required or new facilities may be installed.
 
 .. math::
 
-    \textcolor{red}{T_{r,[t]}^{Capacity}} = \textcolor{green}{\sigma_{r,b}^{Treatment}}+\sum_{j \in J_0}\textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}+\textcolor{red}{S_{r}^{TreatmentCapacity}}
+    \sum_{b \in B}
+        \textcolor{green}{\sigma_{r,b}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}
+        + \sum_{j \in J}\textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+        = \textcolor{red}{T_{r}^{Capacity}}
+
 
 :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
@@ -848,26 +852,63 @@ Similarly to disposal and storage capacity construction/expansion constraints, t
         \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
 
 ..
-    TODO#12: Update Treatment balance constraint and add new supporting constriants (ResidualWaterLHSRule, ResidualWaterRHSRule,
+    Done: TODO#12: Update Treatment balance constraint and add new supporting constriants (ResidualWaterLHSRule, ResidualWaterRHSRule,
     treated water rule)
 
 **Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
-Water input into treatment facility is treated with a level of efficiency, meaning only a given percentage of the water input is outputted to be reused at the completions pads.
+At a treatment facility, the inlet raw produced water is treated and separated into treated water and residual water.
 
 .. math::
 
-    \textcolor{green}{\epsilon_{r, b, \textcolor{green}{W_{r}^{TreatmentComponent}}}^{Treatment}} \cdot
-        ( \sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
+        \sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
         + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
         + \sum_{p \in P | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        
+        = \textcolor{red}{F_{r,t}^{ResidualWater}}
+        + \textcolor{red}{F_{r,t}^{TreatedWater}}
 
-        + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}} )
-        = \sum_{p \in P | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
-        + \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}
 
-where :math:`\textcolor{green}{\epsilon_{r, b, w}^{Treatment}} \leq 1`.
+**Residual Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{b \in B}, \textcolor{blue}{t \in T}`
 
+The efficiency of a treatment technology determines the amount of residual water produced.
+
+.. math::
+
+        (\sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
+        + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
+        + \sum_{p \in P | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}})
+        
+        \cdot (1 - \textcolor{green}{\epsilon_{r, b}^{Treatment}})
+        - \textcolor{green}{M^{Flow}}
+         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}})
+        \leq \textcolor{red}{F_{r,t}^{ResidualWater}}
+
+
+.. math::
+        (\sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
+        + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
+        + \sum_{p \in P | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}})
+        
+        \cdot (1 - \textcolor{green}{\epsilon_{r, b}^{Treatment}})
+        + \textcolor{green}{M^{Flow}}
+         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}})
+        \geq \textcolor{red}{F_{r,t}^{ResidualWater}}
+
+
+**Treated Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{b \in B}, \textcolor{blue}{t \in T}`
+
+Treated water is either reused in the completion pads or stored in ponds or removed for beneficial reuse (if desalinated).
+
+.. math::
+
+        \textcolor{red}{F_{r,t}^{TreatedWater}} =
+        \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
+        + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
+        + \textcolor{red}{F_{r,t}^{DesalinatedWater}}
 
 **Beneficial Reuse Capacity:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
 
@@ -931,7 +972,7 @@ Total disposed volume over all time is the sum of all piped and trucked water to
         + \sum_{(l,k) \in \{PKT,CKT,SKT,RKT\}}\textcolor{red}{F_{l,k,t}^{Trucked}})
 
 ..
-    TODO#13: Update Treatment cost constraint and add new supporting constriants (treatmentcostLHSRule, TreatmentCostLHSRule)
+    Done: TODO#13: Update Treatment cost constraint and add new supporting constriants (treatmentcostLHSRule, TreatmentCostLHSRule)
 
 **Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
@@ -940,8 +981,24 @@ For each treatment site, for each time period, the treatment cost is equal to al
 .. math::
 
     \textcolor{red}{C_{r,t}^{Treatment}}
-        = (\sum_{l \in L | (l, r) \in \{NRA,SRA\}}\textcolor{red}{F_{l,r,t}^{Piped}}
-        + \sum_{l \in L | (l, r) \in \{PRT,CRT\}}\textcolor{red}{F_{l,r,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{r,b}^{Treatment}}
+        \geq (\sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
+        + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
+        + \sum_{p \in PP | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        + \sum_{p \in CP | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        
+        - \textcolor{green}{M^{Flow}}
+        * (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
+
+.. math::
+
+    \textcolor{red}{C_{r,t}^{Treatment}}
+        \leq (\sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
+        + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
+        + \sum_{p \in PP | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        + \sum_{p \in CP | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
+        
+        + \textcolor{green}{M^{Flow}}
+        * (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
 
 .. math::
     \textcolor{red}{C^{TotalTreatment}} = \sum_{t \in T}\sum_{r \in R}\textcolor{red}{C_{r,t}^{Treatment}}
@@ -1065,38 +1122,38 @@ The total trucking volume is estimated as the summation of trucking movements ov
     \textcolor{red}{F^{TotalTrucking}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in \{PCT, \ldots, RKT\}}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}
 
 
-**Disposal Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
+**Disposal Construction or Capacity Expansion Cost:**
 
 Cost related to expanding or constructing new disposal capacity. Takes into consideration capacity increment, cost for selected capacity increment, and if the construction/expansion is selected to occur.
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{DisposalCapEx}} = \sum_{i \in I_0} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
+    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I_0} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
 
 
-**Storage Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
+**Storage Construction or Capacity Expansion Cost:**
 
 Cost related to expanding or constructing new storage capacity. Takes into consideration capacity increment, cost for selected capacity increment, and if the construction/expansion is selected to occur.
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{StorageCapEx}} = \sum_{s \in S} \sum_{c \in C_0}\textcolor{green}{\kappa_{s,c}^{Storage}} \cdot \textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}
+    \textcolor{red}{C^{StorageCapEx}} = \sum_{s \in S} \sum_{c \in C_0}\textcolor{green}{\kappa_{s,c}^{Storage}} \cdot \textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}
 
 ..
-    TODO#14: Update Treatment construction CAPEX
+    Check: TODO#14: Update Treatment construction CAPEX
 
-**Treatment Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
+**Treatment Construction or Capacity Expansion Cost:**
 
 Cost related to expanding or constructing new treatment capacity. Takes into consideration capacity increment, cost for selected capacity increment, and if the construction/expansion is selected to occur.
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J_0}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J_0}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
 
 ..
-    TODO#15: Update Pipeline construction CAPEX
+    Check: TODO#15: Update Pipeline construction CAPEX
 
-**Pipeline Construction or Capacity Expansion Cost:** :math:`\forall \textcolor{blue}{t \in T}`
+**Pipeline Construction or Capacity Expansion Cost:**
 
 Cost related to expanding or constructing new pipeline capacity is calculated differently depending on model configuration settings.
 
@@ -1105,13 +1162,13 @@ If the pipeline cost configuration is **capacity based**, pipeline expansion cos
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}} \cdot \textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
+    \textcolor{red}{C^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}} \cdot \textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 If the pipeline cost configuration is **distance based**, pipeline expansion cost is calculated using pipeline distances, pipeline diameters, cost per inch mile, and if the construction/expansion is selected to occur.
 
 .. math::
 
-    \textcolor{red}{C_{[t]}^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
+    \textcolor{red}{C^{PipelineCapEx}} = \sum_{l \in L}\sum_{\tilde{l} \in L}\sum_{d \in D_0}\textcolor{green}{\kappa^{Pipeline} \cdot }\textcolor{green}{\mu_{d}^{Pipeline}} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
 
 **Seismic Response Area - Disposal Operating Capacity Reduction:** :math:`\forall \textcolor{blue}{k \in K} \textcolor{blue}{t \in T}`
 
@@ -1162,17 +1219,70 @@ New pipeline or facility capacity constraints: e.g., only one injection capacity
 
     \sum_{c \in C_0}\textcolor{red}{y_{s,c,[t]}^{Storage}} = 1
 
-:math:`\forall \textcolor{blue}{r \in R}`
-
-.. math::
-
-    \sum_{j \in J_0, b \in B}\textcolor{red}{y_{r,b,j,[t]}^{Treatment}} = 1
-
 :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}`
 
 .. math::
 
     \sum_{d \in D_0}\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}} = 1
+
+:math:`\forall \textcolor{blue}{r \in R}`
+
+.. math::
+
+    \sum_{j \in J, b \in B}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
+
+
+**Logic Constraints for Desalination:**
+
+Desalinated water is not reused for completions pad demand or stored in the storage
+
+:math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+
+.. math::
+
+    \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
+        + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
+        \leq \textcolo{green}{M^Flow} \cdot (1 -
+        \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
+        \textcolor{red}{y_{r,b,j}^{Treatment})
+
+
+Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
+For, this if desalination technology is not selected then amount of desalinated wtaer is set to zero.
+
+
+:math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+
+.. math::
+
+    \textcolor{red}{F_{r,t}^{DesalinatedWater}}
+        \leq \textcolo{green}{M^Flow} \cdot (1 -
+        \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
+        \textcolor{red}{y_{r,b,j}^{Treatment})
+
+
+Desalination technology is assigned to a pre-determined site.
+
+
+:math:`\forall \textcolor{blue}{r \in R}`
+
+if :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
+
+.. math::
+
+    \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
+
+
+Clean brine technology is assigned to a non-desalination site.
+
+
+:math:`\forall \textcolor{blue}{r \in R}`
+
+if NOT :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
+
+.. math::
+
+    \sum_{j \in J, b \notin B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
 
 
 **Deliveries Destination Constraints:**
