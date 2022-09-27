@@ -825,8 +825,6 @@ This constraint accounts for the expansion of available disposal sites or instal
         + \sum_{r \in R | (r, k) \in RKT}\textcolor{red}{F_{r,k,t}^{Trucked}}
         \leq \textcolor{red}{D_{k,[t]}^{Capacity}}
 
-..
-    Done: TODO#11: Update Treatment capacity construction constraint
 
 **Treatment Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{r \in R}`
 
@@ -834,7 +832,7 @@ Similarly to disposal and storage capacity construction/expansion constraints, t
 
 .. math::
 
-    \sum_{b \in B}\sum_{j \in J}
+    \sum_{b \in B, j \in J}
         (\textcolor{green}{\sigma_{r,b}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
         + \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}})
         = \textcolor{red}{T_{r}^{Capacity}}
@@ -851,9 +849,6 @@ Similarly to disposal and storage capacity construction/expansion constraints, t
         + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
         \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
 
-..
-    Done: TODO#12: Update Treatment balance constraint and add new supporting constriants (ResidualWaterLHSRule, ResidualWaterRHSRule,
-    treated water rule)
 
 **Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
@@ -971,8 +966,6 @@ Total disposed volume over all time is the sum of all piped and trucked water to
         = \sum_{t \in T}(\sum_{(l,k) \in \{NKA,RKA,SKA\}}\textcolor{red}{F_{l,k,t}^{Piped}}
         + \sum_{(l,k) \in \{PKT,CKT,SKT,RKT\}}\textcolor{red}{F_{l,k,t}^{Trucked}})
 
-..
-    Done: TODO#13: Update Treatment cost constraint and add new supporting constriants (treatmentcostLHSRule, TreatmentCostLHSRule)
 
 **Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
@@ -1139,8 +1132,6 @@ Cost related to expanding or constructing new storage capacity. Takes into consi
 
     \textcolor{red}{C^{StorageCapEx}} = \sum_{s \in S} \sum_{c \in C_0}\textcolor{green}{\kappa_{s,c}^{Storage}} \cdot \textcolor{green}{\delta_{c}^{Storage}} \cdot \textcolor{red}{y_{s,c}^{Storage}}
 
-..
-    Check: TODO#14: Update Treatment construction CAPEX
 
 **Treatment Construction or Capacity Expansion Cost:**
 
@@ -1148,10 +1139,8 @@ Cost related to expanding or constructing new treatment capacity. Takes into con
 
 .. math::
 
-    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J_0}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J_0}\sum_{b \in B}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
 
-..
-    Check: TODO#15: Update Pipeline construction CAPEX
 
 **Pipeline Construction or Capacity Expansion Cost:**
 
@@ -1197,11 +1186,6 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 
         + \sum_{r \in R}\textcolor{red}{S_{r}^{TreatmentCapacity}} \cdot \textcolor{green}{\psi^{TreatmentCapacity}}
         + \sum_{o \in O}\textcolor{red}{S_{o}^{BeneficialReuseCapacity}} \cdot \textcolor{green}{\psi^{BeneficialReuseCapacity}}
-..
-    TODO#17: Add treatment logic constraints (LogicConstraintTreatmentRule, LogicConstraintTreatmentRule2, LogicConstraintTreatmentRule3,
-    LogicConstraintDesalinationAssignmentRule, LogicConstraintNoDesalinationAssignmentRule, EvaporationFlowRule)
-    determine if an update is needed for LogicConstraintEvaporationFlow (Github sometimes has trouble determining difference
-    if there are many changes)
 
 **Logic Constraints:**
 
@@ -1284,6 +1268,21 @@ if NOT :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
 
     \sum_{j \in J, b \notin B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
 
+
+**Evaporation Flow Constraint**
+Evaporation flow for a given time period and storage site is 0 if it is the first time period. Otherwise, evaporation
+is a constant flow set by the parameter :math:`\textcolor{green}{\omega^{EvaporationRate}}`.
+
+For :math:`t = 1`:
+
+.. math::
+    \textcolor{red}{F_{s,t}^{StorageEvaporationStream}} = 0
+
+For :math:`t > 1`:
+
+.. math::
+    \textcolor{red}{F_{s,t}^{StorageEvaporationStream}} = \textcolor{green}{\omega^{EvaporationRate}} \cdot
+        \sum_{j \in J, r \in R | (r,s) \in RSA} \textcolor{red}{y_{r,'CB-EV',j}^{Treatment}}
 
 **Deliveries Destination Constraints:**
 
