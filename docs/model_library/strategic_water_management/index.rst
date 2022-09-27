@@ -834,9 +834,9 @@ Similarly to disposal and storage capacity construction/expansion constraints, t
 
 .. math::
 
-    \sum_{b \in B}
-        \textcolor{green}{\sigma_{r,b}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}
-        + \sum_{j \in J}\textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+    \sum_{b \in B}\sum_{j \in J}
+        (\textcolor{green}{\sigma_{r,b}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+        + \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}})
         = \textcolor{red}{T_{r}^{Capacity}}
 
 
@@ -987,7 +987,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         + \sum_{p \in CP | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
         
         - \textcolor{green}{M^{Flow}}
-        * (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
+        \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
 
 .. math::
 
@@ -998,7 +998,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         + \sum_{p \in CP | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
         
         + \textcolor{green}{M^{Flow}}
-        * (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
+        \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
 
 .. math::
     \textcolor{red}{C^{TotalTreatment}} = \sum_{t \in T}\sum_{r \in R}\textcolor{red}{C_{r,t}^{Treatment}}
@@ -1242,13 +1242,13 @@ Desalinated water is not reused for completions pad demand or stored in the stor
 
     \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
         + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
-        \leq \textcolo{green}{M^Flow} \cdot (1 -
+        \leq \textcolor{green}{M^{Flow}} \cdot (1 -
         \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,b,j}^{Treatment})
+        \textcolor{red}{y_{r,b,j}^{Treatment}})
 
 
 Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
-For, this if desalination technology is not selected then amount of desalinated wtaer is set to zero.
+For, this if desalination technology is not selected then amount of desalinated water is set to zero.
 
 
 :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
@@ -1256,9 +1256,9 @@ For, this if desalination technology is not selected then amount of desalinated 
 .. math::
 
     \textcolor{red}{F_{r,t}^{DesalinatedWater}}
-        \leq \textcolo{green}{M^Flow} \cdot (1 -
+        \leq \textcolor{green}{M^{Flow}} \cdot (1 -
         \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,b,j}^{Treatment})
+        \textcolor{red}{y_{r,b,j}^{Treatment}})
 
 
 Desalination technology is assigned to a pre-determined site.
