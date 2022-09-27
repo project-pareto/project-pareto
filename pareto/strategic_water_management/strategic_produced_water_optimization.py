@@ -694,7 +694,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_DesalinationSites = Param(
         model.s_R,
         initialize=model.df_parameters["DesalinationSites"],
-        doc="Binary parameter designating which sites are for desalination (1) and which are not (0)",
+        doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
@@ -2035,7 +2035,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Slack cost parameter [currency/volume/time]",
     )
 
-    #
     model.p_chi_DisposalExpansionAllowed = Param(
         model.s_K,
         default=0,

@@ -169,7 +169,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{s,t}^{StorageEvaporationStream}}` =       Water at storage lost to evaporation
 
-:math:`\textcolor{red}{F_{r,t}^{ResidualWater}}` =                  Flow of residual out at a treatment site
+:math:`\textcolor{red}{F_{r,t}^{ResidualWater}}` =                  Flow of residual water out at a treatment site
 
 :math:`\textcolor{red}{F_{r,t}^{TreatedWater}}` =                   Flow of treated water out at a treatment site
 
@@ -326,8 +326,15 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\alpha^{AnnualizationRate}}` =         Annualization Rate [%]
 
-..
-    TODO#6: Add p_chi_outsidecompletionspad, add p_chi_desalinationtechnology, add p_omega_evaporationrate, add p_chi_diposalexpansionallowed
+:math:`\textcolor{green}{\chi_{p}^{OutsideCompletionsPad}}` = Binary parameter designating the completion pads that are outside the system
+
+:math:`\textcolor{green}{\chi_{b}^{DesalinationTechnology}}` = Binary parameter designating which treatment technologies are for desalination (1) and which are not (0)
+
+:math:`\textcolor{green}{\chi_{r}^{DesalinationSites}}` = Binary parameter designating which treatment sites are for desalination (1) and which are not (0)
+
+:math:`\textcolor{green}{\chi_{k}^{DisposalExpansionAllowed}}` = Binary parameter indicating if expansion is allowed at site :math:`k``
+
+:math:`\textcolor{green}{\omega^{EvaporationRate}}` = Evaporation rate per week
 
 :math:`\textcolor{green}{\delta_{i}^{Disposal}}` =              Increments for installation/expansion of disposal capacity
 
