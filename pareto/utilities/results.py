@@ -149,7 +149,12 @@ def generate_report(
             ],
             "vb_y_Flow_dict": [("Origin", "Destination", "Time", "Flow")],
             "vb_y_Treatment_dict": [
-                ("Treatment Site", "Treatment Capacity", "Treatment Expansion")
+                (
+                    "Treatment Site",
+                    "Treatment Technology",
+                    "Treatment Capacity",
+                    "Treatment Expansion",
+                )
             ],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
@@ -164,11 +169,13 @@ def generate_report(
             "quality.v_Q_dict": [
                 ("Location", "Water Component", "Time", "Water Quality")
             ],
-            "v_F_UnusedTreatedWater_dict": [
-                ("Treatment site", "Time", "Treatment Waste Water")
+            "v_F_DesalinatedWater_dict": [
+                ("Treatment site", "Time", "Desalinated water removed from system")
             ],
-            "v_F_CompletionsWater_dict": [
-                ("Pads", "Time", "Deliveries to completions not stored")
+            "v_F_ResidualWater_dict": [("Treatment site", "Time", "Residual Water")],
+            "v_F_TreatedWater_dict": [("Treatment site", "Time", "Treated Water")],
+            "v_F_StorageEvaporationStream_dict": [
+                ("Storage site", "Time", "Evaporated Volume")
             ],
             "v_F_CompletionsDestination_dict": [
                 ("Pads", "Time", "Total deliveries to completions pads")
