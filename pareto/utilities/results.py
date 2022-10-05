@@ -23,6 +23,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
+from plotly.offline import init_notebook_mode, iplot
 
 
 class PrintValues(Enum):
@@ -148,7 +149,12 @@ def generate_report(
             ],
             "vb_y_Flow_dict": [("Origin", "Destination", "Time", "Flow")],
             "vb_y_Treatment_dict": [
-                ("Treatment Site", "Treatment Capacity", "Treatment Expansion")
+                (
+                    "Treatment Site",
+                    "Treatment Technology",
+                    "Treatment Capacity",
+                    "Treatment Expansion",
+                )
             ],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
@@ -163,11 +169,13 @@ def generate_report(
             "quality.v_Q_dict": [
                 ("Location", "Water Component", "Time", "Water Quality")
             ],
-            "v_F_UnusedTreatedWater_dict": [
-                ("Treatment site", "Time", "Treatment Waste Water")
+            "v_F_DesalinatedWater_dict": [
+                ("Treatment site", "Time", "Desalinated water removed from system")
             ],
-            "v_F_CompletionsWater_dict": [
-                ("Pads", "Time", "Deliveries to completions not stored")
+            "v_F_ResidualWater_dict": [("Treatment site", "Time", "Residual Water")],
+            "v_F_TreatedWater_dict": [("Treatment site", "Time", "Treated Water")],
+            "v_F_StorageEvaporationStream_dict": [
+                ("Storage site", "Time", "Evaporated Volume")
             ],
             "v_F_CompletionsDestination_dict": [
                 ("Pads", "Time", "Total deliveries to completions pads")
@@ -810,7 +818,7 @@ def generate_report(
 def plot_sankey(input_data={}, args=None):
 
     """
-    This method receives data in the form of 3 seperate lists (origin, destination, value lists), generate_report dictionary
+    This method receives data in the form of 3 separate lists (origin, destination, value lists), generate_report dictionary
     output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
     proper indexes can be assigned for each list so that the elements will correspond with each other based off of the indexes.
     These lists are then passed into the outlet_flow method which gives an output which is passed into the method to generate the
@@ -821,17 +829,20 @@ def plot_sankey(input_data={}, args=None):
 
     label = []
     check_list = ["source", "destination", "value"]
+    is_sections = False
+
     if all(x in input_data.keys() for x in check_list):
         input_data["type_of_data"] = "Labels"
-
     elif "pareto_var" in input_data.keys():
         input_data["type_of_data"] = None
         variable = input_data["pareto_var"]
-
     else:
         raise Exception(
             "Input data is not valid. Either provide source, destination, value, or a pareto_var assigned to the key pareto_var"
         )
+
+    if "sections" in input_data.keys():
+        is_sections = True
 
     # Taking in the lists and assigning them to list variables to be used in the method
     if input_data["type_of_data"] == "Labels":
@@ -925,6 +936,8 @@ def plot_sankey(input_data={}, args=None):
     total_labels = source + destination
     label = sorted(set(total_labels), key=total_labels.index)
 
+    all_labels = label.copy()
+
     for s in source:
         for l in label:
             if s == l:
@@ -948,9 +961,11 @@ def plot_sankey(input_data={}, args=None):
 
     sum_dict = {"source": source, "destination": destination, "value": value}
     sum_df = pd.DataFrame(sum_dict)
+
     # Finding duplicates in dataframe and dropping them
     df_dup = sum_df[sum_df.duplicated(subset=["source", "destination"], keep=False)]
     df_dup = df_dup.drop_duplicates(subset=["source", "destination"], keep="first")
+
     # Looping through dataframe and summing the total values of each node and assigning it to its instance
     for index, row in df_dup.iterrows():
         new_value = 0
@@ -963,13 +978,41 @@ def plot_sankey(input_data={}, args=None):
 
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
-    source = df_updated["source"].to_list()
-    destination = df_updated["destination"].to_list()
-    value = df_updated["value"].to_list()
+    if is_sections:
+        for key, val in input_data["sections"].items():
+            for i, v in enumerate(val):
+                try:
+                    v_index = label.index(v)
+                    val[i] = v_index
+                except:
+                    print(
+                        "WARNING: {0} does not have a value for every specified time period and may not be shown in the sankey diagram.".format(
+                            val[i]
+                        )
+                    )
+                    pass
 
-    updated_label = outlet_flow(source, destination, label, value)
+            val = [x for x in val if not isinstance(x, str)]
+            df_section = df_updated[
+                (df_updated["source"].isin(val) | df_updated["destination"].isin(val))
+            ]
+            source = df_section["source"].to_list()
+            destination = df_section["destination"].to_list()
+            value = df_section["value"].to_list()
 
-    generate_sankey(source, destination, value, updated_label, args)
+            updated_label = outlet_flow(source, destination, label, value)
+
+            args["section_name"] = key
+
+            generate_sankey(source, destination, value, updated_label, args)
+    else:
+        source = df_updated["source"].to_list()
+        destination = df_updated["destination"].to_list()
+        value = df_updated["value"].to_list()
+
+        updated_label = outlet_flow(source, destination, label, value)
+
+        generate_sankey(source, destination, value, updated_label, args)
 
 
 def handle_time(variable, input_data):
@@ -1039,6 +1082,8 @@ def outlet_flow(source=[], destination=[], label=[], value=[], qualityDict=[]):
     updated label lists so that it can be displayed on each node as "label:value". This updated label
     list is output to be used in the generate_sankey method.
     """
+    static_label = label.copy()
+
     # Loop through each list finding where labels match sources and destination and totaling/rounding their values to be used in updated label list
     for x, l in enumerate(label):
         output = 0
@@ -1050,6 +1095,8 @@ def outlet_flow(source=[], destination=[], label=[], value=[], qualityDict=[]):
             for d, h in enumerate(destination):
                 if h == x:
                     v_count.append(d)
+            if len(v_count) == 0:
+                continue
         for v in v_count:
             output = output + float(value[v])
             rounded_output = round(output, 0)
@@ -1057,7 +1104,7 @@ def outlet_flow(source=[], destination=[], label=[], value=[], qualityDict=[]):
 
         value_length = len(str(integer_output))
         if value_length >= 4 and value_length <= 7:
-            integer_output = str(int(integer_output / 1000)) + "k"
+            integer_output = str(int(int(rounded_output) / 1000)) + "k"
         elif value_length >= 8:
             integer_output = str(int(integer_output / 1000000)) + "M"
         label_string = "{0}:{1}".format(l, integer_output)
@@ -1065,9 +1112,9 @@ def outlet_flow(source=[], destination=[], label=[], value=[], qualityDict=[]):
             quality_output = str(int(qualityDict[l] / 1000)) + "k"
             label_string = "{0}:{1} TDS:{2}".format(l, integer_output, quality_output)
 
-        label[x] = "{0}:{1}".format(l, integer_output)
+        static_label[x] = "{0}:{1}".format(l, integer_output)
 
-    return label
+    return static_label
 
 
 def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
@@ -1084,16 +1131,40 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
     if args is None:
         font_size = 20
         plot_title = "Sankey Diagram"
-    elif args["font_size"] is None:
-        font_size = 20
-    elif args["plot_title"] is None:
-        plot_title = "Sankey Diagram"
-    elif args["output_file"] is None:
         figure_output = "first_sankey.html"
+        jupyter_notebook = False
     else:
-        font_size = args["font_size"]
-        plot_title = args["plot_title"]
-        figure_output = args["output_file"]
+        if "font_size" not in args.keys() or args["font_size"] is None:
+            font_size = 20
+        else:
+            font_size = args["font_size"]
+
+        if "plot_title" not in args.keys() or args["plot_title"] is None:
+            if "section_name" in args:
+                plot_title = args["section_name"]
+            else:
+                plot_title = "Sankey Diagram"
+        else:
+            if "section_name" in args:
+                plot_title = args["section_name"] + " " + args["plot_title"]
+            else:
+                plot_title = args["plot_title"]
+
+        if "output_file" not in args.keys() or args["output_file"] is None:
+            if "section_name" in args:
+                figure_output = args["section_name"] + "_sankey.html"
+            else:
+                figure_output = "first_sankey.html"
+        else:
+            if "section_name" in args:
+                figure_output = args["section_name"] + "_" + args["output_file"]
+            else:
+                figure_output = args["output_file"]
+
+        if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
+            jupyter_notebook = False
+        else:
+            jupyter_notebook = args["jupyter_notebook"]
 
     # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
     link = dict(source=source, target=destination, value=value)
@@ -1124,6 +1195,8 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
                 exception_string
             )
         )
+    if jupyter_notebook:
+        iplot({"data": fig, "layout": fig.layout})
 
 
 def plot_bars(input_data, args):
@@ -1148,6 +1221,7 @@ def plot_bars(input_data, args):
     print_data = False
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
     figure_output = ""
+    jupyter_notebook = False
 
     if "output_file" not in args.keys() or args["output_file"] is None:
         figure_output = "first_bar.html"
@@ -1162,7 +1236,7 @@ def plot_bars(input_data, args):
             "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
         )
 
-    # Give group_by and plot_title a value of None/"" if it is not provided
+    # Give group_by a value of None/"" if it is not provided
     if "group_by" not in args.keys():
         args["group_by"] = None
 
@@ -1170,7 +1244,7 @@ def plot_bars(input_data, args):
     if "print_data" in args.keys():
         print_data = args["print_data"]
 
-    if args["plot_title"] == "" or args["group_by"] is None:
+    if "plot_title" not in args.keys() or args["plot_title"] is None:
         plot_title = ""
     else:
         plot_title = args["plot_title"]
@@ -1185,6 +1259,11 @@ def plot_bars(input_data, args):
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
 
+    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
+        jupyter_notebook = False
+    else:
+        jupyter_notebook = args["jupyter_notebook"]
+
     # Check the type of variable passed in and assign labels/Check for time indexing
     if isinstance(variable, list):
         for i in variable[:1]:
@@ -1192,15 +1271,17 @@ def plot_bars(input_data, args):
             if args["group_by"] == "" or args["group_by"] is None:
                 x_title = i[0]
                 y_title = i[-1]
-                if "Time" in i:
-                    indexed_by_time = True
-                    time = "Time"
             elif args["group_by"].title() in i:  # add default group_by as first column
                 y_title = i[-1]
                 x_title = args["group_by"].title()
-                if "Time" in i:
-                    indexed_by_time = True
-                    time = "Time"
+            if "Time" in i:
+                indexed_by_time = True
+                time = "Time"
+
+        # Searching for the keyword "PROPRIETARY DATA"
+        if "PROPRIETARY DATA" in variable[-1]:
+            variable.pop()
+
         formatted_variable = variable[1:]
     elif isinstance(variable, dict):
         formatted_list = []
@@ -1211,8 +1292,12 @@ def plot_bars(input_data, args):
         if input_data["labels"] is not None:
             for i in input_data["labels"]:
                 i = [j.title() for j in i]
-                x_title = i[0]
-                y_title = i[-1]
+                if args["group_by"] == "" or args["group_by"] is None:
+                    x_title = i[0]
+                    y_title = i[-1]
+                elif args["group_by"].title() in i:
+                    y_title = i[-1]
+                    x_title = args["group_by"].title()
                 if "Time" in i:
                     indexed_by_time = True
                     time = "Time"
@@ -1312,7 +1397,7 @@ def plot_bars(input_data, args):
         )
 
         # Update animation settings
-        fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
+        fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 800
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["redraw"] = False
         fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["duration"] = 1000
         fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["easing"] = "linear"
@@ -1343,6 +1428,8 @@ def plot_bars(input_data, args):
                     exception_string
                 )
             )
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
     else:
 
         # Create dataframe for use in the method
@@ -1411,6 +1498,8 @@ def plot_bars(input_data, args):
                     exception_string
                 )
             )
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout})
 
 
 def plot_scatter(input_data, args):
@@ -1446,12 +1535,22 @@ def plot_scatter(input_data, args):
     size = "Size"
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
     figure_output = ""
+    jupyter_notebook = False
 
     # Checks if output_file has been passed in as a user argument
     if "output_file" not in args.keys() or args["output_file"] is None:
         figure_output = "first_scatter_plot.html"
     else:
         figure_output = args["output_file"]
+
+    # Give group_by and plot_title a value of None/"" if it is not provided
+    if "group_by" not in args.keys():
+        args["group_by"] = None
+
+    if "plot_title" not in args.keys() or args["plot_title"] is None:
+        plot_title = ""
+    else:
+        plot_title = args["plot_title"]
 
     # Assigns boolean variable to True if labels have been provided in the arguments
     check_list = ["labels_x", "labels_y"]
@@ -1490,6 +1589,11 @@ def plot_scatter(input_data, args):
                 'Invalid type for argument "group_by_category". Must be of type boolean, list variable or dictionary variable.'
             )
 
+    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
+        jupyter_notebook = False
+    else:
+        jupyter_notebook = args["jupyter_notebook"]
+
     variable_x = input_data["pareto_var_x"]
     variable_y = input_data["pareto_var_y"]
 
@@ -1512,13 +1616,22 @@ def plot_scatter(input_data, args):
             raise Exception(
                 "Cannot create scatter plot unless BOTH variables are/are not indexed by time"
             )
+
+        # Searching for the keyword "PROPRIETARY DATA"
+        if "PROPRIETARY DATA" in variable_x[-1]:
+            variable_x.pop()
+
+        # Searching for the keyword "PROPRIETARY DATA"
+        if "PROPRIETARY DATA" in variable_y[-1]:
+            variable_y.pop()
+
         formatted_variable_x = variable_x[1:]
         formatted_variable_y = variable_y[1:]
 
         # If size is provided in the form of a list, grab labels for size and check if indexed by time compared to x and y variables
         if provided_size and is_list:
             for s in s_variable[:1]:
-                s = [s.title() for j in s]
+                s = [j.title() for j in s]
             s_title = s[-1]
             if indexed_by_time and "Time" not in s:
                 raise Exception(
@@ -1866,7 +1979,7 @@ def plot_scatter(input_data, args):
             hover_name=col_1,
             range_x=[0, max_x * 1.02],
             range_y=[0, max_y * 1.02],
-            title=args["plot_title"],
+            title=plot_title,
         )
 
         # Formatting the colors of the layout
@@ -1909,6 +2022,8 @@ def plot_scatter(input_data, args):
                     exception_string
                 )
             )
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
 
     else:
         # Creating dataframe based on the passed in variable and rounding the values
@@ -2092,7 +2207,7 @@ def plot_scatter(input_data, args):
             hover_name=col_1,
             range_x=[0, max_x * 1.02],
             range_y=[0, max_y * 1.02],
-            title=args["plot_title"],
+            title=plot_title,
         )
 
         # Formatting the colors of the layout
@@ -2128,3 +2243,5 @@ def plot_scatter(input_data, args):
                     exception_string
                 )
             )
+        if jupyter_notebook:
+            iplot({"data": fig, "layout": fig.layout})
