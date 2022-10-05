@@ -3300,7 +3300,7 @@ def create_model(df_sets, df_parameters, default={}):
 
 
 def water_quality(model, df_sets, df_parameters):
-    # TODO: Add parameter for water quality at each pad
+    # Introduce parameter nu for water quality at each pad
     model.p_nu = Param(
         model.s_P,
         model.s_W,
@@ -3308,10 +3308,10 @@ def water_quality(model, df_sets, df_parameters):
         initialize=df_parameters["PadWaterQuality"],
         doc="Water Quality at pad [mg/L]",
     )
-    # TODO: add parameter for initial water quality at each storage location
+    # Introduce parameter for initial water quality at each storage location
     StorageInitialWaterQuality_Table = {}
 
-    # TODO: initialize p_xi with df_parameters["StorageInitialWaterQuality"] when data in input file is populated
+    # Initialize p_xi with df_parameters["StorageInitialWaterQuality"] when data in input file is populated
     model.p_xi = Param(
         model.s_S,
         model.s_W,
@@ -3319,7 +3319,7 @@ def water_quality(model, df_sets, df_parameters):
         initialize=StorageInitialWaterQuality_Table,
         doc="Initial Water Quality at storage site [mg/L]",
     )
-    # TODO: add variable to track water quality at each location over time
+    # Introduce variable Q to track water quality at each location over time
     model.v_Q = Var(
         model.s_L,
         model.s_W,

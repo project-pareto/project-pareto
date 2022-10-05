@@ -1450,8 +1450,8 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.decision_period,
         doc="Pipeline construction/expansion lead time [time]",
     )
-    # TODO: It is expected that the units for this parameter are hours, which usually differs from the time units used
-    # for flow rates, e.g., day, week, month. Therefore, for the sake of simplicity, no units are defined for this parameter,
+    # It is expected that the units for p_tau_trucking are hours, which usually differs from the time units used
+    # for flow rates, e.g., day, week, month. Therefore, for the sake of simplicity, no units are defined for p_tau_trucking,
     # as the hr units will cancel out with the units in model.p_pi_Trucking which is the hourly cost of trucking.
     model.p_tau_Trucking = Param(
         model.s_L,
