@@ -30,7 +30,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     PipelineCapacity,
-    IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.units_support import (
@@ -155,7 +154,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
@@ -178,7 +177,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.calculated,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
@@ -201,7 +200,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
@@ -224,7 +223,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
