@@ -724,7 +724,7 @@ def generate_report(
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
                 # convert the value to display units
-                if units_true:
+                if units_true and variable._data[i].value:
                     var_value = pyunits.convert_value(
                         variable._data[i].value,
                         from_units=variable.get_units(),

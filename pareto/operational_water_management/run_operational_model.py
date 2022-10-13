@@ -38,6 +38,7 @@ set_list = [
     "NetworkNodes",
 ]
 parameter_list = [
+    "Units",
     "RCA",
     "FCA",
     "PCT",
