@@ -145,6 +145,7 @@ def test_run_operational_model(build_operational_model):
     # 3.- skip test if solver doesnt exist
 
 
+@pytest.mark.component
 def test_operational_model_discrete_water_quality_build(build_operational_model):
     m = build_operational_model(
         config_dict={
