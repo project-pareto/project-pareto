@@ -3,6 +3,15 @@
 # project-pareto
 An Optimization Framework for Produced Water Management and Beneficial Reuse
 
+## Project Status
+[![Checks](https://github.com/project-pareto/project-pareto/actions/workflows/checks.yml/badge.svg)](https://github.com/project-pareto/project-pareto/actions/workflows/checks.yml)
+[![codecov](https://codecov.io/gh/project-pareto/project-pareto/branch/main/graph/badge.svg?token=2ZN7V4VA6X)](https://codecov.io/gh/project-pareto/project-pareto)
+[![Documentation Status](https://readthedocs.org/projects/pareto/badge/?version=latest)](https://pareto.readthedocs.io/en/latest/?badge=latest)
+[![Contributors](https://img.shields.io/github/contributors/project-pareto/project-pareto?style=plastic)](https://github.com/project-pareto/project-pareto/contributors)
+[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/project-pareto/project-pareto.svg?label=merged+PRs)](https://github.com/project-pareto/project-pareto/pulls?q=is:pr+is:merged)
+[![Issue stats](http://isitmaintained.com/badge/resolution/project-pareto/project-pareto.svg)](http://isitmaintained.com/project/project-pareto/project-pareto)
+[![Downloads](https://pepy.tech/badge/project-pareto)](https://pepy.tech/project/project-pareto)
+
 ## Getting started
 
 ### Creating a Conda environment
