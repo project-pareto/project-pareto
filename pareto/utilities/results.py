@@ -17,6 +17,7 @@ Authors: PARETO Team
 """
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
+    WaterQuality,
 )
 from pyomo.environ import Var, units as pyunits, value
 import plotly.graph_objects as go
@@ -499,149 +500,8 @@ def generate_report(
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
             ],
-            "v_Q_dict": [("Location", "Water Component", "Time", "Water Quality")],
             "v_F_UnusedTreatedWater_dict": [
                 ("Treatment site", "Time", "Treatment Waste Water")
-            ],
-            "v_Q_CompletionPad_dict": [
-                ("Completion pad", "Water Component", "Time", "Water Quality")
-            ],
-            "v_DQ_dict": [
-                (
-                    "Location",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    " Water Quality",
-                )
-            ],
-            "v_F_DiscretePiped_dict": [
-                (
-                    "Origin",
-                    "Destination",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Piped water",
-                )
-            ],
-            "v_F_DiscreteTrucked_dict": [
-                (
-                    "Origin",
-                    "Destination",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Trucked water",
-                )
-            ],
-            "v_F_DiscreteDisposalDestination_dict": [
-                (
-                    "Disposal Site",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Total Deliveries to Disposal Site",
-                )
-            ],
-            "v_F_DiscreteFlowOutStorage_dict": [
-                (
-                    "Storage Site",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Total outflow storage site",
-                )
-            ],
-            "v_L_DiscreteStorage_dict": [
-                (
-                    "Storage Site",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Storage Levels",
-                )
-            ],
-            "v_F_DiscreteFlowTreatment_dict": [
-                (
-                    "Treatment Site",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Treated water",
-                )
-            ],
-            "v_F_DiscreteFlowOutNode_dict": [
-                (
-                    "Node",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Total outflow node",
-                )
-            ],
-            "v_F_DiscreteBRDestination_dict": [
-                (
-                    "Reuse Location",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Beneficial water",
-                )
-            ],
-            "v_F_DiscreteFlowCPIntermediate_dict": [
-                (
-                    "Completion pad intermediate",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Intermediate water",
-                )
-            ],
-            "v_F_DiscreteFlowCPStorage_dict": [
-                (
-                    "Completion pad storage",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Storage level out",
-                )
-            ],
-            "v_L_DiscretePadStorage_dict": [
-                (
-                    "Completion pad storage",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Storage levels in",
-                )
-            ],
-            "v_F_DiscreteFlowOutPadStorage_dict": [
-                (
-                    "Completion pad storage",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Outflow storage",
-                )
-            ],
-            "v_F_DiscreteFlowInPadStorage_dict": [
-                (
-                    "Completion pad storage",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Inflow storage",
-                )
-            ],
-            "v_F_DiscreteCPDestination_dict": [
-                (
-                    "Completion pad intermediate",
-                    "Time",
-                    "Water Component",
-                    "Discrete Water Quality",
-                    "Intermediate water completion pad",
-                )
             ],
             "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
             "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
@@ -692,7 +552,163 @@ def generate_report(
             raise Exception(
                 "Tank Type {0} is not supported".format(model.config.production_tanks)
             )
-
+        if model.config.water_quality == WaterQuality.discrete:
+            headers.update(
+                {
+                    "v_DQ_dict": [
+                        (
+                            "Location",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Water Quality",
+                        )
+                    ],
+                    "v_F_DiscretePiped_dict": [
+                        (
+                            "Origin",
+                            "Destination",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Piped water",
+                        )
+                    ],
+                    "v_F_DiscreteTrucked_dict": [
+                        (
+                            "Origin",
+                            "Destination",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Trucked water",
+                        )
+                    ],
+                    "v_F_DiscreteDisposalDestination_dict": [
+                        (
+                            "Disposal Site",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Total Deliveries to Disposal Site",
+                        )
+                    ],
+                    "v_F_DiscreteFlowOutStorage_dict": [
+                        (
+                            "Storage Site",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Total outflow storage site",
+                        )
+                    ],
+                    "v_L_DiscreteStorage_dict": [
+                        (
+                            "Storage Site",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Storage Levels",
+                        )
+                    ],
+                    "v_F_DiscreteFlowTreatment_dict": [
+                        (
+                            "Treatment Site",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Treated water",
+                        )
+                    ],
+                    "v_F_DiscreteFlowOutNode_dict": [
+                        (
+                            "Node",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Total outflow node",
+                        )
+                    ],
+                    "v_F_DiscreteBRDestination_dict": [
+                        (
+                            "Reuse Location",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Beneficial water",
+                        )
+                    ],
+                    "v_F_DiscreteFlowCPIntermediate_dict": [
+                        (
+                            "Completion pad intermediate",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Intermediate water",
+                        )
+                    ],
+                    "v_F_DiscreteFlowCPStorage_dict": [
+                        (
+                            "Completion pad storage",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Storage level out",
+                        )
+                    ],
+                    "v_L_DiscretePadStorage_dict": [
+                        (
+                            "Completion pad storage",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Storage levels in",
+                        )
+                    ],
+                    "v_F_DiscreteFlowOutPadStorage_dict": [
+                        (
+                            "Completion pad storage",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Outflow storage",
+                        )
+                    ],
+                    "v_F_DiscreteFlowInPadStorage_dict": [
+                        (
+                            "Completion pad storage",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Inflow storage",
+                        )
+                    ],
+                    "v_F_DiscreteCPDestination_dict": [
+                        (
+                            "Completion pad intermediate",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Intermediate water completion pad",
+                        )
+                    ],
+                    "v_Q_CompletionPad_dict": [
+                        (
+                            "Completion pad",
+                            "Water Component",
+                            "Time",
+                        )
+                    ],
+                }
+            )
+        elif model.config.water_quality == WaterQuality.post_process:
+            headers.update(
+                {
+                    "v_Q_dict": [
+                        ("Location", "Water Component", "Time", "Water Quality")
+                    ],
+                }
+            )
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
@@ -750,7 +766,7 @@ def generate_report(
                             (variable.name, variable.doc, to_unit, var_value)
                         )
 
-                # if a variable contains only one index, then "i" is recognized as a string and not a tupel,
+                # if a variable contains only one index, then "i" is recognized as a string and not a tuple,
                 # in that case, "i" is redefined by adding a comma so that it becomes a tuple
                 elif i is not None and isinstance(i, str):
                     i = (i,)
