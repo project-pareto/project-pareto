@@ -21,6 +21,7 @@ from pareto.utilities.solvers import get_solver
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     create_model,
     ProdTank,
+    WaterQuality,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues
@@ -94,21 +95,22 @@ def build_operational_model():
     df_parameters["MinTruckFlow"] = 75
     df_parameters["MaxTruckFlow"] = 37000
     # create mathematical model
-    operational_model = create_model(
-        df_sets,
-        df_parameters,
-        default={
-            "has_pipeline_constraints": True,
-            "production_tanks": ProdTank.equalized,
-        },
-    )
-    return operational_model
+    def _call_model_with_config(config_dict):
+        reduced_strategic_model = create_model(df_sets, df_parameters, config_dict)
+        return reduced_strategic_model
+
+    return _call_model_with_config
 
 
 @pytest.mark.unit  # Keith
 def test_basic_build(build_operational_model):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_operational_model
+    m = build_operational_model(
+        config_dict={
+            "has_pipeline_constraints": True,
+            "production_tanks": ProdTank.equalized,
+        },
+    )
     assert degrees_of_freedom(m) == 133
     # Check unit config arguments
     assert len(m.config) == 3
@@ -121,7 +123,12 @@ def test_basic_build(build_operational_model):
 
 @pytest.mark.component
 def test_run_operational_model(build_operational_model):
-    m = build_operational_model
+    m = build_operational_model(
+        config_dict={
+            "has_pipeline_constraints": True,
+            "production_tanks": ProdTank.equalized,
+        },
+    )
     results = solver.solve(m, tee=True)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
@@ -136,3 +143,52 @@ def test_run_operational_model(build_operational_model):
     # 1.- add mass balance checks
     # 2.- create test marks (unit, component, etc.) (work with Ludovico/Keith)
     # 3.- skip test if solver doesnt exist
+
+
+@pytest.mark.component
+def test_operational_model_discrete_water_quality_build(build_operational_model):
+    m = build_operational_model(
+        config_dict={
+            "has_pipeline_constraints": True,
+            "production_tanks": ProdTank.equalized,
+            "water_quality": WaterQuality.discrete,
+        },
+    )
+    assert degrees_of_freedom(m) == 333
+    # Check unit config arguments
+    assert len(m.config) == 3
+    assert m.config.water_quality
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.OnlyOneDiscreteQualityPerLocation, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxPipeFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowPiped, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxTruckedFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowTrucked, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxDisposalDestination, pyo.Constraint)
+    assert isinstance(
+        m.SumDiscreteDisposalDestinationIsDisposalDestination, pyo.Constraint
+    )
+    assert isinstance(m.DiscreteMaxOutStorageFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowOutStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxStorage, pyo.Constraint)
+    assert isinstance(m.SumDiscreteStorageIsStorage, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxTreatmentFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowTreatment, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxOutNodeFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowOutNode, pyo.Constraint)
+    assert isinstance(m.DiscreteMaxBeneficialReuseFlow, pyo.Constraint)
+    assert isinstance(m.SumDiscreteFlowsIsFlowBeneficialReuse, pyo.Constraint)
+
+    assert isinstance(m.DisposalWaterQuality, pyo.Constraint)
+    assert isinstance(m.StorageSiteWaterQuality, pyo.Constraint)
+    assert isinstance(m.TreatmentWaterQuality, pyo.Constraint)
+    assert isinstance(m.NetworkWaterQuality, pyo.Constraint)
+    assert isinstance(m.BeneficialReuseWaterQuality, pyo.Constraint)
+
+    generate_report(
+        m,
+        is_print=[PrintValues.essential],
+        fname="operational_results_test.xlsx",
+    )
