@@ -29,99 +29,99 @@ Operational Model Mathematical Notation
 
 **Sets**
 
-:math:`\textcolor{blue}{t \in T}`			                               Time periods (i.e. days)
+:math:`\textcolor{blue}{t \in T}`                                           Time periods (i.e. days)
 
-:math:`\textcolor{blue}{p \in P}`			                               Well pads
+:math:`\textcolor{blue}{p \in P}`                                           Well pads
 
-:math:`\textcolor{blue}{p \in PP}`			                           Production pads (subset of well pads P)
+:math:`\textcolor{blue}{p \in PP}`                                       Production pads (subset of well pads P)
 
-:math:`\textcolor{blue}{p \in CP}`  	                                   Completions pads (subset of well pads P)
+:math:`\textcolor{blue}{p \in CP}`                                         Completions pads (subset of well pads P)
 
-:math:`\textcolor{blue}{f \in F}`			                               Freshwater sources
+:math:`\textcolor{blue}{f \in F}`                                           Freshwater sources
 
-:math:`\textcolor{blue}{k \in K}`			                               Disposal sites
+:math:`\textcolor{blue}{k \in K}`                                           Disposal sites
 
-:math:`\textcolor{blue}{s \in S}`			                               Storage sites
+:math:`\textcolor{blue}{s \in S}`                                           Storage sites
 
-:math:`\textcolor{blue}{r \in R}`			                               Treatment sites
+:math:`\textcolor{blue}{r \in R}`                                           Treatment sites
 
-:math:`\textcolor{blue}{o \in O}`			                               Beneficial Reuse options
+:math:`\textcolor{blue}{o \in O}`                                           Beneficial Reuse options
 
-:math:`\textcolor{blue}{n \in N}`			                               Network nodes
+:math:`\textcolor{blue}{n \in N}`                                           Network nodes
 
-:math:`\textcolor{blue}{l \in L}`			                               Locations (superset of well pads, disposal sites, nodes, ... )
+:math:`\textcolor{blue}{l \in L}`                                           Locations (superset of well pads, disposal sites, nodes, ... )
 
-:math:`\textcolor{blue}{a \in A}`			                               Production tanks
+:math:`\textcolor{blue}{a \in A}`                                           Production tanks
 
 
-:math:`\textcolor{blue}{(p,p) \in PCA}`	                               Production-to-completions pipeline arcs
+:math:`\textcolor{blue}{(p,p) \in PCA}`                                   Production-to-completions pipeline arcs
 
 :math:`\textcolor{blue}{(p,n) \in PNA}`                                 Production-to-node pipeline arcs
 
 :math:`\textcolor{blue}{(p,p) \in PPA}`                                 Production-to-production pipeline arcs
 
-:math:`\textcolor{blue}{(p,n) \in CNA}`	                               Completions-to-node pipeline arcs
+:math:`\textcolor{blue}{(p,n) \in CNA}`                                   Completions-to-node pipeline arcs
 
-:math:`\textcolor{blue}{(p,p) \in CCA}`	                               Completions-to-completions pipeline arcs
+:math:`\textcolor{blue}{(p,p) \in CCA}`                                   Completions-to-completions pipeline arcs
 
 :math:`\textcolor{blue}{(n,n) \in NNA}`                                 Node-to-node pipeline arcs
 
 :math:`\textcolor{blue}{(n,p) \in NCA}`                                 Node-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(n,k) \in NKA}`	                               Node-to-disposal pipeline arcs
+:math:`\textcolor{blue}{(n,k) \in NKA}`                                   Node-to-disposal pipeline arcs
 
-:math:`\textcolor{blue}{(n,s) \in NSA}`	                               Node-to-storage pipeline arcs
+:math:`\textcolor{blue}{(n,s) \in NSA}`                                   Node-to-storage pipeline arcs
 
 :math:`\textcolor{blue}{(n,r) \in NRA}`                                 Node-to-treatment pipeline arcs
 
-:math:`\textcolor{blue}{(n,o) \in NOA}`	                               Node-to-beneficial reuse pipeline arcs
+:math:`\textcolor{blue}{(n,o) \in NOA}`                                   Node-to-beneficial reuse pipeline arcs
 
-:math:`\textcolor{blue}{(f,p) \in FCA}`	                               Freshwater-to-completions pipeline arcs
+:math:`\textcolor{blue}{(f,p) \in FCA}`                                   Freshwater-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(r,n) \in RNA}`	                               Treatment-to-node pipeline arcs
+:math:`\textcolor{blue}{(r,n) \in RNA}`                                   Treatment-to-node pipeline arcs
 
-:math:`\textcolor{blue}{(r,p) \in RCA}`	                               Treatment-to-completions pipeline arcs
+:math:`\textcolor{blue}{(r,p) \in RCA}`                                   Treatment-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(r,k) \in RKA}`	                               Treatment-to-disposal pipeline arcs
+:math:`\textcolor{blue}{(r,k) \in RKA}`                                   Treatment-to-disposal pipeline arcs
 
-:math:`\textcolor{blue}{(s,n) \in SNA}`	                               Storage-to-node pipeline arcs
+:math:`\textcolor{blue}{(s,n) \in SNA}`                                   Storage-to-node pipeline arcs
 
-:math:`\textcolor{blue}{(s,p) \in SCA}`	                               Storage-to-completions pipeline arcs
+:math:`\textcolor{blue}{(s,p) \in SCA}`                                   Storage-to-completions pipeline arcs
 
-:math:`\textcolor{blue}{(s,k) \in SKA}`	                               Storage-to-disposal pipeline arcs
+:math:`\textcolor{blue}{(s,k) \in SKA}`                                   Storage-to-disposal pipeline arcs
 
-:math:`\textcolor{blue}{(s,r) \in SRA}`	                               Storage-to-treatment pipeline arcs
+:math:`\textcolor{blue}{(s,r) \in SRA}`                                   Storage-to-treatment pipeline arcs
 
-:math:`\textcolor{blue}{(s,o) \in SOA}`	                               Storage-to-beneficial reuse pipeline arcs
+:math:`\textcolor{blue}{(s,o) \in SOA}`                                   Storage-to-beneficial reuse pipeline arcs
 
 
-:math:`\textcolor{blue}{(p,p) \in PCT}`	                               Production-to-completions trucking arcs
+:math:`\textcolor{blue}{(p,p) \in PCT}`                                   Production-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(f,c) \in FCT}`                                 Freshwater-to-completions trucking arcs
 
-:math:`\textcolor{blue}{(p,k) \in PKT}`	                               Production-to-disposal trucking arcs
+:math:`\textcolor{blue}{(p,k) \in PKT}`                                   Production-to-disposal trucking arcs
 
 :math:`\textcolor{blue}{(p,s) \in PST}`                                 Production-to-storage trucking arcs
 
-:math:`\textcolor{blue}{(p,r) \in PRT}`	                               Production-to-treatment trucking arcs
+:math:`\textcolor{blue}{(p,r) \in PRT}`                                   Production-to-treatment trucking arcs
 
-:math:`\textcolor{blue}{(p,o) \in POT}`	                               Production-to-beneficial reuse trucking arcs
+:math:`\textcolor{blue}{(p,o) \in POT}`                                   Production-to-beneficial reuse trucking arcs
 
-:math:`\textcolor{blue}{(p,k) \in CKT}`	                               Completions-to-disposal trucking arcs
+:math:`\textcolor{blue}{(p,k) \in CKT}`                                   Completions-to-disposal trucking arcs
 
-:math:`\textcolor{blue}{(p,s) \in CST}`	                               Completions-to-storage trucking arcs
+:math:`\textcolor{blue}{(p,s) \in CST}`                                   Completions-to-storage trucking arcs
 
 :math:`\textcolor{blue}{(p,r) \in CRT}`                                 Completions-to-treatment trucking arcs
 
-:math:`\textcolor{blue}{(p,p) \in CCT}`	                               Completions-to-completions trucking arcs (flowback reuse)
+:math:`\textcolor{blue}{(p,p) \in CCT}`                                   Completions-to-completions trucking arcs (flowback reuse)
 
 :math:`\textcolor{blue}{(s,p) \in SCT}`                                 Storage-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(s,k) \in SKT}`                                 Storage-to-disposal trucking arcs
 
-:math:`\textcolor{blue}{(r,k) \in RKT}`	                               Treatment-to-disposal trucking arcs
+:math:`\textcolor{blue}{(r,k) \in RKT}`                                   Treatment-to-disposal trucking arcs
 
-:math:`\textcolor{blue}{(p,a) \in PAL}`	                               Pad-to-tank links
+:math:`\textcolor{blue}{(p,a) \in PAL}`                                   Pad-to-tank links
 
 
 
@@ -129,52 +129,52 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{l,l,t}^{Piped}}` =                           Produced water piped from one location to another location
 
-:math:`\textcolor{red}{F_{l,l,t}^{Trucked}}` =	                       Produced water trucked from one location to another location
+:math:`\textcolor{red}{F_{l,l,t}^{Trucked}}` =                           Produced water trucked from one location to another location
 
 :math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                         Fresh water sourced from source to completions
 
-:math:`\textcolor{red}{F_{p,t}^{PadStorageIn}}` =	                   Water put into completions pad storage
+:math:`\textcolor{red}{F_{p,t}^{PadStorageIn}}` =                       Water put into completions pad storage
 
-:math:`\textcolor{red}{F_{p,t}^{PadStorageOut}}` =	                   Water removed from completions pad storage
+:math:`\textcolor{red}{F_{p,t}^{PadStorageOut}}` =                       Water removed from completions pad storage
 
-:math:`\textcolor{red}{F_{r,t}^{TreatmentDestination}}` =	           Water delivered to treatment site
+:math:`\textcolor{red}{F_{r,t}^{TreatmentDestination}}` =               Water delivered to treatment site
 
-:math:`\textcolor{red}{F_{r,t}^{UnusedTreatedWater}}` =	               Water leftover from the treatment process
+:math:`\textcolor{red}{F_{r,t}^{UnusedTreatedWater}}` =                   Water leftover from the treatment process
 
-:math:`\textcolor{red}{F_{k,t}^{DisposalDestination}}` =	           Water injected at disposal site
+:math:`\textcolor{red}{F_{k,t}^{DisposalDestination}}` =               Water injected at disposal site
 
-:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =	       Water delivered to beneficial reuse site
+:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =           Water delivered to beneficial reuse site
 
 
 **If the production tanks are separate, water level and water drainage are tracked at each individual production tank:**
 
-    :math:`\textcolor{red}{F_{p,a,t}^{DrainF}}` =	                   Produced water drained from production tank
+    :math:`\textcolor{red}{F_{p,a,t}^{DrainF}}` =                       Produced water drained from production tank
 
-    :math:`\textcolor{red}{L_{p,a,t}^{ProdTankL}}` =	               Water level in production tank at the end of time period t
+    :math:`\textcolor{red}{L_{p,a,t}^{ProdTankL}}` =                   Water level in production tank at the end of time period t
 
 **Otherwise, if the production tanks are equalized, the water level and water drainage can be aggregated to a pad level:**
 
-    :math:`\textcolor{red}{F_{p,t}^{DrainF}}` =	                       Produced water drained from equalized production tanks
+    :math:`\textcolor{red}{F_{p,t}^{DrainF}}` =                           Produced water drained from equalized production tanks
 
-    :math:`\textcolor{red}{L_{p,t}^{ProdTank}}` =	                   Water level in equalized production tanks at the end of time period t
-
-
-:math:`\textcolor{red}{B_{p,t}^{ProductionB}}` =	                   Produced water for transport from pad
-
-:math:`\textcolor{red}{L_{s,t}^{Storage}}` =	                       Water level in storage site at the end of time period t
+    :math:`\textcolor{red}{L_{p,t}^{ProdTank}}` =                       Water level in equalized production tanks at the end of time period t
 
 
-:math:`\textcolor{red}{L_{p,t}^{PadStorage}}` =	                       Water level in completions pad storage  at the end of time period t
+:math:`\textcolor{red}{B_{p,t}^{ProductionB}}` =                       Produced water for transport from pad
 
-:math:`\textcolor{red}{C_{l,l,t}^{Piped}}` =	                       Cost of piping produced water from one location to another location
+:math:`\textcolor{red}{L_{s,t}^{Storage}}` =                           Water level in storage site at the end of time period t
 
-:math:`\textcolor{red}{C_{l,l,t}^{Trucked}}` =	                       Cost of trucking produced water from one location to another location
 
-:math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =	                       Cost of sourcing fresh water from source to completions pad
+:math:`\textcolor{red}{L_{p,t}^{PadStorage}}` =                           Water level in completions pad storage  at the end of time period t
+
+:math:`\textcolor{red}{C_{l,l,t}^{Piped}}` =                           Cost of piping produced water from one location to another location
+
+:math:`\textcolor{red}{C_{l,l,t}^{Trucked}}` =                           Cost of trucking produced water from one location to another location
+
+:math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =                           Cost of sourcing fresh water from source to completions pad
 
 :math:`\textcolor{red}{C_{k,t}^{Disposal}}` =                          Cost of injecting produced water at disposal site
 
-:math:`\textcolor{red}{C_{r,t}^{Treatment}}` =	                       Cost of treating produced water at treatment site
+:math:`\textcolor{red}{C_{r,t}^{Treatment}}` =                           Cost of treating produced water at treatment site
 
 :math:`\textcolor{red}{C_{p,t}^{CompletionsReuse}}` =                  Cost of reusing produced water at completions site
 
@@ -186,28 +186,28 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{C^{TotalDisposal}}` =                           Total cost of injecting produced water
 
-:math:`\textcolor{red}{C^{TotalTreatment}}` = 	                       Total cost of treating produced water
+:math:`\textcolor{red}{C^{TotalTreatment}}` =                            Total cost of treating produced water
 
 :math:`\textcolor{red}{C^{TotalCompletionsReuse}}` =                   Total cost of reusing produced water
 
-:math:`\textcolor{red}{C^{TotalPiping}}` = 	                           Total cost of piping produced water
+:math:`\textcolor{red}{C^{TotalPiping}}` =                                Total cost of piping produced water
 
 :math:`\textcolor{red}{C^{TotalStorage}}` =                            Total cost of storing produced water
 
-:math:`\textcolor{red}{C^{TotalPadStorage}}` = 	                       Total cost of storing produced water at completions pad
+:math:`\textcolor{red}{C^{TotalPadStorage}}` =                            Total cost of storing produced water at completions pad
 
 :math:`\textcolor{red}{C^{TotalTrucking}}` =                           Total cost of trucking produced water
 
 :math:`\textcolor{red}{C^{Slack}}` =                                   Total cost of slack variables
 
-:math:`\textcolor{red}{R^{TotalStorage}}` = 	                       Total credit for withdrawing produced water
+:math:`\textcolor{red}{R^{TotalStorage}}` =                            Total credit for withdrawing produced water
 
 
-:math:`\textcolor{red}{S_{p,t}^{FracDemand}}` =  	                   Slack variable to meet the completions water demand
+:math:`\textcolor{red}{S_{p,t}^{FracDemand}}` =                         Slack variable to meet the completions water demand
 
-:math:`\textcolor{red}{S_{p,t}^{Production}}` = 	                   Slack variable to process produced water production
+:math:`\textcolor{red}{S_{p,t}^{Production}}` =                        Slack variable to process produced water production
 
-:math:`\textcolor{red}{S_{p,t}^{Flowback}}` = 	                       Slack variable to process flowback water production
+:math:`\textcolor{red}{S_{p,t}^{Flowback}}` =                            Slack variable to process flowback water production
 
 :math:`\textcolor{red}{S_{l,l}^{Pipeline Capacity}}` =                 Slack variable to provide necessary pipeline capacity
 
@@ -231,30 +231,30 @@ Operational Model Mathematical Notation
 
 **Parameters**
 
-:math:`\textcolor{green}{y_{p,t}^{Completions}}` = 	                   Completions demand at a completions site in a time period
+:math:`\textcolor{green}{y_{p,t}^{Completions}}` =                        Completions demand at a completions site in a time period
 
 **If the production tanks are separate, water level and water drainage are tracked at each individual production tank:**
 
-    :math:`\textcolor{green}{\beta_{p,a,t}^{Production}}` = 	           Produced water supply forecast for a production pad
+    :math:`\textcolor{green}{\beta_{p,a,t}^{Production}}` =                Produced water supply forecast for a production pad
 
-    :math:`\textcolor{green}{\sigma_{p,a}^{ProdTank}}` =	                   Production tank capacity
+    :math:`\textcolor{green}{\sigma_{p,a}^{ProdTank}}` =                       Production tank capacity
 
-    :math:`\textcolor{green}{\lambda_{p,a}^{ProdTank}}` =	 	               Initial water level in production tank
+    :math:`\textcolor{green}{\lambda_{p,a}^{ProdTank}}` =                        Initial water level in production tank
 
 **Otherwise, if the production tanks are equalized, the water level and water drainage can be aggregated to a pad level:**
 
-    :math:`\textcolor{green}{\beta_{p,t}^{Production}}` =	               Produced water supply forecast for a production pad
+    :math:`\textcolor{green}{\beta_{p,t}^{Production}}` =                   Produced water supply forecast for a production pad
 
-    :math:`\textcolor{green}{\sigma_{p}^{ProdTank}}` =	                   Combined capacity of equalized production tanks
+    :math:`\textcolor{green}{\sigma_{p}^{ProdTank}}` =                       Combined capacity of equalized production tanks
 
     :math:`\textcolor{green}{\lambda_{p}^{ProdTank}}` =                      Initial water level in equalized production tanks
 
 
-:math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =	                       Flowback supply forecast for a completions pad
+:math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =                           Flowback supply forecast for a completions pad
 
-:math:`\textcolor{green}{\sigma_{l,l}^{Pipeline}}` =	                       Daily pipeline capacity between two locations
+:math:`\textcolor{green}{\sigma_{l,l}^{Pipeline}}` =                           Daily pipeline capacity between two locations
 
-:math:`\textcolor{green}{\sigma_{k}^{Disposal}}` =	                       Daily disposal capacity at a disposal site
+:math:`\textcolor{green}{\sigma_{k}^{Disposal}}` =                           Daily disposal capacity at a disposal site
 
 :math:`\textcolor{green}{\sigma_{s}^{Storage}}` =                           Storage capacity at a storage site
 
@@ -268,7 +268,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{p}^{Offloading,Pad}}` =                    Daily truck offloading sourcing capacity per pad
 
-:math:`\textcolor{green}{\sigma_{s}^{Offloading,Storage}}` =	               Daily truck offloading sourcing capacity per storage site
+:math:`\textcolor{green}{\sigma_{s}^{Offloading,Storage}}` =                   Daily truck offloading sourcing capacity per storage site
 
 
 :math:`\textcolor{green}{\sigma_{p}^{Processing,Pad}}` =                    Daily processing (e.g. clarification) capacity per pad
@@ -281,15 +281,15 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\tau_{p,p}^{Trucking}}` =                        Drive time between two pads
 
-:math:`\textcolor{green}{\tau_{p,k}^{Trucking}}` =	                       Drive time from a pad to a disposal site
+:math:`\textcolor{green}{\tau_{p,k}^{Trucking}}` =                           Drive time from a pad to a disposal site
 
-:math:`\textcolor{green}{\tau_{p,s}^{Trucking}}` =	                       Drive time from a pad to a storage site
+:math:`\textcolor{green}{\tau_{p,s}^{Trucking}}` =                           Drive time from a pad to a storage site
 
-:math:`\textcolor{green}{\tau_{p,r}^{Trucking}}` =	                       Drive time from a pad to a treatment site
+:math:`\textcolor{green}{\tau_{p,r}^{Trucking}}` =                           Drive time from a pad to a treatment site
 
 :math:`\textcolor{green}{\tau_{p,o}^{Trucking}}` =                        Drive time from a pad to a beneficial reuse site
 
-:math:`\textcolor{green}{\tau_{s,p}^{Trucking}}` =	                       Drive time from a storage site to a completions site
+:math:`\textcolor{green}{\tau_{s,p}^{Trucking}}` =                           Drive time from a storage site to a completions site
 
 :math:`\textcolor{green}{\tau_{s,k}^{Trucking}}` =                        Drive time from a storage site to a disposal site
 
@@ -301,11 +301,11 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\theta_{p}^{PadStorage}}` =                        Terminal storage level at completions site
 
-:math:`\textcolor{green}{\lambda_{l,l}^{Pipeline}}` = 	                   Pipeline segment length
+:math:`\textcolor{green}{\lambda_{l,l}^{Pipeline}}` =                        Pipeline segment length
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                          Disposal operational cost
 
-:math:`\textcolor{green}{\pi_{r}^{Treatment}}` =	                       Treatment operational cost (may include "clean brine")
+:math:`\textcolor{green}{\pi_{r}^{Treatment}}` =                           Treatment operational cost (may include "clean brine")
 
 :math:`\textcolor{green}{\pi_{p}^{CompletionReuse}}` =                   Completions reuse operational cost
 
@@ -315,7 +315,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\rho_{s}^{Storage}}` =                           Storage withdrawal operational credit
 
-:math:`\textcolor{green}{\pi_{l,l}^{Pipeline}}` =	                       Pipeline operational cost
+:math:`\textcolor{green}{\pi_{l,l}^{Pipeline}}` =                           Pipeline operational cost
 
 :math:`\textcolor{green}{\pi_{l}^{Trucking}}` =                          Trucking hourly cost (by source)
 
@@ -332,13 +332,13 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\psi^{PipelineCapacity}}` =                      Slack cost parameter
 
-:math:`\textcolor{green}{\psi^{StorageCapacity}}` =  	                   Slack cost parameter
+:math:`\textcolor{green}{\psi^{StorageCapacity}}` =                         Slack cost parameter
 
 :math:`\textcolor{green}{\psi^{DisposalCapacity}}` =                      Slack cost parameter
 
 :math:`\textcolor{green}{\psi^{TreamentCapacity}}` =                      Slack cost parameter
 
-:math:`\textcolor{green}{\psi^{BeneficialReuseCapacity}}` =  	           Slack cost parameter
+:math:`\textcolor{green}{\psi^{BeneficialReuseCapacity}}` =                 Slack cost parameter
 
 
 
@@ -878,14 +878,14 @@ Assumptions:
 
 **Water Quality Sets**
 
-:math:`\textcolor{blue}{w \in W}`			 Water Quality Components (e.g., TDS)
+:math:`\textcolor{blue}{w \in W}`             Water Quality Components (e.g., TDS)
 
 
 **Water Quality Parameters**
 
-:math:`\textcolor{green}{v_{l,w,[t]}}` = 	   Water quality at well pad
+:math:`\textcolor{green}{v_{l,w,[t]}}` =        Water quality at well pad
 
-:math:`\textcolor{green}{\xi_{l,w}}` = 	       Initial water quality at storage
+:math:`\textcolor{green}{\xi_{l,w}}` =            Initial water quality at storage
 
 
 **Water Quality Variables**
