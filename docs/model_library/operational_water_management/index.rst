@@ -49,7 +49,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{n \in N}`                                           Network nodes
 
-:math:`\textcolor{blue}{l \in L}`                                           Locations (superset of well pads, disposal sites, nodes, ... )
+:math:`\textcolor{blue}{l \in L}`                                           Locations (superset of well pads, disposal sites, nodes, \ldots )
 
 :math:`\textcolor{blue}{a \in A}`                                           Production tanks
 
@@ -581,7 +581,7 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
 
 
 
-**Bi-Directional Flow:** :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,... ,SOA}, t \in T`
+**Bi-Directional Flow:** :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,\ldots ,SOA}, t \in T`
 
 There can only be flow in one direction for a given pipeline arc in a given time period.
 
@@ -615,13 +615,13 @@ For each storage site and for each time period, if it is the first time period, 
 
 **Pipeline Capacity:**
 
-:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,... ,SOA}, [t \in T]`
+:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,\ldots ,SOA}, [t \in T]`
 
 .. math::
 
     \textcolor{red}{F_{l,l,[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,l}^{Pipeline}}+\textcolor{red}{S_{l,l}^{PipelineCapacity}}
 
-:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,... ,SOA}, t \in T`
+:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,\ldots ,SOA}, t \in T`
 
 .. math::
 
@@ -786,7 +786,7 @@ Completions reuse water is all water that meets completions pad demand, excludin
 
 
 
-**Piping Cost:** :math:`\forall (l,l) \in {PPA,... ,CCA}, t \in T`
+**Piping Cost:** :math:`\forall (l,l) \in {PPA,\ldots ,CCA}, t \in T`
 
 Piping cost is the total volume of piped water multiplied by the cost for piping.
 
@@ -794,7 +794,7 @@ Piping cost is the total volume of piped water multiplied by the cost for piping
 
     \textcolor{red}{C_{l,l,t}^{Piped}} = (\textcolor{red}{F_{l,l,t}^{Piped}}+\textcolor{red}{F_{l,l,t}^{Sourced}}) \cdot \textcolor{green}{\pi_{l,l}^{Pipeline}}
 
-    \textcolor{red}{C^{TotalPiping}} = \sum\nolimits_{t\in T}\sum\nolimits_{\forall (l,l)\in {PPA,... }}\textcolor{red}{C_{l,l,t}^{Piped}}
+    \textcolor{red}{C^{TotalPiping}} = \sum\nolimits_{t\in T}\sum\nolimits_{\forall (l,l)\in {PPA,\ldots }}\textcolor{red}{C_{l,l,t}^{Piped}}
 
 
 .. note:: The constraints above explicitly consider freshwater piping via FCA arcs.
@@ -840,7 +840,7 @@ Trucking cost between two locations for time period is equal to the trucking vol
 
     \textcolor{red}{C_{l,\tilde{l},t}^{Trucked}} = \textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{green}{1/\delta^{Truck}} \cdot \textcolor{green}{\tau_{p,p}^{Trucking}} \cdot \textcolor{green}{\pi_{l}^{Trucking}}
 
-    \textcolor{red}{C^{TotalTrucking}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall (l,l)\in {PPA,... ,CCT}}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
+    \textcolor{red}{C^{TotalTrucking}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall (l,l)\in {PPA,\ldots ,CCT}}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
 
 
 .. note:: The constraints above explicitly consider freshwater trucking via FCT arcs.
@@ -855,7 +855,7 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 
     \textcolor{red}{C^{Slack}} = \sum\nolimits_{p\in CP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{FracDemand}} \cdot \textcolor{green}{\psi^{FracDemand}}+\sum\nolimits_{p\in PP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{Production}} \cdot \textcolor{green}{\psi^{Production}}
 
-        +\sum\nolimits_{p\in CP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{Flowback}} \cdot \textcolor{green}{\psi^{Flowback}}+\sum\nolimits_{(l,l)\in {... }}\textcolor{red}{S_{l,l}^{PipelineCapacity}} \cdot \textcolor{green}{\psi^{PipeCapacity}}
+        +\sum\nolimits_{p\in CP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{Flowback}} \cdot \textcolor{green}{\psi^{Flowback}}+\sum\nolimits_{(l,l)\in {\ldots }}\textcolor{red}{S_{l,l}^{PipelineCapacity}} \cdot \textcolor{green}{\psi^{PipeCapacity}}
 
          +\sum\nolimits_{s\in S}\textcolor{red}{S_{s}^{StorageCapacity}} \cdot \textcolor{green}{\psi^{StorageCapacity}}+\sum\nolimits_{k\in K}\textcolor{red}{S_{k}^{DisposalCapacity}} \cdot \textcolor{green}{\psi^{DisposalCapacity}}
 
