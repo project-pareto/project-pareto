@@ -313,7 +313,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\pi_{p,t}^{PadStorage}}` =                      Completions pad operational cost
 
-:math:`\textcolor{green}{\rho_{s}^{Storage}}` =                           Storage withdrawal operational cgreenit
+:math:`\textcolor{green}{\rho_{s}^{Storage}}` =                           Storage withdrawal operational credit
 
 :math:`\textcolor{green}{\pi_{l,l}^{Pipeline}}` =	                       Pipeline operational cost
 
@@ -354,7 +354,7 @@ The default objective function for this produced water operational model is to m
 
 .. math::
 
-    min = \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}+\textcolor{red}{C^{TotalCompletionsReuse}}+
+    min \ \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}+\textcolor{red}{C^{TotalCompletionsReuse}}+
 
         \textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}+\textcolor{red}{C^{TotalPadStorage}}+ \textcolor{red}{C^{TotalTrucking}}+\textcolor{red}{C^{Slack}-R^{TotalStorage}}
 
