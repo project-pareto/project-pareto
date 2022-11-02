@@ -24,12 +24,14 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/operational_water_management/operational_produced_water_optimization_model.py": 78,
     "pareto/strategic_water_management/run_strategic_model.py": 7,
     "pareto/strategic_water_management/run_strategic_model_water_quality.py": 7,
-    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 352,
-    "pareto/tests/test_operational_model.py": 11,
+    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 372,
+    "pareto/tests/test_operational_model.py": 15,
     "pareto/utilities/get_data.py": 24,
-    "pareto/utilities/results.py": 149,
-    "pareto/tests/test_strategic_model.py": 34,
+    "pareto/utilities/results.py": 157,
+    "pareto/tests/test_strategic_model.py": 41,
     "pareto/tests/test_solvers.py": 31,
+    "pareto/tests/test_plot_scatter.py": 8,
+    "pareto/tests/test_plot_sankey.py": 3,
 }
 
 # this is meta, two levels deep:

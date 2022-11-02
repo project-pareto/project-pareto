@@ -43,10 +43,11 @@ def plot_args():
         "font_size": 15,
         "plot_title": "Total Flows",
         "output_file": "first_sankey.html",
+        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
-def test_plot_bars_aggregated(input_data, plot_args):
+def test_plot_sankey_aggregated(input_data, plot_args):
     plot_sankey(input_data, args=plot_args)
 
 
@@ -74,8 +75,45 @@ def plot_args_single_period():
         "font_size": 15,
         "plot_title": "Flow for T01",
         "output_file": "first_sankey.html",
+        "jupyter_notebook": False,
     }
 
 
-def test_plot_bars_single_period(input_data_single_period, plot_args_single_period):
+def test_plot_sankey_single_period(input_data_single_period, plot_args_single_period):
     plot_sankey(input_data_single_period, args=plot_args_single_period)
+
+
+@pytest.fixture(scope="module")
+def input_data_multi_regions():
+    # Calling plot_sankey using the get_data format
+    # User needs to provide a tuple with labels for each column of the pareto_var
+    set_list = []
+    parameter_list = ["test_plot_sankey"]
+
+    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    # One or more specific time periods can be selected. plot_sankey calculates the totals and create the plot
+    return {
+        "pareto_var": df_parameters["test_plot_sankey"],
+        "sections": {
+            "Region 1": ["Appalachia", "West Virginia", "Ohio"],
+            "Region 2": ["Washington, PA", "Company A", "Company B"],
+        },
+        "labels": [("Origin", "Destination", "Time", "Value")],
+        "time_period": ["T01"],
+    }
+
+
+@pytest.fixture
+def plot_args_multi_regions():
+    return {
+        "font_size": 15,
+        "plot_title": "Flow for T01",
+        "output_file": "first_sankey.html",
+        "jupyter_notebook": False,
+    }
+
+
+def test_plot_sankey_multi_regions(input_data_multi_regions, plot_args_multi_regions):
+    plot_sankey(input_data_multi_regions, args=plot_args_multi_regions)

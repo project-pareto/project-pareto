@@ -30,7 +30,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     PipelineCapacity,
-    IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.units_support import (
@@ -67,6 +66,7 @@ def build_strategic_model():
         "StorageCapacities",
         "InjectionCapacities",
         "TreatmentCapacities",
+        "TreatmentTechnologies",
     ]
     parameter_list = [
         "Units",
@@ -81,6 +81,8 @@ def build_strategic_model():
         "FCA",
         "RCA",
         "RNA",
+        "RSA",
+        "SCA",
         "SNA",
         "PCT",
         "PKT",
@@ -88,6 +90,9 @@ def build_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -122,14 +127,14 @@ def build_strategic_model():
         "Economics",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
-        "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
     ]
 
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
+        "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -149,11 +154,11 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -172,11 +177,11 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.calculated,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -195,11 +200,11 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -218,11 +223,11 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
-            "node_capacity": IncludeNodeCapacity.true,
+            "node_capacity": True,
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -316,7 +321,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 64051
+    assert degrees_of_freedom(m) == 57565
 
 
 @pytest.fixture(scope="module")
@@ -337,6 +342,7 @@ def build_reduced_strategic_model():
         "StorageCapacities",
         "InjectionCapacities",
         "TreatmentCapacities",
+        "TreatmentTechnologies",
     ]
     parameter_list = [
         "Units",
@@ -351,6 +357,8 @@ def build_reduced_strategic_model():
         "FCA",
         "RCA",
         "RNA",
+        "RSA",
+        "SCA",
         "SNA",
         "PCT",
         "PKT",
@@ -358,6 +366,9 @@ def build_reduced_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -393,6 +404,7 @@ def build_reduced_strategic_model():
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -423,7 +435,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63177
+    assert degrees_of_freedom(m) == 63715
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -447,7 +459,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63177
+    assert degrees_of_freedom(m) == 63715
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -471,7 +483,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63177
+    assert degrees_of_freedom(m) == 63715
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -495,7 +507,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 109457
+    assert degrees_of_freedom(m) == 112075
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -606,9 +618,9 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 61883
+    assert degrees_of_freedom(m) == 62415
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(10188.19, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(32945.11, abs=1e-1) == pyo.value(m.v_Z)
 
 
 @pytest.mark.component
@@ -634,5 +646,5 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m) == -18826
-    assert pytest.approx(9.06, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert degrees_of_freedom(m) == -19101
+    assert pytest.approx(7.72, abs=1e-1) == pyo.value(m.quality.v_X)

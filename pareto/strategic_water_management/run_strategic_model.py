@@ -18,7 +18,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
-    IncludeNodeCapacity,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import generate_report, PrintValues, OutputUnits
@@ -41,6 +40,7 @@ set_list = [
     "InjectionCapacities",
     "TreatmentCapacities",
     "Locations",
+    "TreatmentTechnologies",
 ]
 parameter_list = [
     "Units",
@@ -55,6 +55,8 @@ parameter_list = [
     "FCA",
     "RCA",
     "RNA",
+    "RSA",
+    "SCA",
     "SNA",
     "PCT",
     "PKT",
@@ -63,6 +65,9 @@ parameter_list = [
     "CCT",
     "CKT",
     "Elevation",
+    "CompletionsPadOutsideSystem",
+    "DesalinationTechnologies",
+    "DesalinationSites",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
@@ -95,11 +100,11 @@ parameter_list = [
     "PipelineCapacityIncrements",
     "PipelineExpansionDistance",
     "PipelineExpansionDistance",
-    "HWCoefficients",
     "Economics",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
+    "DisposalOperatingCapacity",
 ]
 
 # user needs to provide the path to the case study data file
@@ -107,9 +112,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_LAYFLAT_FULL.xlsx",
-    # "small_strategic_case_study.xlsx",
-    # "strategic_water_treatment_toy_case_study_t10.xlsx"
+    "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -118,7 +121,7 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- node_capacity: [IncludeNodeCapacity.true, IncludeNodeCapacity.false]
+ node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  """
 
@@ -129,8 +132,8 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
-        "node_capacity": IncludeNodeCapacity.true,
         "hydraulics": True,
+        "node_capacity": True,
         "water_quality": WaterQuality.false,
     },
 )
@@ -156,7 +159,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     is_print=[PrintValues.essential],
-    output_units=OutputUnits.unscaled_model_units,
+    output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )
 

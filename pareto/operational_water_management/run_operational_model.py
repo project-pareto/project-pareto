@@ -10,6 +10,7 @@
 # in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit other to do so.
 #####################################################################################################
+
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     WaterQuality,
     create_model,
@@ -23,8 +24,8 @@ from importlib import resources
 
 import pandas as pd
 
-# This emulates what the pyomo command-line tools does
-# Tabs in the input Excel spreadsheet
+# Import case study data
+# Read tabs from input Excel spreadsheet
 set_list = [
     "ProductionPads",
     "CompletionsPads",
@@ -80,8 +81,10 @@ with resources.path(
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-df_parameters["MinTruckFlow"] = 75
-df_parameters["MaxTruckFlow"] = 37000
+# Additional input data
+df_parameters["MinTruckFlow"] = 75  # barrels/day
+df_parameters["MaxTruckFlow"] = 37000  # barrels/day
+
 # create mathematical model
 operational_model = create_model(
     df_sets,
@@ -89,7 +92,7 @@ operational_model = create_model(
     default={
         "has_pipeline_constraints": True,
         "production_tanks": ProdTank.equalized,
-        "water_quality": WaterQuality.discrete,
+        "water_quality": WaterQuality.false,
     },
 )
 
@@ -106,15 +109,17 @@ if operational_model.config.water_quality is WaterQuality.post_process:
         operational_model, df_sets, df_parameters, opt
     )
 
-# pyomo_postprocess(None, model, results)
-# set is_print=[PrintValues.Nominal] in generate_report() below to print results
+# Generate report and display results #
+"""Valid values of parameters in the generate_report() call
+is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
+"""
 [model, results_dict] = generate_report(
     operational_model,
-    is_print=[],
+    is_print=[PrintValues.essential],
     fname="PARETO_report.xlsx",
 )
 
-# This shows how to read data from PARETO reports
+# This code shows how to read data from PARETO report Excel file
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "PARETO_report.xlsx"
