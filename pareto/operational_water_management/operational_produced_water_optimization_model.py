@@ -94,7 +94,7 @@ pyunits.load_definitions_from_strings(["USD = [currency]"])
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
-def get_strategic_model_unit_container():
+def get_operational_model_unit_container():
     return pyunits
 
 
@@ -441,6 +441,13 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         units=model.model_units["currency_time"],
         doc="Cost of storing produced water at storage site [currency/time]",
+    )
+    model.v_C_PadStorage = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Cost of storing produced water at completions pad storage [currency]",
     )
     model.v_R_Storage = Var(
         model.s_S,
@@ -1197,19 +1204,22 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_D,
         default=10,
         initialize=PipelineCapacityIncrementsTable,
-        doc="Pipeline capacity installation/expansion increments [bbl/day]",
+        units=model.model_units["volume_time"],
+        doc="Pipeline capacity installation/expansion increments [volume/time]",
     )
     model.p_delta_Disposal = Param(
         model.s_I,
         default=10,
         initialize=DisposalCapacityIncrementsTable,
-        doc="Disposal capacity installation/expansion increments [bbl/day]",
+        units=model.model_units["volume_time"],
+        doc="Disposal capacity installation/expansion increments [volume/time]",
     )
     model.p_delta_Storage = Param(
         model.s_C,
         default=10,
         initialize=StorageDisposalCapacityIncrementsTable,
-        doc="Storage capacity installation/expansion increments [bbl]",
+        units=model.model_units["volume"],
+        doc="Storage capacity installation/expansion increments [volume]",
     )
     model.p_delta_Truck = Param(
         default=pyunits.convert_value(
@@ -1355,9 +1365,16 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         model.s_T,
         default=0,
-        initialize=df_parameters["PadStorageCost"],
-        units=model.model_units["currency_volume"],
-        doc="Completions pad storage operational cost [currency/volume]",
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency"],
+                to_units=model.model_units["currency"],
+            )
+            for key, value in model.df_parameters["PadStorageCost"].items()
+        },
+        units=model.model_units["currency"],
+        doc="Completions pad storage operational cost if used [currency]",
     )
     model.p_rho_Storage = Param(
         model.s_S,
@@ -3180,13 +3197,22 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
     )
 
+    def PadStorageCostRule(model, p, t):
+        return (
+            model.v_C_PadStorage[p, t]
+            == model.vb_z_PadStorage[p, t] * model.p_pi_PadStorage[p, t]
+        )
+
+    model.PadStorageCost = Constraint(
+        model.s_CP,
+        model.s_T,
+        rule=PadStorageCostRule,
+        doc="Completions pad storage cost",
+    )
+
     def TotalPadStorageCostRule(model):
         return model.v_C_TotalPadStorage == sum(
-            sum(
-                model.vb_z_PadStorage[p, t] * model.p_pi_PadStorage[p, t]
-                for p in model.s_CP
-            )
-            for t in model.s_T
+            sum(model.v_C_PadStorage[p, t] for p in model.s_CP) for t in model.s_T
         )
 
     model.TotalPadStorageCost = Constraint(
@@ -3495,6 +3521,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
+                    * model.p_psi_PipelineCapacity
                     for p in model.s_PP
                     if model.p_PCA[p, p_tilde]
                 )
@@ -3502,7 +3529,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, n]
+                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
                     for p in model.s_PP
                     if model.p_PNA[p, n]
                 )
@@ -3511,6 +3538,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[p, p_tilde]
+                    * model.p_psi_PipelineCapacity
                     for p in model.s_PP
                     if model.p_PPA[p, p_tilde]
                 )
@@ -3518,7 +3546,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, n]
+                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
                     for p in model.s_CP
                     if model.p_CNA[p, n]
                 )
@@ -3527,6 +3555,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 sum(
                     model.v_S_PipelineCapacity[n, n_tilde]
+                    * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NNA[n, n_tilde]
                 )
@@ -3534,7 +3563,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, p]
+                    model.v_S_PipelineCapacity[n, p] * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NCA[n, p]
                 )
@@ -3542,7 +3571,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, k]
+                    model.v_S_PipelineCapacity[n, k] * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NKA[n, k]
                 )
@@ -3550,7 +3579,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, s]
+                    model.v_S_PipelineCapacity[n, s] * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NSA[n, s]
                 )
@@ -3558,7 +3587,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, r]
+                    model.v_S_PipelineCapacity[n, r] * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NRA[n, r]
                 )
@@ -3566,7 +3595,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[n, o]
+                    model.v_S_PipelineCapacity[n, o] * model.p_psi_PipelineCapacity
                     for n in model.s_N
                     if model.p_NOA[n, o]
                 )
@@ -3574,7 +3603,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[f, p]
+                    model.v_S_PipelineCapacity[f, p] * model.p_psi_PipelineCapacity
                     for f in model.s_F
                     if model.p_FCA[f, p]
                 )
@@ -3582,7 +3611,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, n]
+                    model.v_S_PipelineCapacity[r, n] * model.p_psi_PipelineCapacity
                     for r in model.s_R
                     if model.p_RNA[r, n]
                 )
@@ -3590,7 +3619,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[r, k]
+                    model.v_S_PipelineCapacity[r, k] * model.p_psi_PipelineCapacity
                     for r in model.s_R
                     if model.p_RKA[r, k]
                 )
@@ -3598,7 +3627,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, n]
+                    model.v_S_PipelineCapacity[s, n] * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SNA[s, n]
                 )
@@ -3606,7 +3635,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, p]
+                    model.v_S_PipelineCapacity[s, p] * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SCA[s, p]
                 )
@@ -3614,7 +3643,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, k]
+                    model.v_S_PipelineCapacity[s, k] * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SKA[s, k]
                 )
@@ -3622,7 +3651,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, r]
+                    model.v_S_PipelineCapacity[s, r] * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SRA[s, r]
                 )
@@ -3630,7 +3659,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[s, o]
+                    model.v_S_PipelineCapacity[s, o] * model.p_psi_PipelineCapacity
                     for s in model.s_S
                     if model.p_SOA[s, o]
                 )
@@ -3760,18 +3789,31 @@ def water_quality(model, df_sets, df_parameters):
         model.s_P,
         model.s_W,
         default=0,
-        initialize=df_parameters["PadWaterQuality"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["PadWaterQuality"].items()
+        },
+        units=model.model_units["concentration"],
         doc="Water Quality at pad [mg/L]",
     )
-    # Introduce parameter for initial water quality at each storage location
-    StorageInitialWaterQuality_Table = {}
 
-    # Initialize p_xi with df_parameters["StorageInitialWaterQuality"] when data in input file is populated
     model.p_xi = Param(
         model.s_S,
         model.s_W,
         default=0,
-        initialize=StorageInitialWaterQuality_Table,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["StorageInitialWaterQuality"].items()
+        },
+        units=model.model_units["concentration"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
     # Introduce variable Q to track water quality at each location over time
@@ -3780,6 +3822,8 @@ def water_quality(model, df_sets, df_parameters):
         model.s_W,
         model.s_T,
         within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["concentration"],
         doc="Water quality at location [mg/L]",
     )
 
@@ -4079,7 +4123,15 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_P,
         model.s_W,
         default=0,
-        initialize=df_parameters["PadWaterQuality"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["PadWaterQuality"].items()
+        },
+        units=model.model_units["concentration"],
         doc="Water Quality at pad [mg/L]",
     )
     # Quality of Sourced Water
@@ -4087,7 +4139,12 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_F,
         model.s_W,
         default=0,
-        initialize=0,
+        initialize=pyunits.convert_value(
+            0,
+            from_units=model.user_units["concentration"],
+            to_units=model.model_units["concentration"],
+        ),
+        units=model.model_units["concentration"],
         doc="Water Quality of freshwater [mg/L]",
     )
 
@@ -4098,7 +4155,15 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_S,
         model.s_W,
         default=0,
-        initialize=StorageInitialWaterQuality_Table,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["StorageInitialWaterQuality"].items()
+        },
+        units=model.model_units["concentration"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
 
@@ -4117,6 +4182,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         initialize=discretize_water_quality(
             df_parameters, df_sets, discrete_quality_list
         ),
+        units=model.model_units["concentration"],
         doc="Discretization of water components",
     )
 
@@ -4182,8 +4248,9 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
+            units=model.model_units["volume_time"],
             initialize=0,
-            doc="Produced water quantity piped from location l to location l for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity piped from location l to location l for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxPipeFlow = Constraint(
@@ -4216,8 +4283,9 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
+            units=model.model_units["volume_time"],
             initialize=0,
-            doc="Produced water quantity trucked from location l to location l for each quality component w and discretized quality q [bbl/week]",
+            doc="Produced water quantity trucked from location l to location l for each quality component w and discretized quality q [volume/time]",
         )
         model.DiscreteMaxTruckedFlow = Constraint(
             model.s_NonPLT,
@@ -4251,7 +4319,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
-            doc="Produced water quantity at disposal k for each quality component w and discretized quality q [bbl/week]",
+            units=model.model_units["volume_time"],
+            doc="Produced water quantity at disposal k for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxDisposalDestination = Constraint(
@@ -4285,7 +4354,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
-            doc="Produced water quantity out of storage site s for each quality component w and discretized quality q [bbl/week]",
+            units=model.model_units["volume_time"],
+            doc="Produced water quantity out of storage site s for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxOutStorageFlow = Constraint(
@@ -4367,7 +4437,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
-            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [bbl/week]",
+            units=model.model_units["volume"],
+            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume]",
         )
 
         model.DiscreteMaxStorage = Constraint(
@@ -4398,7 +4469,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
-            doc="Produced water quantity at treatment site r for each quality component w and discretized quality q [bbl/week]",
+            units=model.model_units["volume_time"],
+            doc="Produced water quantity at treatment site r for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxTreatmentFlow = Constraint(
@@ -4433,7 +4505,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
-            doc="Produced water quantity out of node n for each quality component w and discretized quality q [bbl/week]",
+            units=model.model_units["volume_time"],
+            doc="Produced water quantity out of node n for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxOutNodeFlow = Constraint(
@@ -4508,7 +4581,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             within=NonNegativeReals,
-            doc="Produced water quantity at beneficial reuse destination o for each quality component w and discretized quality q [bbl/week]",
+            units=model.model_units["volume_time"],
+            doc="Produced water quantity at beneficial reuse destination o for each quality component w and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxBeneficialReuseFlow = Constraint(

@@ -6489,6 +6489,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             )
             for key, value in discrete_water_qualities.items()
         },
+        units=model.model_units["concentration"],
         doc="Discretization of water components",
     )
 
@@ -6768,7 +6769,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume"],
-            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume]",
         )
 
         model.DiscreteMaxStorage = Constraint(

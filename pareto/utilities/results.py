@@ -119,7 +119,7 @@ def generate_report(
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
-            "v_F_Piped_dict": [("Origin", "destination", "Time", "Piped water")],
+            "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
@@ -467,11 +467,12 @@ def generate_report(
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
             "v_C_Disposal_dict": [("Disposal site", "Time", "Cost of disposal")],
             "v_C_Treatment_dict": [("Treatment site", "Time", "Cost of Treatment")],
-            "v_C_Reuse_dict": [("Completion pad", "Time", "Cost of reuse")],
+            "v_C_Reuse_dict": [("Completions pad", "Time", "Cost of reuse")],
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_C_PadStorage_dict": [("Completions Pad", "Time", "Cost of Pad Storage")],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [
@@ -708,6 +709,8 @@ def generate_report(
                 to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
             elif output_units == OutputUnits.user_units:
                 to_unit = model.model_to_user_units[from_unit_string]
+            else:
+                print("ERROR: Report output units selected by user is not valid")
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
                 header = list(headers[str(variable.name) + "_dict"][0])

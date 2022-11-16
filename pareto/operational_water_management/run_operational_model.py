@@ -18,7 +18,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
     postprocess_water_quality_calculation,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.results import generate_report, PrintValues, OutputUnits
 from pareto.utilities.solvers import get_solver, set_timeout
 from importlib import resources
 
@@ -113,10 +113,12 @@ if operational_model.config.water_quality is WaterQuality.post_process:
 # Generate report and display results #
 """Valid values of parameters in the generate_report() call
 is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
+output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
 """
 [model, results_dict] = generate_report(
     operational_model,
     is_print=[PrintValues.essential],
+    output_units=OutputUnits.user_units,
     fname="PARETO_report.xlsx",
 )
 
