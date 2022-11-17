@@ -4354,112 +4354,131 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalTruckingFreshFlowRule, doc="Total trucking fresh water flow"
     )
 
+    # def TotalTruckingCostRule(model):
+    #     constraint = model.v_C_TotalTrucking == (
+    #         sum(
+    #             sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, p_tilde, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PCT[p, p_tilde]
+    #                 )
+    #                 for p_tilde in model.s_CP
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, k, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PKT[p, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, s, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PST[p, s]
+    #                 )
+    #                 for s in model.s_S
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, r, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PRT[p, r]
+    #                 )
+    #                 for r in model.s_R
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, o, t]
+    #                     for p in model.s_PP
+    #                     if model.p_POT[p, o]
+    #                 )
+    #                 for o in model.s_O
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, k, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CKT[p, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, s, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CST[p, s]
+    #                 )
+    #                 for s in model.s_S
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, r, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CRT[p, r]
+    #                 )
+    #                 for r in model.s_R
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[p, p_tilde, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CCT[p, p_tilde]
+    #                 )
+    #                 for p_tilde in model.s_CP
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[s, p, t]
+    #                     for s in model.s_S
+    #                     if model.p_SCT[s, p]
+    #                 )
+    #                 for p in model.s_CP
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[s, k, t]
+    #                     for s in model.s_S
+    #                     if model.p_SKT[s, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[r, k, t]
+    #                     for r in model.s_R
+    #                     if model.p_RKT[r, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_C_Trucked[f, p, t]
+    #                     for f in model.s_F
+    #                     if model.p_FCT[f, p]
+    #                 )
+    #                 for p in model.s_CP
+    #             )
+    #             for t in model.s_T
+    #         )
+    #     )
+    #     return process_constraint(constraint)
+
+    # model.TotalTruckingCost = Constraint(
+    #     rule=TotalTruckingCostRule, doc="Total trucking cost"
+    # )
     def TotalTruckingCostRule(model):
         constraint = model.v_C_TotalTrucking == (
             sum(
                 sum(
                     sum(
-                        model.v_C_Trucked[p, p_tilde, t]
-                        for p in model.s_PP
-                        if model.p_PCT[p, p_tilde]
+                        model.v_C_Trucked[l, l_tilde, t]
+                        for l in model.s_L
+                        if model.p_LLT[l, l_tilde]
                     )
-                    for p_tilde in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, k, t]
-                        for p in model.s_PP
-                        if model.p_PKT[p, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, s, t]
-                        for p in model.s_PP
-                        if model.p_PST[p, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, r, t]
-                        for p in model.s_PP
-                        if model.p_PRT[p, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, o, t]
-                        for p in model.s_PP
-                        if model.p_POT[p, o]
-                    )
-                    for o in model.s_O
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, k, t]
-                        for p in model.s_CP
-                        if model.p_CKT[p, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, s, t]
-                        for p in model.s_CP
-                        if model.p_CST[p, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, r, t]
-                        for p in model.s_CP
-                        if model.p_CRT[p, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, p_tilde, t]
-                        for p in model.s_CP
-                        if model.p_CCT[p, p_tilde]
-                    )
-                    for p_tilde in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[s, p, t]
-                        for s in model.s_S
-                        if model.p_SCT[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[s, k, t]
-                        for s in model.s_S
-                        if model.p_SKT[s, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[r, k, t]
-                        for r in model.s_R
-                        if model.p_RKT[r, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[f, p, t]
-                        for f in model.s_F
-                        if model.p_FCT[f, p]
-                    )
-                    for p in model.s_CP
+                    for l_tilde in model.s_L
                 )
                 for t in model.s_T
             )
@@ -4470,112 +4489,131 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalTruckingCostRule, doc="Total trucking cost"
     )
 
+    # def TotalTruckingVolumeRule(model):
+    #     constraint = model.v_F_TotalTrucked == (
+    #         sum(
+    #             sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, p_tilde, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PCT[p, p_tilde]
+    #                 )
+    #                 for p_tilde in model.s_CP
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, k, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PKT[p, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, s, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PST[p, s]
+    #                 )
+    #                 for s in model.s_S
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, r, t]
+    #                     for p in model.s_PP
+    #                     if model.p_PRT[p, r]
+    #                 )
+    #                 for r in model.s_R
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, o, t]
+    #                     for p in model.s_PP
+    #                     if model.p_POT[p, o]
+    #                 )
+    #                 for o in model.s_O
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, k, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CKT[p, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, s, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CST[p, s]
+    #                 )
+    #                 for s in model.s_S
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, r, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CRT[p, r]
+    #                 )
+    #                 for r in model.s_R
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[p, p_tilde, t]
+    #                     for p in model.s_CP
+    #                     if model.p_CCT[p, p_tilde]
+    #                 )
+    #                 for p_tilde in model.s_CP
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[s, p, t]
+    #                     for s in model.s_S
+    #                     if model.p_SCT[s, p]
+    #                 )
+    #                 for p in model.s_CP
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[s, k, t]
+    #                     for s in model.s_S
+    #                     if model.p_SKT[s, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[r, k, t]
+    #                     for r in model.s_R
+    #                     if model.p_RKT[r, k]
+    #                 )
+    #                 for k in model.s_K
+    #             )
+    #             + sum(
+    #                 sum(
+    #                     model.v_F_Trucked[f, p, t]
+    #                     for f in model.s_F
+    #                     if model.p_FCT[f, p]
+    #                 )
+    #                 for p in model.s_CP
+    #             )
+    #             for t in model.s_T
+    #         )
+    #     )
+    #     return process_constraint(constraint)
+
+    # model.TotalTruckingVolume = Constraint(
+    #     rule=TotalTruckingVolumeRule, doc="Total trucking volume"
+    # )
     def TotalTruckingVolumeRule(model):
         constraint = model.v_F_TotalTrucked == (
             sum(
                 sum(
                     sum(
-                        model.v_F_Trucked[p, p_tilde, t]
-                        for p in model.s_PP
-                        if model.p_PCT[p, p_tilde]
+                        model.v_F_Trucked[l, l_tilde, t]
+                        for l in model.s_L
+                        if model.p_LLT[l, l_tilde]
                     )
-                    for p_tilde in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, k, t]
-                        for p in model.s_PP
-                        if model.p_PKT[p, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, s, t]
-                        for p in model.s_PP
-                        if model.p_PST[p, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, r, t]
-                        for p in model.s_PP
-                        if model.p_PRT[p, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, o, t]
-                        for p in model.s_PP
-                        if model.p_POT[p, o]
-                    )
-                    for o in model.s_O
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, k, t]
-                        for p in model.s_CP
-                        if model.p_CKT[p, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, s, t]
-                        for p in model.s_CP
-                        if model.p_CST[p, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, r, t]
-                        for p in model.s_CP
-                        if model.p_CRT[p, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[p, p_tilde, t]
-                        for p in model.s_CP
-                        if model.p_CCT[p, p_tilde]
-                    )
-                    for p_tilde in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[s, p, t]
-                        for s in model.s_S
-                        if model.p_SCT[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[s, k, t]
-                        for s in model.s_S
-                        if model.p_SKT[s, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[r, k, t]
-                        for r in model.s_R
-                        if model.p_RKT[r, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_F_Trucked[f, p, t]
-                        for f in model.s_F
-                        if model.p_FCT[f, p]
-                    )
-                    for p in model.s_CP
+                    for l_tilde in model.s_L
                 )
                 for t in model.s_T
             )
