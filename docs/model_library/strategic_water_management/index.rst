@@ -1242,7 +1242,7 @@ Desalinated water is not reused for completions pad demand or stored in the stor
 
 
 Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
-If desalination technology is not selected then, then amount of desalinated water is set to zero.
+If desalination technology is not selected, then the amount of desalinated water is set to zero.
 
 
 :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
