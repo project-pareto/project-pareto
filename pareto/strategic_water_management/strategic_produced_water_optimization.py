@@ -8048,7 +8048,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     return results
 
 
-def solve_model(model, options=None):
+def solve_model(model, options=None, solver=None):
 
     if options is None:
         options = {
@@ -8059,7 +8059,10 @@ def solve_model(model, options=None):
             "gap": 0,
         }
     # load pyomo solver
-    opt = get_solver("gurobi_direct", "gurobi", "cbc")
+    if solver is None:
+        opt = get_solver("gurobi_direct", "gurobi", "cbc")
+    else:
+        opt = get_solver(solver)
 
     set_timeout(opt, timeout_s=options["running_time"])
     opt.options["mipgap"] = options["gap"]
