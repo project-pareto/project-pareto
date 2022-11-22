@@ -1250,7 +1250,7 @@ For, this if desalination technology is not selected then amount of desalinated 
 .. math::
 
     \textcolor{red}{F_{r,t}^{DesalinatedWater}}
-        \leq \textcolor{green}{M^{Flow}} \cdot (1 -
+        \leq \textcolor{green}{M^{Flow}} \cdot (
         \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
         \textcolor{red}{y_{r,b,j}^{Treatment}})
 
