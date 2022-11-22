@@ -990,7 +990,11 @@ def create_model(df_sets, df_parameters, default={}):
         model.p_sigma_ProdTank = Param(
             model.s_P,
             model.s_A,
-            default=0.5,
+            default=pyunits.convert_value(
+                500,
+                from_units=pyunits.oil_bbl,
+                to_units=model.model_units["volume"],
+            ),
             units=model.model_units["volume"],
             doc="Production tank capacity [volume]",
         )
@@ -1020,7 +1024,11 @@ def create_model(df_sets, df_parameters, default={}):
         )
         model.p_sigma_ProdTank = Param(
             model.s_P,
-            default=0.500,
+            default=pyunits.convert_value(
+                500,
+                from_units=pyunits.oil_bbl,
+                to_units=model.model_units["volume"],
+            ),
             units=model.model_units["volume"],
             initialize=df_parameters["ProductionTankCapacity"],
             doc="Combined capacity equalized " "production tanks [volume]",
@@ -1202,21 +1210,33 @@ def create_model(df_sets, df_parameters, default={}):
     # COMMENT: Remove pipeline/disposal/storage capacity expansion increment parameters
     model.p_delta_Pipeline = Param(
         model.s_D,
-        default=10,
+        default=pyunits.convert_value(
+            10000,
+            from_units=pyunits.oil_bbl,
+            to_units=model.model_units["volume"],
+        ),
         initialize=PipelineCapacityIncrementsTable,
         units=model.model_units["volume_time"],
         doc="Pipeline capacity installation/expansion increments [volume/time]",
     )
     model.p_delta_Disposal = Param(
         model.s_I,
-        default=10,
+        default=pyunits.convert_value(
+            10000,
+            from_units=pyunits.oil_bbl,
+            to_units=model.model_units["volume"],
+        ),
         initialize=DisposalCapacityIncrementsTable,
         units=model.model_units["volume_time"],
         doc="Disposal capacity installation/expansion increments [volume/time]",
     )
     model.p_delta_Storage = Param(
         model.s_C,
-        default=10,
+        default=pyunits.convert_value(
+            10000,
+            from_units=pyunits.oil_bbl,
+            to_units=model.model_units["volume"],
+        ),
         initialize=StorageDisposalCapacityIncrementsTable,
         units=model.model_units["volume"],
         doc="Storage capacity installation/expansion increments [volume]",
