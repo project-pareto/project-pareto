@@ -6,10 +6,10 @@ repos:
         language: system
         entry: stagedfright .stagedfright
         verbose: true
-      - id: black-check
-        name: Black (check)
-        language: system
-        entry: black --check .
-        types: 
-          - python
-        verbose: true
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+    - id: black
+      language_version: python3
+      types:
+        - python

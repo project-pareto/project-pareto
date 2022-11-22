@@ -4148,21 +4148,27 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="Water Quality of freshwater [mg/L]",
     )
 
-    StorageInitialWaterQuality_Table = {}
-
+    StorageInitialWaterQuality_convert_to_model = {
+        key: pyunits.convert_value(
+            value,
+            from_units=model.user_units["concentration"],
+            to_units=model.model_units["concentration"],
+        )
+        for key, value in model.df_parameters["StorageInitialWaterQuality"].items()
+        if value
+    }
     # Initial water quality at storage site
     model.p_xi_StorageSite = Param(
         model.s_S,
         model.s_W,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["concentration"],
-                to_units=model.model_units["concentration"],
-            )
-            for key, value in model.df_parameters["StorageInitialWaterQuality"].items()
-        },
+        default=max(StorageInitialWaterQuality_convert_to_model.values()) * 100
+        if StorageInitialWaterQuality_convert_to_model
+        else pyunits.convert_value(
+            0,
+            from_units=model.user_units["concentration"],
+            to_units=model.model_units["concentration"],
+        ),
+        initialize=StorageInitialWaterQuality_convert_to_model,
         units=model.model_units["concentration"],
         doc="Initial Water Quality at storage site [mg/L]",
     )
@@ -4223,7 +4229,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             return 1
         return 0
 
-    model.v_Z = Var(
+    model.v_DQ = Var(
         model.s_QL,
         model.s_T,
         model.s_W,
@@ -4237,7 +4243,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_QL,
         model.s_T,
         model.s_W,
-        rule=lambda model, l, t, w: sum(model.v_Z[l, t, w, q] for q in model.s_Q) == 1,
+        rule=lambda model, l, t, w: sum(model.v_DQ[l, t, w, q] for q in model.s_Q) == 1,
         doc="Only one discrete quality can be chosen",
     )
 
@@ -4260,7 +4266,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             rule=lambda model, l1, l2, t, w, q: model.v_F_DiscretePiped[l1, l2, t, w, q]
             <= (model.p_sigma_Pipeline[l1, l2] + max(model.p_delta_Pipeline.values()))
-            * model.v_Z[l1, t, w, q],
+            * model.v_DQ[l1, t, w, q],
             doc="Only one flow can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4296,7 +4302,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 l1, l2, t, w, q
             ]
             <= (model.p_delta_Truck * model.p_max_number_of_trucks)
-            * model.v_Z[l1, t, w, q],
+            * model.v_DQ[l1, t, w, q],
             doc="Only one flow can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4332,7 +4338,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 k, t, w, q
             ]
             <= (model.p_sigma_Disposal[k] + max(model.p_delta_Disposal.values()))
-            * model.v_Z[k, t, w, q],
+            * model.v_DQ[k, t, w, q],
             doc="Only one quantity at disposal can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4402,7 +4408,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     if model.p_SKT[s, k]
                 )
             )
-            * model.v_Z[s, t, w, q],
+            * model.v_DQ[s, t, w, q],
             doc="Only one outflow for storage site s can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4447,7 +4453,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             rule=lambda model, s, t, w, q: model.v_L_DiscreteStorage[s, t, w, q]
-            <= model.p_sigma_Storage[s] * model.v_Z[s, t, w, q],
+            <= model.p_sigma_Storage[s] * model.v_DQ[s, t, w, q],
             doc="Only one quantity for storage site s can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4479,7 +4485,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_W,
             model.s_Q,
             rule=lambda model, r, t, w, q: model.v_F_DiscreteFlowTreatment[r, t, w, q]
-            <= model.p_sigma_Treatment[r] * model.v_Z[r, t, w, q],
+            <= model.p_sigma_Treatment[r] * model.v_DQ[r, t, w, q],
             doc="Only one quantity for treatment site r can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4548,7 +4554,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     if model.p_NOA[n, o]
                 )
             )
-            * model.v_Z[n, t, w, q],
+            * model.v_DQ[n, t, w, q],
             doc="Only one outflow for node n can be non-zero for quality component w and all discretized quality q",
         )
 
@@ -4610,7 +4616,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     if model.p_POT[p, o]
                 )
             )
-            * model.v_Z[o, t, w, q],
+            * model.v_DQ[o, t, w, q],
             doc="Only one quantity for beneficial reuse destination o can be non-zero for quality component w and all discretized quality q",
         )
 
