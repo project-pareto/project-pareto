@@ -171,12 +171,6 @@ def create_model(df_sets, df_parameters, default={}):
     model.user_units["currency_time"] = (
         model.user_units["currency"] / model.user_units["time"]
     )
-    # model.user_units["pipe_cost_distance"] = model.user_units["currency"] / (
-    #         model.user_units["diameter"] * model.user_units["distance"]
-    # )
-    # model.user_units["pipe_cost_capacity"] = model.user_units["currency"] / (
-    #         model.user_units["volume"] / model.user_units["time"]
-    # )
     model.user_units["currency_volume"] = (
         model.user_units["currency"] / model.user_units["volume"]
     )
@@ -189,12 +183,6 @@ def create_model(df_sets, df_parameters, default={}):
     model.model_units["currency_time"] = (
         model.model_units["currency"] / model.decision_period
     )
-    # model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
-    #         model.model_units["diameter"] * model.model_units["distance"]
-    # )
-    # model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
-    #         model.model_units["volume"] / model.decision_period
-    # )
     model.model_units["currency_volume"] = (
         model.model_units["currency"] / model.model_units["volume"]
     )
@@ -207,17 +195,6 @@ def create_model(df_sets, df_parameters, default={}):
     model.unscaled_model_display_units["currency_time"] = (
         model.unscaled_model_display_units["currency"] / model.decision_period
     )
-    # model.unscaled_model_display_units[
-    #     "pipe_cost_distance"
-    # ] = model.unscaled_model_display_units["currency"] / (
-    #         model.unscaled_model_display_units["diameter"]
-    #         * model.unscaled_model_display_units["distance"]
-    # )
-    # model.unscaled_model_display_units[
-    #     "pipe_cost_capacity"
-    # ] = model.unscaled_model_display_units["currency"] / (
-    #         model.unscaled_model_display_units["volume"] / model.decision_period
-    # )
     model.unscaled_model_display_units["currency_volume"] = (
         model.unscaled_model_display_units["currency"]
         / model.unscaled_model_display_units["volume"]
