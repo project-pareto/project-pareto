@@ -111,8 +111,13 @@ def create_model(df_sets, df_parameters, default={}):
     model.df_parameters = df_parameters
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
-    # Currency base units are not inherently defined by default
-    pyunits.load_definitions_from_strings(["USD = [currency]"])
+    try:
+        # Check that currency is set to USD
+        print("Setting currency to:", pyunits.USD)
+    # Exception if USD is not already set and throws Attribute Error
+    except AttributeError:
+        # Currency base units are not inherently defined by default
+        pyunits.load_definitions_from_strings(["USD = [currency]"])
 
     # Convert user unit selection to a user_units dictionary
     model.user_units = {}
