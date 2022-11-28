@@ -134,8 +134,6 @@ CONFIG.declare(
         }""",
     ),
 )
-# Currency base units are not inherently defined by default
-pyunits.load_definitions_from_strings(["USD = [currency]"])
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
@@ -168,6 +166,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+
+    # Currency base units are not inherently defined by default
+    pyunits.load_definitions_from_strings(["USD = [currency]"])
 
     # Convert user unit selection to a user_units dictionary
     model.user_units = {}
