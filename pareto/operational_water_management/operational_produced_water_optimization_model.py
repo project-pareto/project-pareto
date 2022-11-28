@@ -1075,7 +1075,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["volume_time"],
                 to_units=model.model_units["volume_time"],
             )
-            for key, value in model.df_parameters["InitialDisposalCapacity"].items()
+            for key, value in model.df_parameters["DisposalCapacity"].items()
         },
         units=model.model_units["volume_time"],
         doc="Initial disposal capacity at disposal sites [volume/time]",
@@ -1278,7 +1278,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         default=12,
-        initialize=model.df_parameters["DriveTimes"],
+        initialize=model.df_parameters["TruckingTime"],
         doc="Drive time between locations [hr]",
     )
     # COMMENT: Many more parameters missing. See documentation for details.
@@ -1428,7 +1428,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in model.df_parameters["PipingOperationalCost"].items()
+            for key, value in model.df_parameters["PipelineOperationalCost"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Pipeline operational cost [currency/volume]",
