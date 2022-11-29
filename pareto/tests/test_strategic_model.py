@@ -158,7 +158,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 56733
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -181,7 +181,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 56733
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -204,7 +204,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 56733
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -227,7 +227,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 56733
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -321,7 +321,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 56733
 
 
 @pytest.fixture(scope="module")
