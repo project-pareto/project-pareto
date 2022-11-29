@@ -667,7 +667,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
         "running_time": 60 * 5,
         "gap": 0,
         "water_quality": True,
-        "solver": "cbc"
+        "solver": "cbc",
     }
     results = solve_model(model=m, options=options)
 
