@@ -1040,7 +1040,7 @@ def create_model(df_sets, df_parameters, default={}):
             for key, value in model.df_parameters["FlowbackRates"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Flowback supply forecast for a completions bad [volume/time]",
+        doc="Flowback supply forecast for a completions pad [volume/time]",
     )
     model.p_sigma_Pipeline = Param(
         model.s_L,
@@ -1196,8 +1196,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_D,
         default=pyunits.convert_value(
             10000,
-            from_units=pyunits.oil_bbl,
-            to_units=model.model_units["volume"],
+            from_units=pyunits.oil_bbl / pyunits.day,
+            to_units=model.model_units["volume_time"],
         ),
         initialize=PipelineCapacityIncrementsTable,
         units=model.model_units["volume_time"],
@@ -1207,8 +1207,8 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_I,
         default=pyunits.convert_value(
             10000,
-            from_units=pyunits.oil_bbl,
-            to_units=model.model_units["volume"],
+            from_units=pyunits.oil_bbl / pyunits.day,
+            to_units=model.model_units["volume_time"],
         ),
         initialize=DisposalCapacityIncrementsTable,
         units=model.model_units["volume_time"],

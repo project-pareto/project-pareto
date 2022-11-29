@@ -1138,7 +1138,7 @@ def create_model(df_sets, df_parameters, default={}):
             for key, value in model.df_parameters["FlowbackRates"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Flowback supply forecast for a completions bad [volume/time]",
+        doc="Flowback supply forecast for a completions pad [volume/time]",
     )
     model.p_beta_TotalProd = Param(
         default=0,
