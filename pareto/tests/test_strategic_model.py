@@ -648,3 +648,31 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     # solutions obtained from running the reduced generic case study water quality
     assert degrees_of_freedom(m) == -19101
     assert pytest.approx(7.72, abs=1e-1) == pyo.value(m.quality.v_X)
+
+
+@pytest.mark.component
+def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": True,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+        "water_quality": True,
+        "solver": "cbc"
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    # solutions obtained from running the reduced generic case study water quality
+    assert degrees_of_freedom(m) == -19101
+    assert pytest.approx(7.72, abs=1e-1) == pyo.value(m.quality.v_X)
