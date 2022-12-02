@@ -167,7 +167,7 @@ CONFIG.declare(
 CONFIG.declare(
     "build_units",
     ConfigValue(
-        default=BuildUnits.scaled_units,
+        default=BuildUnits.user_units,
         domain=In(BuildUnits),
         description="Build Units",
         doc="""Selection to decide units the model is built and solved in
