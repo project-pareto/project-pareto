@@ -13,6 +13,7 @@
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
+    BuildUnits,
     create_model,
     Objectives,
     solve_model,
@@ -109,7 +110,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+    # "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+    "small_strategic_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -131,6 +133,7 @@ strategic_model = create_model(
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
+        "build_units": BuildUnits.user_units,
     },
 )
 

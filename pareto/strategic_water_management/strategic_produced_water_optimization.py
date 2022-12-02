@@ -68,6 +68,11 @@ class WaterQuality(Enum):
     discrete = 2
 
 
+class BuildUnits(Enum):
+    user_units = 0
+    scaled_units = 1
+
+
 # create config dictionary
 CONFIG = ConfigBlock()
 CONFIG.declare(
@@ -159,6 +164,21 @@ CONFIG.declare(
     ),
 )
 
+CONFIG.declare(
+    "build_units",
+    ConfigValue(
+        default=BuildUnits.scaled_units,
+        domain=In(BuildUnits),
+        description="Build Units",
+        doc="""Selection to decide units the model is built and solved in
+        ***default*** - BuildUnits.scaled_units
+        **Valid Values:** - {
+        **BuildUnits.scaled_units** - Scaled Units (e.g kbbl/week),
+        **BuildUnits.user_units** - Same units as user input, no results conversion needed
+        }""",
+    ),
+)
+
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
@@ -202,23 +222,6 @@ def create_model(df_sets, df_parameters, default={}):
                 % (user_input, df_parameters["Units"][user_input])
             )
 
-    model.model_units = {
-        "volume": pyunits.koil_bbl,
-        "distance": pyunits.mile,
-        "diameter": pyunits.inch,
-        "concentration": pyunits.kg / pyunits.liter,
-        "currency": pyunits.kUSD,
-    }
-
-    # Units that are most helpful for troubleshooting
-    model.unscaled_model_display_units = {
-        "volume": pyunits.oil_bbl,
-        "distance": pyunits.mile,
-        "diameter": pyunits.inch,
-        "concentration": pyunits.mg / pyunits.liter,
-        "currency": pyunits.USD,
-    }
-
     # Defining compound units
     model.user_units["volume_time"] = (
         model.user_units["volume"] / model.user_units["time"]
@@ -238,24 +241,47 @@ def create_model(df_sets, df_parameters, default={}):
     model.user_units["currency_volume_time"] = (
         model.user_units["currency"] / model.user_units["volume_time"]
     )
-    model.model_units["volume_time"] = (
-        model.model_units["volume"] / model.decision_period
-    )
-    model.model_units["currency_time"] = (
-        model.model_units["currency"] / model.decision_period
-    )
-    model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
-        model.model_units["diameter"] * model.model_units["distance"]
-    )
-    model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
-        model.model_units["volume"] / model.decision_period
-    )
-    model.model_units["currency_volume"] = (
-        model.model_units["currency"] / model.model_units["volume"]
-    )
-    model.model_units["currency_volume_time"] = (
-        model.model_units["currency"] / model.model_units["volume_time"]
-    )
+
+    if model.config.build_units is BuildUnits.user_units:
+        model.model_units = model.user_units
+    elif model.config.build_units is BuildUnits.scaled_units:
+        model.model_units = {
+            "volume": pyunits.koil_bbl,
+            "distance": pyunits.mile,
+            "diameter": pyunits.inch,
+            "concentration": pyunits.kg / pyunits.liter,
+            "currency": pyunits.kUSD,
+            "time": model.decision_period,
+        }
+        model.model_units["volume_time"] = (
+            model.model_units["volume"] / model.decision_period
+        )
+        model.model_units["currency_time"] = (
+            model.model_units["currency"] / model.decision_period
+        )
+        model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
+            model.model_units["diameter"] * model.model_units["distance"]
+        )
+        model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
+            model.model_units["volume"] / model.decision_period
+        )
+        model.model_units["currency_volume"] = (
+            model.model_units["currency"] / model.model_units["volume"]
+        )
+        model.model_units["currency_volume_time"] = (
+            model.model_units["currency"] / model.model_units["volume_time"]
+        )
+
+    # Units that are most helpful for troubleshooting
+    model.unscaled_model_display_units = {
+        "volume": pyunits.oil_bbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.mg / pyunits.liter,
+        "currency": pyunits.USD,
+        "time": model.decision_period,
+    }
+
     model.unscaled_model_display_units["volume_time"] = (
         model.unscaled_model_display_units["volume"] / model.decision_period
     )
@@ -1254,7 +1280,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_sigma_OffloadingPad = Param(
         model.s_P,
-        default=9999,
+        default=pyunits.convert_value(
+            9999,
+            from_units=pyunits.koil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
         initialize={
             key: pyunits.convert_value(
                 value,
@@ -1269,7 +1299,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_sigma_OffloadingStorage = Param(
         model.s_S,
-        default=9999,
+        default=pyunits.convert_value(
+            9999,
+            from_units=pyunits.koil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
         initialize={
             key: pyunits.convert_value(
                 value,
@@ -1284,7 +1318,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_sigma_ProcessingPad = Param(
         model.s_P,
-        default=9999,
+        default=pyunits.convert_value(
+            9999,
+            from_units=pyunits.koil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
         initialize={
             key: pyunits.convert_value(
                 value,
@@ -1299,7 +1337,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_sigma_ProcessingStorage = Param(
         model.s_S,
-        default=9999,
+        default=pyunits.convert_value(
+            9999,
+            from_units=pyunits.koil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
         initialize={
             key: pyunits.convert_value(
                 value,
@@ -1784,47 +1826,83 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Fresh sourcing cost [currency/volume]",
     )
     model.p_M_Flow = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.koil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
         units=model.model_units["volume_time"],
         doc="Big-M flow parameter [volume/time]",
     )
     model.p_psi_FracDemand = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
     model.p_psi_Production = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
     model.p_psi_Flowback = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
     model.p_psi_PipelineCapacity = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
     model.p_psi_StorageCapacity = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / pyunits.koil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
         units=model.model_units["currency_volume"],
         doc="Slack cost parameter [currency/volume]",
     )
     model.p_psi_DisposalCapacity = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
     model.p_psi_TreatmentCapacity = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
     model.p_psi_ReuseCapacity = Param(
-        default=99999,
+        default=pyunits.convert_value(
+            99999,
+            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
+            to_units=model.model_units["currency_volume_time"],
+        ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
