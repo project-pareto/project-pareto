@@ -134,8 +134,6 @@ CONFIG.declare(
         }""",
     ),
 )
-# Currency base units are not inherently defined by default
-pyunits.load_definitions_from_strings(["USD = [currency]"])
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
@@ -168,6 +166,14 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+
+    try:
+        # Check that currency is set to USD
+        print("Setting currency to:", pyunits.USD)
+    # Exception if USD is not already set and throws Attribute Error
+    except AttributeError:
+        # Currency base units are not inherently defined by default
+        pyunits.load_definitions_from_strings(["USD = [currency]"])
 
     # Convert user unit selection to a user_units dictionary
     model.user_units = {}
@@ -1132,7 +1138,7 @@ def create_model(df_sets, df_parameters, default={}):
             for key, value in model.df_parameters["FlowbackRates"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Flowback supply forecast for a completions bad [volume/time]",
+        doc="Flowback supply forecast for a completions pad [volume/time]",
     )
     model.p_beta_TotalProd = Param(
         default=0,
@@ -6489,6 +6495,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             )
             for key, value in discrete_water_qualities.items()
         },
+        units=model.model_units["concentration"],
         doc="Discretization of water components",
     )
 
@@ -6768,7 +6775,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume"],
-            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume]",
         )
 
         model.DiscreteMaxStorage = Constraint(
