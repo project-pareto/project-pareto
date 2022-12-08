@@ -904,13 +904,17 @@ The efficiency of a treatment technology determines the amount of residual water
 
 **Treated Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{b \in B}, \textcolor{blue}{t \in T}`
 
-Treated water is either reused in the completion pads or stored in ponds or removed for beneficial reuse (if desalinated).
+Treated water can be sent to completion, storage, nodes, disposal, or removed for beneficial reuse (if desalinated).
 
 .. math::
 
         \textcolor{red}{F_{r,t}^{TreatedWater}} =
         \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
         + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
+        + \sum_{n \in S | (r, n) \in RNA}\textcolor{red}{F_{r,n,t}^{Piped}}
+        
+        + \sum_{k \in S | (r, k) \in RKA}\textcolor{red}{F_{r,k,t}^{Piped}}
+        + \sum_{k \in S | (r, k) \in RKT}\textcolor{red}{F_{r,k,t}^{Piped}}
         + \textcolor{red}{F_{r,t}^{DesalinatedWater}}
 
 **Beneficial Reuse Capacity:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
