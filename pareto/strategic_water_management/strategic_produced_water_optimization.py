@@ -2203,8 +2203,6 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NNA[n_tilde, n]
         ) + sum(
             model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-        ) + sum(
-            model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
         ) == sum(
             model.v_F_Piped[n, n_tilde, t]
             for n_tilde in model.s_N
@@ -3311,9 +3309,6 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_F_TreatedWater[r, t]
             == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
             + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-            + sum(model.v_F_Piped[r, n, t] for n in model.s_N if model.p_RNA[r, n])
-            + sum(model.v_F_Piped[r, k, t] for k in model.s_K if model.p_RKA[r, k])
-            + sum(model.v_F_Trucked[r, k, t] for k in model.s_K if model.p_RKT[r, k])
             + model.v_F_DesalinatedWater[r, t]
         )
         return process_constraint(constraint)
