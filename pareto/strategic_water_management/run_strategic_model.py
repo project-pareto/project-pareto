@@ -102,6 +102,7 @@ parameter_list = [
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
     "DisposalOperatingCapacity",
+    "TreatmentMaxQuality",
 ]
 
 # user needs to provide the path to the case study data file
@@ -109,7 +110,8 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+    # "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+    "small_strategic_case_study.xlsx"
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -130,20 +132,20 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": True,
-        "water_quality": WaterQuality.false,
+        "water_quality": WaterQuality.minlp,
     },
 )
 
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
-    "scale_model": True,
+    "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,
 }
 
-solve_model(model=strategic_model, options=options)
+strategic_model, results = solve_model(model=strategic_model, options=options)
 
 # Generate report with results in Excel
 print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
@@ -151,15 +153,25 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
  is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
  output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
  """
-[model, results_dict] = generate_report(
-    strategic_model,
-    is_print=[PrintValues.essential],
-    output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results.xlsx",
-)
+# [model, results_dict] = generate_report(
+#     strategic_model,
+#     is_print=[PrintValues.essential],
+#     output_units=OutputUnits.user_units,
+#     fname="strategic_optimization_results_minlp_cons.xlsx",
+# )
 
 # This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
+# set_list = []
+# parameter_list = ["v_F_Trucked", "v_C_Trucked"]
+# fname = "strategic_optimization_results.xlsx"
+# [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
+
+# from pareto.utilities.results import plot_sankey
+# args = {"plot_title": "Trucked Water",
+#         "output_file": "demo_sankey.html"}
+
+# input_data = {"pareto_var": results_dict["v_F_Trucked_dict"], 
+#                 # "sections": {"Region 1": ["PP01", "N01", "N02"], "Region 2": ["PP03", "N03", "N04"]}
+#                 }
+
+# plot_sankey(input_data, args)

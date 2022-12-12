@@ -33,6 +33,7 @@ from pyomo.environ import (
     Block,
     Suffix,
     TransformationFactory,
+    SolverFactory,
     value,
 )
 
@@ -66,6 +67,7 @@ class WaterQuality(Enum):
     false = 0
     post_process = 1
     discrete = 2
+    minlp = 3
 
 
 # create config dictionary
@@ -134,8 +136,9 @@ CONFIG.declare(
         }""",
     ),
 )
-# Currency base units are not inherently defined by default
-pyunits.load_definitions_from_strings(["USD = [currency]"])
+def get_currency_units():
+    # Currency base units are not inherently defined by default
+    pyunits.load_definitions_from_strings(["USD = [currency]"])
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
@@ -161,6 +164,7 @@ CONFIG.declare(
 
 
 def create_model(df_sets, df_parameters, default={}):
+    get_currency_units()
     model = ConcreteModel()
 
     # import config dictionary
@@ -5696,26 +5700,6 @@ def create_model(df_sets, df_parameters, default={}):
 
 
 def water_quality(model):
-    # region Fix solved Strategic Model variables
-    for var in model.component_objects(Var):
-        for index in var:
-            # Check if the variable is indexed
-            if index is None:
-                # Check if the value can reasonably be assumed to be non-zero
-                if abs(var.value) > 0.0000001:
-                    var.fix()
-                # Otherwise, fix to 0
-                else:
-                    var.fix(0)
-            elif index is not None:
-                # Check if the value can reasonably be assumed to be non-zero
-                if var[index].value and abs(var[index].value) > 0.0000001:
-                    var[index].fix()
-                # Otherwise, fix to 0
-                else:
-                    var[index].fix(0)
-    # endregion
-
     # Create block for calculating quality at each location in the model
     model.quality = Block()
 
@@ -6021,30 +6005,39 @@ def water_quality(model):
         doc="Storage site water quality rule",
     )
     # endregion
-
+    model.quality.v_F_fresh_dummy = Var(model.s_R,
+                               model.s_W,
+                               model.s_T,
+                               initialize=0, doc='fresh water to treatment site')
+    model.quality.v_F_fresh_dummy.fix(0)
     # region Treatment
     def TreatmentWaterQualityRule(b, r, w, t):
         constraint = (
+            # water from Nodes to treatment site
             sum(
                 b.parent_block().v_F_Piped[n, r, t] * b.v_Q[n, w, t]
                 for n in b.parent_block().s_N
                 if b.parent_block().p_NRA[n, r]
             )
+            # water from storage to treatment site
             + sum(
                 b.parent_block().v_F_Piped[s, r, t] * b.v_Q[s, w, t]
                 for s in b.parent_block().s_S
                 if b.parent_block().p_SRA[s, r]
             )
+            # water from production pads to treatment site
             + sum(
                 b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
                 for p in b.parent_block().s_PP
                 if b.parent_block().p_PRT[p, r]
             )
+            # water from completions pad to treatment site
             + sum(
                 b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
                 for p in b.parent_block().s_CP
                 if b.parent_block().p_CRT[p, r]
             )
+            + (b.v_F_fresh_dummy[r, w, t] * 10000/1e6)  # fresh water 10,000 TDS
         ) == b.v_Q[r, w, t] * (
             b.parent_block().v_F_ResidualWater[r, t]
             + b.parent_block().v_F_TreatedWater[r, t]
@@ -8098,6 +8091,7 @@ def solve_model(model, options=None):
                 TransformationFactory("core.scale_model").propagate_solution(
                     scaled_model, model
                 )
+                fix_milp_vars(model)
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 3.1:
@@ -8127,7 +8121,10 @@ def solve_model(model, options=None):
             # option 2.2:
             results = opt.solve(model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
+                fix_milp_vars(model)
                 model = postprocess_water_quality_calculation(model, opt)
+        elif model.config.water_quality is WaterQuality.minlp:
+            model, results = solve_MINLP_quality(model, opt)
         else:
             # option 2.1:
             results = opt.solve(model, tee=True)
@@ -8140,4 +8137,354 @@ def solve_model(model, options=None):
         )
 
     results.write()
-    return results
+    return model, results
+
+
+def deactivate_slacks(model):
+    model.v_C_Slack.fix(0)
+    model.v_S_FracDemand.fix(0)
+    model.v_S_Production.fix(0)
+    model.v_S_Flowback.fix(0)
+    model.v_S_PipelineCapacity.fix(0)
+    model.v_S_StorageCapacity.fix(0)
+    model.v_S_DisposalCapacity.fix(0)
+    model.v_S_TreatmentCapacity.fix(0)
+    model.v_S_ReuseCapacity.fix(0)
+
+def bound_variables_to_value(model, exception_list):
+    for var in model.component_objects(Var):
+        if var.name in exception_list:
+            continue
+        for index in var:
+            index_var = var if index is None else var[index]
+            value = index_var.value
+            # Fix binary variables to their value and bound the continuous variables
+            if index_var.domain is Binary:
+                index_var.fix(round(value))
+            else:
+                if value < 0.01:
+                    index_var.setlb(0)
+                else:
+                    index_var.setlb(0.99 * max(0, value))
+                index_var.setub(1.01 * (value))
+
+def fix_milp_vars(model):
+    # region Fix solved Strategic Model variables
+    for var in model.component_objects(Var):
+        for index in var:
+            # Check if the variable is indexed
+            if index is None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if abs(var.value) > 0.0000001:
+                    var.fix()
+                # Otherwise, fix to 0
+                else:
+                    var.fix(0)
+            elif index is not None:
+                # Check if the value can reasonably be assumed to be non-zero
+                if var[index].value and abs(var[index].value) > 0.0000001:
+                    var[index].fix()
+                # Otherwise, fix to 0
+                else:
+                    var[index].fix(0)
+    # endregion
+
+
+def free_variables(model, exception_list, time_period=None):
+    for var in model.component_objects(Var):
+        if var.name in exception_list:
+            continue
+        else:
+            for index in var:
+                is_in_time_period = True
+                if index is not None and time_period is not None:
+                    for i in index:
+                        if i in model.s_T and i not in time_period:
+                            is_in_time_period = False
+                            break
+                if not is_in_time_period:
+                    continue
+                index_var = var if index is None else var[index]
+                # unfix binary variables and unbound the continuous variables
+                if index_var.domain is Binary:
+                    # index_var.free()
+                    index_var.unfix()
+                else:
+                    index_var.unfix()
+                    index_var.setlb(0)
+                    index_var.setub(None)
+    # for v in model.component_data_objects(Var, descend_into=True):
+    #     if v.value is not None:
+    #         v.unfix()
+    #         v.set_lb(v.value)
+    #     else:
+    #         print(f"Variable {v.name} has no value")
+
+
+def add_quality_constraints(model):
+    # Max Quality treatment center
+    model.quality.p_max_water_quality_treatmentCenter = Param(
+        model.s_R,  # s_R,
+        model.s_W,
+        default=0,
+        mutable=True,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["TreatmentMaxQuality"].items()
+        },
+        units=model.model_units["concentration"],
+        doc="Initial Water Quality at storage site [concentration]",
+    )
+
+
+    def TreatmentMaxWaterQuality(b, r, w, t):
+        return b.v_Q[r, w, t] <= b.p_max_water_quality_treatmentCenter[r, w]
+
+    model.quality.TreatmentMaxWaterQuality = Constraint(
+        model.s_R,
+        model.s_W,
+        model.s_T,
+        rule=TreatmentMaxWaterQuality,
+        doc="Completions pad storage water quality",
+    )
+
+    return model
+
+def solve_MINLP_quality(model, opt):
+    # model = water_quality(model)
+    # Step 1: solve original model - network without quality
+    print("\n")
+    print("*" * 100)
+    print(" " * 15, "Step 1: Solving network model as MILP")
+    print("*" * 100)
+    results = opt.solve(model, tee=True)
+    # Step 2: Add water quality constraints and estimate water quality
+    print("\n")
+    print("*" * 100)
+    print(" " * 15, "Step 2: Solving water quality model postprocessing as LP")
+    print("*" * 100)
+    fix_milp_vars(model)
+    milp_model = postprocess_water_quality_calculation(model, opt)
+    # Step 2.1: unfix variables (MILP model)
+    discrete_variables_names = {"v_X"} #"v_Q", "v_X", "v_Z", "v_ObjectiveWithQuality"}
+    free_variables(milp_model, discrete_variables_names)
+    deactivate_slacks(milp_model)
+    milp_model.quality.objective.deactivate()
+    opt.options["NonConvex"] = 2
+    # solve mathematical model
+    print("\n")
+    print("*" * 100)
+    print(" " * 15, "Step 3: Solving network model with water quality model as MINLP")
+    print("*" * 100)
+
+    # First solve the model by bounding all non quality variables
+    # discrete_variables_names = {"v_Q", "v_X", "v_Z", "v_ObjectiveWithQuality"}
+    # bound_variables_to_value(model, discrete_variables_names)
+
+    # Solve for fixed non discrete quality variables to get the optimal discrete quality
+    # opt.solve(model, tee=True, warmstart=True)
+    milp_model = add_quality_constraints(milp_model)
+    treatment_quality_violated = {
+        index: milp_model.quality.v_Q[index].value
+        for index in milp_model.quality.v_Q
+        if index[0] in milp_model.s_R
+        and milp_model.quality.v_Q[index].value
+        > milp_model.quality.p_max_water_quality_treatmentCenter[(index[0], index[1])].value
+    }
+    treatment_flows = {
+        key: sum(
+            (model.v_F_Piped[index].value)
+            for index in milp_model.v_F_Piped
+            if index[2] == key[2] and index[1] == key[0]
+        )
+        for key, value in treatment_quality_violated.items()
+    }
+    treatment_fresh_water = dict()
+    for (key, quality) in treatment_quality_violated.items():
+        flow = treatment_flows[key]
+        max_quality = milp_model.quality.p_max_water_quality_treatmentCenter[(key[0], key[1])].value
+        fresh_water_needed = flow - flow * max_quality / quality
+        treatment_time_index = (key[0], key[2])
+        previous_value = treatment_fresh_water.get(treatment_time_index, 0)
+        treatment_fresh_water[treatment_time_index] = max(
+            fresh_water_needed, previous_value
+        )
+    print(treatment_quality_violated)
+    print(treatment_flows)
+    print(treatment_fresh_water)
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T40'].unfix()
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T41'].unfix()
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T51'].unfix()
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T52'].unfix()
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T40'].setub(20)
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T41'].setub(20)
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T51'].setub(20)     
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T52'].setub(20)
+    milp_model.quality.v_F_fresh_dummy.setlb(0)
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T52'].setlb(4)
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T40'] = 2.4
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T41'] = 2.49
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T51'] = 1.08
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T52'] = 4.56
+    
+    # for v in model.component_data_objects(Var, descend_into=True):
+    #     if v.value is not None:
+    #         if v.domain is Binary:
+    #             if abs(v.value) > 0.0000001:
+    #                 v.fix()
+    #             # Otherwise, fix to 0
+    #             else:
+    #                 v.fix(0)
+    #     else:
+    #         print(f"Variable {v.name} has no value")
+    # for ((r, t), fresh_water_needed) in treatment_fresh_water.items():
+    #     # Get first fresh water source to treatment center
+    #     f = next(
+    #         f
+    #         for (f, treatment) in model.p_FRA
+    #         if treatment == r and model.p_FRA[(f, treatment)] == 1
+    #     )
+    #     source_var = model.v_F_Sourced[(f, r, t)]
+    #     source_pipe_var = model.v_F_Piped[(f, r, t)]
+    #     source_pipe_cost_var = model.v_C_Piped[(f, r, t)]
+    #     source_cost_var = model.v_C_Sourced[(f, r, t)]
+
+    #     # source_var.setlb(0.95 * fresh_water_needed)
+    #     # source_var.setub(1.05 * fresh_water_needed)
+    #     # source_var.setlb(0)
+    #     # source_var.setub(None)
+    #     source_pipe_var.setlb(0.99 * fresh_water_needed)
+    #     source_pipe_var.setub(1.01 * fresh_water_needed)
+    #     source_cost_var.setlb(0)
+    #     source_cost_var.setub(None)
+    #     source_pipe_cost_var.setlb(0)
+    #     source_pipe_cost_var.setub(None)
+    #     n = next(
+    #         n
+    #         for (n, treatment) in model.p_NRA
+    #         if treatment == r and model.p_NRA[(n, treatment)] == 1
+    #     )
+    #     k = next(
+    #         k for (node, k) in model.p_NKA if node == n and model.p_NKA[(n, k)] == 1
+    #     )
+    #     node_to_treatment_var = model.v_F_Piped[(n, r, t)]
+    #     node_to_treatment_cost_var = model.v_C_Piped[(n, r, t)]
+
+    #     new_value = node_to_treatment_var.value - fresh_water_needed
+    #     # node_to_treatment_var.setlb(0.95 * new_value)
+    #     # node_to_treatment_var.setub(1.05 * new_value)
+    #     node_to_treatment_var.setlb(0)
+    #     node_to_treatment_var.setub(None)
+    #     node_to_treatment_cost_var.setlb(0)
+    #     node_to_treatment_cost_var.setub(None)
+    #     node_to_disposal_var = model.v_F_Piped[(n, k, t)]
+    #     node_to_disposal_cost_var = model.v_C_Piped[(n, k, t)]
+    #     # node_to_disposal_var.setlb(0.95 * fresh_water_needed)
+    #     # node_to_disposal_var.setub(1.05 * fresh_water_needed)
+    #     node_to_disposal_var.setlb(0)
+    #     node_to_disposal_var.setub(None)
+    #     node_to_disposal_cost_var.setlb(0)
+    #     node_to_disposal_cost_var.setub(None)
+
+    #     model.v_C_TotalPiping.setlb(0)
+    #     model.v_C_TotalPiping.setub(None)
+    #     model.v_C_TotalSourced.setlb(0)
+    #     model.v_C_TotalSourced.setub(None)
+    #     model.v_C_TotalDisposal.setlb(0)
+    #     model.v_C_TotalDisposal.setub(None)
+    #     model.v_F_TotalSourced.setlb(0)
+    #     model.v_F_TotalSourced.setub(None)
+    #     model.v_F_TotalDisposed.setlb(0)
+    #     model.v_F_TotalDisposed.setub(None)
+
+    #     model.v_F_TotalReused.setlb(0)
+    #     model.v_F_TotalReused.setub(None)
+
+    #     model.v_C_Disposal[(k, t)].setlb(0)
+    #     model.v_C_Disposal[(k, t)].setub(None)
+    #     model.v_F_DisposalDestination[(k, t)].setlb(0)
+    #     model.v_F_DisposalDestination[(k, t)].setub(None)
+
+    # results = opt.solve(model, tee=True, symbolic_solver_labels=True)
+
+
+    solver_source = 'gams'
+    # if solver_source == 'gams':
+	#     results = SolverFactory(solver_source).solve(
+	# 	model, tee=True, keepfiles=True,
+	# 	solver=mathoptsolver, tmpdir='temp',
+	# 	add_options=['gams_model.optfile=1;'])
+    # elif solver_source == 'pyomo':
+    #     solver = SolverFactory(mathoptsolver)
+    #     solver.options = solver_options
+    #     results = opt.solve(model, tee=True, warmstart=True)
+    # elif solver_source == 'baron':
+    #     solver = SolverFactory('baron')
+    #     results = solver.solve(model, tee=True)
+
+    # Unbound or unfix all non quality variables
+    # def split(a, n):
+    #     k, m = divmod(len(a), n)
+    #     return (a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
+
+    # time_periods_split = list(split(range(len(model.s_T)), 8))
+    # for split in time_periods_split:
+    #     time_periods = list()
+    #     for i in split:
+    #         time_periods.append(model.s_T[i + 1])
+
+    #     bound_variables_to_value(model, discrete_variables_names)
+    #     free_variables(model, discrete_variables_names, time_periods)
+    #     print("solve model for time periods: [%s]" % ", ".join(map(str, time_periods)))
+
+    #     results = opt.solve(model, tee=True, warmstart=True)
+
+    # free_variables(model, discrete_variables_names)
+    # deactivate_slacks(model)
+    # results = opt.solve(model, tee=True, warmstart=True)
+    if solver_source == 'gams':
+        mathoptsolver = 'dicopt'
+        solver_options = {'tol': 1e-3,
+                        'max_iter': 1000,
+                        'constr_viol_tol': 0.009,
+                        'acceptable_constr_viol_tol': 0.01,
+                        'acceptable_tol': 1e-6,
+                        'mu_strategy': 'adaptive',
+                        'mu_init': 1e-10,
+                        'mu_max': 1e-1,
+                        'print_user_options': 'yes',
+                        'warm_start_init_point': 'yes',
+                        'warm_start_mult_bound_push': 1e-60,
+                        'warm_start_bound_push': 1e-60,
+                        #   'linear_solver': 'ma27',
+                        #   'ma57_pivot_order': 4
+                        }
+        import os
+        if not os.path.exists('temp'):
+            os.makedirs('temp')
+
+        with open('temp/' + mathoptsolver + '.opt', "w") as f:
+            for k, v in solver_options.items():
+                f.write(str(k) + ' ' + str(v) + '\n')
+
+        results = SolverFactory(solver_source).solve(milp_model, tee=True, keepfiles=True, solver=mathoptsolver, tmpdir='temp', add_options=['gams_model.optfile=1;'])
+
+    elif solver_source == 'pyomo':
+        print('solving with GUROBI')
+        opt.options["timeLimit"] = 500
+        # mathoptsolver = 'gurobi'
+        # solver = SolverFactory(mathoptsolver)
+        # solver.options = solver_options
+        results = opt.solve(milp_model, tee=True, warmstart=True)
+
+    elif solver_source == 'baron':
+        solver = SolverFactory('baron')
+        results = solver.solve(model, tee=True)
+
+    milp_model.quality.v_F_fresh_dummy['R01','TDS','T52'].pprint()
+    milp_model.quality.v_Q['R01','TDS','T52'].pprint()
+    return milp_model, results
