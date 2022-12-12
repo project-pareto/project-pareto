@@ -754,7 +754,6 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
         + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{red}{F_{\tilde{n},n,t}^{Piped}}
 
         + \sum_{s \in S | (s, n) \in SNA}\textcolor{red}{F_{s,n,t}^{Piped}}
-        + \sum_{r \in R | (r, n) \in RNA}\textcolor{red}{F_{r,n,t}^{Piped}}
         \leq \textcolor{green}{\sigma_{n}^{Node}}
 
 
