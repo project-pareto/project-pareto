@@ -2306,14 +2306,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
-                constraint = (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_CP:
             if model.p_RCA[l, l_tilde]:
                 constraint = (
@@ -2457,15 +2449,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                constraint = (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
                 constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
@@ -3131,9 +3114,6 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + sum(
                         model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-                    )
-                    + sum(
-                        model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
                     )
                     <= model.p_sigma_NetworkNode[n]
                 )
