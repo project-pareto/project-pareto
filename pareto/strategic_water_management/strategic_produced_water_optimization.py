@@ -1062,11 +1062,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.s_LLT = Set(
         initialize=list(df_parameters["LLT"].keys()),
-        doc="Location-to-location piping arcs",
+        doc="Location-to-location trucking arcs",
     )
     model.s_LLP = Set(
         initialize=list(df_parameters["LLP"].keys()),
-        doc="Location-to-location trucking arcs",
+        doc="Location-to-location piping arcs",
     )
 
     # Define set parameters #
@@ -2203,8 +2203,6 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NNA[n_tilde, n]
         ) + sum(
             model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-        ) + sum(
-            model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
         ) == sum(
             model.v_F_Piped[n, n_tilde, t]
             for n_tilde in model.s_N
@@ -2302,14 +2300,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                constraint = (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
                 constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
@@ -2459,15 +2449,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                constraint = (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
                 constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
@@ -3133,9 +3114,6 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     + sum(
                         model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-                    )
-                    + sum(
-                        model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
                     )
                     <= model.p_sigma_NetworkNode[n]
                 )
@@ -4509,283 +4487,13 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
+                        model.vb_y_Pipeline[l, l_tilde, d]
                         * model.p_kappa_Pipeline
                         * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, p_tilde]
-                        for p in model.s_PP
-                        if model.p_PCA[p, p_tilde]
+                        * model.p_lambda_Pipeline[l, l_tilde]
+                        for l in model.s_L
                     )
-                    for p_tilde in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, n]
-                        for p in model.s_PP
-                        if model.p_PNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, p_tilde]
-                        for p in model.s_PP
-                        if model.p_PPA[p, p_tilde]
-                    )
-                    for p_tilde in model.s_PP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, n]
-                        for p in model.s_CP
-                        if model.p_CNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, n_tilde]
-                        for n in model.s_N
-                        if model.p_NNA[n, n_tilde]
-                    )
-                    for n_tilde in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, p]
-                        for n in model.s_N
-                        if model.p_NCA[n, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, k]
-                        for n in model.s_N
-                        if model.p_NKA[n, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, s]
-                        for n in model.s_N
-                        if model.p_NSA[n, s]
-                    )
-                    for s in model.s_S
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, r]
-                        for n in model.s_N
-                        if model.p_NRA[n, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, o]
-                        for n in model.s_N
-                        if model.p_NOA[n, o]
-                    )
-                    for o in model.s_O
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[f, p]
-                        for f in model.s_F
-                        if model.p_FCA[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, n]
-                        for r in model.s_R
-                        if model.p_RNA[r, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, r]
-                        for r in model.s_R
-                        if model.p_NRA[n, r]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, p]
-                        for r in model.s_R
-                        if model.p_RCA[r, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, k]
-                        for r in model.s_R
-                        if model.p_RKA[r, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, n]
-                        for s in model.s_S
-                        if model.p_SNA[s, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        (
-                            model.vb_y_Pipeline[s, p, d] * model.p_lambda_Pipeline[s, p]
-                            + model.vb_y_Pipeline[p, s, d]
-                            * model.p_lambda_Pipeline[p, s]
-                        )
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SCA[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, k]
-                        for s in model.s_S
-                        if model.p_SKA[s, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, r]
-                        for s in model.s_S
-                        if model.p_SRA[s, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, o]
-                        for s in model.s_S
-                        if model.p_SOA[s, o]
-                    )
-                    for o in model.s_O
+                    for l_tilde in model.s_L
                 )
                 for d in model.s_D
             )
@@ -4798,247 +4506,12 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        model.vb_y_Pipeline[l, l_tilde, d]
+                        * model.p_kappa_Pipeline[l, l_tilde, d]
                         * model.p_delta_Pipeline[d]
-                        for p in model.s_PP
-                        if model.p_PCA[p, p_tilde]
+                        for l in model.s_L
                     )
-                    for p_tilde in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for p in model.s_PP
-                        if model.p_PNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
-                        * model.p_delta_Pipeline[d]
-                        for p in model.s_PP
-                        if model.p_PPA[p, p_tilde]
-                    )
-                    for p_tilde in model.s_PP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for p in model.s_CP
-                        if model.p_CNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline[n, n_tilde, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NNA[n, n_tilde]
-                    )
-                    for n_tilde in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline[n, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NCA[n, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline[n, k, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NKA[n, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline[n, s, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NSA[n, s]
-                    )
-                    for s in model.s_S
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline[n, r, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NRA[n, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline[n, o, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NOA[n, o]
-                    )
-                    for o in model.s_O
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline[f, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for f in model.s_F
-                        if model.p_FCA[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline[r, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for r in model.s_R
-                        if model.p_RNA[r, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline[r, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for r in model.s_R
-                        if model.p_RCA[r, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline[r, k, d]
-                        * model.p_delta_Pipeline[d]
-                        for r in model.s_R
-                        if model.p_RKA[r, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline[s, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SNA[s, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, p, d]
-                        * model.p_kappa_Pipeline[s, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SCA[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline[s, k, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SKA[s, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline[s, r, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SRA[s, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline[s, o, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SOA[s, o]
-                    )
-                    for o in model.s_O
+                    for l_tilde in model.s_L
                 )
                 for d in model.s_D
             )
