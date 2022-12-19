@@ -660,9 +660,7 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
     \sum_{p \in P | (p, n) \in PNA}\textcolor{red}{F_{p,n,t}^{Piped}}
         + \sum_{p \in P | (p, n) \in CNA}\textcolor{red}{F_{p,n,t}^{Piped}}
         + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{red}{F_{\tilde{n},n,t}^{Piped}}
-
         + \sum_{s \in S | (s, n) \in SNA}\textcolor{red}{F_{s,n,t}^{Piped}}
-        + \sum_{r \in R | (r, n) \in RNA}\textcolor{red}{F_{r,n,t}^{Piped}}
 
         = \sum_{\tilde{n} \in N | (n, \tilde{n}) \in NNA}\textcolor{red}{F_{n,\tilde{n},t}^{Piped}}
         + \sum_{p \in P | (n, p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}
@@ -756,7 +754,6 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
         + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{red}{F_{\tilde{n},n,t}^{Piped}}
 
         + \sum_{s \in S | (s, n) \in SNA}\textcolor{red}{F_{s,n,t}^{Piped}}
-        + \sum_{r \in R | (r, n) \in RNA}\textcolor{red}{F_{r,n,t}^{Piped}}
         \leq \textcolor{green}{\sigma_{n}^{Node}}
 
 
