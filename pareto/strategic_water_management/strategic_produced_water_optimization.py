@@ -959,13 +959,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={},
         doc="Valid storage-to-reuse pipeline arcs [-]",
     )
-    model.p_LLP = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLA"],
-        doc="Valid location-to-location piping arcs [-]",
-    )
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
