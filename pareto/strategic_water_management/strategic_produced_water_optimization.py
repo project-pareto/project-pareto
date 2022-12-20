@@ -359,7 +359,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_B = Set(
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
-    model.df_parameters["LLP"] = {
+    model.df_parameters["LLA"] = {
         **model.df_parameters["PNA"],
         **model.df_parameters["CNA"],
         **model.df_parameters["CCA"],
@@ -375,8 +375,8 @@ def create_model(df_sets, df_parameters, default={}):
         **model.df_parameters["RSA"],
         **model.df_parameters["SCA"],
     }
-    model.s_ValidPipingArcs = Set(
-        initialize=list(model.df_parameters["LLP"].keys()), doc="Valid Piping Arcs"
+    model.s_LLA = Set(
+        initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
     model.df_parameters["LLT"] = {
         **model.df_parameters["PCT"],
@@ -386,7 +386,7 @@ def create_model(df_sets, df_parameters, default={}):
         **model.df_parameters["CST"],
         **model.df_parameters["CCT"],
     }
-    model.s_ValidTruckingArcs = Set(
+    model.s_LLT = Set(
         initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
     )
 
@@ -398,7 +398,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Objective function variable [currency]",
     )
     model.v_F_Piped = Var(
-        model.s_ValidPipingArcs,
+        model.s_LLA,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
@@ -406,7 +406,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Produced water quantity piped from location l to location l [volume/time]",
     )
     model.v_F_Trucked = Var(
-        model.s_ValidTruckingArcs,
+        model.s_LLT,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
@@ -963,7 +963,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_L,
         default=0,
-        initialize=df_parameters["LLP"],
+        initialize=df_parameters["LLA"],
         doc="Valid location-to-location piping arcs [-]",
     )
     model.p_PCT = Param(
@@ -1056,21 +1056,6 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize={},
         doc="Valid treatment-to-disposal trucking arcs [-]",
-    )
-    model.p_LLT = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLT"],
-        doc="Valid location-to-location trucking arcs [-]",
-    )
-    model.s_LLT = Set(
-        initialize=list(df_parameters["LLT"].keys()),
-        doc="Location-to-location trucking arcs",
-    )
-    model.s_LLP = Set(
-        initialize=list(df_parameters["LLP"].keys()),
-        doc="Location-to-location piping arcs",
     )
 
     # Define set parameters #
@@ -5045,11 +5030,11 @@ def create_model(df_sets, df_parameters, default={}):
     def ReuseDestinationDeliveriesRule(model, p, t):
         constraint = model.v_F_ReuseDestination[p, t] == sum(
             model.v_F_Piped[l, l_tilde, t]
-            for (l, l_tilde) in model.s_ValidPipingArcs
+            for (l, l_tilde) in model.s_LLA
             if (l_tilde == p) and (l not in model.s_F)
         ) + sum(
             model.v_F_Trucked[l, l_tilde, t]
-            for (l, l_tilde) in model.s_ValidTruckingArcs
+            for (l, l_tilde) in model.s_LLT
             if (l_tilde == p) and (l not in model.s_F)
         )
 
@@ -5064,13 +5049,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def DisposalDestinationDeliveriesRule(model, k, t):
         constraint = model.v_F_DisposalDestination[k, t] == sum(
-            model.v_F_Piped[l, k, t]
-            for (l, l_tilde) in model.s_ValidPipingArcs
-            if l_tilde == k
+            model.v_F_Piped[l, k, t] for (l, l_tilde) in model.s_LLA if l_tilde == k
         ) + sum(
-            model.v_F_Trucked[l, k, t]
-            for (l, l_tilde) in model.s_ValidTruckingArcs
-            if l_tilde == k
+            model.v_F_Trucked[l, k, t] for (l, l_tilde) in model.s_LLT if l_tilde == k
         )
 
         return process_constraint(constraint)
@@ -5972,7 +5953,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     model.s_NonPLP = Set(
         initialize=[
             NonFromPPipelines
-            for NonFromPPipelines in model.s_LLP
+            for NonFromPPipelines in model.s_LLA
             if not NonFromPPipelines[0] in (model.s_P | model.s_F)
         ],
         doc="location-to-location with discrete quality piping arcs",
