@@ -134,8 +134,6 @@ CONFIG.declare(
         }""",
     ),
 )
-# Currency base units are not inherently defined by default
-pyunits.load_definitions_from_strings(["USD = [currency]"])
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
@@ -168,6 +166,14 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+
+    try:
+        # Check that currency is set to USD
+        print("Setting currency to:", pyunits.USD)
+    # Exception if USD is not already set and throws Attribute Error
+    except AttributeError:
+        # Currency base units are not inherently defined by default
+        pyunits.load_definitions_from_strings(["USD = [currency]"])
 
     # Convert user unit selection to a user_units dictionary
     model.user_units = {}
@@ -353,6 +359,36 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_B = Set(
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
+    model.df_parameters["LLA"] = {
+        **model.df_parameters["PNA"],
+        **model.df_parameters["CNA"],
+        **model.df_parameters["CCA"],
+        **model.df_parameters["NNA"],
+        **model.df_parameters["NCA"],
+        **model.df_parameters["NKA"],
+        **model.df_parameters["NSA"],
+        **model.df_parameters["NRA"],
+        **model.df_parameters["FCA"],
+        **model.df_parameters["RCA"],
+        **model.df_parameters["RNA"],
+        **model.df_parameters["SNA"],
+        **model.df_parameters["RSA"],
+        **model.df_parameters["SCA"],
+    }
+    model.s_LLA = Set(
+        initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
+    )
+    model.df_parameters["LLT"] = {
+        **model.df_parameters["PCT"],
+        **model.df_parameters["FCT"],
+        **model.df_parameters["PKT"],
+        **model.df_parameters["CKT"],
+        **model.df_parameters["CST"],
+        **model.df_parameters["CCT"],
+    }
+    model.s_LLT = Set(
+        initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
+    )
 
     # Define continuous variables #
 
@@ -362,8 +398,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Objective function variable [currency]",
     )
     model.v_F_Piped = Var(
-        model.s_L,
-        model.s_L,
+        model.s_LLA,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
@@ -371,8 +406,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Produced water quantity piped from location l to location l [volume/time]",
     )
     model.v_F_Trucked = Var(
-        model.s_L,
-        model.s_L,
+        model.s_LLT,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
@@ -925,29 +959,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={},
         doc="Valid storage-to-reuse pipeline arcs [-]",
     )
-    df_parameters["LLP"] = {
-        **df_parameters["PNA"],
-        **df_parameters["CNA"],
-        **df_parameters["CCA"],
-        **df_parameters["NNA"],
-        **df_parameters["NCA"],
-        **df_parameters["NKA"],
-        **df_parameters["NSA"],
-        **df_parameters["NRA"],
-        **df_parameters["FCA"],
-        **df_parameters["RCA"],
-        **df_parameters["RNA"],
-        **df_parameters["SNA"],
-        **df_parameters["RSA"],
-        **df_parameters["SCA"],
-    }
-    model.p_LLP = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLP"],
-        doc="Valid location-to-location piping arcs [-]",
-    )
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
@@ -1039,29 +1050,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={},
         doc="Valid treatment-to-disposal trucking arcs [-]",
     )
-    df_parameters["LLT"] = {
-        **df_parameters["PCT"],
-        **df_parameters["FCT"],
-        **df_parameters["PKT"],
-        **df_parameters["CKT"],
-        **df_parameters["CST"],
-        **df_parameters["CCT"],
-    }
-    model.p_LLT = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLT"],
-        doc="Valid location-to-location trucking arcs [-]",
-    )
-    model.s_LLT = Set(
-        initialize=list(df_parameters["LLT"].keys()),
-        doc="Location-to-location piping arcs",
-    )
-    model.s_LLP = Set(
-        initialize=list(df_parameters["LLP"].keys()),
-        doc="Location-to-location trucking arcs",
-    )
 
     # Define set parameters #
 
@@ -1132,7 +1120,7 @@ def create_model(df_sets, df_parameters, default={}):
             for key, value in model.df_parameters["FlowbackRates"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Flowback supply forecast for a completions bad [volume/time]",
+        doc="Flowback supply forecast for a completions pad [volume/time]",
     )
     model.p_beta_TotalProd = Param(
         default=0,
@@ -2197,8 +2185,6 @@ def create_model(df_sets, df_parameters, default={}):
             if model.p_NNA[n_tilde, n]
         ) + sum(
             model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-        ) + sum(
-            model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
         ) == sum(
             model.v_F_Piped[n, n_tilde, t]
             for n_tilde in model.s_N
@@ -2296,14 +2282,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                constraint = (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
                 constraint = (
                     model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
                 )
@@ -2453,15 +2431,6 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_N and l_tilde in model.s_O:
             if model.p_NOA[l, l_tilde]:
-                constraint = (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
                 constraint = (
                     model.v_F_Piped[l, l_tilde, t]
                     <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
@@ -3128,9 +3097,6 @@ def create_model(df_sets, df_parameters, default={}):
                     + sum(
                         model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
                     )
-                    + sum(
-                        model.v_F_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
-                    )
                     <= model.p_sigma_NetworkNode[n]
                 )
             else:
@@ -3448,18 +3414,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalDisposalVolumeRule(model):
-        constraint = model.v_F_TotalDisposed == (
-            sum(
-                sum(sum(model.v_F_Piped[l, k, t] for l in model.s_L) for k in model.s_K)
-                for t in model.s_T
-            )
-            + sum(
-                sum(
-                    sum(model.v_F_Trucked[l, k, t] for l in model.s_L)
-                    for k in model.s_K
-                )
-                for t in model.s_T
-            )
+        constraint = model.v_F_TotalDisposed == sum(
+            sum(model.v_F_DisposalDestination[k, t] for k in model.s_K)
+            for t in model.s_T
         )
 
         return process_constraint(constraint)
@@ -4195,23 +4152,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L, model.s_L, model.s_T, rule=TruckingCostRule, doc="Trucking cost"
     )
 
-    def TotalTruckingFreshFlowRule(model):
-        constraint = (
-            sum(
-                sum(
-                    sum(model.v_F_Trucked[f, k, t] for f in model.s_F | model.s_K)
-                    for k in model.s_K
-                )
-                for t in model.s_T
-            )
-            == 0
-        )
-        return process_constraint(constraint)
-
-    model.TotalTruckingFreshFlow = Constraint(
-        rule=TotalTruckingFreshFlowRule, doc="Total trucking fresh water flow"
-    )
-
     def TotalTruckingCostRule(model):
         constraint = model.v_C_TotalTrucking == (
             sum(
@@ -4503,283 +4443,13 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
+                        model.vb_y_Pipeline[l, l_tilde, d]
                         * model.p_kappa_Pipeline
                         * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, p_tilde]
-                        for p in model.s_PP
-                        if model.p_PCA[p, p_tilde]
+                        * model.p_lambda_Pipeline[l, l_tilde]
+                        for l in model.s_L
                     )
-                    for p_tilde in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, n]
-                        for p in model.s_PP
-                        if model.p_PNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, p_tilde]
-                        for p in model.s_PP
-                        if model.p_PPA[p, p_tilde]
-                    )
-                    for p_tilde in model.s_PP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[p, n]
-                        for p in model.s_CP
-                        if model.p_CNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, n_tilde]
-                        for n in model.s_N
-                        if model.p_NNA[n, n_tilde]
-                    )
-                    for n_tilde in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, p]
-                        for n in model.s_N
-                        if model.p_NCA[n, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, k]
-                        for n in model.s_N
-                        if model.p_NKA[n, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, s]
-                        for n in model.s_N
-                        if model.p_NSA[n, s]
-                    )
-                    for s in model.s_S
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, r]
-                        for n in model.s_N
-                        if model.p_NRA[n, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, o]
-                        for n in model.s_N
-                        if model.p_NOA[n, o]
-                    )
-                    for o in model.s_O
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[f, p]
-                        for f in model.s_F
-                        if model.p_FCA[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, n]
-                        for r in model.s_R
-                        if model.p_RNA[r, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[n, r]
-                        for r in model.s_R
-                        if model.p_NRA[n, r]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, p]
-                        for r in model.s_R
-                        if model.p_RCA[r, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[r, k]
-                        for r in model.s_R
-                        if model.p_RKA[r, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, n]
-                        for s in model.s_S
-                        if model.p_SNA[s, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        (
-                            model.vb_y_Pipeline[s, p, d] * model.p_lambda_Pipeline[s, p]
-                            + model.vb_y_Pipeline[p, s, d]
-                            * model.p_lambda_Pipeline[p, s]
-                        )
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SCA[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, k]
-                        for s in model.s_S
-                        if model.p_SKA[s, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, r]
-                        for s in model.s_S
-                        if model.p_SRA[s, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline
-                        * model.p_mu_Pipeline[d]
-                        * model.p_lambda_Pipeline[s, o]
-                        for s in model.s_S
-                        if model.p_SOA[s, o]
-                    )
-                    for o in model.s_O
+                    for l_tilde in model.s_L
                 )
                 for d in model.s_D
             )
@@ -4792,247 +4462,12 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
+                        model.vb_y_Pipeline[l, l_tilde, d]
+                        * model.p_kappa_Pipeline[l, l_tilde, d]
                         * model.p_delta_Pipeline[d]
-                        for p in model.s_PP
-                        if model.p_PCA[p, p_tilde]
+                        for l in model.s_L
                     )
-                    for p_tilde in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for p in model.s_PP
-                        if model.p_PNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, p_tilde, d]
-                        * model.p_kappa_Pipeline[p, p_tilde, d]
-                        * model.p_delta_Pipeline[d]
-                        for p in model.s_PP
-                        if model.p_PPA[p, p_tilde]
-                    )
-                    for p_tilde in model.s_PP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[p, n, d]
-                        * model.p_kappa_Pipeline[p, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for p in model.s_CP
-                        if model.p_CNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, n_tilde, d]
-                        * model.p_kappa_Pipeline[n, n_tilde, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NNA[n, n_tilde]
-                    )
-                    for n_tilde in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, p, d]
-                        * model.p_kappa_Pipeline[n, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NCA[n, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, k, d]
-                        * model.p_kappa_Pipeline[n, k, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NKA[n, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, s, d]
-                        * model.p_kappa_Pipeline[n, s, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NSA[n, s]
-                    )
-                    for s in model.s_S
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, r, d]
-                        * model.p_kappa_Pipeline[n, r, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NRA[n, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[n, o, d]
-                        * model.p_kappa_Pipeline[n, o, d]
-                        * model.p_delta_Pipeline[d]
-                        for n in model.s_N
-                        if model.p_NOA[n, o]
-                    )
-                    for o in model.s_O
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[f, p, d]
-                        * model.p_kappa_Pipeline[f, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for f in model.s_F
-                        if model.p_FCA[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, n, d]
-                        * model.p_kappa_Pipeline[r, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for r in model.s_R
-                        if model.p_RNA[r, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, p, d]
-                        * model.p_kappa_Pipeline[r, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for r in model.s_R
-                        if model.p_RCA[r, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[r, k, d]
-                        * model.p_kappa_Pipeline[r, k, d]
-                        * model.p_delta_Pipeline[d]
-                        for r in model.s_R
-                        if model.p_RKA[r, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, n, d]
-                        * model.p_kappa_Pipeline[s, n, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SNA[s, n]
-                    )
-                    for n in model.s_N
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, p, d]
-                        * model.p_kappa_Pipeline[s, p, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SCA[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, k, d]
-                        * model.p_kappa_Pipeline[s, k, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SKA[s, k]
-                    )
-                    for k in model.s_K
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, r, d]
-                        * model.p_kappa_Pipeline[s, r, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SRA[s, r]
-                    )
-                    for r in model.s_R
-                )
-                for d in model.s_D
-            )
-            + sum(
-                sum(
-                    sum(
-                        model.vb_y_Pipeline[s, o, d]
-                        * model.p_kappa_Pipeline[s, o, d]
-                        * model.p_delta_Pipeline[d]
-                        for s in model.s_S
-                        if model.p_SOA[s, o]
-                    )
-                    for o in model.s_O
+                    for l_tilde in model.s_L
                 )
                 for d in model.s_D
             )
@@ -5587,10 +5022,15 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ReuseDestinationDeliveriesRule(model, p, t):
         constraint = model.v_F_ReuseDestination[p, t] == sum(
-            model.v_F_Piped[l, p, t] + model.v_F_Trucked[l, p, t]
-            for l in model.s_L
-            if (l not in model.s_F)
+            model.v_F_Piped[l, l_tilde, t]
+            for (l, l_tilde) in model.s_LLA
+            if (l_tilde == p) and (l not in model.s_F)
+        ) + sum(
+            model.v_F_Trucked[l, l_tilde, t]
+            for (l, l_tilde) in model.s_LLT
+            if (l_tilde == p) and (l not in model.s_F)
         )
+
         return process_constraint(constraint)
 
     model.ReuseDestinationDeliveries = Constraint(
@@ -5602,7 +5042,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     def DisposalDestinationDeliveriesRule(model, k, t):
         constraint = model.v_F_DisposalDestination[k, t] == sum(
-            model.v_F_Piped[l, k, t] + model.v_F_Trucked[l, k, t] for l in model.s_L
+            model.v_F_Piped[l, k, t] for (l, l_tilde) in model.s_LLA if l_tilde == k
+        ) + sum(
+            model.v_F_Trucked[l, k, t] for (l, l_tilde) in model.s_LLT if l_tilde == k
         )
 
         return process_constraint(constraint)
@@ -6489,6 +5931,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             )
             for key, value in discrete_water_qualities.items()
         },
+        units=model.model_units["concentration"],
         doc="Discretization of water components",
     )
 
@@ -6503,7 +5946,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     model.s_NonPLP = Set(
         initialize=[
             NonFromPPipelines
-            for NonFromPPipelines in model.s_LLP
+            for NonFromPPipelines in model.s_LLA
             if not NonFromPPipelines[0] in (model.s_P | model.s_F)
         ],
         doc="location-to-location with discrete quality piping arcs",
@@ -6768,7 +6211,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume"],
-            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume]",
         )
 
         model.DiscreteMaxStorage = Constraint(
@@ -7790,7 +7233,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.ResidualWaterLHS] = 1 / scaling_factor
     model.scaling_factor[model.ResidualWaterRHS] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
-    model.scaling_factor[model.TotalTruckingFreshFlow] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintDesalinationFlow] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintNoDesalinationFlow] = 1 / scaling_factor
@@ -8049,7 +7491,6 @@ def solve_discrete_water_quality(model, opt, scaled):
 
 
 def solve_model(model, options=None):
-
     if options is None:
         options = {
             "deactivate_slacks": True,
@@ -8059,7 +7500,10 @@ def solve_model(model, options=None):
             "gap": 0,
         }
     # load pyomo solver
-    opt = get_solver("gurobi_direct", "gurobi", "cbc")
+    if "solver" not in options.keys():
+        opt = get_solver("gurobi_direct", "gurobi", "cbc")
+    else:
+        opt = get_solver(options["solver"])
 
     set_timeout(opt, timeout_s=options["running_time"])
     opt.options["mipgap"] = options["gap"]
