@@ -1732,7 +1732,11 @@ def create_model(df_sets, df_parameters, default={}):
     # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=max(model.df_parameters["TruckingHourlyCost"].values()) * 100
+        default=pyunits.convert_value(
+            max(model.df_parameters["TruckingHourlyCost"].values()) * 100,
+            from_units=model.user_units["currency"],
+            to_units=model.model_units["currency"],
+        )
         if model.df_parameters["TruckingHourlyCost"]
         else pyunits.convert_value(
             15000,
