@@ -8412,7 +8412,7 @@ def solve_MINLP_quality(model, opt):
     # results = opt.solve(model, tee=True, symbolic_solver_labels=True)
 
 
-    solver_source = 'gams'
+    solver_source = 'GUROBI'
     # if solver_source == 'gams':
 	#     results = SolverFactory(solver_source).solve(
 	# 	model, tee=True, keepfiles=True,
