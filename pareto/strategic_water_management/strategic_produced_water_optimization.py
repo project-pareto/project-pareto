@@ -161,7 +161,6 @@ CONFIG.declare(
 
 
 def create_model(df_sets, df_parameters, default={}):
-    get_currency_units()
     model = ConcreteModel()
 
     # import config dictionary
@@ -377,6 +376,7 @@ def create_model(df_sets, df_parameters, default={}):
         **model.df_parameters["SNA"],
         **model.df_parameters["RSA"],
         **model.df_parameters["SCA"],
+        **model.df_parameters["FRA"],
     }
     model.s_LLA = Set(
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
@@ -418,7 +418,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.v_F_Sourced = Var(
         model.s_F,
-        model.s_CP,
+        model.s_CP | model.s_R,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
@@ -529,7 +529,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.v_C_Sourced = Var(
         model.s_F,
-        model.s_CP,
+        model.s_CP | model.s_R,
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
@@ -898,6 +898,13 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["FCA"],
         doc="Valid freshwater-to-completions pipeline arcs [-]",
+    )
+    model.p_FRA = Param(
+        model.s_F,
+        model.s_R,
+        default=0,
+        initialize=model.df_parameters["FRA"],
+        doc="Valid freshwater-to-treatment pipeline arcs [-]",
     )
     model.p_RCA = Param(
         model.s_R,
@@ -2041,6 +2048,7 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = (
             sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
             + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
+            + sum(model.v_F_Sourced[f, r, t] for r in model.s_R if model.p_FRA[f, r])
             <= model.p_sigma_Freshwater[f, t]
         )
 
@@ -2760,6 +2768,20 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
+        elif l in model.s_F and l_tilde in model.s_R:
+            if model.p_FRA[l, l_tilde]:
+                constraint = (
+                    model.v_F_Capacity[l, l_tilde]
+                    == model.p_sigma_Pipeline[l, l_tilde]
+                    + sum(
+                        model.p_delta_Pipeline[d] * (model.vb_y_Pipeline[l, l_tilde, d])
+                        for d in model.s_D
+                    )
+                    + model.v_S_PipelineCapacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
                 constraint = (
@@ -3203,6 +3225,7 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            + sum(model.v_F_Sourced[f, r, t] for f in model.s_F if model.p_FRA[f, r])
             <= model.v_T_Capacity[r]
         )
         return process_constraint(constraint)
@@ -3215,6 +3238,7 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = (
             sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
             + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+            + sum(model.v_F_Sourced[f, r, t] for f in model.s_F if model.p_FRA[f, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
             + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
         ) == model.v_F_ResidualWater[r, t] + model.v_F_TreatedWater[r, t]
@@ -3302,26 +3326,29 @@ def create_model(df_sets, df_parameters, default={}):
 
     # TODO: Improve testing of Beneficial reuse capacity constraint
 
-    def FreshSourcingCostRule(model, f, p, t):
-        if f in model.s_F and p in model.s_CP:
-            if model.p_FCA[f, p]:
-                constraint = (
-                    model.v_C_Sourced[f, p, t]
-                    == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
-                    * model.p_pi_Sourcing[f]
-                )
-            elif model.p_FCT[f, p]:
-                constraint = (
-                    model.v_C_Sourced[f, p, t]
-                    == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
-                    * model.p_pi_Sourcing[f]
-                )
-            else:
-                return Constraint.Skip
-
-            return process_constraint(constraint)
+    def FreshSourcingCostRule(model, f, l, t):
+        if l in model.s_CP and model.p_FCA[f, l]:
+            constraint = (
+                model.v_C_Sourced[f, l, t]
+                == (model.v_F_Sourced[f, l, t] + model.v_F_Trucked[f, l, t])
+                * model.p_pi_Sourcing[f]
+            )
+        elif l in model.s_CP and model.p_FCT[f, l]:
+            constraint = (
+                model.v_C_Sourced[f, l, t]
+                == (model.v_F_Sourced[f, l, t] + model.v_F_Trucked[f, l, t])
+                * model.p_pi_Sourcing[f]
+            )
+        elif l in model.s_R and model.p_FRA[f, l]:
+            constraint = (
+                model.v_C_Sourced[f, l, t]
+                == (model.v_F_Sourced[f, l, t] + model.v_F_Piped[f, l, t])
+                * model.p_pi_Sourcing[f]
+            )
         else:
             return Constraint.Skip
+
+        return process_constraint(constraint)
 
     model.FreshSourcingCost = Constraint(
         model.s_F,
@@ -3334,8 +3361,8 @@ def create_model(df_sets, df_parameters, default={}):
     def TotalFreshSourcingCostRule(model):
         constraint = model.v_C_TotalSourced == sum(
             sum(
-                sum(model.v_C_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
-                for p in model.s_CP
+                sum(model.v_C_Sourced[f, l, t] for f in model.s_F)
+                for l in model.s_CP | model.s_R
             )
             for t in model.s_T
         )
@@ -3366,6 +3393,17 @@ def create_model(df_sets, df_parameters, default={}):
                         if model.p_FCT[f, p]
                     )
                     for p in model.s_CP
+                )
+                for t in model.s_T
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.v_F_Sourced[f, r, t]
+                        for f in model.s_F
+                        if model.p_FRA[f, r]
+                    )
+                    for r in model.s_R
                 )
                 for t in model.s_T
             )
@@ -3435,6 +3473,9 @@ def create_model(df_sets, df_parameters, default={}):
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
                 + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
                 + sum(
+                    model.v_F_Sourced[f, r, t] for f in model.s_F if model.p_FRA[f, r]
+                )
+                + sum(
                     model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
                 )
                 + sum(
@@ -3457,6 +3498,9 @@ def create_model(df_sets, df_parameters, default={}):
             <= (
                 sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
                 + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
+                + sum(
+                    model.v_F_Sourced[f, r, t] for f in model.s_F if model.p_FRA[f, r]
+                )
                 + sum(
                     model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
                 )
@@ -3701,6 +3745,16 @@ def create_model(df_sets, df_parameters, default={}):
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
+        elif l in model.s_F and l_tilde in model.s_R:
+            if model.p_FRA[l, l_tilde]:
+                constraint = (
+                    model.v_C_Piped[l, l_tilde, t]
+                    == model.v_F_Sourced[l, l_tilde, t]
+                    * model.p_pi_Pipeline[l, l_tilde]
+                )
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
         elif l in model.s_R and l_tilde in model.s_N:
             if model.p_RNA[l, l_tilde]:
                 constraint = (
@@ -3857,6 +3911,12 @@ def create_model(df_sets, df_parameters, default={}):
                         model.v_C_Piped[f, p, t] for f in model.s_F if model.p_FCA[f, p]
                     )
                     for p in model.s_CP
+                )
+                + sum(
+                    sum(
+                        model.v_C_Piped[f, r, t] for f in model.s_F if model.p_FRA[f, r]
+                    )
+                    for r in model.s_R
                 )
                 + sum(
                     sum(
@@ -4611,6 +4671,14 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
+                    model.v_S_PipelineCapacity[f, r] * model.p_psi_PipelineCapacity
+                    for f in model.s_F
+                    if model.p_FRA[f, r]
+                )
+                for r in model.s_R
+            )
+            + sum(
+                sum(
                     model.v_S_PipelineCapacity[r, n] * model.p_psi_PipelineCapacity
                     for r in model.s_R
                     if model.p_RNA[r, n]
@@ -4906,6 +4974,14 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
         elif l in model.s_F and l_tilde in model.s_CP:
             if model.p_FCA[l, l_tilde]:
+                constraint = (
+                    sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+                )
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
+        elif l in model.s_F and l_tilde in model.s_R:
+            if model.p_FRA[l, l_tilde]:
                 constraint = (
                     sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
                 )
@@ -5446,14 +5522,6 @@ def water_quality(model):
         doc="Storage site water quality rule",
     )
     # endregion
-    model.quality.v_F_fresh_dummy = Var(
-        model.s_R,
-        model.s_W,
-        model.s_T,
-        initialize=0,
-        doc="fresh water to treatment site",
-    )
-    model.quality.v_F_fresh_dummy.fix(0)
     # region Treatment
     def TreatmentWaterQualityRule(b, r, w, t):
         constraint = (
@@ -5481,7 +5549,11 @@ def water_quality(model):
                 for p in b.parent_block().s_CP
                 if b.parent_block().p_CRT[p, r]
             )
-            + (b.v_F_fresh_dummy[r, w, t] * 10000 / 1e6)  # fresh water 10,000 TDS
+            + sum(
+                model.v_F_Sourced[f, r, t] * b.p_nu_freshwater[f, w]
+                for f in model.s_F
+                if model.p_FRA[f, r]
+            )
         ) == b.v_Q[r, w, t] * (
             b.parent_block().v_F_ResidualWater[r, t]
             + b.parent_block().v_F_TreatedWater[r, t]
@@ -7570,7 +7642,10 @@ def solve_model(model, options=None):
                 fix_milp_vars(model)
                 model = postprocess_water_quality_calculation(model, opt)
         elif model.config.water_quality is WaterQuality.minlp:
-            model, results = solve_MINLP_quality(model, opt)
+            # load MINLP solver
+            if "solver_minlp" not in options.keys():
+                options["solver_minlp"] = "gurobi"
+            model, results = solve_MINLP_quality(model, opt, options["solver_minlp"])
         else:
             # option 2.1:
             results = opt.solve(model, tee=True)
@@ -7702,8 +7777,18 @@ def add_quality_constraints(model):
     return model
 
 
-def solve_MINLP_quality(model, opt):
+def free_variable(var):
+    var.setlb(0)
+    var.setub(None)
+
+
+def solve_MINLP_quality(model, opt, minlp_solver_source):
     # model = water_quality(model)
+    try:
+        if model.scaled_v_F_Piped:
+            scaled = True
+    except:
+        scaled = False
     # Step 1: solve original model - network without quality
     print("\n")
     print("*" * 100)
@@ -7735,7 +7820,14 @@ def solve_MINLP_quality(model, opt):
 
     # Solve for fixed non discrete quality variables to get the optimal discrete quality
     # opt.solve(model, tee=True, warmstart=True)
+
+    # Add water quality constraints (e.g. maximum water quality at treatment facility)
     milp_model = add_quality_constraints(milp_model)
+
+    # Calculate the fresh water needed for each time periods and treatment center which violated the max water quality.
+    # Fresh water is calculated by solving the following equation:
+    # (treatment_flows(r,t) - treatment_fresh_water(r,t)) * treatment_quality_violated(r,t) == treatment_flows(r,t) * max_water_quality_treatment_center(r)
+    # for each r in R and t in T
     treatment_quality_violated = {
         index: milp_model.quality.v_Q[index].value
         for index in milp_model.quality.v_Q
@@ -7768,20 +7860,20 @@ def solve_MINLP_quality(model, opt):
     print(treatment_quality_violated)
     print(treatment_flows)
     print(treatment_fresh_water)
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T40"].unfix()
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T41"].unfix()
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T51"].unfix()
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].unfix()
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T40"].setub(20)
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T41"].setub(20)
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T51"].setub(20)
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].setub(20)
-    milp_model.quality.v_F_fresh_dummy.setlb(0)
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].setlb(4)
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T40"] = 2.4
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T41"] = 2.49
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T51"] = 1.08
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"] = 4.56
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T40"].unfix()
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T41"].unfix()
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T51"].unfix()
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].unfix()
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T40"].setub(20)
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T41"].setub(20)
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T51"].setub(20)
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].setub(20)
+    # milp_model.quality.v_F_fresh_dummy.setlb(0)
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].setlb(4)
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T40"] = 2.4
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T41"] = 2.49
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T51"] = 1.08
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"] = 4.56
 
     # for v in model.component_data_objects(Var, descend_into=True):
     #     if v.value is not None:
@@ -7793,87 +7885,125 @@ def solve_MINLP_quality(model, opt):
     #                 v.fix(0)
     #     else:
     #         print(f"Variable {v.name} has no value")
-    # for ((r, t), fresh_water_needed) in treatment_fresh_water.items():
-    #     # Get first fresh water source to treatment center
-    #     f = next(
-    #         f
-    #         for (f, treatment) in model.p_FRA
-    #         if treatment == r and model.p_FRA[(f, treatment)] == 1
-    #     )
-    #     source_var = model.v_F_Sourced[(f, r, t)]
-    #     source_pipe_var = model.v_F_Piped[(f, r, t)]
-    #     source_pipe_cost_var = model.v_C_Piped[(f, r, t)]
-    #     source_cost_var = model.v_C_Sourced[(f, r, t)]
+    for ((r, t), fresh_water_needed) in treatment_fresh_water.items():
+        # Get fresh water source to treatment center
+        f = next(
+            f
+            for (f, treatment) in milp_model.p_FRA
+            if treatment == r and milp_model.p_FRA[(f, treatment)] == 1
+        )
+        # Get node to treatment center
+        n = next(
+            n
+            for (n, treatment) in milp_model.p_NRA
+            if treatment == r and milp_model.p_NRA[(n, treatment)] == 1
+        )
+        # # get disposal site coming from node
+        # k = next(
+        #     k
+        #     for (node, k) in milp_model.p_NKA
+        #     if node == n and milp_model.p_NKA[(n, k)] == 1
+        # )
+        # get all variables which change value when changing the fresh water flow to treatment center
+        source_var = (
+            milp_model.scaled_v_F_Sourced[(f, r, t)]
+            if scaled
+            else milp_model.v_F_Sourced[(f, r, t)]
+        )
+        source_pipe_cost_var = (
+            milp_model.scaled_v_C_Piped[(f, r, t)]
+            if scaled
+            else milp_model.v_C_Piped[(f, r, t)]
+        )
+        source_cost_var = (
+            milp_model.scaled_v_C_Sourced[(f, r, t)]
+            if scaled
+            else milp_model.v_C_Sourced[(f, r, t)]
+        )
+        node_to_treatment_var = (
+            milp_model.scaled_v_F_Piped[(n, r, t)]
+            if scaled
+            else milp_model.v_F_Piped[(n, r, t)]
+        )
+        node_to_treatment_cost_var = (
+            milp_model.scaled_v_C_Piped[(n, r, t)]
+            if scaled
+            else milp_model.v_C_Piped[(n, r, t)]
+        )
+        # node_to_disposal_var = (
+        #     milp_model.scaled_v_F_Piped[(n, k, t)]
+        #     if scaled
+        #     else milp_model.v_F_Piped[(n, k, t)]
+        # )
+        # node_to_disposal_cost_var = (
+        #     milp_model.scaled_v_C_Piped[(n, k, t)]
+        #     if scaled
+        #     else milp_model.v_C_Piped[(n, k, t)]
+        # )
+        # cost_disposal_var = (
+        #     milp_model.scaled_v_C_Disposal[(k, t)]
+        #     if scaled
+        #     else milp_model.v_C_Disposal[(k, t)]
+        # )
+        # flow_disposal_var = (
+        #     milp_model.scaled_v_F_DisposalDestination[(k, t)]
+        #     if scaled
+        #     else milp_model.v_F_DisposalDestination[(k, t)]
+        # )
 
-    #     # source_var.setlb(0.95 * fresh_water_needed)
-    #     # source_var.setub(1.05 * fresh_water_needed)
-    #     # source_var.setlb(0)
-    #     # source_var.setub(None)
-    #     source_pipe_var.setlb(0.99 * fresh_water_needed)
-    #     source_pipe_var.setub(1.01 * fresh_water_needed)
-    #     source_cost_var.setlb(0)
-    #     source_cost_var.setub(None)
-    #     source_pipe_cost_var.setlb(0)
-    #     source_pipe_cost_var.setub(None)
-    #     n = next(
-    #         n
-    #         for (n, treatment) in model.p_NRA
-    #         if treatment == r and model.p_NRA[(n, treatment)] == 1
-    #     )
-    #     k = next(
-    #         k for (node, k) in model.p_NKA if node == n and model.p_NKA[(n, k)] == 1
-    #     )
-    #     node_to_treatment_var = model.v_F_Piped[(n, r, t)]
-    #     node_to_treatment_cost_var = model.v_C_Piped[(n, r, t)]
+        # Fix the fresh water flow to the treatment center
+        source_var.setlb(0.99 * fresh_water_needed)
+        source_var.setub(1.01 * fresh_water_needed)
 
-    #     new_value = node_to_treatment_var.value - fresh_water_needed
-    #     # node_to_treatment_var.setlb(0.95 * new_value)
-    #     # node_to_treatment_var.setub(1.05 * new_value)
-    #     node_to_treatment_var.setlb(0)
-    #     node_to_treatment_var.setub(None)
-    #     node_to_treatment_cost_var.setlb(0)
-    #     node_to_treatment_cost_var.setub(None)
-    #     node_to_disposal_var = model.v_F_Piped[(n, k, t)]
-    #     node_to_disposal_cost_var = model.v_C_Piped[(n, k, t)]
-    #     # node_to_disposal_var.setlb(0.95 * fresh_water_needed)
-    #     # node_to_disposal_var.setub(1.05 * fresh_water_needed)
-    #     node_to_disposal_var.setlb(0)
-    #     node_to_disposal_var.setub(None)
-    #     node_to_disposal_cost_var.setlb(0)
-    #     node_to_disposal_cost_var.setub(None)
-
-    #     model.v_C_TotalPiping.setlb(0)
-    #     model.v_C_TotalPiping.setub(None)
-    #     model.v_C_TotalSourced.setlb(0)
-    #     model.v_C_TotalSourced.setub(None)
-    #     model.v_C_TotalDisposal.setlb(0)
-    #     model.v_C_TotalDisposal.setub(None)
-    #     model.v_F_TotalSourced.setlb(0)
-    #     model.v_F_TotalSourced.setub(None)
-    #     model.v_F_TotalDisposed.setlb(0)
-    #     model.v_F_TotalDisposed.setub(None)
-
-    #     model.v_F_TotalReused.setlb(0)
-    #     model.v_F_TotalReused.setub(None)
-
-    #     model.v_C_Disposal[(k, t)].setlb(0)
-    #     model.v_C_Disposal[(k, t)].setub(None)
-    #     model.v_F_DisposalDestination[(k, t)].setlb(0)
-    #     model.v_F_DisposalDestination[(k, t)].setub(None)
+        # free all other variables
+        free_variable(source_cost_var)
+        free_variable(source_pipe_cost_var)
+        free_variable(node_to_treatment_var)
+        free_variable(node_to_treatment_cost_var)
+        # free_variable(node_to_disposal_var)
+        # free_variable(node_to_disposal_cost_var)
+        # free_variable(cost_disposal_var)
+        # free_variable(flow_disposal_var)
+        free_variable(
+            milp_model.scaled_v_C_TotalPiping if scaled else milp_model.v_C_TotalPiping
+        )
+        free_variable(
+            milp_model.scaled_v_C_TotalSourced
+            if scaled
+            else milp_model.v_C_TotalSourced
+        )
+        free_variable(
+            milp_model.scaled_v_C_TotalDisposal
+            if scaled
+            else milp_model.v_C_TotalDisposal
+        )
+        free_variable(
+            milp_model.scaled_v_F_TotalSourced
+            if scaled
+            else milp_model.v_F_TotalSourced
+        )
+        free_variable(
+            milp_model.scaled_v_F_TotalDisposed
+            if scaled
+            else milp_model.v_F_TotalDisposed
+        )
+        free_variable(
+            milp_model.scaled_v_F_TotalReused if scaled else milp_model.v_F_TotalReused
+        )
 
     # results = opt.solve(model, tee=True, symbolic_solver_labels=True)
 
-    solver_source = "GUROBI"
-    # if solver_source == 'gams':
-    #     results = SolverFactory(solver_source).solve(
+    minlp_solver_source = str.lower(minlp_solver_source)
+    # if minlp_solver_source == 'gams':
+    #     results = SolverFactory(minlp_solver_source).solve(
     # 	model, tee=True, keepfiles=True,
     # 	solver=mathoptsolver, tmpdir='temp',
     # 	add_options=['gams_model.optfile=1;'])
-    # elif solver_source == 'pyomo':
+    # elif minlp_solver_source == 'pyomo':
     #     solver = SolverFactory(mathoptsolver)
     #     solver.options = solver_options
     #     results = opt.solve(model, tee=True, warmstart=True)
-    # elif solver_source == 'baron':
+    # elif minlp_solver_source == 'baron':
     #     solver = SolverFactory('baron')
     #     results = solver.solve(model, tee=True)
 
@@ -7897,7 +8027,7 @@ def solve_MINLP_quality(model, opt):
     # free_variables(model, discrete_variables_names)
     # deactivate_slacks(model)
     # results = opt.solve(model, tee=True, warmstart=True)
-    if solver_source == "gams":
+    if minlp_solver_source == "gams":
         mathoptsolver = "dicopt"
         solver_options = {
             "tol": 1e-3,
@@ -7924,7 +8054,7 @@ def solve_MINLP_quality(model, opt):
             for k, v in solver_options.items():
                 f.write(str(k) + " " + str(v) + "\n")
 
-        results = SolverFactory(solver_source).solve(
+        results = SolverFactory(minlp_solver_source).solve(
             milp_model,
             tee=True,
             keepfiles=True,
@@ -7933,7 +8063,7 @@ def solve_MINLP_quality(model, opt):
             add_options=["gams_model.optfile=1;"],
         )
 
-    elif solver_source == "pyomo":
+    elif minlp_solver_source == "gurobi":
         print("solving with GUROBI")
         opt.options["timeLimit"] = 500
         # mathoptsolver = 'gurobi'
@@ -7941,10 +8071,10 @@ def solve_MINLP_quality(model, opt):
         # solver.options = solver_options
         results = opt.solve(milp_model, tee=True, warmstart=True)
 
-    elif solver_source == "baron":
+    elif minlp_solver_source == "baron":
         solver = SolverFactory("baron")
         results = solver.solve(model, tee=True)
 
-    milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].pprint()
-    milp_model.quality.v_Q["R01", "TDS", "T52"].pprint()
+    # milp_model.quality.v_F_fresh_dummy["R01", "TDS", "T52"].pprint()
+    # milp_model.quality.v_Q["R01", "TDS", "T52"].pprint()
     return milp_model, results

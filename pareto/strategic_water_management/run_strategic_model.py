@@ -52,6 +52,7 @@ parameter_list = [
     "NRA",
     "NSA",
     "FCA",
+    "FRA",
     "RCA",
     "RNA",
     "RSA",
@@ -111,7 +112,8 @@ parameter_list = [
 with resources.path(
     "pareto.case_studies",
     # "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
-    "small_strategic_case_study.xlsx"
+    # "small_strategic_case_study.xlsx"
+    "strategic_simple_treatment_case_study_MINLP.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -141,8 +143,10 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 60,
+    "running_time": 60 * 7,
     "gap": 0,
+    "solver": "gurobi",  # gurobi, gurobi_direct, cbc
+    "solver_minlp": "gurobi",  # gurobi, baron, gams
 }
 
 strategic_model, results = solve_model(model=strategic_model, options=options)
@@ -170,7 +174,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
 # args = {"plot_title": "Trucked Water",
 #         "output_file": "demo_sankey.html"}
 
-# input_data = {"pareto_var": results_dict["v_F_Trucked_dict"], 
+# input_data = {"pareto_var": results_dict["v_F_Trucked_dict"],
 #                 # "sections": {"Region 1": ["PP01", "N01", "N02"], "Region 2": ["PP03", "N03", "N04"]}
 #                 }
 
