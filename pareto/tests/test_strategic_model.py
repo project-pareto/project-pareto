@@ -609,7 +609,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
@@ -636,7 +636,7 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
@@ -663,7 +663,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,

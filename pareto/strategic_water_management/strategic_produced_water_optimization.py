@@ -7494,7 +7494,7 @@ def solve_model(model, options=None):
     if options is None:
         options = {
             "deactivate_slacks": True,
-            "scale_model": True,
+            "scale_model": False,
             "scaling_factor": 1000000,
             "running_time": 60,
             "gap": 0,
