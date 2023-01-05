@@ -1727,30 +1727,27 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Pipeline operational cost [currency/volume]",
     )
+    TruckingHourlyCost_convert_to_model = {
+        key: pyunits.convert_value(
+            value,
+            from_units=model.user_units["currency"],
+            to_units=model.model_units["currency"],
+        )
+        for key, value in model.df_parameters["TruckingHourlyCost"].items()
+    }
     # COMMENT: For this parameter only currency units are defined, as the hourly rate is canceled out with the
     # trucking time units from parameter p_Tau_Trucking. This is to avoid adding an extra unit for time which may
     # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=pyunits.convert_value(
-            max(model.df_parameters["TruckingHourlyCost"].values()) * 100,
-            from_units=model.user_units["currency"],
-            to_units=model.model_units["currency"],
-        )
-        if model.df_parameters["TruckingHourlyCost"]
+        default=max(TruckingHourlyCost_convert_to_model.values()) * 100
+        if TruckingHourlyCost_convert_to_model
         else pyunits.convert_value(
             15000,
-            from_units=model.user_units["currency"],
+            from_units=pyunits.USD,
             to_units=model.model_units["currency"],
         ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["currency"],
-                to_units=model.model_units["currency"],
-            )
-            for key, value in model.df_parameters["TruckingHourlyCost"].items()
-        },
+        initialize=TruckingHourlyCost_convert_to_model,
         units=model.model_units["currency"],
         doc="Trucking hourly cost (by source) [currency/hr]",
     )
