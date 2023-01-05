@@ -31,7 +31,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCost,
     PipelineCapacity,
 )
-from pareto.utilities.get_data import get_data
+from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
     flatten_list,
     PintUnitExtractionVisitor,
@@ -680,3 +680,96 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.component
+def test_strategic_model_UI_display_units():
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.case_studies",
+        "small_strategic_case_study.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    input_sheet_names = parameter_list + set_list
+    UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
+    assert UI_display_units
