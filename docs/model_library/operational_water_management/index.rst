@@ -159,7 +159,7 @@ Operational Model Mathematical Notation
     :math:`\textcolor{red}{L_{p,t}^{ProdTank}}` =                       Water level in equalized production tanks at the end of time period t
 
 
-:math:`\textcolor{red}{B_{p,t}^{ProductionB}}` =                       Produced water for transport from pad
+:math:`\textcolor{red}{B_{p,t}^{Production}}` =                       Produced water for transport from pad
 
 :math:`\textcolor{red}{L_{s,t}^{Storage}}` =                           Water level in storage site at the end of time period t
 
@@ -181,6 +181,8 @@ Operational Model Mathematical Notation
 :math:`\textcolor{red}{C_{s,t}^{Storage}}` =                           Cost of storing produced water at storage site (incl. treatment)
 
 :math:`\textcolor{red}{R_{s,t}^{Storage}}` =                           Credit for retrieving stored produced water from storage site
+
+:math:`\textcolor{red}{C_{p,t}^{PadStorage}}` =                        Cost of storing produced water at completions pad storage
 
 :math:`\textcolor{red}{C^{TotalSourced}}` =                            Total cost of sourcing freshwater
 
@@ -825,12 +827,13 @@ Credits from withdrawing from storage is equal to the total volume of water move
 
 
 
-**Pad Storage Cost:** :math:`\forall l \in L, \tilde{l}\in L, t \in T`
+**Pad Storage Cost:** :math:`\forall p \in CP, t \in T`
 
 .. math::
 
-    \textcolor{red}{C^{TotalPadStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall p\in CP}\textcolor{red}{z_{p,t}^{PadStorage}} \cdot \textcolor{green}{\pi_{p,t}^{PadStorage}}
+    \textcolor{red}{C_{p,t}^{PadStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall p\in CP}\textcolor{red}{z_{p,t}^{PadStorage}} \cdot \textcolor{green}{\pi_{p,t}^{PadStorage}}
 
+    \textcolor{red}{C^{TotalPadStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall p\in CP}\textcolor{red}{C_{p,t}^{PadStorage}}
 
 **Trucking Cost (Simplified)**
 

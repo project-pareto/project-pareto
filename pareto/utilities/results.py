@@ -123,7 +123,7 @@ def generate_report(
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
-            "v_F_Piped_dict": [("Origin", "destination", "Time", "Piped water")],
+            "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
@@ -471,11 +471,12 @@ def generate_report(
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
             "v_C_Disposal_dict": [("Disposal site", "Time", "Cost of disposal")],
             "v_C_Treatment_dict": [("Treatment site", "Time", "Cost of Treatment")],
-            "v_C_Reuse_dict": [("Completion pad", "Time", "Cost of reuse")],
+            "v_C_Reuse_dict": [("Completions pad", "Time", "Cost of reuse")],
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_C_PadStorage_dict": [("Completions Pad", "Time", "Cost of Pad Storage")],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [
@@ -729,6 +730,18 @@ def generate_report(
                 to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
             elif output_units == OutputUnits.user_units:
                 to_unit = model.model_to_user_units[from_unit_string]
+            else:
+                print("ERROR: Report output units selected by user is not valid")
+            # if variable data is not none and indexed, update headers to display unit
+            if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
+                header = list(headers[str(variable.name) + "_dict"][0])
+                header[-1] = (
+                    headers[str(variable.name) + "_dict"][0][-1]
+                    + " ["
+                    + to_unit.to_string().replace("oil_bbl", "bbl")
+                    + "]"
+                )
+                headers[str(variable.name) + "_dict"][0] = tuple(header)
 
         elif variable.get_units() is not None:
             to_unit = variable.get_units()
@@ -752,7 +765,7 @@ def generate_report(
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
                 # convert the value to display units
-                if units_true:
+                if units_true and variable._data[i].value:
                     var_value = pyunits.convert_value(
                         variable._data[i].value,
                         from_units=variable.get_units(),
@@ -784,7 +797,7 @@ def generate_report(
                     i = (i,)
                 # replace the discrete qualities by their actual values
                 if str(variable.name) == "v_DQ" and var_value > 0:
-                    var_value = model.p_discrete_quality[i[2], i[3]]
+                    var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
                     headers[str(variable.name) + "_dict"].append((*i, var_value))
 
