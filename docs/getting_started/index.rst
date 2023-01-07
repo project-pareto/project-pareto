@@ -80,7 +80,7 @@ Core-dev
 
 1. Fork the repo on GitHub (your copy of the main repo)
 
-2. Clone your fork locally, creating a workspace (github id is "myusername,")::
+2. Clone your fork locally with one of the following, creating a workspace (github id is "myusername,")::
 
     git clone https://github.com/myusername/project-pareto
     git clone git@github.com:myusername/project-pareto.
@@ -89,7 +89,7 @@ Core-dev
    installs PARETO in editable mode so that developers can make changes and
    push to their fork/branch::
 
-    pip install -e
+    pip install -e .
 
 .. _min_install_hybrid:
 
