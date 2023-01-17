@@ -61,7 +61,7 @@ setup(
         # for the moment mainly for getting solvers with `idaes get-extensions`
         "idaes-pse",
         "requests",
-        "plotly",
+        "plotly==5.11.0",
         "kaleido",
     ],
     extras_require={
