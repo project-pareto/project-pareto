@@ -27,7 +27,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/strategic_water_management/strategic_produced_water_optimization.py": 372,
     "pareto/tests/test_operational_model.py": 15,
     "pareto/utilities/get_data.py": 24,
-    "pareto/utilities/results.py": 157,
+    "pareto/utilities/results.py": 173,
     "pareto/tests/test_strategic_model.py": 50,
     "pareto/tests/test_solvers.py": 31,
     "pareto/tests/test_plot_scatter.py": 8,
