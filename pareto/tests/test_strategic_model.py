@@ -31,7 +31,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCost,
     PipelineCapacity,
 )
-from pareto.utilities.get_data import get_data
+from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
     flatten_list,
     PintUnitExtractionVisitor,
@@ -435,7 +435,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 15834
+    assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -459,7 +459,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 15834
+    assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -483,7 +483,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 15834
+    assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -507,7 +507,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 64194
+    assert degrees_of_freedom(m) == 58737
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -609,7 +609,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
@@ -618,9 +618,9 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 14534
+    assert degrees_of_freedom(m) == 11685
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(32945.11, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(89049.086, abs=1e-1) == pyo.value(m.v_Z)
 
 
 @pytest.mark.component
@@ -636,7 +636,7 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
@@ -646,8 +646,8 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m.quality) == 728
-    assert pytest.approx(7.72, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert degrees_of_freedom(m.quality) == 780
+    assert pytest.approx(4.7832, abs=1e-1) == pyo.value(m.quality.v_X)
 
 
 @pytest.mark.component
@@ -663,7 +663,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
@@ -673,10 +673,103 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 14534
+    assert degrees_of_freedom(m) == 11685
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+@pytest.mark.component
+def test_strategic_model_UI_display_units():
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.case_studies",
+        "small_strategic_case_study.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    input_sheet_names = parameter_list + set_list
+    UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
+    assert UI_display_units

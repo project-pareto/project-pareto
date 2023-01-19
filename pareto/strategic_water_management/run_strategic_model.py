@@ -137,7 +137,7 @@ strategic_model = create_model(
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
-    "scale_model": True,
+    "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,
