@@ -76,7 +76,7 @@ jobs:
           pytest -v
       - name: Run toy case study
         run: |
-          python -m pareto.case_studies.toy_case_study
+          python -m pareto.tests.toy_case_study
       - name: Upload coverage report to Codecov
         if: matrix.cov-report
         uses: codecov/codecov-action@v2
