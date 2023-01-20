@@ -39,6 +39,7 @@ from pareto.utilities.units_support import (
 from importlib import resources
 import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
+from pareto.utilities.results import generate_report, PrintValues, OutputUnits
 
 __author__ = "Pareto Team (Andres Calderon, M. Zamarripa)"
 
@@ -322,6 +323,14 @@ def test_run_strategic_model(build_strategic_model):
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
     assert degrees_of_freedom(m) == 29595
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
 
 
 @pytest.fixture(scope="module")
@@ -649,6 +658,14 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert degrees_of_freedom(m.quality) == 780
     assert pytest.approx(4.7832, abs=1e-1) == pyo.value(m.quality.v_X)
 
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
 
 @pytest.mark.component
 def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
@@ -680,6 +697,14 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
 
 
 @pytest.mark.component
