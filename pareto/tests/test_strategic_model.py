@@ -898,6 +898,28 @@ def build_toy_strategic_model():
     return _call_model_with_config
 
 
+@pytest.mark.unit
+def test_basic_toy_build(build_toy_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert degrees_of_freedom(m) == 4855
+    # Check unit config arguments
+    assert len(m.config) == 6
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_toy_strategic_model(build_toy_strategic_model):
