@@ -61,6 +61,7 @@ Contents
 
     getting_started/index
     model_library/index
+    case_studies/index
     tutorials_examples/index
     utilities/index
     faq
