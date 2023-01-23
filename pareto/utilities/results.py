@@ -19,6 +19,9 @@ from pareto.operational_water_management.operational_produced_water_optimization
     ProdTank,
     WaterQuality,
 )
+from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    PipelineCost,
+)
 from pyomo.environ import Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
@@ -120,6 +123,16 @@ def generate_report(
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
+            "vb_y_overview_dict": [
+                (
+                    "CAPEX Type",
+                    "Location",
+                    "Destination",
+                    "Capacity",
+                    "Unit",
+                    "Technology",
+                )
+            ],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
@@ -382,6 +395,125 @@ def generate_report(
         else:
             reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
+
+        # "vb_y_Treatment"
+        treatment_data = model.vb_y_Treatment._data
+        # get units
+        from_unit_string = model.p_delta_Treatment.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in treatment_data:
+            # add values to output dictionary
+            if (
+                treatment_data[i].value == 1
+                and model.p_delta_Treatment[(i[1], i[2])].value > 0
+            ):
+                capacity = pyunits.convert_value(
+                    model.p_delta_Treatment[(i[1], i[2])].value,
+                    from_units=model.p_delta_Treatment.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Treatment Facility",
+                        i[0],
+                        "--",
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        i[1],
+                    )
+                )
+
+        # vb_y_Disposal
+        disposal_data = model.vb_y_Disposal._data
+        # get units
+        from_unit_string = model.p_delta_Disposal.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in disposal_data:
+            # add values to output dictionary
+            if disposal_data[i].value == 1 and model.p_delta_Disposal[i[1]].value > 0:
+                capacity = pyunits.convert_value(
+                    model.p_delta_Disposal[i[1]].value,
+                    from_units=model.p_delta_Disposal.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Disposal Facility",
+                        i[0],
+                        "--",
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                    )
+                )
+
+        # vb_y_Storage
+        storage_data = model.vb_y_Storage._data
+        # get units
+        from_unit_string = model.p_delta_Storage.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in storage_data:
+            # add values to output dictionary
+            if storage_data[i].value == 1 and model.p_delta_Storage[i[1]].value > 0:
+                capacity = pyunits.convert_value(
+                    model.p_delta_Storage[i[1]].value,
+                    from_units=model.p_delta_Storage.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Storage Facility",
+                        i[0],
+                        "--",
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                    )
+                )
+
+        # vb_y_Pipeline
+        if model.config.pipeline_cost == PipelineCost.distance_based:
+            capacity_variable = model.p_mu_Pipeline
+        elif model.config.pipeline_cost == PipelineCost.capacity_based:
+            capacity_variable = model.p_delta_Pipeline
+        pipeline_data = model.vb_y_Pipeline._data
+        # get units
+        from_unit_string = capacity_variable.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in pipeline_data:
+            # add values to output dictionary only if non-zero capacity is selected
+            if pipeline_data[i].value == 1 and capacity_variable[i[2]].value > 0:
+                capacity = pyunits.convert_value(
+                    capacity_variable[i[2]].value,
+                    from_units=capacity_variable.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Pipeline Construction",
+                        i[0],
+                        i[1],
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                    )
+                )
 
     elif model.type == "operational":
         if len(is_print) == 0:
@@ -778,6 +910,11 @@ def generate_report(
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
                     headers[str(variable.name) + "_dict"].append((*i, var_value))
+
+    # # region Create CAPEX summary (Infrastructure Buildout) tab for strategic model
+    # if "vb_y_overview_dict" in headers:
+    #
+    # # endregion
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")

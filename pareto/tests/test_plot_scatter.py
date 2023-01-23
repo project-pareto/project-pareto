@@ -33,7 +33,7 @@ def input_data_animated_1():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -65,7 +65,7 @@ def input_data_animated_2():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -95,7 +95,7 @@ def input_data_animated_3():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -125,7 +125,7 @@ def input_data_animated_4():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -153,7 +153,7 @@ def input_data_static_1():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -185,7 +185,7 @@ def input_data_static_2():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -215,7 +215,7 @@ def input_data_static_3():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -245,7 +245,7 @@ def input_data_static_4():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -321,7 +321,7 @@ def plot_args5():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     return {
         "plot_title": "Test Data",
@@ -350,7 +350,7 @@ def plot_args5_static():
         "test_plot_scatter_size_static",
     ]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     return {
         "plot_title": "Test Data",
