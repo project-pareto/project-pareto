@@ -135,7 +135,7 @@ def build_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+        "strategic_treatment_demo.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -419,7 +419,7 @@ def build_reduced_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "small_strategic_case_study.xlsx",
+        "strategic_small_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -791,7 +791,7 @@ def test_strategic_model_UI_display_units():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "small_strategic_case_study.xlsx",
+        "strategic_small_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -886,7 +886,7 @@ def build_toy_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "toy_strategic_case_study.xlsx",
+        "strategic_toy_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
