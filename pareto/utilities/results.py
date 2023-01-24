@@ -849,9 +849,12 @@ def generate_report(
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
-        units_true = (
-            model.config.build_units == BuildUnits.scaled_units
-        ) and variable.get_units() is not None
+        if model.type == "operational":
+            units_true = variable.get_units() is not None
+        else:
+            units_true = (
+                model.config.build_units == BuildUnits.scaled_units
+            ) and variable.get_units() is not None
         # If units are used, determine what the display units should be based off user input
         if units_true:
             from_unit_string = variable.get_units().to_string()
