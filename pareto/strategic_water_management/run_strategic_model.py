@@ -133,14 +133,14 @@ strategic_model = create_model(
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
-        "build_units": BuildUnits.user_units,
+        "build_units": BuildUnits.scaled_units,
     },
 )
 
 # Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
-    "scale_model": True,
+    "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 60,
     "gap": 0,

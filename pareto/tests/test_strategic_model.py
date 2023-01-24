@@ -17,7 +17,7 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-from pyomo.environ import Constraint
+from pyomo.environ import Constraint, units
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
@@ -266,6 +266,17 @@ def test_strategic_model_build_units_user_units_consistency(build_strategic_mode
 
     # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
     visitor = PintUnitExtractionVisitor(get_strategic_model_unit_container())
+
+    # Some constraints require a manual form of checking unit consistency
+    constraints_with_unit_adjustment = [
+        m.CompletionsPadStorageBalance,
+        m.StorageSiteBalance,
+        m.TotalTruckingVolume,
+        m.TotalFreshSourcingVolume,
+        m.TotalDisposalVolume,
+        m.TotalReuseVolume,
+    ]
+
     # Iterate through all Constraints
     for c in m.component_objects(Constraint):
         # If indexed, iterate through Constraint indexes
@@ -292,26 +303,71 @@ def test_strategic_model_build_units_user_units_consistency(build_strategic_mode
             flat_list = flatten_list(pint_units)
             flat_list = [x for x in flat_list if x]
 
-            # Compare all units to the first unit. Assess if the unique units are valid.
-            first_unit = flat_list[0]
-            # The decision period will be used to assess if the unit is valid
+            # The decision period will be used to assess if the unit is valid, as will time in decision period and model units
             decision_period_pint_unit = m.decision_period._get_pint_unit()
-            for py_unit in flat_list[1:]:
-                if visitor._equivalent_pint_units(first_unit, py_unit):
-                    break
-                # If the unit is equivalent when multiplying by the decision period,
-                # the unit is consistent
-                elif visitor._equivalent_pint_units(
-                    first_unit * decision_period_pint_unit, py_unit
-                ):
-                    break
-                elif visitor._equivalent_pint_units(
-                    first_unit, py_unit * decision_period_pint_unit
-                ):
-                    break
-                # otherwise, check if consistent with Pyomo's check
-                else:
-                    assert_units_consistent(condata)
+            time_in_decision_period_unit = units.get_units(
+                m.time_in_decision_period
+            )._get_pint_unit()
+            model_units_time = m.model_units["time"]._get_pint_unit()
+
+            if c in constraints_with_unit_adjustment:
+                remove_unit = []
+                # determine first unit, remove time period units (Week, Day) that are associated with "time in decision period"
+                for unit in flat_list:
+                    if visitor._equivalent_pint_units(unit, decision_period_pint_unit):
+                        remove_unit.append(unit)
+                    elif visitor._equivalent_pint_units(
+                        unit, time_in_decision_period_unit
+                    ):
+                        remove_unit.append(unit)
+                    elif visitor._equivalent_pint_units(unit, model_units_time):
+                        remove_unit.append(unit)
+                cleaned_units = [unit for unit in flat_list if unit not in remove_unit]
+
+                first_unit = cleaned_units[0]
+                for py_unit in cleaned_units[1:]:
+                    if visitor._equivalent_pint_units(first_unit, py_unit):
+                        break
+                    # If the unit is equivalent when multiplying by the decision period and time in decision period,
+                    # the unit is consistent
+                    elif visitor._equivalent_pint_units(
+                        first_unit
+                        * decision_period_pint_unit
+                        * time_in_decision_period_unit,
+                        py_unit,
+                    ):
+                        break
+                    elif visitor._equivalent_pint_units(
+                        first_unit,
+                        py_unit
+                        * decision_period_pint_unit
+                        * time_in_decision_period_unit,
+                    ):
+                        break
+                    # otherwise, check if consistent with Pyomo's check
+                    else:
+                        assert_units_consistent(condata)
+
+            else:
+                # Compare all units to the first unit. Assess if the unique units are valid.
+                first_unit = flat_list[0]
+
+                for py_unit in flat_list[1:]:
+                    if visitor._equivalent_pint_units(first_unit, py_unit):
+                        break
+                    # If the unit is equivalent when multiplying by the decision period,
+                    # the unit is consistent
+                    elif visitor._equivalent_pint_units(
+                        first_unit * decision_period_pint_unit, py_unit
+                    ):
+                        break
+                    elif visitor._equivalent_pint_units(
+                        first_unit, py_unit * decision_period_pint_unit
+                    ):
+                        break
+                    # otherwise, check if consistent with Pyomo's check
+                    else:
+                        assert_units_consistent(condata)
 
 
 def test_strategic_model_build_units_scaled_units_consistency(build_strategic_model):
