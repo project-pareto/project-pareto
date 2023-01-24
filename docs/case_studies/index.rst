@@ -176,6 +176,11 @@ Comparison table
      - Discount rate: 8% |br|
        CAPEX lifetime: 20 years
      - N/A
+   * - **Notes**
+     -
+     -
+     - Recommend solving with Gurobi.
+     -
 
 .. [#] In the strategic model, external completions pads can be used to model opportunities for water sharing outside of the main network.
 .. [#] In the strategic model, disposal capacity expansion is only allowed for SWD sites for which the initial disposal capacity is 0.
