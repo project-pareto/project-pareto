@@ -185,7 +185,7 @@ if __name__ == "__main__":
         "InitialDisposalCapacity",
         "TwoIndexColumnParam",
     ]
-    with resources.path("pareto.case_studies", "toy_case_study.xlsx") as fpath:
+    with resources.path("pareto.tests", "toy_case_study.xlsx") as fpath:
         print(f"Reading file from {fpath}")
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 

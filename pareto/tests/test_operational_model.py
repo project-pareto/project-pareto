@@ -27,7 +27,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
     WaterQuality,
     get_operational_model_unit_container,
 )
-from pareto.utilities.get_data import get_data
+from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
     flatten_list,
     PintUnitExtractionVisitor,
@@ -82,7 +82,6 @@ def build_operational_model():
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "TruckingTime",
-        "DisposalPipeCapEx",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
@@ -272,3 +271,63 @@ def test_operational_model_discrete_water_quality_build(build_operational_model)
         is_print=[PrintValues.essential],
         fname="operational_results_test.xlsx",
     )
+
+
+@pytest.mark.component
+def test_operational_model_UI_display_units():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "CompletionsPads",
+        "ProductionTanks",
+        "FreshwaterSources",
+        "StorageSites",
+        "SWDSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+    ]
+    parameter_list = [
+        "Units",
+        "RCA",
+        "FCA",
+        "PCT",
+        "FCT",
+        "CCT",
+        "PKT",
+        "PRT",
+        "CKT",
+        "CRT",
+        "PAL",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "ProductionTankCapacity",
+        "DisposalCapacity",
+        "CompletionsPadStorage",
+        "TreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "TruckingTime",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PadStorageCost",
+        "PipelineOperationalCost",
+        "TruckingHourlyCost",
+        "FreshSourcingCost",
+        "ProductionRates",
+        "TreatmentEfficiency",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+    ]
+
+    with resources.path(
+        "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    input_sheet_names = parameter_list + set_list
+    UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
+    assert UI_display_units

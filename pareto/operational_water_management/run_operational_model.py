@@ -59,7 +59,6 @@ parameter_list = [
     "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
     "TruckingTime",
-    "DisposalPipeCapEx",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
