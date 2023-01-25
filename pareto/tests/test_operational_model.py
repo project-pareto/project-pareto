@@ -96,7 +96,7 @@ def build_operational_model():
     ]
 
     with resources.path(
-        "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+        "pareto.case_studies", "operational_generic_case_study.xlsx"
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
     df_parameters["MinTruckFlow"] = 75
@@ -324,7 +324,7 @@ def test_operational_model_UI_display_units():
     ]
 
     with resources.path(
-        "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+        "pareto.case_studies", "operational_generic_case_study.xlsx"
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
