@@ -20,6 +20,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
     WaterQuality,
 )
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    BuildUnits,
     PipelineCost,
 )
 from pyomo.environ import Var, units as pyunits, value
@@ -847,8 +848,13 @@ def generate_report(
 
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
-        # Not all of our variables have units (binary variables)
-        units_true = variable.get_units() is not None
+        # we may also choose to not convert, additionally not all of our variables have units (binary variables),
+        if model.type == "operational":
+            units_true = variable.get_units() is not None
+        else:
+            units_true = (
+                model.config.build_units == BuildUnits.scaled_units
+            ) and variable.get_units() is not None
         # If units are used, determine what the display units should be based off user input
         if units_true:
             from_unit_string = variable.get_units().to_string()
@@ -869,8 +875,25 @@ def generate_report(
                     + "]"
                 )
                 headers[str(variable.name) + "_dict"][0] = tuple(header)
+
+        elif variable.get_units() is not None:
+            to_unit = variable.get_units()
         else:
             to_unit = None
+        # if variable data is not none and indexed, update headers to display unit
+        if (
+            len(variable._data) > 1
+            and list(variable._data.keys())[0] is not None
+            and to_unit is not None
+        ):
+            header = list(headers[str(variable.name) + "_dict"][0])
+            header[-1] = (
+                headers[str(variable.name) + "_dict"][0][-1]
+                + " ["
+                + to_unit.to_string().replace("oil_bbl", "bbl")
+                + "]"
+            )
+            headers[str(variable.name) + "_dict"][0] = tuple(header)
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
@@ -910,11 +933,6 @@ def generate_report(
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
                     headers[str(variable.name) + "_dict"].append((*i, var_value))
-
-    # # region Create CAPEX summary (Infrastructure Buildout) tab for strategic model
-    # if "vb_y_overview_dict" in headers:
-    #
-    # # endregion
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
