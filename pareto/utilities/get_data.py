@@ -598,7 +598,11 @@ def od_matrix(inputs):
             + destination_index
             + "&annotations=duration,distance"
         )
-        response_json = response.json()
+        if response.ok:
+            # Ensure HTTP Status code is less than 400
+            response_json = response.json()
+        else:
+            raise Warning("Error when requesting data, make sure your coordinates are correct")
 
         df_times = pd.DataFrame(
             index=list(origin.keys()), columns=list(destination.keys())
@@ -662,7 +666,12 @@ def od_matrix(inputs):
         response = requests.post(
             api_url_base + "key=" + api_key, headers=header, json=data
         )
-        response_json = response.json()
+        if response.ok:
+            # Ensure HTTP Status code is less than 400
+            response_json = response.json()
+        else:
+            raise Warning("Error when requesting data, make sure your API key and coordinates"
+                          " are correct")
 
         # Definition of two empty dataframes that will contain drive times and distances.
         # These dataframes wiil be exported to an Excel workbook
