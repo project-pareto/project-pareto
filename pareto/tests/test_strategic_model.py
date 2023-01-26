@@ -17,12 +17,13 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-from pyomo.environ import Constraint
+from pyomo.environ import Constraint, units
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
+    BuildUnits,
     create_model,
     solve_model,
     get_strategic_model_unit_container,
@@ -135,7 +136,7 @@ def build_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+        "strategic_treatment_demo.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -157,11 +158,12 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
             "node_capacity": True,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -180,11 +182,12 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "pipeline_capacity": PipelineCapacity.calculated,
             "node_capacity": True,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -203,11 +206,12 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "pipeline_capacity": PipelineCapacity.input,
             "node_capacity": True,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -226,11 +230,12 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "pipeline_capacity": PipelineCapacity.calculated,
             "node_capacity": True,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -240,7 +245,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
 
 
 @pytest.mark.component
-def test_strategic_model_unit_consistency(build_strategic_model):
+def test_strategic_model_build_units_user_units_consistency(build_strategic_model):
     """
     Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
     This test utilizes assert_units_consistent in addition to a special case test assertion.
@@ -256,6 +261,133 @@ def test_strategic_model_unit_consistency(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "build_units": BuildUnits.user_units,
+        }
+    )
+
+    # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
+    visitor = PintUnitExtractionVisitor(get_strategic_model_unit_container())
+
+    # Some constraints require a manual form of checking unit consistency
+    constraints_with_unit_adjustment = [
+        m.CompletionsPadStorageBalance,
+        m.StorageSiteBalance,
+        m.TotalTruckingVolume,
+        m.TotalFreshSourcingVolume,
+        m.TotalDisposalVolume,
+        m.TotalReuseVolume,
+    ]
+
+    # Iterate through all Constraints
+    for c in m.component_objects(Constraint):
+        # If indexed, iterate through Constraint indexes
+        for index in c:
+            if index is None:
+                condata = c
+
+            elif index is not None:
+                condata = c[index]
+
+            # Obtain lower, upper, and body of constraint
+            args = list()
+            if condata.lower is not None and value(condata.lower) != 0.0:
+                args.append(condata.lower)
+
+            args.append(condata.body)
+
+            if condata.upper is not None and value(condata.upper) != 0.0:
+                args.append(condata.upper)
+            # Use the visitor to extract the units of lower, upper,
+            # and body of our constraint
+            pint_units = [visitor.walk_expression(arg) for arg in args]
+            # The units are in a nested list, flatten the list
+            flat_list = flatten_list(pint_units)
+            flat_list = [x for x in flat_list if x]
+
+            # The decision period will be used to assess if the unit is valid, as will time in decision period and model units
+            decision_period_pint_unit = m.decision_period._get_pint_unit()
+            time_in_decision_period_unit = units.get_units(
+                m.time_in_decision_period
+            )._get_pint_unit()
+            model_units_time = m.model_units["time"]._get_pint_unit()
+
+            if c in constraints_with_unit_adjustment:
+                remove_unit = []
+                # determine first unit, remove time period units (Week, Day) that are associated with "time in decision period"
+                for unit in flat_list:
+                    if visitor._equivalent_pint_units(unit, decision_period_pint_unit):
+                        remove_unit.append(unit)
+                    elif visitor._equivalent_pint_units(
+                        unit, time_in_decision_period_unit
+                    ):
+                        remove_unit.append(unit)
+                    elif visitor._equivalent_pint_units(unit, model_units_time):
+                        remove_unit.append(unit)
+                cleaned_units = [unit for unit in flat_list if unit not in remove_unit]
+
+                first_unit = cleaned_units[0]
+                for py_unit in cleaned_units[1:]:
+                    if visitor._equivalent_pint_units(first_unit, py_unit):
+                        break
+                    # If the unit is equivalent when multiplying by the decision period and time in decision period,
+                    # the unit is consistent
+                    elif visitor._equivalent_pint_units(
+                        first_unit
+                        * decision_period_pint_unit
+                        * time_in_decision_period_unit,
+                        py_unit,
+                    ):
+                        break
+                    elif visitor._equivalent_pint_units(
+                        first_unit,
+                        py_unit
+                        * decision_period_pint_unit
+                        * time_in_decision_period_unit,
+                    ):
+                        break
+                    # otherwise, check if consistent with Pyomo's check
+                    else:
+                        assert_units_consistent(condata)
+
+            else:
+                # Compare all units to the first unit. Assess if the unique units are valid.
+                first_unit = flat_list[0]
+
+                for py_unit in flat_list[1:]:
+                    if visitor._equivalent_pint_units(first_unit, py_unit):
+                        break
+                    # If the unit is equivalent when multiplying by the decision period,
+                    # the unit is consistent
+                    elif visitor._equivalent_pint_units(
+                        first_unit * decision_period_pint_unit, py_unit
+                    ):
+                        break
+                    elif visitor._equivalent_pint_units(
+                        first_unit, py_unit * decision_period_pint_unit
+                    ):
+                        break
+                    # otherwise, check if consistent with Pyomo's check
+                    else:
+                        assert_units_consistent(condata)
+
+
+def test_strategic_model_build_units_scaled_units_consistency(build_strategic_model):
+    """
+    Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
+    This test utilizes assert_units_consistent in addition to a special case test assertion.
+    The need for this special case comes from constraints that are mathematically the same, but are not
+    interpreted as such by Pyomo. An example is the storage balance constraint in time period T:
+    storage at time T [bbl] = flow in [bbl/week] - flow out [bbl/week] + storage at time T-1 [bbl]
+    The time unit of the flow in and flow out rate variables will always be the same as the
+    length of time T that is the decision period, so the units are consistent despite [bbl] and
+    [bbl/day] being inconsistent.
+    """
+    m = build_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+            "build_units": BuildUnits.scaled_units,
         }
     )
 
@@ -317,6 +449,7 @@ def test_run_strategic_model(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     solver = get_solver("cbc")
@@ -419,7 +552,7 @@ def build_reduced_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "small_strategic_case_study.xlsx",
+        "strategic_small_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -442,11 +575,12 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -466,11 +600,12 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -490,11 +625,12 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -514,11 +650,12 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.discrete,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     assert degrees_of_freedom(m) == 58737
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -575,6 +712,7 @@ def test_strategic_model_scaling(build_reduced_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "build_units": BuildUnits.scaled_units,
         }
     )
     scaled_m = scale_model(m, scaling_factor=100000)
@@ -613,6 +751,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
+            "build_units": BuildUnits.scaled_units,
         }
     )
 
@@ -639,6 +778,7 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "build_units": BuildUnits.scaled_units,
             "water_quality": WaterQuality.post_process,
         }
     )
@@ -791,7 +931,7 @@ def test_strategic_model_UI_display_units():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "small_strategic_case_study.xlsx",
+        "strategic_small_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -886,7 +1026,7 @@ def build_toy_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "toy_strategic_case_study.xlsx",
+        "strategic_toy_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -911,7 +1051,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 4855
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)

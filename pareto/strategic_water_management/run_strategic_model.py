@@ -13,6 +13,7 @@
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
+    BuildUnits,
     create_model,
     Objectives,
     solve_model,
@@ -109,7 +110,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+    "strategic_treatment_demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -120,6 +121,7 @@ with resources.path(
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ build_units: [BuildUnits.scaled_units, BuildUnits.user_units]
  """
 
 strategic_model = create_model(
@@ -131,10 +133,10 @@ strategic_model = create_model(
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
+        "build_units": BuildUnits.scaled_units,
     },
 )
 
-# Note: if using the small_strategic_case_study and cbc, allow at least 5 minutes
 options = {
     "deactivate_slacks": True,
     "scale_model": False,
