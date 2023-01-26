@@ -99,7 +99,7 @@ Hybrid
 
 1. Create environment::
 
-    conda create -n pareto-env python=3.8pip --yes
+    conda create -n pareto-env python=3.8 pip --yes
     conda activate pareto-env
 
 2. Download zip files (project-pareto-main)
