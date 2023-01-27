@@ -32,6 +32,7 @@ from plotly.offline import init_notebook_mode, iplot
 
 import contextlib
 import sys
+import numpy as np
 
 
 class FakeIO:
@@ -2440,6 +2441,22 @@ def plot_scatter(input_data, args):
             iplot({"data": fig, "layout": fig.layout})
 
 
+def is_binary_value(value):
+
+    """
+    Verifies that a value is acceptable for a binary variable (0 or 1)
+    """
+    return np.isclose(value, 0.0) or np.isclose(value, 1.0)
+
+
+def is_integer_value(value):
+
+    """
+    Verifies that a value is acceptable for an integer variable
+    """
+    return np.isclose(np.round(value) - value, 0.0)
+
+
 def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
 
     """
@@ -2496,6 +2513,19 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
                 bound_tol,
             )
             return False
+
+        # check for binary requirements
+        if var_obj.is_binary():
+            if not is_binary_value(var_value):
+                print("Variable took a non-binary value", var, var_index, var_value)
+                return False
+
+        # check for integer requirements
+        elif var_obj.is_integer():
+            if not is_integer_value(var_value):
+                print("Variable took a  non-integer value", var, var_index, var_value)
+                return False
+
         return True
 
     def evaluate_constraint(con, con_index=None):
