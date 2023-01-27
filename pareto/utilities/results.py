@@ -13,7 +13,7 @@
 """
 
 
-Authors: PARETO Team 
+Authors: PARETO Team
 """
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
@@ -23,12 +23,31 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     BuildUnits,
     PipelineCost,
 )
-from pyomo.environ import Var, units as pyunits, value
+from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
 from plotly.offline import init_notebook_mode, iplot
+
+import contextlib
+import sys
+
+
+class FakeIO:
+    def write(self, x):
+        pass
+
+
+@contextlib.contextmanager
+def nostdout():
+    """
+    Use to suppress messages from any function
+    """
+    stdout_bck = sys.stdout
+    sys.stdout = FakeIO()
+    yield
+    sys.stdout = stdout_bck
 
 
 class PrintValues(Enum):
@@ -2419,3 +2438,110 @@ def plot_scatter(input_data, args):
             )
         if jupyter_notebook:
             iplot({"data": fig, "layout": fig.layout})
+
+
+def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
+
+    """
+    Verifies the solution contained in a pyomo model object is feasible. This requires iterating
+    through all variables and constraints and ensuring that the constraint and variable bounds are
+    satisfied at the solution present in the model.
+    bound_tol and cons_tol are violation tolerances acceptable for bounds and constraints
+    respectively
+    """
+
+    def is_acceptable(lb, ub, value, tol):
+        """
+        Verifies that a value for a constraint or variable is acceptable subject to the tolerance
+        specified
+        """
+        # No upper or lower bounds exist. All values acceptable
+        if lb is None and ub is None:
+            return True
+
+        # Both upper and lower bounds exist
+        if lb is not None and ub is not None:
+            return (ub + tol) >= value >= (lb - tol)
+
+        # Only lower bound exists
+        if lb is not None:
+            return value >= lb - tol
+
+        # Only upper bound exists
+        return value <= ub + tol
+
+    def evaluate_variable(var, var_index=None):
+        """
+        Evaluate feasibility for a variable
+        """
+        if var_index:
+            var_obj = var[var_index]
+        else:
+            var_obj = var
+
+        lb = var_obj.lb
+        ub = var_obj.ub
+        var_value = var_obj.value
+        if var_value is None:
+            print("No value found for", var, var_index)
+            return False
+        if not is_acceptable(lb, ub, var_value, bound_tol):
+            print(
+                "Variable bounds violated for",
+                var,
+                var_index,
+                var_value,
+                lb,
+                ub,
+                bound_tol,
+            )
+            return False
+        return True
+
+    def evaluate_constraint(con, con_index=None):
+        """
+        Evaluate feasibility for a constraint
+        """
+        if con_index:
+            con_obj = con[con_index]
+        else:
+            con_obj = con
+
+        try:
+            con_value = value(con_obj)
+        except:
+            print("Constraint could not be evaluated", con, con_index)
+            return False
+
+        if con_value is None:
+            print("Constraint evaluation returned None", con, con_index)
+            return False
+
+        lb = con_obj.lb
+        ub = con_obj.ub
+        if not is_acceptable(lb, ub, con_value, cons_tol):
+            print(
+                "Constraint violated for", con, con_index, con_value, lb, ub, cons_tol
+            )
+            return False
+        return True
+
+    for var in model.component_objects(Var):
+        if var.is_indexed():
+            for var_index in var.keys():
+                if not evaluate_variable(var, var_index):
+                    return False
+        else:
+            if not evaluate_variable(var):
+                return False
+
+    for con in model.component_objects(Constraint):
+        if con.is_indexed():
+            for con_index in con.keys():
+                if not evaluate_constraint(con, con_index):
+                    return False
+        else:
+            if not evaluate_constraint(con):
+                return False
+    print("All tests passed!")
+    return True

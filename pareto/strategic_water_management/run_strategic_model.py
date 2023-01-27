@@ -21,7 +21,13 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues, OutputUnits
+from pareto.utilities.results import (
+    generate_report,
+    PrintValues,
+    OutputUnits,
+    is_feasible,
+    nostdout,
+)
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -146,6 +152,14 @@ options = {
 }
 
 solve_model(model=strategic_model, options=options)
+
+with nostdout():
+    feasibility_status = is_feasible(strategic_model)
+
+if not feasibility_status:
+    print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
+else:
+    print("\nModel results validated and found to pass feasibility tests\n" + "-" * 60)
 
 # Generate report with results in Excel
 print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
