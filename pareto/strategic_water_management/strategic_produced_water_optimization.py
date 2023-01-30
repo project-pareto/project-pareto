@@ -107,7 +107,7 @@ CONFIG.declare(
         ***default*** - PipelineCapacity.input
         **Valid Values:** - {
         **PipelineCapacity.input** - use input for pipeline capacity,
-        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters 
+        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters
         }""",
     ),
 )
@@ -7661,8 +7661,16 @@ def solve_model(model, options=None):
         opt = get_solver(options["solver"])
 
     set_timeout(opt, timeout_s=options["running_time"])
-    opt.options["mipgap"] = options["gap"]
-    opt.options["NumericFocus"] = 1
+    if opt.type in ("gurobi_direct", "gurobi"):
+        # Apply Gurobi specific options
+        opt.options["mipgap"] = options["gap"]
+        opt.options["NumericFocus"] = 1
+    elif opt.type in ("cbc"):
+        # Apply CBC specific option
+        opt.options["ratioGap"] = options["gap"]
+
+    else:
+        print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
     if options["deactivate_slacks"] is True:
         model.v_C_Slack.fix(0)
