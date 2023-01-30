@@ -2457,6 +2457,32 @@ def is_integer_value(value):
     return np.isclose(np.round(value) - value, 0.0)
 
 
+def _check_infeasible(obj, val, tol):
+    """
+    NOTE: This method is duplicated from
+    https://github.com/Pyomo/pyomo/blob/e5627620d4cb9e6ff1e5bf29bf32e327eaf2153b/pyomo/util/infeasible.py
+    and should be replaced when made available in a Pyomo release version
+    """
+    if val is None:
+        # Undefined value due to missing variable value or evaluation error
+        return 4
+    # Check for infeasibilities
+    infeasible = 0
+    if obj.has_lb():
+        lb = value(obj.lower, exception=False)
+        if lb is None:
+            infeasible |= 4 | 1
+        elif lb - val > tol:
+            infeasible |= 1
+    if obj.has_ub():
+        ub = value(obj.upper, exception=False)
+        if ub is None:
+            infeasible |= 4 | 2
+        elif val - ub > tol:
+            infeasible |= 2
+    return infeasible
+
+
 def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
 
     """
@@ -2465,113 +2491,44 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
     satisfied at the solution present in the model.
     bound_tol and cons_tol are violation tolerances acceptable for bounds and constraints
     respectively
+
+    NOTE: This method uses
+    https://github.com/Pyomo/pyomo/blob/e5627620d4cb9e6ff1e5bf29bf32e327eaf2153b/pyomo/util/infeasible.py
+    as reference for development. This should be deprecated if/when Pyomo makes available a utility
+    to check for feasibility of a solution.
     """
-
-    def is_acceptable(lb, ub, value, tol):
-        """
-        Verifies that a value for a constraint or variable is acceptable subject to the tolerance
-        specified
-        """
-        # No upper or lower bounds exist. All values acceptable
-        if lb is None and ub is None:
-            return True
-
-        # Both upper and lower bounds exist
-        if lb is not None and ub is not None:
-            return (ub + tol) >= value >= (lb - tol)
-
-        # Only lower bound exists
-        if lb is not None:
-            return value >= lb - tol
-
-        # Only upper bound exists
-        return value <= ub + tol
-
-    def evaluate_variable(var, var_index=None):
-        """
-        Evaluate feasibility for a variable
-        """
-        if var_index:
-            var_obj = var[var_index]
-        else:
-            var_obj = var
-
-        lb = var_obj.lb
-        ub = var_obj.ub
-        var_value = var_obj.value
-        if var_value is None:
-            print("No value found for", var, var_index)
-            return False
-        if not is_acceptable(lb, ub, var_value, bound_tol):
+    for var in model.component_data_objects(ctype=Var, descend_into=True):
+        val = var.value
+        if _check_infeasible(var, val, bound_tol):
             print(
-                "Variable bounds violated for",
+                "Variable violated bounds or no value found",
                 var,
-                var_index,
-                var_value,
-                lb,
-                ub,
-                bound_tol,
+                val,
+                var.lower,
+                var.upper,
             )
-            return False
 
-        # check for binary requirements
-        if var_obj.is_binary():
-            if not is_binary_value(var_value):
-                print("Variable took a non-binary value", var, var_index, var_value)
+        if var.is_binary():
+            if not is_binary_value(val):
+                print("Variable took a non-binary value", var, val)
                 return False
 
         # check for integer requirements
-        elif var_obj.is_integer():
-            if not is_integer_value(var_value):
-                print("Variable took a  non-integer value", var, var_index, var_value)
+        elif var.is_integer():
+            if not is_integer_value(val):
+                print("Variable took a  non-integer value", var, val)
                 return False
 
-        return True
-
-    def evaluate_constraint(con, con_index=None):
-        """
-        Evaluate feasibility for a constraint
-        """
-        if con_index:
-            con_obj = con[con_index]
-        else:
-            con_obj = con
-
-        try:
-            con_value = value(con_obj)
-        except:
-            print("Constraint could not be evaluated", con, con_index)
-            return False
-
-        if con_value is None:
-            print("Constraint evaluation returned None", con, con_index)
-            return False
-
-        lb = con_obj.lb
-        ub = con_obj.ub
-        if not is_acceptable(lb, ub, con_value, cons_tol):
+    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+        body_value = value(con.body, exception=False)
+        if _check_infeasible(con, body_value, cons_tol):
             print(
-                "Constraint violated for", con, con_index, con_value, lb, ub, cons_tol
+                "Constraint not satisfied or no value found",
+                con,
+                body_value,
+                con.lower,
+                con.upper,
             )
             return False
-        return True
-
-    for var in model.component_objects(Var):
-        if var.is_indexed():
-            for var_index in var.keys():
-                if not evaluate_variable(var, var_index):
-                    return False
-        else:
-            if not evaluate_variable(var):
-                return False
-
-    for con in model.component_objects(Constraint):
-        if con.is_indexed():
-            for con_index in con.keys():
-                if not evaluate_constraint(con, con_index):
-                    return False
-        else:
-            if not evaluate_constraint(con):
-                return False
     print("All tests passed!")
     return True
