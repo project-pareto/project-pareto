@@ -18,7 +18,13 @@ from pareto.operational_water_management.operational_produced_water_optimization
     postprocess_water_quality_calculation,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues, OutputUnits
+from pareto.utilities.results import (
+    generate_report,
+    PrintValues,
+    OutputUnits,
+    is_feasible,
+    nostdout,
+)
 from pareto.utilities.solvers import get_solver, set_timeout
 from importlib import resources
 
@@ -103,6 +109,15 @@ set_timeout(opt, timeout_s=60)
 # solve mathematical model
 results = opt.solve(operational_model, tee=True)
 results.write()
+
+with nostdout():
+    feasibility_status = is_feasible(strategic_model)
+
+if not feasibility_status:
+    print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
+else:
+    print("\nModel results validated and found to pass feasibility tests\n" + "-" * 60)
+
 
 if operational_model.config.water_quality is WaterQuality.post_process:
     operational_model = postprocess_water_quality_calculation(
