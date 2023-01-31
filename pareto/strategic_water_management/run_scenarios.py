@@ -16,9 +16,9 @@ import os
 import io
 import logging
 import time
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 
-from pyomo.environ import Var # type: ignore
+from pyomo.environ import Var  # type: ignore
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
     BuildUnits,
@@ -112,15 +112,20 @@ parameter_list = [
 ]
 # pylint: disable=logging-not-lazy
 LOGGER = logging.getLogger(__name__)
-FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-def solve_case(input_file: str, model_options: Dict[str, Any],
-               solver_options: Dict[str, Union[str, int, bool]],
-               output_log: str, output_csv: str):
-    '''
+
+def solve_case(
+    input_file: str,
+    model_options: Dict[str, Any],
+    solver_options: Dict[str, Union[str, int, bool]],
+    output_log: str,
+    output_csv: str,
+):
+    """
     Solve a test case with specific model options and solver options.
     Returns the output log and output csv of the results in the locations specified
-    '''
+    """
 
     if os.path.exists(output_log):
         print("File :%s exists. Please specify different log file" % output_log)
@@ -145,17 +150,19 @@ def solve_case(input_file: str, model_options: Dict[str, Any],
         write_file.write("Passing stderr logs\n")
         write_file.write(stderr.getvalue())
 
-
-    output = [(var, var.value) for var in strategic_model.component_data_objects(ctype=Var,
-                                                                                 descend_into=True)]
+    output = [
+        (var, var.value)
+        for var in strategic_model.component_data_objects(ctype=Var, descend_into=True)
+    ]
 
     pd.DataFrame(output, columns=["Variable", "Value"]).to_csv(output_csv, index=False)
     return
 
+
 def run_tests(test_dict: dict, results: Union[str, None] = None):
-    '''
+    """
     Run multiple tests as specified by test dict
-    '''
+    """
     # If a results folder is not specified create one
     if results is None:
         # Identify test based on when it was run
@@ -171,8 +178,9 @@ def run_tests(test_dict: dict, results: Union[str, None] = None):
 
     print("Writing result files in: %s" % results)
     log_file = os.path.join(results, "test_log.log")
-    logging.basicConfig(filename=log_file, filemode='w', level=logging.INFO,
-                        format=FORMAT)
+    logging.basicConfig(
+        filename=log_file, filemode="w", level=logging.INFO, format=FORMAT
+    )
 
     for test, test_config in test_dict.items():
         LOGGER.info("Running test: %s" % test)
@@ -185,55 +193,69 @@ def run_tests(test_dict: dict, results: Union[str, None] = None):
         LOGGER.info("Finished running test: %s" % test)
     return
 
+
 if __name__ == "__main__":
 
     # Solve for the 5 test instances outlined by Melody
 
     # Base case
-    MODEL_OPTIONS_BASE = {"objective": Objectives.cost,
-                          "pipeline_cost": PipelineCost.distance_based,
-                          "pipeline_capacity": PipelineCapacity.input,
-                          "node_capacity": True,
-                          "water_quality": WaterQuality.false,
-                          "build_units": BuildUnits.scaled_units}
+    MODEL_OPTIONS_BASE = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": True,
+        "water_quality": WaterQuality.false,
+        "build_units": BuildUnits.scaled_units,
+    }
 
     #  Quality considerations for Test 2
-    MODEL_OPTIONS_QUALITY = {"objective": Objectives.cost,
-                             "pipeline_cost": PipelineCost.distance_based,
-                             "pipeline_capacity": PipelineCapacity.input,
-                             "node_capacity": True,
-                             "water_quality": WaterQuality.post_process,
-                             "build_units": BuildUnits.scaled_units}
-
+    MODEL_OPTIONS_QUALITY = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": True,
+        "water_quality": WaterQuality.post_process,
+        "build_units": BuildUnits.scaled_units,
+    }
 
     # Default solver options for all cases
-    SOLVER_OPTIONS_BASE: Dict[str, Union[str, int, bool]] = {"deactivate_slacks": True,
-                                                             "scale_model": False,
-                                                             "scaling_factor": 1000,
-                                                             "running_time": 60,
-                                                             "gap": 0}
+    SOLVER_OPTIONS_BASE: Dict[str, Union[str, int, bool]] = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60,
+        "gap": 0,
+    }
     # Base folder where all tests are located
     BASE_PATH = "/mnt/c/codes/project-pareto/pareto/case_studies/"
-    TESTS = {"Run-1":
-             {"TEST_FILE": os.path.join(BASE_PATH, "strategic_treatment_demo.xlsx"),
-              "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
-              "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE},
-             "Run-2":
-             {"TEST_FILE": os.path.join(BASE_PATH, "strategic_treatment_demo.xlsx"),
-              "MODEL_OPTIONS": MODEL_OPTIONS_QUALITY,
-              "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE},
-             "Run-3":
-             {"TEST_FILE": os.path.join(BASE_PATH,
-                                        "strategic_Feb_stakeholder_simplified_midland.xlsx"),
-              "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
-              "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE},
-             "Run-4":
-             {"TEST_FILE": os.path.join(BASE_PATH, "strategic_toy_case_study.xlsx"),
-              "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
-              "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE},
-             "Run-5":
-             {"TEST_FILE": os.path.join(BASE_PATH, "strategic_small_case_study.xlsx"),
-              "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
-              "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE}}
+    TESTS = {
+        "Run-1": {
+            "TEST_FILE": os.path.join(BASE_PATH, "strategic_treatment_demo.xlsx"),
+            "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
+            "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE,
+        },
+        "Run-2": {
+            "TEST_FILE": os.path.join(BASE_PATH, "strategic_treatment_demo.xlsx"),
+            "MODEL_OPTIONS": MODEL_OPTIONS_QUALITY,
+            "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE,
+        },
+        "Run-3": {
+            "TEST_FILE": os.path.join(
+                BASE_PATH, "strategic_Feb_stakeholder_simplified_midland.xlsx"
+            ),
+            "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
+            "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE,
+        },
+        "Run-4": {
+            "TEST_FILE": os.path.join(BASE_PATH, "strategic_toy_case_study.xlsx"),
+            "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
+            "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE,
+        },
+        "Run-5": {
+            "TEST_FILE": os.path.join(BASE_PATH, "strategic_small_case_study.xlsx"),
+            "MODEL_OPTIONS": MODEL_OPTIONS_BASE,
+            "SOLVER_OPTIONS": SOLVER_OPTIONS_BASE,
+        },
+    }
 
     run_tests(TESTS)
