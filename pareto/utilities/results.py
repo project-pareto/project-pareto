@@ -65,7 +65,11 @@ class OutputUnits(Enum):
 
 
 def generate_report(
-    model, is_print=[], output_units=OutputUnits.user_units, fname=None
+    model,
+    results_obj=None,
+    is_print=[],
+    output_units=OutputUnits.user_units,
+    fname=None,
 ):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
@@ -374,6 +378,7 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
         # Defining KPIs for strategic model
@@ -995,6 +1000,62 @@ def generate_report(
         for report in headers:
             if len(headers[report]) > 1:
                 headers[report].append(("PROPRIETARY DATA",))
+
+    def to_msg(attr):
+        """
+        Convert an attribute to the appropriate string to print in report
+        """
+        # If a Pyomo attribute is undefined, just replace with empty string instead
+        msg = str(attr)
+        if msg == "<undefined>":
+            return ""
+        return msg
+
+    if results_obj is not None:
+        report = "Solver_Stats_dict"
+        headers[report].append(
+            ("Termination Condition", to_msg(results_obj.solver.termination_condition))
+        )
+        headers[report].append(
+            ("Termination Message", to_msg(results_obj.solver.termination_message))
+        )
+        headers[report].append(("Lower Bound", to_msg(results_obj.problem.lower_bound)))
+        headers[report].append(("Upper Bound", to_msg(results_obj.problem.upper_bound)))
+        headers[report].append(
+            ("Number of variables", to_msg(results_obj.problem.number_of_variables))
+        )
+        headers[report].append(
+            ("Number of constraints", to_msg(results_obj.problem.number_of_constraints))
+        )
+        headers[report].append(
+            ("Number of nonzeros", to_msg(results_obj.problem.number_of_nonzeros))
+        )
+        headers[report].append(
+            (
+                "Number of binary variables",
+                to_msg(results_obj.problem.number_of_binary_variables),
+            )
+        )
+        headers[report].append(
+            (
+                "Number of integer variables",
+                to_msg(results_obj.problem.number_of_integer_variables),
+            )
+        )
+        headers[report].append(
+            ("Solver wall clock time", to_msg(results_obj.solver.wallclock_time))
+        )
+        headers[report].append(
+            ("Solver CPU time", to_msg(results_obj.solver.system_time))
+        )
+        headers[report].append(
+            (
+                "Number of nodes",
+                to_msg(
+                    results_obj.solver.statistics.branch_and_bound.number_of_bounded_subproblems
+                ),
+            )
+        )
 
     # Creating the Excel report
     if fname is None:
