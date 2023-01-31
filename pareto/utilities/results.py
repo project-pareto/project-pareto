@@ -2441,20 +2441,20 @@ def plot_scatter(input_data, args):
             iplot({"data": fig, "layout": fig.layout})
 
 
-def is_binary_value(value):
+def is_binary_value(value, tol):
 
     """
     Verifies that a value is acceptable for a binary variable (0 or 1)
     """
-    return np.isclose(value, 0.0) or np.isclose(value, 1.0)
+    return np.isclose(value, 0.0, atol=tol) or np.isclose(value, 1.0, atol=tol)
 
 
-def is_integer_value(value):
+def is_integer_value(value, tol):
 
     """
     Verifies that a value is acceptable for an integer variable
     """
-    return np.isclose(np.round(value) - value, 0.0)
+    return np.isclose(np.round(value) - value, 0.0, atol=tol)
 
 
 def _check_infeasible(obj, val, tol):
@@ -2509,13 +2509,13 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
             )
 
         if var.is_binary():
-            if not is_binary_value(val):
+            if not is_binary_value(val, bound_tol):
                 print("Variable took a non-binary value", var, val)
                 return False
 
         # check for integer requirements
         elif var.is_integer():
-            if not is_integer_value(val):
+            if not is_integer_value(val, bound_tol):
                 print("Variable took a  non-integer value", var, val)
                 return False
 
