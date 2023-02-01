@@ -39,7 +39,12 @@ from pareto.utilities.units_support import (
 from importlib import resources
 import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
-from pareto.utilities.results import generate_report, PrintValues, OutputUnits
+from pareto.utilities.results import (
+    generate_report,
+    PrintValues,
+    OutputUnits,
+    is_feasible,
+)
 
 __author__ = "Pareto Team (Andres Calderon, M. Zamarripa)"
 
