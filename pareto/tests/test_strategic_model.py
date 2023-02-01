@@ -962,3 +962,149 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
     assert pytest.approx(11122.0815, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
+
+
+@pytest.fixture(scope="module")
+def build_permian_demo_strategic_model():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_permian_demo.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            permian_demo_strategic_model = create_model(
+                df_sets, df_parameters, config_dict
+            )
+            return permian_demo_strategic_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_basic_permian_demo_build(build_permian_demo_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_permian_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert degrees_of_freedom(m) == 20955
+    # Check unit config arguments
+    assert len(m.config) == 6
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
+    m = build_permian_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+    solver = get_solver("cbc")
+    solver.options["seconds"] = 60
+    results = solver.solve(m, tee=False)
+    assert degrees_of_freedom(m) == 20955
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )

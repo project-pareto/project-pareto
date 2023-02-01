@@ -4,6 +4,13 @@ Case Studies
 Network schematics
 ------------------
 
+.. figure:: ../img/strategic_permian_demo.png
+    :width: 1000
+    :align: center
+    :alt: Strategic permian demo network schematic
+
+    Strategic Permian demo network.
+
 .. figure:: ../img/strategic_toy_network.png
     :width: 600
     :align: center
@@ -35,11 +42,13 @@ Comparison table
    :header-rows: 1
 
    * -
+     - Strategic model Permian demo
      - Strategic model toy case study
      - Strategic model small case study
      - Strategic model treatment demo
      - Operational model case study
    * - **Input file**
+     - ``strategic_permian_demo.xlsx``
      - ``strategic_toy_case_study.xlsx``
      - ``strategic_small_case_study.xlsx``
      - ``strategic_treatment_demo.xlsx``
@@ -48,8 +57,13 @@ Comparison table
      - Strategic
      - Strategic
      - Strategic
+     - Strategic
      - Operational
    * - **Description**
+     - A representative example of a |br|
+       Permian system. Nearly identical |br|
+       to treatment demo, but with |br|
+       reduced CAPEX options.
      - A very small, toy-sized network. |br|
        Useful for testing and debugging.
      - Larger network, but "small" in the |br|
@@ -71,18 +85,22 @@ Comparison table
      - Week
      - Week
      - Week
+     - Week
      - Day
    * - **Decision horizon**
      - 52 weeks
      - 52 weeks
      - 52 weeks
+     - 52 weeks
      - 5 days
    * - **Network nodes**
+     - 28
      - 9
      - 28
      - 28
      - 0
    * - **Production pads**
+     - 14
      - 4
      - 15
      - 14
@@ -91,43 +109,56 @@ Comparison table
      - N/A
      - N/A
      - N/A
+     - N/A
      - 14
    * - **Completions pads**
+     - 3
      - 1
      - 4
      - 3
      - 1
    * - **External completions pads** [#]_
+     - 1 (CP03)
      - 0
      - 0
      - 1 (CP03)
      - N/A
    * - **Disposal sites (SWD)**
+     - 5
      - 2
      - 3
      - 5
      - 2
    * - **Disposal expansion allowed?** [#]_
+     - Yes, for K03 and K05
      - No
      - No
      - Yes, for K03 and K05
      - No
    * - **Storage sites**
+     - 3
      - 1
      - 2
      - 3
      - 0
    * - **Storage expansion allowed?**
      - Yes
+     - Yes
      - No
      - Yes
      - No
    * - **Completions pad**
      - No
+     - No
      - Yes
      - No
      - Yes
    * - **Treatment sites**
+     - 6 |br|
+       Non-desalination sites: R02, R04, R05 |br|
+       Desalination sites: R01, R03, R06 |br|
+       All sites have zero initial treatment |br|
+       capacity
      - 2 |br|
        Non-desalination site: R02 |br|
        Desalination site: R01 |br|
@@ -145,22 +176,28 @@ Comparison table
      - 2
    * - **Treatment technologies**
      - Non-desalination: CB, CB-EV |br|
+       Desalination: FF
+     - Non-desalination: CB, CB-EV |br|
        Desalination: MVC, MD, OARO
      - Non-desalination: CB
      - Non-desalination: CB, CB-EV |br|
        Desalination: FF, HDH
      - N/A
    * - **Treatment expansion allowed?**
+     - Yes, except for R01
      - Yes
      - Yes (but only one capacity option)
      - Yes
      - No
    * - **Pipeline expansion allowed?**
      - Yes
+     - Yes
      - No
      - Yes
      - No
    * - **Hydraulics settings**
+     - Roughness factor: 110 |br|
+       Head loss: 0.03
      - Roughness factor: 110 |br|
        Head loss: 0.03
      - Roughness factor: 110 |br|
@@ -175,8 +212,12 @@ Comparison table
        CAPEX lifetime: 20 years
      - Discount rate: 8% |br|
        CAPEX lifetime: 20 years
+     - Discount rate: 8% |br|
+       CAPEX lifetime: 20 years
      - N/A
    * - **Notes**
+     - Recommend solving with Gurobi, |br|
+       or with >15min runtime with CBC. |br|
      -
      -
      - Recommend solving with Gurobi.
