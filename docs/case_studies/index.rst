@@ -60,9 +60,10 @@ Comparison table
      - Strategic
      - Operational
    * - **Description**
-     - A representative example of a Permian |br|
-       system. Nearly identical to treatment |br|
-       demo, but with reduced CAPEX options.
+     - A representative example of a |br|
+       Permian system. Nearly identical |br|
+       to treatment demo, but with |br|
+       reduced CAPEX options.
      - A very small, toy-sized network. |br|
        Useful for testing and debugging.
      - Larger network, but "small" in the |br|
@@ -153,9 +154,9 @@ Comparison table
      - No
      - Yes
    * - **Treatment sites**
-     - 5 |br|
+     - 6 |br|
        Non-desalination sites: R02, R04, R05 |br|
-       Desalination sites: R03, R06 |br|
+       Desalination sites: R01, R03, R06 |br|
        All sites have zero initial treatment |br|
        capacity
      - 2 |br|
@@ -183,7 +184,7 @@ Comparison table
        Desalination: FF, HDH
      - N/A
    * - **Treatment expansion allowed?**
-     - Yes
+     - Yes, except for R01
      - Yes
      - Yes (but only one capacity option)
      - Yes
@@ -215,8 +216,8 @@ Comparison table
        CAPEX lifetime: 20 years
      - N/A
    * - **Notes**
-     - Recommend solving with Gurobi, or with >15min |br|
-       runtime with CBC.
+     - Recommend solving with Gurobi, |br|
+       or with >15min runtime with CBC. |br|
      -
      -
      - Recommend solving with Gurobi.
