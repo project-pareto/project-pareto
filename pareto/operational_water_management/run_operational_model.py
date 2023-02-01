@@ -111,7 +111,7 @@ results = opt.solve(operational_model, tee=True)
 results.write()
 
 with nostdout():
-    feasibility_status = is_feasible(strategic_model)
+    feasibility_status = is_feasible(operational_model)
 
 if not feasibility_status:
     print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
