@@ -13,7 +13,7 @@
 """
 
 
-Authors: PARETO Team 
+Authors: PARETO Team
 """
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
@@ -22,12 +22,32 @@ from pareto.operational_water_management.operational_produced_water_optimization
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
 )
-from pyomo.environ import Var, units as pyunits, value
+from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
 from plotly.offline import init_notebook_mode, iplot
+
+import contextlib
+import sys
+import numpy as np
+
+
+class FakeIO:
+    def write(self, x):
+        pass
+
+
+@contextlib.contextmanager
+def nostdout():
+    """
+    Use to suppress messages from any function
+    """
+    stdout_bck = sys.stdout
+    sys.stdout = FakeIO()
+    yield
+    sys.stdout = stdout_bck
 
 
 class PrintValues(Enum):
@@ -44,7 +64,11 @@ class OutputUnits(Enum):
 
 
 def generate_report(
-    model, is_print=[], output_units=OutputUnits.user_units, fname=None
+    model,
+    results_obj=None,
+    is_print=[],
+    output_units=OutputUnits.user_units,
+    fname=None,
 ):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
@@ -353,6 +377,7 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
         # Defining KPIs for strategic model
@@ -986,6 +1011,62 @@ def generate_report(
         for report in headers:
             if len(headers[report]) > 1:
                 headers[report].append(("PROPRIETARY DATA",))
+
+    def to_msg(attr):
+        """
+        Convert an attribute to the appropriate string to print in report
+        """
+        # If a Pyomo attribute is undefined, just replace with empty string instead
+        msg = str(attr)
+        if msg == "<undefined>":
+            return ""
+        return msg
+
+    if results_obj is not None:
+        report = "Solver_Stats_dict"
+        headers[report].append(
+            ("Termination Condition", to_msg(results_obj.solver.termination_condition))
+        )
+        headers[report].append(
+            ("Termination Message", to_msg(results_obj.solver.termination_message))
+        )
+        headers[report].append(("Lower Bound", to_msg(results_obj.problem.lower_bound)))
+        headers[report].append(("Upper Bound", to_msg(results_obj.problem.upper_bound)))
+        headers[report].append(
+            ("Number of variables", to_msg(results_obj.problem.number_of_variables))
+        )
+        headers[report].append(
+            ("Number of constraints", to_msg(results_obj.problem.number_of_constraints))
+        )
+        headers[report].append(
+            ("Number of nonzeros", to_msg(results_obj.problem.number_of_nonzeros))
+        )
+        headers[report].append(
+            (
+                "Number of binary variables",
+                to_msg(results_obj.problem.number_of_binary_variables),
+            )
+        )
+        headers[report].append(
+            (
+                "Number of integer variables",
+                to_msg(results_obj.problem.number_of_integer_variables),
+            )
+        )
+        headers[report].append(
+            ("Solver wall clock time", to_msg(results_obj.solver.wallclock_time))
+        )
+        headers[report].append(
+            ("Solver CPU time", to_msg(results_obj.solver.system_time))
+        )
+        headers[report].append(
+            (
+                "Number of nodes",
+                to_msg(
+                    results_obj.solver.statistics.branch_and_bound.number_of_bounded_subproblems
+                ),
+            )
+        )
 
     # Creating the Excel report
     if fname is None:
@@ -2430,3 +2511,96 @@ def plot_scatter(input_data, args):
             )
         if jupyter_notebook:
             iplot({"data": fig, "layout": fig.layout})
+
+
+def is_binary_value(value, tol):
+
+    """
+    Verifies that a value is acceptable for a binary variable (0 or 1)
+    """
+    return np.isclose(value, 0.0, atol=tol) or np.isclose(value, 1.0, atol=tol)
+
+
+def is_integer_value(value, tol):
+
+    """
+    Verifies that a value is acceptable for an integer variable
+    """
+    return np.isclose(np.round(value) - value, 0.0, atol=tol)
+
+
+def _check_infeasible(obj, val, tol):
+    """
+    NOTE: This method is duplicated from
+    https://github.com/Pyomo/pyomo/blob/e5627620d4cb9e6ff1e5bf29bf32e327eaf2153b/pyomo/util/infeasible.py
+    and should be replaced when made available in a Pyomo release version
+    """
+    if val is None:
+        # Undefined value due to missing variable value or evaluation error
+        return 4
+    # Check for infeasibilities
+    infeasible = 0
+    if obj.has_lb():
+        lb = value(obj.lower, exception=False)
+        if lb is None:
+            infeasible |= 4 | 1
+        elif lb - val > tol:
+            infeasible |= 1
+    if obj.has_ub():
+        ub = value(obj.upper, exception=False)
+        if ub is None:
+            infeasible |= 4 | 2
+        elif val - ub > tol:
+            infeasible |= 2
+    return infeasible
+
+
+def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
+
+    """
+    Verifies the solution contained in a pyomo model object is feasible. This requires iterating
+    through all variables and constraints and ensuring that the constraint and variable bounds are
+    satisfied at the solution present in the model.
+    bound_tol and cons_tol are violation tolerances acceptable for bounds and constraints
+    respectively
+
+    NOTE: This method uses
+    https://github.com/Pyomo/pyomo/blob/e5627620d4cb9e6ff1e5bf29bf32e327eaf2153b/pyomo/util/infeasible.py
+    as reference for development. This should be deprecated if/when Pyomo makes available a utility
+    to check for feasibility of a solution.
+    """
+    for var in model.component_data_objects(ctype=Var, descend_into=True):
+        val = var.value
+        if _check_infeasible(var, val, bound_tol):
+            print(
+                "Variable violated bounds or no value found",
+                var,
+                val,
+                var.lower,
+                var.upper,
+            )
+
+        if var.is_binary():
+            if not is_binary_value(val, bound_tol):
+                print("Variable took a non-binary value", var, val)
+                return False
+
+        # check for integer requirements
+        elif var.is_integer():
+            if not is_integer_value(val, bound_tol):
+                print("Variable took a  non-integer value", var, val)
+                return False
+
+    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+        body_value = value(con.body, exception=False)
+        if _check_infeasible(con, body_value, cons_tol):
+            print(
+                "Constraint not satisfied or no value found",
+                con,
+                body_value,
+                con.lower,
+                con.upper,
+            )
+            return False
+    print("All tests passed!")
+    return True
