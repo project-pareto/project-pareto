@@ -771,6 +771,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     assert pytest.approx(89049.086, abs=1e-1) == pyo.value(m.v_Z)
     assert is_feasible(m)
 
+
 @pytest.mark.component
 def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     m = build_reduced_strategic_model(
