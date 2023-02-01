@@ -68,11 +68,6 @@ class WaterQuality(Enum):
     discrete = 2
 
 
-class BuildUnits(Enum):
-    user_units = 0
-    scaled_units = 1
-
-
 # create config dictionary
 CONFIG = ConfigBlock()
 CONFIG.declare(
@@ -107,7 +102,7 @@ CONFIG.declare(
         ***default*** - PipelineCapacity.input
         **Valid Values:** - {
         **PipelineCapacity.input** - use input for pipeline capacity,
-        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters 
+        **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters
         }""",
     ),
 )
@@ -158,21 +153,6 @@ CONFIG.declare(
         **WaterQuality.False** - Exclude water quality from model,
         **WaterQuality.post_process** - Include water quality as post process
         **WaterQuality.discrete** - Include water quality as discrete values in model
-        }""",
-    ),
-)
-
-CONFIG.declare(
-    "build_units",
-    ConfigValue(
-        default=BuildUnits.scaled_units,
-        domain=In(BuildUnits),
-        description="Build Units",
-        doc="""Selection to decide units the model is built and solved in
-        ***default*** - BuildUnits.scaled_units
-        **Valid Values:** - {
-        **BuildUnits.scaled_units** - Scaled Units (e.g kbbl/week),
-        **BuildUnits.user_units** - Same units as user input, no results conversion needed
         }""",
     ),
 )
@@ -248,51 +228,32 @@ def create_model(df_sets, df_parameters, default={}):
         model.user_units["currency"] / model.user_units["volume_time"]
     )
 
-    if model.config.build_units is BuildUnits.user_units:
-        model.model_units = model.user_units
-        model.time_in_decision_period = (
-            model.decision_period / model.model_units["time"]
-        )
-        # Convert to unitless
-        model.time_in_decision_period = pyunits.convert(
-            model.time_in_decision_period,
-            to_units=model.model_units["time"] / model.model_units["time"],
-        )
-        # Append correct units
-        model.time_in_decision_period = model.time_in_decision_period * (
-            model.model_units["time"] / model.decision_period
-        )
-
-    elif model.config.build_units is BuildUnits.scaled_units:
-        model.model_units = {
-            "volume": pyunits.koil_bbl,
-            "distance": pyunits.mile,
-            "diameter": pyunits.inch,
-            "concentration": pyunits.kg / pyunits.liter,
-            "currency": pyunits.kUSD,
-            "time": model.decision_period,
-        }
-        model.time_in_decision_period = (
-            1  # decision period and time are the same with scaled units
-        )
-        model.model_units["volume_time"] = (
-            model.model_units["volume"] / model.decision_period
-        )
-        model.model_units["currency_time"] = (
-            model.model_units["currency"] / model.decision_period
-        )
-        model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
-            model.model_units["diameter"] * model.model_units["distance"]
-        )
-        model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
-            model.model_units["volume"] / model.decision_period
-        )
-        model.model_units["currency_volume"] = (
-            model.model_units["currency"] / model.model_units["volume"]
-        )
-        model.model_units["currency_volume_time"] = (
-            model.model_units["currency"] / model.model_units["volume_time"]
-        )
+    model.model_units = {
+        "volume": pyunits.koil_bbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.kg / pyunits.liter,
+        "currency": pyunits.kUSD,
+        "time": model.decision_period,
+    }
+    model.model_units["volume_time"] = (
+        model.model_units["volume"] / model.decision_period
+    )
+    model.model_units["currency_time"] = (
+        model.model_units["currency"] / model.decision_period
+    )
+    model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
+        model.model_units["diameter"] * model.model_units["distance"]
+    )
+    model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
+        model.model_units["volume"] / model.decision_period
+    )
+    model.model_units["currency_volume"] = (
+        model.model_units["currency"] / model.model_units["volume"]
+    )
+    model.model_units["currency_volume_time"] = (
+        model.model_units["currency"] / model.model_units["volume_time"]
+    )
 
     # Units that are most helpful for troubleshooting
     model.unscaled_model_display_units = {
@@ -2087,15 +2048,11 @@ def create_model(df_sets, df_parameters, default={}):
         if t == model.s_T.first():
             constraint = model.v_L_PadStorage[p, t] == model.p_lambda_PadStorage[p] + (
                 (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
-                * model.time_in_decision_period
             )
         else:
             constraint = model.v_L_PadStorage[p, t] == model.v_L_PadStorage[
                 p, model.s_T.prev(t)
-            ] + (
-                (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
-                * model.time_in_decision_period
-            )
+            ] + ((model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t]))
 
         return process_constraint(constraint)
 
@@ -2613,108 +2570,52 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
-            constraint = (
-                model.v_L_Storage[s, t]
-                == model.p_lambda_Storage[s]
-                + (
-                    sum(
-                        model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-                    )
-                    + sum(
-                        model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
-                    )
-                    + sum(
-                        model.v_F_Trucked[p, s, t]
-                        for p in model.s_PP
-                        if model.p_PST[p, s]
-                    )
-                    + sum(
-                        model.v_F_Trucked[p, s, t]
-                        for p in model.s_CP
-                        if model.p_CST[p, s]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, p, t]
-                        for p in model.s_CP
-                        if model.p_SCA[s, p]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-                    )
-                    - sum(
-                        model.v_F_Trucked[s, p, t]
-                        for p in model.s_CP
-                        if model.p_SCT[s, p]
-                    )
-                    - sum(
-                        model.v_F_Trucked[s, k, t]
-                        for k in model.s_K
-                        if model.p_SKT[s, k]
-                    )
-                    - model.v_F_StorageEvaporationStream[s, t]
+            constraint = model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + (
+                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
                 )
-                * model.time_in_decision_period
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                )
+                - sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
+                - sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
+                - sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
+                - sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
+                - sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
+                - sum(
+                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                )
+                - sum(
+                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                )
+                - model.v_F_StorageEvaporationStream[s, t]
             )
         else:
-            constraint = (
-                model.v_L_Storage[s, t]
-                == model.v_L_Storage[s, model.s_T.prev(t)]
-                + (
-                    sum(
-                        model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-                    )
-                    + sum(
-                        model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s]
-                    )
-                    + sum(
-                        model.v_F_Trucked[p, s, t]
-                        for p in model.s_PP
-                        if model.p_PST[p, s]
-                    )
-                    + sum(
-                        model.v_F_Trucked[p, s, t]
-                        for p in model.s_CP
-                        if model.p_CST[p, s]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, p, t]
-                        for p in model.s_CP
-                        if model.p_SCA[s, p]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-                    )
-                    - sum(
-                        model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-                    )
-                    - sum(
-                        model.v_F_Trucked[s, p, t]
-                        for p in model.s_CP
-                        if model.p_SCT[s, p]
-                    )
-                    - sum(
-                        model.v_F_Trucked[s, k, t]
-                        for k in model.s_K
-                        if model.p_SKT[s, k]
-                    )
-                    - model.v_F_StorageEvaporationStream[s, t]
+            constraint = model.v_L_Storage[s, t] == model.v_L_Storage[
+                s, model.s_T.prev(t)
+            ] + (
+                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
+                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
                 )
-                * model.time_in_decision_period
+                + sum(
+                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                )
+                - sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
+                - sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
+                - sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
+                - sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
+                - sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
+                - sum(
+                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                )
+                - sum(
+                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                )
+                - model.v_F_StorageEvaporationStream[s, t]
             )
 
         return process_constraint(constraint)
@@ -3498,7 +3399,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalFreshSourcingVolumeRule(model):
-        constraint = model.v_F_TotalSourced == model.time_in_decision_period * (
+        constraint = model.v_F_TotalSourced == (
             sum(
                 sum(
                     sum(
@@ -3569,7 +3470,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalDisposalVolumeRule(model):
-        constraint = model.v_F_TotalDisposed == model.time_in_decision_period * sum(
+        constraint = model.v_F_TotalDisposed == sum(
             sum(model.v_F_DisposalDestination[k, t] for k in model.s_K)
             for t in model.s_T
         )
@@ -3695,7 +3596,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalReuseVolumeRule(model):
-        constraint = model.v_F_TotalReused == model.time_in_decision_period * (
+        constraint = model.v_F_TotalReused == (
             sum(
                 sum(
                     sum(
@@ -4424,7 +4325,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalTruckingVolumeRule(model):
-        constraint = model.v_F_TotalTrucked == model.time_in_decision_period * (
+        constraint = model.v_F_TotalTrucked == (
             sum(
                 sum(
                     sum(
@@ -7661,8 +7562,16 @@ def solve_model(model, options=None):
         opt = get_solver(options["solver"])
 
     set_timeout(opt, timeout_s=options["running_time"])
-    opt.options["mipgap"] = options["gap"]
-    opt.options["NumericFocus"] = 1
+    if opt.type in ("gurobi_direct", "gurobi"):
+        # Apply Gurobi specific options
+        opt.options["mipgap"] = options["gap"]
+        opt.options["NumericFocus"] = 1
+    elif opt.type in ("cbc"):
+        # Apply CBC specific option
+        opt.options["ratioGap"] = options["gap"]
+
+    else:
+        print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
     if options["deactivate_slacks"] is True:
         model.v_C_Slack.fix(0)
