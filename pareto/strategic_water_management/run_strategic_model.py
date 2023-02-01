@@ -109,7 +109,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "strategic_Feb_stakeholder_simplified_midland.xlsx",
+    "strategic_treatment_demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 

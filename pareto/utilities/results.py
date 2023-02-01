@@ -396,6 +396,10 @@ def generate_report(
             reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
 
+        # Infrastructure buildout table
+
+        # Due to tolerances, binaries may not exactly equal 1
+        binary_epsilon = 0.005
         # "vb_y_Treatment"
         treatment_data = model.vb_y_Treatment._data
         # get units
@@ -408,7 +412,8 @@ def generate_report(
         for i in treatment_data:
             # add values to output dictionary
             if (
-                treatment_data[i].value == 1
+                treatment_data[i].value >= 1 - binary_epsilon
+                and treatment_data[i].value <= 1 + binary_epsilon
                 and model.p_delta_Treatment[(i[1], i[2])].value > 0
             ):
                 capacity = pyunits.convert_value(
@@ -438,7 +443,11 @@ def generate_report(
             to_unit = model.model_to_user_units[from_unit_string]
         for i in disposal_data:
             # add values to output dictionary
-            if disposal_data[i].value == 1 and model.p_delta_Disposal[i[1]].value > 0:
+            if (
+                disposal_data[i].value >= 1 - binary_epsilon
+                and disposal_data[i].value <= 1 + binary_epsilon
+                and model.p_delta_Disposal[i[1]].value > 0
+            ):
                 capacity = pyunits.convert_value(
                     model.p_delta_Disposal[i[1]].value,
                     from_units=model.p_delta_Disposal.get_units(),
@@ -466,7 +475,11 @@ def generate_report(
             to_unit = model.model_to_user_units[from_unit_string]
         for i in storage_data:
             # add values to output dictionary
-            if storage_data[i].value == 1 and model.p_delta_Storage[i[1]].value > 0:
+            if (
+                storage_data[i].value >= 1 - binary_epsilon
+                and storage_data[i].value <= 1 + binary_epsilon
+                and model.p_delta_Storage[i[1]].value > 0
+            ):
                 capacity = pyunits.convert_value(
                     model.p_delta_Storage[i[1]].value,
                     from_units=model.p_delta_Storage.get_units(),
@@ -498,7 +511,11 @@ def generate_report(
             to_unit = model.model_to_user_units[from_unit_string]
         for i in pipeline_data:
             # add values to output dictionary only if non-zero capacity is selected
-            if pipeline_data[i].value == 1 and capacity_variable[i[2]].value > 0:
+            if (
+                pipeline_data[i].value >= 1 - binary_epsilon
+                and pipeline_data[i].value <= 1 + binary_epsilon
+                and capacity_variable[i[2]].value > 0
+            ):
                 capacity = pyunits.convert_value(
                     capacity_variable[i[2]].value,
                     from_units=capacity_variable.get_units(),
