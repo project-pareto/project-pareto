@@ -44,6 +44,7 @@ from pareto.utilities.results import (
     PrintValues,
     OutputUnits,
     is_feasible,
+    nostdout,
 )
 
 __author__ = "Pareto Team (Andres Calderon, M. Zamarripa)"
@@ -331,6 +332,7 @@ def test_run_strategic_model(build_strategic_model):
     # Test report building
     [model, results_dict] = generate_report(
         m,
+        results,
         is_print=[PrintValues.essential],
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
@@ -634,7 +636,8 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     assert degrees_of_freedom(m) == 11685
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(89049.086, abs=1e-1) == pyo.value(m.v_Z)
-    assert is_feasible(m)
+    with nostdout():
+        assert is_feasible(m)
 
 
 @pytest.mark.component
@@ -662,11 +665,13 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     # solutions obtained from running the reduced generic case study water quality
     assert degrees_of_freedom(m.quality) == 780
     assert pytest.approx(4.7832, abs=1e-1) == pyo.value(m.quality.v_X)
-    assert is_feasible(m)
+    with nostdout():
+        assert is_feasible(m)
 
     # Test report building
     [model, results_dict] = generate_report(
         m,
+        results,
         is_print=[PrintValues.essential],
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
@@ -703,11 +708,13 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
-    assert is_feasible(m)
+    with nostdout():
+        assert is_feasible(m)
 
     # Test report building
     [model, results_dict] = generate_report(
         m,
+        results,
         is_print=[PrintValues.essential],
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
@@ -953,4 +960,5 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 4506
     assert pytest.approx(11122.0815, abs=1e-1) == pyo.value(m.v_Z)
-    assert is_feasible(m)
+    with nostdout():
+        assert is_feasible(m)
