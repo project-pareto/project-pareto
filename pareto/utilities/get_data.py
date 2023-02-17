@@ -379,6 +379,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "StorageCapacityIncrements": user_units["volume"],
         "TreatmentCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
         "TreatmentEfficiency": "%",
+        "RemovalEfficiency": "%",
         "DisposalExpansionCost": user_units["currency"]
         + "/("
         + user_units["volume"]
