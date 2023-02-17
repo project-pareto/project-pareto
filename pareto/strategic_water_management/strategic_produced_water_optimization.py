@@ -1351,7 +1351,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment efficiency [%]",
     )
 
-
     model.p_epsilon_Treatment_Removal = Param(
         model.s_R,
         model.s_WT,
@@ -3299,9 +3298,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TreatmentBalanceRule(model, r, t):
-        constraint = (
-            model.v_F_TreatmentFeed[r, t]
-        ) == model.v_F_ResidualWater[r, t] + model.v_F_TreatedWater[r, t]
+        constraint = (model.v_F_TreatmentFeed[r, t]) == model.v_F_ResidualWater[
+            r, t
+        ] + model.v_F_TreatedWater[r, t]
         return process_constraint(constraint)
 
     model.TreatmentBalance = Constraint(
@@ -3312,11 +3311,12 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ResidualWaterLHSRule(model, r, wt, t):
-        constraint = model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt]) - model.p_M_Flow * (
-            1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-        ) <= model.v_F_ResidualWater[
-            r, t
-        ]
+        constraint = (
+            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
+            - model.p_M_Flow
+            * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
+            <= model.v_F_ResidualWater[r, t]
+        )
         return process_constraint(constraint)
 
     model.ResidualWaterLHS = Constraint(
@@ -3328,11 +3328,12 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ResidualWaterRHSRule(model, r, wt, t):
-        constraint = model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt]) + model.p_M_Flow * (
-            1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-        ) >= model.v_F_ResidualWater[
-            r, t
-        ]
+        constraint = (
+            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
+            + model.p_M_Flow
+            * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
+            >= model.v_F_ResidualWater[r, t]
+        )
         return process_constraint(constraint)
 
     model.ResidualWaterRHS = Constraint(
@@ -3522,7 +3523,11 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.TreatmentCostLHS = Constraint(
-        model.s_R, model.s_WT, model.s_T, rule=TreatmentCostLHSRule, doc="Treatment cost"
+        model.s_R,
+        model.s_WT,
+        model.s_T,
+        rule=TreatmentCostLHSRule,
+        doc="Treatment cost",
     )
 
     def TreatmentCostRHSRule(model, r, wt, t):
@@ -3545,7 +3550,11 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.TreatmentCostRHS = Constraint(
-        model.s_R, model.s_WT, model.s_T, rule=TreatmentCostRHSRule, doc="Treatment cost"
+        model.s_R,
+        model.s_WT,
+        model.s_T,
+        rule=TreatmentCostRHSRule,
+        doc="Treatment cost",
     )
 
     def TotalTreatmentCostRule(model):
@@ -4787,7 +4796,8 @@ def create_model(df_sets, df_parameters, default={}):
     def LogicConstraintTreatmentRule(model, r):
         constraint = (
             sum(
-                sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J) for wt in model.s_WT
+                sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                for wt in model.s_WT
             )
             == 1
         )
@@ -5428,8 +5438,8 @@ def water_quality(model):
                 for n in b.parent_block().s_N
                 if b.parent_block().p_NSA[n, s]
             ) + sum(
-                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[
-            r + treated_water_label, qc, t]
+                b.parent_block().v_F_Piped[r, s, t]
+                * b.v_Q[r + treated_water_label, qc, t]
                 for r in b.parent_block().s_R
                 if b.parent_block().p_RSA[r, s]
             ) + sum(
@@ -5489,8 +5499,8 @@ def water_quality(model):
                 for n in b.parent_block().s_N
                 if b.parent_block().p_NSA[n, s]
             ) + sum(
-                b.parent_block().v_F_Piped[r, s, t] * b.v_Q[
-            r + treated_water_label, qc, t]
+                b.parent_block().v_F_Piped[r, s, t]
+                * b.v_Q[r + treated_water_label, qc, t]
                 for r in b.parent_block().s_R
                 if b.parent_block().p_RSA[r, s]
             ) + sum(
@@ -5573,11 +5583,11 @@ def water_quality(model):
             )
             + sum(
                 b.parent_block().v_F_Trucked[p, r, t] * b.p_nu_pad[p, qc]
-                for p in b.parent_block().s_CP 
+                for p in b.parent_block().s_CP
                 if b.parent_block().p_CRT[p, r]
             )
-        ) == b.v_Q[r, qc, t] * b.parent_block().v_F_TreatmentFeed[r,t]
-        
+        ) == b.v_Q[r, qc, t] * b.parent_block().v_F_TreatmentFeed[r, t]
+
         return process_constraint(constraint)
 
     model.quality.TreatmentFeedWaterQuality = Constraint(
@@ -5589,12 +5599,14 @@ def water_quality(model):
     )
 
     def TreatmentWaterQualityRule(b, r, qc, t):
-        constraint = b.v_Q[r, qc, t] * b.parent_block().v_F_TreatmentFeed[r,t] == b.v_Q[
-            r + treated_water_label, qc, t
-        ] * b.parent_block().v_F_TreatedWater[r, t] + b.v_Q[
-            r + residual_water_label, qc, t
-        ] * b.parent_block().v_F_ResidualWater[r, t]
-        
+        constraint = (
+            b.v_Q[r, qc, t] * b.parent_block().v_F_TreatmentFeed[r, t]
+            == b.v_Q[r + treated_water_label, qc, t]
+            * b.parent_block().v_F_TreatedWater[r, t]
+            + b.v_Q[r + residual_water_label, qc, t]
+            * b.parent_block().v_F_ResidualWater[r, t]
+        )
+
         return process_constraint(constraint)
 
     model.quality.TreatmentWaterQuality = Constraint(
@@ -5606,11 +5618,22 @@ def water_quality(model):
     )
 
     def TreatedWaterQualityLHSRule(b, r, wt, qc, t):
-        constraint = b.v_Q[r, qc, t] * b.parent_block().v_F_TreatmentFeed[r,t] * (1-b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc]) + b.parent_block().p_M_Flow * (
-            1 - sum(b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J) ) >= b.v_Q[
-            r + treated_water_label, qc, t
-        ] * b.parent_block().v_F_TreatedWater[r, t]
-        
+        constraint = (
+            b.v_Q[r, qc, t]
+            * b.parent_block().v_F_TreatmentFeed[r, t]
+            * (1 - b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc])
+            + b.parent_block().p_M_Flow
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
+            >= b.v_Q[r + treated_water_label, qc, t]
+            * b.parent_block().v_F_TreatedWater[r, t]
+        )
+
         return process_constraint(constraint)
 
     model.quality.TreatmentWaterQualityLHS = Constraint(
@@ -5623,11 +5646,22 @@ def water_quality(model):
     )
 
     def TreatedWaterQualityRHSRule(b, r, wt, qc, t):
-        constraint = b.v_Q[r, qc, t] * b.parent_block().v_F_TreatmentFeed[r,t] * (1-b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc]) - b.parent_block().p_M_Flow * (
-            1 - sum(b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J) ) <= b.v_Q[
-            r + treated_water_label, qc, t
-        ] * b.parent_block().v_F_TreatedWater[r, t]
-        
+        constraint = (
+            b.v_Q[r, qc, t]
+            * b.parent_block().v_F_TreatmentFeed[r, t]
+            * (1 - b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc])
+            - b.parent_block().p_M_Flow
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
+            <= b.v_Q[r + treated_water_label, qc, t]
+            * b.parent_block().v_F_TreatedWater[r, t]
+        )
+
         return process_constraint(constraint)
 
     model.quality.TreatmentWaterQualityRHS = Constraint(
@@ -5639,8 +5673,6 @@ def water_quality(model):
         doc="Treatment water quality",
     )
 
-
-   
     # endregion
 
     # region Network
@@ -5768,8 +5800,7 @@ def water_quality(model):
             for p_tilde in b.parent_block().s_CP
             if b.parent_block().p_CCA[p_tilde, p]
         ) + sum(
-            b.parent_block().v_F_Piped[r, p, t] * b.v_Q[
-            r + treated_water_label, qc, t]
+            b.parent_block().v_F_Piped[r, p, t] * b.v_Q[r + treated_water_label, qc, t]
             for r in b.parent_block().s_R
             if b.parent_block().p_RCA[r, p]
         ) + sum(
@@ -5829,9 +5860,11 @@ def water_quality(model):
     # region Completion Pad Storage
     def CompletionsPadStorageWaterQuality(b, p, qc, t):
         if t == b.parent_block().s_T.first():
-            constraint = b.p_xi_PadStorage[p, qc] * b.parent_block().p_lambda_PadStorage[
-                p
-            ] + b.v_Q[p + intermediate_label, qc, t] * b.parent_block().v_F_PadStorageIn[
+            constraint = b.p_xi_PadStorage[
+                p, qc
+            ] * b.parent_block().p_lambda_PadStorage[p] + b.v_Q[
+                p + intermediate_label, qc, t
+            ] * b.parent_block().v_F_PadStorageIn[
                 p, t
             ] == b.v_Q[
                 p + storage_label, qc, t
@@ -6110,7 +6143,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_QL,
         model.s_T,
         model.s_QC,
-        rule=lambda model, l, t, qc: sum(model.v_DQ[l, t, qc, q] for q in model.s_Q) == 1,
+        rule=lambda model, l, t, qc: sum(model.v_DQ[l, t, qc, q] for q in model.s_Q)
+        == 1,
         doc="Only one discrete quality can be chosen",
     )
 
@@ -6245,7 +6279,9 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_QC,
             model.s_Q,
-            rule=lambda model, s, t, qc, q: model.v_F_DiscreteFlowOutStorage[s, t, qc, q]
+            rule=lambda model, s, t, qc, q: model.v_F_DiscreteFlowOutStorage[
+                s, t, qc, q
+            ]
             <= (
                 model.p_sigma_Storage[s]
                 + sum(
@@ -6747,7 +6783,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
     def DisposalWaterQualityRule(b, k, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, k, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[n, k, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
@@ -6899,7 +6936,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 if model.p_CRT[p, r]
             )
         ) <= sum(
-            model.v_F_DiscreteFlowTreatment[r, t, qc, q] * model.p_discrete_quality[qc, q]
+            model.v_F_DiscreteFlowTreatment[r, t, qc, q]
+            * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
@@ -6924,7 +6962,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             if model.p_CNA[p, n]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, n, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[s, n, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
@@ -6955,14 +6994,16 @@ def water_quality_discrete(model, df_parameters, df_sets):
     def BeneficialReuseWaterQuality(b, o, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, o, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[n, o, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
             if model.p_NOA[n, o]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, o, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[s, o, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
@@ -6972,7 +7013,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for p in model.s_PP
             if model.p_POT[p, o]
         ) <= sum(
-            model.v_F_DiscreteBRDestination[o, t, qc, q] * model.p_discrete_quality[qc, q]
+            model.v_F_DiscreteBRDestination[o, t, qc, q]
+            * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
@@ -6997,7 +7039,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
     def CompletionsPadIntermediateWaterQuality(b, p, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, p, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[n, p, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
@@ -7008,7 +7051,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             if model.p_PCA[p_tilde, p]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, p, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[s, p, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
@@ -7019,7 +7063,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             if model.p_CCA[p_tilde, p]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[r, p, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[r, p, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for r in model.s_R
