@@ -1817,6 +1817,15 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Big-M flow parameter [volume/time]",
     )
+
+    model.p_M_Concentration = Param(
+        default=100,
+        units=model.model_units["concentration"],
+        doc="Big-M concentration parameter [concentration]",
+    )
+
+    model.p_M_Flow_Conc = model.p_M_Flow * model.p_M_Concentration
+
     model.p_psi_FracDemand = Param(
         default=pyunits.convert_value(
             99999,
@@ -5622,7 +5631,7 @@ def water_quality(model):
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
             * (1 - b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc])
-            + b.parent_block().p_M_Flow
+            + b.parent_block().p_M_Flow_Conc
             * (
                 1
                 - sum(
@@ -5650,7 +5659,7 @@ def water_quality(model):
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
             * (1 - b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc])
-            - b.parent_block().p_M_Flow
+            - b.parent_block().p_M_Flow_Conc
             * (
                 1
                 - sum(
