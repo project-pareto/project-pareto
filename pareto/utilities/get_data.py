@@ -311,6 +311,136 @@ def set_consistency_check(param, *args):
         return 0
 
 
+def get_display_units(input_sheet_name_list, user_units):
+    """
+    This method takes a list of input sheet names and returns a dictionary that maps input sheet name
+    to display unit.
+
+    Outputs:
+    The method returns one dictionary that maps input sheet name to display units.
+
+    To use this method...
+    get_data() must first be called:
+    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    then, display_units can be called, utilizing the "Units" tab read in by get_data():
+    display_units = get_display_units(parameter_list, df_parameters["Units"])
+
+    """
+    # Dictionary mapping operational and strategic input sheet names to display units
+    # Display units are dependent on which units the user decides to use
+    unit_dict = {
+        "Units": "",
+        "PNA": "",
+        "CNA": "",
+        "CCA": "",
+        "NNA": "",
+        "NCA": "",
+        "NKA": "",
+        "NRA": "",
+        "NSA": "",
+        "FCA": "",
+        "RCA": "",
+        "RNA": "",
+        "RSA": "",
+        "SCA": "",
+        "SNA": "",
+        "PCT": "",
+        "PKT": "",
+        "FCT": "",
+        "CST": "",
+        "CCT": "",
+        "CKT": "",
+        "CompletionsPadOutsideSystem": "",
+        "DesalinationTechnologies": "",
+        "DesalinationSites": "",
+        "TruckingTime": "hours",
+        "CompletionsDemand": user_units["volume"] + "/" + user_units["time"],
+        "PadRates": user_units["volume"] + "/" + user_units["time"],
+        "FlowbackRates": user_units["volume"] + "/" + user_units["time"],
+        "NodeCapacities": user_units["volume"] + "/" + user_units["time"],
+        "InitialPipelineCapacity": user_units["volume"] + "/" + user_units["time"],
+        "InitialDisposalCapacity": user_units["volume"] + "/" + user_units["time"],
+        "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
+        "FreshwaterSourcingAvailability": user_units["volume"]
+        + "/"
+        + user_units["time"],
+        "PadOffloadingCapacity": user_units["volume"] + "/" + user_units["time"],
+        "CompletionsPadStorage": user_units["volume"],
+        "DisposalOperationalCost": user_units["currency"] + "/" + user_units["volume"],
+        "TreatmentOperationalCost": user_units["currency"] + "/" + user_units["volume"],
+        "ReuseOperationalCost": user_units["currency"] + "/" + user_units["volume"],
+        "PipelineOperationalCost": user_units["currency"] + "/" + user_units["volume"],
+        "FreshSourcingCost": user_units["currency"] + "/" + user_units["volume"],
+        "TruckingHourlyCost": user_units["currency"] + "/" + "hour",
+        "PipelineDiameterValues": user_units["diameter"],
+        "DisposalCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
+        "InitialStorageCapacity": user_units["volume"],
+        "StorageCapacityIncrements": user_units["volume"],
+        "TreatmentCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
+        "TreatmentEfficiency": "%",
+        "DisposalExpansionCost": user_units["currency"]
+        + "/("
+        + user_units["volume"]
+        + "/"
+        + user_units["time"]
+        + ")",
+        "StorageExpansionCost": user_units["currency"] + "/" + user_units["volume"],
+        "TreatmentExpansionCost": user_units["currency"]
+        + "/("
+        + user_units["volume"]
+        + "/"
+        + user_units["time"]
+        + ")",
+        "PipelineCapexDistanceBased": user_units["currency"]
+        + "/("
+        + user_units["diameter"]
+        + "-"
+        + user_units["distance"]
+        + ")",
+        "PipelineCapexCapacityBased": user_units["currency"]
+        + "/("
+        + user_units["volume"]
+        + "/"
+        + user_units["time"]
+        + ")",
+        "PipelineCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
+        "PipelineExpansionDistance": user_units["distance"],
+        "Hydraulics": "",
+        "Economics": "",
+        "PadWaterQuality": user_units["concentration"],
+        "StorageInitialWaterQuality": user_units["concentration"],
+        "PadStorageInitialWaterQuality": user_units["concentration"],
+        "DisposalOperatingCapacity": user_units["concentration"],
+        # additional operational model tabs
+        "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
+        "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
+        "ProductionTankCapacity": user_units["volume"],
+        "PRT": "",
+        "CRT": "",
+        "PAL": "",
+        "PadStorageCost": user_units["volume"],
+        "ProductionRates": user_units["volume"] + "/" + user_units["time"],
+        # set tabs
+        "ProductionPads": "",
+        "ProductionTanks": "",
+        "CompletionsPads": "",
+        "SWDSites": "",
+        "FreshwaterSources": "",
+        "StorageSites": "",
+        "TreatmentSites": "",
+        "ReuseOptions": "",
+        "NetworkNodes": "",
+        "PipelineDiameters": "",
+        "StorageCapacities": "",
+        "InjectionCapacities": "",
+        "TreatmentCapacities": "",
+        "TreatmentTechnologies": "",
+    }
+
+    return {sheet: unit_dict[sheet] for sheet in input_sheet_name_list}
+
+
 def od_matrix(inputs):
 
     """
@@ -468,7 +598,13 @@ def od_matrix(inputs):
             + destination_index
             + "&annotations=duration,distance"
         )
-        response_json = response.json()
+        if response.ok:
+            # Ensure HTTP Status code is less than 400
+            response_json = response.json()
+        else:
+            raise Warning(
+                "Error when requesting data, make sure your coordinates are correct"
+            )
 
         df_times = pd.DataFrame(
             index=list(origin.keys()), columns=list(destination.keys())
@@ -532,7 +668,14 @@ def od_matrix(inputs):
         response = requests.post(
             api_url_base + "key=" + api_key, headers=header, json=data
         )
-        response_json = response.json()
+        if response.ok:
+            # Ensure HTTP Status code is less than 400
+            response_json = response.json()
+        else:
+            raise Warning(
+                "Error when requesting data, make sure your API key and coordinates"
+                " are correct"
+            )
 
         # Definition of two empty dataframes that will contain drive times and distances.
         # These dataframes wiil be exported to an Excel workbook
