@@ -33,7 +33,6 @@ from importlib import resources
 # Tabs in the input Excel spreadsheet
 set_list = [
     "ProductionPads",
-    "ProductionTanks",
     "CompletionsPads",
     "SWDSites",
     "FreshwaterSources",
