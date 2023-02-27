@@ -85,7 +85,7 @@ def generate_report(
             printing_list = []
         else:
             # PrintValues.detailed: Slacks values included, Same as "All"
-            if is_print[0].value == 0:
+            if is_print[0] == PrintValues.detailed:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -122,7 +122,7 @@ def generate_report(
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
-            elif is_print[0].value == 1:
+            elif is_print[0] == PrintValues.nominal:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -139,7 +139,7 @@ def generate_report(
                 ]
 
             # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-            elif is_print[0].value == 2:
+            elif is_print[0] == PrintValues.essential:
                 printing_list = ["v_F_Overview"]
 
             else:
@@ -562,7 +562,7 @@ def generate_report(
             printing_list = []
         else:
             # PrintValues.detailed: Slacks values included, Same as "All"
-            if is_print[0].value == 0:
+            if is_print[0] == PrintValues.detailed:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -602,7 +602,7 @@ def generate_report(
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
-            elif is_print[0].value == 1:
+            elif is_print[0] == PrintValues.nominal:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -620,7 +620,7 @@ def generate_report(
                 ]
 
             # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-            elif is_print[0].value == 2:
+            elif is_print[0] == PrintValues.essential:
                 printing_list = ["v_F_Overview"]
 
             else:
@@ -1502,7 +1502,7 @@ def plot_bars(input_data, args):
             "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
         )
 
-    # Give group_by a value of None/"" if it is not provided
+    # Give group_by a value of None if it is not provided
     if "group_by" not in args.keys():
         args["group_by"] = None
 
