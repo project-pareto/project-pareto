@@ -165,7 +165,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     results_obj=results,
-    is_print=[PrintValues.essential],
+    is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )

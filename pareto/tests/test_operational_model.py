@@ -268,7 +268,7 @@ def test_operational_model_discrete_water_quality_build(build_operational_model)
 
     generate_report(
         m,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         fname="operational_results_test.xlsx",
     )
 

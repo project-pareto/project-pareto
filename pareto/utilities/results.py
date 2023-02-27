@@ -66,9 +66,9 @@ class OutputUnits(Enum):
 def generate_report(
     model,
     results_obj=None,
-    is_print=[],
+    is_print=None,
     output_units=OutputUnits.user_units,
-    fname=None,
+    fname="PARETO_report.xlsx",
 ):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
@@ -81,11 +81,11 @@ def generate_report(
     printing_list = []
 
     if model.type == "strategic":
-        if len(is_print) == 0:
+        if is_print is None:
             printing_list = []
         else:
             # PrintValues.detailed: Slacks values included, Same as "All"
-            if is_print[0] == PrintValues.detailed:
+            if is_print == PrintValues.detailed:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -122,7 +122,7 @@ def generate_report(
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
-            elif is_print[0] == PrintValues.nominal:
+            elif is_print == PrintValues.nominal:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -139,11 +139,13 @@ def generate_report(
                 ]
 
             # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-            elif is_print[0] == PrintValues.essential:
+            elif is_print == PrintValues.essential:
                 printing_list = ["v_F_Overview"]
 
             else:
-                raise Exception("Report {0} not supported".format(is_print))
+                raise Exception(
+                    f"generate_report: {is_print} not supported for `is_print` argument"
+                )
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
@@ -558,11 +560,11 @@ def generate_report(
                 )
 
     elif model.type == "operational":
-        if len(is_print) == 0:
+        if is_print is None:
             printing_list = []
         else:
             # PrintValues.detailed: Slacks values included, Same as "All"
-            if is_print[0] == PrintValues.detailed:
+            if is_print == PrintValues.detailed:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -602,7 +604,7 @@ def generate_report(
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
-            elif is_print[0] == PrintValues.nominal:
+            elif is_print == PrintValues.nominal:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -620,7 +622,7 @@ def generate_report(
                 ]
 
             # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-            elif is_print[0] == PrintValues.essential:
+            elif is_print == PrintValues.essential:
                 printing_list = ["v_F_Overview"]
 
             else:
@@ -1069,9 +1071,6 @@ def generate_report(
         )
 
     # Creating the Excel report
-    if fname is None:
-        fname = "PARETO_report.xlsx"
-
     with pd.ExcelWriter(fname) as writer:
         for i in headers:
             df = pd.DataFrame(headers[i][1:], columns=headers[i][0])

@@ -131,7 +131,7 @@ output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
 """
 [model, results_dict] = generate_report(
     operational_model,
-    is_print=[PrintValues.essential],
+    is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
     fname="PARETO_report.xlsx",
 )
