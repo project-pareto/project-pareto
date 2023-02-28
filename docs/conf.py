@@ -1,3 +1,15 @@
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
+#
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
+#####################################################################################################
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -20,7 +32,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "PARETO"
-copyright = "2022, PARETO"
+copyright = "2021-2023, PARETO"
 author = "The PARETO Project"
 
 # The full version, including alpha/beta/rc tags
