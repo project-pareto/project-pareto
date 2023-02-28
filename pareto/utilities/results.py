@@ -1299,6 +1299,9 @@ def handle_time(variable, input_data):
             if (
                 "time_period" in input_data.keys()
             ):  # Checks if user passes in specific time periods they want used in the diagram, if none passed in then it returns original list
+                time_var.append(
+                    variable[0]
+                )  # plot_sankey assumes that the first entry of the returned list is a tuple of headers, so to begin, append it to time_var
                 for y in variable[1:]:
                     if y[-2] in input_data["time_period"]:
                         time_var.append((y))
