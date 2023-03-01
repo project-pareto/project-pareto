@@ -5280,11 +5280,11 @@ def water_quality(model):
     )
     # Create a set for water quality tracked at the intermediate node between treatment facility and treated water end points
     treated_water_label = "-PostTreatmentTreatedWaterNode"
-    model.df_sets["TreatedWaterIntermediateNodes"] = [
+    model.df_sets["TreatedWaterNodes"] = [
         r + treated_water_label for r in model.df_sets["TreatmentSites"]
     ]
     model.quality.s_R_TreatedWaterIntermediateNode = Set(
-        initialize=model.df_sets["TreatedWaterIntermediateNodes"],
+        initialize=model.df_sets["TreatedWaterNodes"],
         doc="Treated Water Node",
     )
 
