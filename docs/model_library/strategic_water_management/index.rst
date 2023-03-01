@@ -130,6 +130,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(s,o) \in SOA}`     Storage-to-beneficial reuse pipeline arcs
 
+:math:`\textcolor{blue}{(l,\tilde{l}) \in LLA}`     All valid pipeline arcs
+
 :math:`\textcolor{blue}{(p,p) \in PCT}`     Production-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(p,k) \in PKT}`     Production-to-disposal trucking arcs
@@ -155,6 +157,8 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{blue}{(s,k) \in SKT}`     Storage-to-disposal trucking arcs
 
 :math:`\textcolor{blue}{(r,k) \in RKT}`     Treatment-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(l,\tilde{l}) \in LLT}`     All valid trucking arcs
 
 
 **Continuous Variables**
@@ -660,9 +664,7 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
     \sum_{p \in P | (p, n) \in PNA}\textcolor{red}{F_{p,n,t}^{Piped}}
         + \sum_{p \in P | (p, n) \in CNA}\textcolor{red}{F_{p,n,t}^{Piped}}
         + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{red}{F_{\tilde{n},n,t}^{Piped}}
-
         + \sum_{s \in S | (s, n) \in SNA}\textcolor{red}{F_{s,n,t}^{Piped}}
-        + \sum_{r \in R | (r, n) \in RNA}\textcolor{red}{F_{r,n,t}^{Piped}}
 
         = \sum_{\tilde{n} \in N | (n, \tilde{n}) \in NNA}\textcolor{red}{F_{n,\tilde{n},t}^{Piped}}
         + \sum_{p \in P | (n, p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}
@@ -756,7 +758,6 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
         + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{red}{F_{\tilde{n},n,t}^{Piped}}
 
         + \sum_{s \in S | (s, n) \in SNA}\textcolor{red}{F_{s,n,t}^{Piped}}
-        + \sum_{r \in R | (r, n) \in RNA}\textcolor{red}{F_{r,n,t}^{Piped}}
         \leq \textcolor{green}{\sigma_{n}^{Node}}
 
 
@@ -971,8 +972,7 @@ Total disposed volume over all time is the sum of all piped and trucked water to
 .. math::
 
     \textcolor{red}{F^{TotalDisposed}}
-        = \sum_{t \in T}(\sum_{(l,k) \in \{NKA,RKA,SKA\}}\textcolor{red}{F_{l,k,t}^{Piped}}
-        + \sum_{(l,k) \in \{PKT,CKT,SKT,RKT\}}\textcolor{red}{F_{l,k,t}^{Trucked}})
+        = \sum_{t \in T}\sum_{k \in K}\textcolor{red}{F_{k,t}^{DisposalDestination}}
 
 
 **Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
@@ -1242,7 +1242,7 @@ Desalinated water is not reused for completions pad demand or stored in the stor
 
 
 Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
-For, this if desalination technology is not selected then amount of desalinated water is set to zero.
+If desalination technology is not selected, then the amount of desalinated water is set to zero.
 
 
 :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
@@ -1250,9 +1250,9 @@ For, this if desalination technology is not selected then amount of desalinated 
 .. math::
 
     \textcolor{red}{F_{r,t}^{DesalinatedWater}}
-        \leq \textcolor{green}{M^{Flow}} \cdot (1 -
+        \leq \textcolor{green}{M^{Flow}} \cdot
         \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,b,j}^{Treatment}})
+        \textcolor{red}{y_{r,b,j}^{Treatment}}
 
 
 Desalination technology is assigned to a pre-determined site.
@@ -1302,8 +1302,8 @@ Completions reuse deliveries at a completions pad in time period :math:`\textcol
 .. math::
 
     \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}
-        = \sum_{l \in L | (l, p) \in \{PCA, CCA, NCA, RCA, SCA, PCT, CCT, SCT\}}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \textcolor{red}{F_{l,p,t}^{Trucked}}
+        = \sum_{l \in L | (l, p) \in LLA, l \notin F}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \sum_{l \in L | (l, p) \in LLT, l \notin F}\textcolor{red}{F_{l,p,t}^{Trucked}}
 
 Disposal deliveries for disposal site :math:`\textcolor{blue}{k}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the disposal site :math:`\textcolor{blue}{k}`.
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
@@ -1311,8 +1311,8 @@ Disposal deliveries for disposal site :math:`\textcolor{blue}{k}` at time :math:
 .. math::
 
     \textcolor{red}{F_{k,t}^{DisposalDestination}}
-        = \sum_{l \in L | (l, k) \in \{NKA, RKA, SKA, PKT, CKT, SKT, RKT\}}\textcolor{red}{F_{l,k,t}^{Piped}}
-        + \textcolor{red}{F_{l,k,t}^{Trucked}}
+        = \sum_{l \in L | (l, k) \in LLA}\textcolor{red}{F_{l,k,t}^{Piped}}
+        + \sum_{l \in L | (l, k) \in LLT}\textcolor{red}{F_{l,k,t}^{Trucked}}
 
 Beneficial reuse deliveries for beneficial reuse site :math:`\textcolor{blue}{o}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the beneficial reuse site :math:`\textcolor{blue}{o}`.
 :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`

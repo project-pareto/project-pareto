@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 NAME = "project-pareto"
-VERSION = "0.4.dev0"
+VERSION = "0.7.dev0"
 
 
 setup(
@@ -61,7 +61,7 @@ setup(
         # for the moment mainly for getting solvers with `idaes get-extensions`
         "idaes-pse",
         "requests",
-        "plotly",
+        "plotly==5.11.0",
         "kaleido",
     ],
     extras_require={

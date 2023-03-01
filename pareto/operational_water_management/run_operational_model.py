@@ -18,7 +18,13 @@ from pareto.operational_water_management.operational_produced_water_optimization
     postprocess_water_quality_calculation,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import generate_report, PrintValues
+from pareto.utilities.results import (
+    generate_report,
+    PrintValues,
+    OutputUnits,
+    is_feasible,
+    nostdout,
+)
 from pareto.utilities.solvers import get_solver, set_timeout
 from importlib import resources
 
@@ -38,6 +44,7 @@ set_list = [
     "NetworkNodes",
 ]
 parameter_list = [
+    "Units",
     "RCA",
     "FCA",
     "PCT",
@@ -52,18 +59,17 @@ parameter_list = [
     "PadRates",
     "FlowbackRates",
     "ProductionTankCapacity",
-    "InitialDisposalCapacity",
+    "DisposalCapacity",
     "CompletionsPadStorage",
     "TreatmentCapacity",
     "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
-    "DriveTimes",
-    "DisposalPipeCapEx",
+    "TruckingTime",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PadStorageCost",
-    "PipingOperationalCost",
+    "PipelineOperationalCost",
     "TruckingHourlyCost",
     "FreshSourcingCost",
     "ProductionRates",
@@ -77,7 +83,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 
 with resources.path(
-    "pareto.case_studies", "EXAMPLE_INPUT_DATA_FILE_generic_operational_model.xlsx"
+    "pareto.case_studies", "operational_generic_case_study.xlsx"
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -104,6 +110,15 @@ set_timeout(opt, timeout_s=60)
 results = opt.solve(operational_model, tee=True)
 results.write()
 
+with nostdout():
+    feasibility_status = is_feasible(operational_model)
+
+if not feasibility_status:
+    print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
+else:
+    print("\nModel results validated and found to pass feasibility tests\n" + "-" * 60)
+
+
 if operational_model.config.water_quality is WaterQuality.post_process:
     operational_model = postprocess_water_quality_calculation(
         operational_model, df_sets, df_parameters, opt
@@ -112,10 +127,12 @@ if operational_model.config.water_quality is WaterQuality.post_process:
 # Generate report and display results #
 """Valid values of parameters in the generate_report() call
 is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
+output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
 """
 [model, results_dict] = generate_report(
     operational_model,
     is_print=[PrintValues.essential],
+    output_units=OutputUnits.user_units,
     fname="PARETO_report.xlsx",
 )
 

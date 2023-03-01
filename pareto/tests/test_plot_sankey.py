@@ -28,7 +28,7 @@ def input_data():
     set_list = []
     parameter_list = ["test_plot_sankey"]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     return {
@@ -58,7 +58,7 @@ def input_data_single_period():
     set_list = []
     parameter_list = ["test_plot_sankey"]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     # One or more specific time periods can be selected. plot_sankey calculates the totals and create the plot
@@ -90,7 +90,7 @@ def input_data_multi_regions():
     set_list = []
     parameter_list = ["test_plot_sankey"]
 
-    with resources.path("pareto.case_studies", "visualization_test_data.xlsx") as fpath:
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
     # One or more specific time periods can be selected. plot_sankey calculates the totals and create the plot

@@ -13,18 +13,41 @@
 """
 
 
-Authors: PARETO Team 
+Authors: PARETO Team
 """
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     ProdTank,
     WaterQuality,
 )
-from pyomo.environ import Var, units as pyunits, value
+from pareto.strategic_water_management.strategic_produced_water_optimization import (
+    PipelineCost,
+)
+from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
 from plotly.offline import init_notebook_mode, iplot
+
+import contextlib
+import sys
+import numpy as np
+
+
+class FakeIO:
+    def write(self, x):
+        pass
+
+
+@contextlib.contextmanager
+def nostdout():
+    """
+    Use to suppress messages from any function
+    """
+    stdout_bck = sys.stdout
+    sys.stdout = FakeIO()
+    yield
+    sys.stdout = stdout_bck
 
 
 class PrintValues(Enum):
@@ -41,7 +64,11 @@ class OutputUnits(Enum):
 
 
 def generate_report(
-    model, is_print=[], output_units=OutputUnits.user_units, fname=None
+    model,
+    results_obj=None,
+    is_print=[],
+    output_units=OutputUnits.user_units,
+    fname=None,
 ):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
@@ -120,7 +147,17 @@ def generate_report(
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
-            "v_F_Piped_dict": [("Origin", "destination", "Time", "Piped water")],
+            "vb_y_overview_dict": [
+                (
+                    "CAPEX Type",
+                    "Location",
+                    "Destination",
+                    "Capacity",
+                    "Unit",
+                    "Technology",
+                )
+            ],
+            "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
             "v_C_Piped_dict": [("Origin", "Destination", "Time", "Cost piping")],
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
@@ -340,6 +377,7 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
         # Defining KPIs for strategic model
@@ -382,6 +420,142 @@ def generate_report(
         else:
             reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
+
+        # Infrastructure buildout table
+
+        # Due to tolerances, binaries may not exactly equal 1
+        binary_epsilon = 0.005
+        # "vb_y_Treatment"
+        treatment_data = model.vb_y_Treatment._data
+        # get units
+        from_unit_string = model.p_delta_Treatment.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in treatment_data:
+            # add values to output dictionary
+            if (
+                treatment_data[i].value >= 1 - binary_epsilon
+                and treatment_data[i].value <= 1 + binary_epsilon
+                and model.p_delta_Treatment[(i[1], i[2])].value > 0
+            ):
+                capacity = pyunits.convert_value(
+                    model.p_delta_Treatment[(i[1], i[2])].value,
+                    from_units=model.p_delta_Treatment.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Treatment Facility",
+                        i[0],
+                        "--",
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        i[1],
+                    )
+                )
+
+        # vb_y_Disposal
+        disposal_data = model.vb_y_Disposal._data
+        # get units
+        from_unit_string = model.p_delta_Disposal.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in disposal_data:
+            # add values to output dictionary
+            if (
+                disposal_data[i].value >= 1 - binary_epsilon
+                and disposal_data[i].value <= 1 + binary_epsilon
+                and model.p_delta_Disposal[i[1]].value > 0
+            ):
+                capacity = pyunits.convert_value(
+                    model.p_delta_Disposal[i[1]].value,
+                    from_units=model.p_delta_Disposal.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Disposal Facility",
+                        i[0],
+                        "--",
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                    )
+                )
+
+        # vb_y_Storage
+        storage_data = model.vb_y_Storage._data
+        # get units
+        from_unit_string = model.p_delta_Storage.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in storage_data:
+            # add values to output dictionary
+            if (
+                storage_data[i].value >= 1 - binary_epsilon
+                and storage_data[i].value <= 1 + binary_epsilon
+                and model.p_delta_Storage[i[1]].value > 0
+            ):
+                capacity = pyunits.convert_value(
+                    model.p_delta_Storage[i[1]].value,
+                    from_units=model.p_delta_Storage.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Storage Facility",
+                        i[0],
+                        "--",
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                    )
+                )
+
+        # vb_y_Pipeline
+        if model.config.pipeline_cost == PipelineCost.distance_based:
+            capacity_variable = model.p_mu_Pipeline
+        elif model.config.pipeline_cost == PipelineCost.capacity_based:
+            capacity_variable = model.p_delta_Pipeline
+        pipeline_data = model.vb_y_Pipeline._data
+        # get units
+        from_unit_string = capacity_variable.get_units().to_string()
+        # the display units (to_unit) is defined by output_units from module parameter
+        if output_units == OutputUnits.unscaled_model_units:
+            to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+        elif output_units == OutputUnits.user_units:
+            to_unit = model.model_to_user_units[from_unit_string]
+        for i in pipeline_data:
+            # add values to output dictionary only if non-zero capacity is selected
+            if (
+                pipeline_data[i].value >= 1 - binary_epsilon
+                and pipeline_data[i].value <= 1 + binary_epsilon
+                and capacity_variable[i[2]].value > 0
+            ):
+                capacity = pyunits.convert_value(
+                    capacity_variable[i[2]].value,
+                    from_units=capacity_variable.get_units(),
+                    to_units=to_unit,
+                )
+                headers["vb_y_overview_dict"].append(
+                    (
+                        "Pipeline Construction",
+                        i[0],
+                        i[1],
+                        capacity,
+                        to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                    )
+                )
 
     elif model.type == "operational":
         if len(is_print) == 0:
@@ -468,11 +642,12 @@ def generate_report(
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
             "v_C_Disposal_dict": [("Disposal site", "Time", "Cost of disposal")],
             "v_C_Treatment_dict": [("Treatment site", "Time", "Cost of Treatment")],
-            "v_C_Reuse_dict": [("Completion pad", "Time", "Cost of reuse")],
+            "v_C_Reuse_dict": [("Completions pad", "Time", "Cost of reuse")],
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_C_PadStorage_dict": [("Completions Pad", "Time", "Cost of Pad Storage")],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [
@@ -714,7 +889,7 @@ def generate_report(
 
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
-        # Not all of our variables have units (binary variables)
+        # we may also choose to not convert, additionally not all of our variables have units (binary variables),
         units_true = variable.get_units() is not None
         # If units are used, determine what the display units should be based off user input
         if units_true:
@@ -724,6 +899,8 @@ def generate_report(
                 to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
             elif output_units == OutputUnits.user_units:
                 to_unit = model.model_to_user_units[from_unit_string]
+            else:
+                print("ERROR: Report output units selected by user is not valid")
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
                 header = list(headers[str(variable.name) + "_dict"][0])
@@ -734,13 +911,30 @@ def generate_report(
                     + "]"
                 )
                 headers[str(variable.name) + "_dict"][0] = tuple(header)
+
+        elif variable.get_units() is not None:
+            to_unit = variable.get_units()
         else:
             to_unit = None
+        # if variable data is not none and indexed, update headers to display unit
+        if (
+            len(variable._data) > 1
+            and list(variable._data.keys())[0] is not None
+            and to_unit is not None
+        ):
+            header = list(headers[str(variable.name) + "_dict"][0])
+            header[-1] = (
+                headers[str(variable.name) + "_dict"][0][-1]
+                + " ["
+                + to_unit.to_string().replace("oil_bbl", "bbl")
+                + "]"
+            )
+            headers[str(variable.name) + "_dict"][0] = tuple(header)
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
                 # convert the value to display units
-                if units_true:
+                if units_true and variable._data[i].value:
                     var_value = pyunits.convert_value(
                         variable._data[i].value,
                         from_units=variable.get_units(),
@@ -772,7 +966,7 @@ def generate_report(
                     i = (i,)
                 # replace the discrete qualities by their actual values
                 if str(variable.name) == "v_DQ" and var_value > 0:
-                    var_value = model.p_discrete_quality[i[2], i[3]]
+                    var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
                     headers[str(variable.name) + "_dict"].append((*i, var_value))
 
@@ -817,6 +1011,62 @@ def generate_report(
         for report in headers:
             if len(headers[report]) > 1:
                 headers[report].append(("PROPRIETARY DATA",))
+
+    def to_msg(attr):
+        """
+        Convert an attribute to the appropriate string to print in report
+        """
+        # If a Pyomo attribute is undefined, just replace with empty string instead
+        msg = str(attr)
+        if msg == "<undefined>":
+            return ""
+        return msg
+
+    if results_obj is not None:
+        report = "Solver_Stats_dict"
+        headers[report].append(
+            ("Termination Condition", to_msg(results_obj.solver.termination_condition))
+        )
+        headers[report].append(
+            ("Termination Message", to_msg(results_obj.solver.termination_message))
+        )
+        headers[report].append(("Lower Bound", to_msg(results_obj.problem.lower_bound)))
+        headers[report].append(("Upper Bound", to_msg(results_obj.problem.upper_bound)))
+        headers[report].append(
+            ("Number of variables", to_msg(results_obj.problem.number_of_variables))
+        )
+        headers[report].append(
+            ("Number of constraints", to_msg(results_obj.problem.number_of_constraints))
+        )
+        headers[report].append(
+            ("Number of nonzeros", to_msg(results_obj.problem.number_of_nonzeros))
+        )
+        headers[report].append(
+            (
+                "Number of binary variables",
+                to_msg(results_obj.problem.number_of_binary_variables),
+            )
+        )
+        headers[report].append(
+            (
+                "Number of integer variables",
+                to_msg(results_obj.problem.number_of_integer_variables),
+            )
+        )
+        headers[report].append(
+            ("Solver wall clock time", to_msg(results_obj.solver.wallclock_time))
+        )
+        headers[report].append(
+            ("Solver CPU time", to_msg(results_obj.solver.system_time))
+        )
+        headers[report].append(
+            (
+                "Number of nodes",
+                to_msg(
+                    results_obj.solver.statistics.branch_and_bound.number_of_bounded_subproblems
+                ),
+            )
+        )
 
     # Creating the Excel report
     if fname is None:
@@ -2261,3 +2511,96 @@ def plot_scatter(input_data, args):
             )
         if jupyter_notebook:
             iplot({"data": fig, "layout": fig.layout})
+
+
+def is_binary_value(value, tol):
+
+    """
+    Verifies that a value is acceptable for a binary variable (0 or 1)
+    """
+    return np.isclose(value, 0.0, atol=tol) or np.isclose(value, 1.0, atol=tol)
+
+
+def is_integer_value(value, tol):
+
+    """
+    Verifies that a value is acceptable for an integer variable
+    """
+    return np.isclose(np.round(value) - value, 0.0, atol=tol)
+
+
+def _check_infeasible(obj, val, tol):
+    """
+    NOTE: This method is duplicated from
+    https://github.com/Pyomo/pyomo/blob/e5627620d4cb9e6ff1e5bf29bf32e327eaf2153b/pyomo/util/infeasible.py
+    and should be replaced when made available in a Pyomo release version
+    """
+    if val is None:
+        # Undefined value due to missing variable value or evaluation error
+        return 4
+    # Check for infeasibilities
+    infeasible = 0
+    if obj.has_lb():
+        lb = value(obj.lower, exception=False)
+        if lb is None:
+            infeasible |= 4 | 1
+        elif lb - val > tol:
+            infeasible |= 1
+    if obj.has_ub():
+        ub = value(obj.upper, exception=False)
+        if ub is None:
+            infeasible |= 4 | 2
+        elif val - ub > tol:
+            infeasible |= 2
+    return infeasible
+
+
+def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
+
+    """
+    Verifies the solution contained in a pyomo model object is feasible. This requires iterating
+    through all variables and constraints and ensuring that the constraint and variable bounds are
+    satisfied at the solution present in the model.
+    bound_tol and cons_tol are violation tolerances acceptable for bounds and constraints
+    respectively
+
+    NOTE: This method uses
+    https://github.com/Pyomo/pyomo/blob/e5627620d4cb9e6ff1e5bf29bf32e327eaf2153b/pyomo/util/infeasible.py
+    as reference for development. This should be deprecated if/when Pyomo makes available a utility
+    to check for feasibility of a solution.
+    """
+    for var in model.component_data_objects(ctype=Var, descend_into=True):
+        val = var.value
+        if _check_infeasible(var, val, bound_tol):
+            print(
+                "Variable violated bounds or no value found",
+                var,
+                val,
+                var.lower,
+                var.upper,
+            )
+
+        if var.is_binary():
+            if not is_binary_value(val, bound_tol):
+                print("Variable took a non-binary value", var, val)
+                return False
+
+        # check for integer requirements
+        elif var.is_integer():
+            if not is_integer_value(val, bound_tol):
+                print("Variable took a  non-integer value", var, val)
+                return False
+
+    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+        body_value = value(con.body, exception=False)
+        if _check_infeasible(con, body_value, cons_tol):
+            print(
+                "Constraint not satisfied or no value found",
+                con,
+                body_value,
+                con.lower,
+                con.upper,
+            )
+            return False
+    print("All tests passed!")
+    return True

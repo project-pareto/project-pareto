@@ -17,7 +17,7 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-from pyomo.environ import Constraint
+from pyomo.environ import Constraint, units
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
@@ -31,7 +31,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCost,
     PipelineCapacity,
 )
-from pareto.utilities.get_data import get_data
+from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
     flatten_list,
     PintUnitExtractionVisitor,
@@ -39,6 +39,13 @@ from pareto.utilities.units_support import (
 from importlib import resources
 import pytest
 from idaes.core.util.model_statistics import degrees_of_freedom
+from pareto.utilities.results import (
+    generate_report,
+    PrintValues,
+    OutputUnits,
+    is_feasible,
+    nostdout,
+)
 
 __author__ = "Pareto Team (Andres Calderon, M. Zamarripa)"
 
@@ -134,7 +141,7 @@ def build_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "input_data_generic_strategic_case_study_Treatment_Demo.xlsx",
+        "strategic_treatment_demo.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -158,7 +165,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -181,7 +188,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -204,7 +211,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -227,7 +234,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -238,8 +245,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
 
 
-@pytest.mark.component
-def test_strategic_model_unit_consistency(build_strategic_model):
+def test_strategic_model_build_units_scaled_units_consistency(build_strategic_model):
     """
     Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
     This test utilizes assert_units_consistent in addition to a special case test assertion.
@@ -321,7 +327,16 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 57565
+    assert degrees_of_freedom(m) == 29595
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        results,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
 
 
 @pytest.fixture(scope="module")
@@ -410,7 +425,7 @@ def build_reduced_strategic_model():
     # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
-        "small_strategic_case_study.xlsx",
+        "strategic_small_case_study.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -435,7 +450,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63715
+    assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -459,7 +474,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63715
+    assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -483,7 +498,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 63715
+    assert degrees_of_freedom(m) == 12977
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -507,7 +522,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 112075
+    assert degrees_of_freedom(m) == 58737
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -609,7 +624,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
@@ -618,9 +633,11 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 62415
+    assert degrees_of_freedom(m) == 11685
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(32945.11, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(89049.086, abs=1e-1) == pyo.value(m.v_Z)
+    with nostdout():
+        assert is_feasible(m)
 
 
 @pytest.mark.component
@@ -630,21 +647,464 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.post_process,
         }
     )
 
     options = {
         "deactivate_slacks": True,
-        "scale_model": True,
+        "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
-        "water_quality": True,
     }
     results = solve_model(model=m, options=options)
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m) == -19101
-    assert pytest.approx(7.72, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert degrees_of_freedom(m.quality) == 780
+    assert pytest.approx(4.7832, abs=1e-1) == pyo.value(m.quality.v_X)
+    with nostdout():
+        assert is_feasible(m)
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        results,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+@pytest.mark.component
+def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+        "solver": "cbc",
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 11685
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+    with nostdout():
+        assert is_feasible(m)
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        results,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+@pytest.mark.component
+def test_strategic_model_UI_display_units():
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_small_case_study.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    input_sheet_names = parameter_list + set_list
+    UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
+    assert UI_display_units
+
+
+@pytest.fixture(scope="module")
+def build_toy_strategic_model():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_toy_case_study.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            toy_strategic_model = create_model(df_sets, df_parameters, config_dict)
+            return toy_strategic_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_basic_toy_build(build_toy_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert degrees_of_freedom(m) == 4855
+    # Check unit config arguments
+    assert len(m.config) == 6
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_toy_strategic_model(build_toy_strategic_model):
+    m = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 4506
+    assert pytest.approx(11122.0815, abs=1e-1) == pyo.value(m.v_Z)
+    with nostdout():
+        assert is_feasible(m)
+
+
+@pytest.fixture(scope="module")
+def build_permian_demo_strategic_model():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_permian_demo.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            permian_demo_strategic_model = create_model(
+                df_sets, df_parameters, config_dict
+            )
+            return permian_demo_strategic_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_basic_permian_demo_build(build_permian_demo_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_permian_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert degrees_of_freedom(m) == 20955
+    # Check unit config arguments
+    assert len(m.config) == 6
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
+    m = build_permian_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.calculated,
+        }
+    )
+    solver = get_solver("cbc")
+    solver.options["seconds"] = 60
+    results = solver.solve(m, tee=False)
+    assert degrees_of_freedom(m) == 20955
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
