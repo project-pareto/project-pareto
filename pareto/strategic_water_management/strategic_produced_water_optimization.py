@@ -1355,7 +1355,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         model.s_WT,
         model.s_QC,
-        default=1.0,
+        default=0,
         initialize=model.df_parameters["RemovalEfficiency"],
         doc="Removal efficiency [%]",
     )
