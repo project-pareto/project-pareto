@@ -59,7 +59,7 @@ setup(
         "pandas==1.2.*",
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
-        "idaes-pse",
+        "idaes-pse==2.0.0rc0",
         "requests",
         "plotly==5.11.0",
         "kaleido",
