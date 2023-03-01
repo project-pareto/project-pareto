@@ -1351,7 +1351,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment efficiency [%]",
     )
 
-    model.p_epsilon_Treatment_Removal = Param(
+    model.p_epsilon_TreatmentRemoval = Param(
         model.s_R,
         model.s_WT,
         model.s_QC,
@@ -5630,7 +5630,7 @@ def water_quality(model):
         constraint = (
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
-            * (1 - b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc])
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
             + b.parent_block().p_M_Flow_Conc
             * (
                 1
@@ -5658,7 +5658,7 @@ def water_quality(model):
         constraint = (
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
-            * (1 - b.parent_block().p_epsilon_Treatment_Removal[r, wt, qc])
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
             - b.parent_block().p_M_Flow_Conc
             * (
                 1
