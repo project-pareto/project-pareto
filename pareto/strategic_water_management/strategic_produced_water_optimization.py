@@ -680,16 +680,19 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        mutable=True,
         doc="Binary parameter designating the Completion Pads that are outside the system",
     )
     model.p_chi_DesalinationTechnology = Param(
         model.s_B,
         initialize=model.df_parameters["DesalinationTechnologies"],
+        mutable=True,
         doc="Binary parameter designating the treatment technologies for Desalination",
     )
     model.p_chi_DesalinationSites = Param(
         model.s_R,
         initialize=model.df_parameters["DesalinationSites"],
+        mutable=True,
         doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
     model.v_C_DisposalCapEx = Var(
@@ -1069,6 +1072,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_alpha_AnnualizationRate = Param(
         default=1,
         initialize=model.df_parameters["AnnualizationRate"],
+        mutable=True,
         doc="Annualization rate [%]",
     )
     model.p_gamma_Completions = Param(
@@ -1340,6 +1344,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_B,
         default=1.0,
         initialize=model.df_parameters["TreatmentEfficiency"],
+        mutable=True,
         doc="Treatment efficiency [%]",
     )
     # Note PipelineCapacityIncrements_Calculated is set in _pre_process. These values are already in model units, they
@@ -1465,6 +1470,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         default=12,
         initialize=model.df_parameters["TruckingTime"],
+        mutable=True,
         doc="Drive time between locations [hr]",
     )
     model.p_lambda_Storage = Param(
@@ -1881,6 +1887,7 @@ def create_model(df_sets, df_parameters, default={}):
             key: 0 if value and value > 0 else 1
             for key, value in model.df_parameters["InitialDisposalCapacity"].items()
         },
+        mutable=True,
         doc="Indicates if Expansion is allowed at site k",
     )
 
@@ -1889,6 +1896,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
+        mutable=True,
         doc="Operating capacity of disposal site [%]",
     )
 
@@ -5994,6 +6002,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # For the discretization we need a upperbound for the maximum number of trucks for each truck flow
     model.p_max_number_of_trucks = Param(
         initialize=500,
+        mutable=True,
         doc="Max number of trucks. Needed for upperbound on v_F_Trucked",
     )
 
