@@ -7541,6 +7541,7 @@ def solve_model(model, options=None):
     use_scaling = False  # yes/no to scale the model
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
     solver = ("gurobi_direct", "gurobi", "cbc")  # solvers to try and load in order
+    gurobi_numeric_focus = 1
 
     # raise an exception if options is neither None nor a user-provided dictionary
     if options is not None and not isinstance(options, dict):
@@ -7563,6 +7564,8 @@ def solve_model(model, options=None):
             scaling_factor = options["scaling_factor"]
         if "solver" in options.keys():
             solver = options["solver"]
+        if "gurobi_numeric_focus" in options.keys():
+            gurobi_numeric_focus = options["gurobi_numeric_focus"]
 
     # load pyomo solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
@@ -7574,7 +7577,7 @@ def solve_model(model, options=None):
     if opt.type in ("gurobi_direct", "gurobi"):
         # Apply Gurobi specific options
         opt.options["mipgap"] = gap
-        opt.options["NumericFocus"] = 1
+        opt.options["NumericFocus"] = gurobi_numeric_focus
     elif opt.type in ("cbc"):
         # Apply CBC specific option
         opt.options["ratioGap"] = gap
