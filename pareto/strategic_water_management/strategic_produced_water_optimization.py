@@ -5079,10 +5079,12 @@ def create_model(df_sets, df_parameters, default={}):
     def ReuseDestinationDeliveriesRule(model, p, t):
         constraint = model.v_F_ReuseDestination[p, t] == sum(
             model.v_F_Piped[l, p, t]
-            for l in (model.s_L - model.s_F) if (l, p) in model.s_LLA
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLA
         ) + sum(
             model.v_F_Trucked[l, p, t]
-            for l in (model.s_L - model.s_F) if (l, p) in model.s_LLT
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLT
         )
 
         return process_constraint(constraint)
@@ -5097,9 +5099,7 @@ def create_model(df_sets, df_parameters, default={}):
     def DisposalDestinationDeliveriesRule(model, k, t):
         constraint = model.v_F_DisposalDestination[k, t] == sum(
             model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
-        ) + sum(
-            model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT
-        )
+        ) + sum(model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT)
 
         return process_constraint(constraint)
 
