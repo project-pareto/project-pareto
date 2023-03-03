@@ -680,19 +680,19 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
-        mutable=True,
+        mutable=False,  # this Param must be immutable since it is used in if statements
         doc="Binary parameter designating the Completion Pads that are outside the system",
     )
     model.p_chi_DesalinationTechnology = Param(
         model.s_B,
         initialize=model.df_parameters["DesalinationTechnologies"],
-        mutable=True,
+        mutable=False,  # this Param must be immutable since it is used in if statements
         doc="Binary parameter designating the treatment technologies for Desalination",
     )
     model.p_chi_DesalinationSites = Param(
         model.s_R,
         initialize=model.df_parameters["DesalinationSites"],
-        mutable=True,
+        mutable=False,  # this Param must be immutable since it is used in if statements
         doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
     model.v_C_DisposalCapEx = Var(
