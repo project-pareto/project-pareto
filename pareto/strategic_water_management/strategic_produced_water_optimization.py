@@ -1960,19 +1960,19 @@ def create_model(df_sets, df_parameters, default={}):
         if model.p_chi_OutsideCompletionsPad[p] == 1:
             constraint = model.p_gamma_Completions[p, t] >= (
                 sum(
-                    model.v_F_Piped[l_tilde, p, t]
-                    for l_tilde in (model.s_N | model.s_S | model.s_CP | model.s_R)
-                    if (l_tilde, p) in model.s_LLA
+                    model.v_F_Piped[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Sourced[l_tilde, p, t]
-                    for l_tilde in model.s_F
-                    if (l_tilde, p) in model.s_LLA
+                    model.v_F_Sourced[f, p, t]
+                    for f in model.s_F
+                    if (f, p) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[l_tilde, p, t]
-                    for l_tilde in (model.s_PP | model.s_CP | model.s_F)
-                    if (l_tilde, p) in model.s_LLT
+                    model.v_F_Trucked[l, p, t]
+                    for l in model.s_L
+                    if (l, p) in model.s_LLT
                 )
                 + model.v_F_PadStorageOut[p, t]
                 - model.v_F_PadStorageIn[p, t]
@@ -1982,19 +1982,19 @@ def create_model(df_sets, df_parameters, default={}):
         else:
             constraint = model.p_gamma_Completions[p, t] == (
                 sum(
-                    model.v_F_Piped[l_tilde, p, t]
-                    for l_tilde in (model.s_N | model.s_S | model.s_CP | model.s_R)
-                    if (l_tilde, p) in model.s_LLA
+                    model.v_F_Piped[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Sourced[l_tilde, p, t]
-                    for l_tilde in model.s_F
-                    if (l_tilde, p) in model.s_LLA
+                    model.v_F_Sourced[f, p, t]
+                    for f in model.s_F
+                    if (f, p) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[l_tilde, p, t]
-                    for l_tilde in (model.s_PP | model.s_CP | model.s_F)
-                    if (l_tilde, p) in model.s_LLT
+                    model.v_F_Trucked[l, p, t]
+                    for l in model.s_L
+                    if (l, p) in model.s_LLT
                 )
                 + model.v_F_PadStorageOut[p, t]
                 - model.v_F_PadStorageIn[p, t]
