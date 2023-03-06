@@ -2075,18 +2075,7 @@ def create_model(df_sets, df_parameters, default={}):
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
 
         constraint = (
-            sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+            sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
         )
 
@@ -2101,8 +2090,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteTruckOffloadingCapacityRule(model, s, t):
         constraint = (
-            sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
+            sum(model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT)
             <= model.p_sigma_OffloadingStorage[s]
         )
 
@@ -2117,10 +2105,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteProcessingCapacityRule(model, s, t):
         constraint = (
-            sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-            + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
+            sum(model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT
+            )
             <= model.p_sigma_ProcessingStorage[s]
         )
 
@@ -2136,26 +2124,10 @@ def create_model(df_sets, df_parameters, default={}):
     def ProductionPadSupplyBalanceRule(model, p, t):
         constraint = (
             model.p_beta_Production[p, t]
-            == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_PNA[p, n])
+            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
-                model.v_F_Piped[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_PCA[p, p_tilde]
+                model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
             )
-            + sum(
-                model.v_F_Piped[p, p_tilde, t]
-                for p_tilde in model.s_PP
-                if model.p_PPA[p, p_tilde]
-            )
-            + sum(
-                model.v_F_Trucked[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_PCT[p, p_tilde]
-            )
-            + sum(model.v_F_Trucked[p, k, t] for k in model.s_K if model.p_PKT[p, k])
-            + sum(model.v_F_Trucked[p, s, t] for s in model.s_S if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, r, t] for r in model.s_R if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, o, t] for o in model.s_O if model.p_POT[p, o])
             + model.v_S_Production[p, t]
         )
         return process_constraint(constraint)
@@ -2170,20 +2142,10 @@ def create_model(df_sets, df_parameters, default={}):
     def CompletionsPadSupplyBalanceRule(model, p, t):
         constraint = (
             model.p_beta_Flowback[p, t]
-            == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_CNA[p, n])
+            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
-                model.v_F_Piped[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_CCA[p, p_tilde]
+                model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
             )
-            + sum(model.v_F_Trucked[p, k, t] for k in model.s_K if model.p_CKT[p, k])
-            + sum(
-                model.v_F_Trucked[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p, p_tilde]
-            )
-            + sum(model.v_F_Trucked[p, s, t] for s in model.s_S if model.p_CST[p, s])
-            + sum(model.v_F_Trucked[p, r, t] for r in model.s_R if model.p_CRT[p, r])
             + model.v_S_Flowback[p, t]
         )
 
@@ -2198,30 +2160,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def NetworkNodeBalanceRule(model, n, t):
         constraint = sum(
-            model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n]
-        ) + sum(
-            model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n]
-        ) + sum(
-            model.v_F_Piped[n_tilde, n, t]
-            for n_tilde in model.s_N
-            if model.p_NNA[n_tilde, n]
-        ) + sum(
-            model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-        ) == sum(
-            model.v_F_Piped[n, n_tilde, t]
-            for n_tilde in model.s_N
-            if model.p_NNA[n, n_tilde]
-        ) + sum(
-            model.v_F_Piped[n, p, t] for p in model.s_CP if model.p_NCA[n, p]
-        ) + sum(
-            model.v_F_Piped[n, k, t] for k in model.s_K if model.p_NKA[n, k]
-        ) + sum(
-            model.v_F_Piped[n, r, t] for r in model.s_R if model.p_NRA[n, r]
-        ) + sum(
-            model.v_F_Piped[n, s, t] for s in model.s_S if model.p_NSA[n, s]
-        ) + sum(
-            model.v_F_Piped[n, o, t] for o in model.s_O if model.p_NOA[n, o]
-        )
+            model.v_F_Piped[l, n, t] for l in model.s_L if (l, n) in model.s_LLA
+        ) == sum(model.v_F_Piped[n, l, t] for l in model.s_L if (n, l) in model.s_LLA)
 
         return process_constraint(constraint)
 
@@ -2229,9 +2169,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc="Network node balance"
     )
 
-    # NS: The following 2 constraints add terms for RSA, which were not in original
-    # constraints. The difference is because of the additional arcs defined in both directions.
-    # The discrepancy should be fixed in the data.
     def BidirectionalFlowRule1(model, l, l_tilde, t):
         if (l, l_tilde) in model.s_LLA:
             constraint = (
@@ -2270,24 +2207,21 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
             constraint = model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + (
-                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                sum(
+                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-                )
-                - sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
-                - sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
-                - sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
-                - sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
-                - sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
-                - sum(
-                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                    model.v_F_Trucked[l, s, t]
+                    for l in model.s_L
+                    if (l, s) in model.s_LLT
                 )
                 - sum(
-                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
+                )
+                - sum(
+                    model.v_F_Trucked[s, l, t]
+                    for l in model.s_L
+                    if (s, l) in model.s_LLT
                 )
                 - model.v_F_StorageEvaporationStream[s, t]
             )
@@ -2295,24 +2229,21 @@ def create_model(df_sets, df_parameters, default={}):
             constraint = model.v_L_Storage[s, t] == model.v_L_Storage[
                 s, model.s_T.prev(t)
             ] + (
-                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                sum(
+                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-                )
-                - sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
-                - sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
-                - sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
-                - sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
-                - sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
-                - sum(
-                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                    model.v_F_Trucked[l, s, t]
+                    for l in model.s_L
+                    if (l, s) in model.s_LLT
                 )
                 - sum(
-                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
+                )
+                - sum(
+                    model.v_F_Trucked[s, l, t]
+                    for l in model.s_L
+                    if (s, l) in model.s_LLT
                 )
                 - model.v_F_StorageEvaporationStream[s, t]
             )
@@ -2755,13 +2686,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def DisposalCapacityRule(model, k, t):
         constraint = (
-            sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-            + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKA[r, k])
-            + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
-            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
+            sum(model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT
+            )
             <= model.v_D_Capacity[k]
         )
         return process_constraint(constraint)
@@ -2791,10 +2719,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentCapacityRule(model, r, t):
         constraint = (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+            )
             <= model.v_T_Capacity[r]
         )
         return process_constraint(constraint)
@@ -2805,11 +2733,12 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentBalanceRule(model, r, t):
         constraint = (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
-        ) == model.v_F_ResidualWater[r, t] + model.v_F_TreatedWater[r, t]
+            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+            )
+            == model.v_F_ResidualWater[r, t] + model.v_F_TreatedWater[r, t]
+        )
         return process_constraint(constraint)
 
     model.TreatmentBalance = Constraint(
@@ -2821,10 +2750,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ResidualWaterLHSRule(model, r, b, t):
         constraint = (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+            )
         ) * (1 - model.p_epsilon_Treatment[r, b]) - model.p_M_Flow * (
             1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
         ) <= model.v_F_ResidualWater[
@@ -2842,10 +2771,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ResidualWaterRHSRule(model, r, b, t):
         constraint = (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+            )
         ) * (1 - model.p_epsilon_Treatment[r, b]) + model.p_M_Flow * (
             1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J)
         ) >= model.v_F_ResidualWater[
@@ -2864,8 +2793,7 @@ def create_model(df_sets, df_parameters, default={}):
     def TreatedWaterRule(model, r, t):
         constraint = (
             model.v_F_TreatedWater[r, t]
-            == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+            == sum(model.v_F_Piped[r, l, t] for l in model.s_L if (r, l) in model.s_LLA)
             + model.v_F_DesalinatedWater[r, t]
         )
         return process_constraint(constraint)
@@ -2877,9 +2805,10 @@ def create_model(df_sets, df_parameters, default={}):
     def BeneficialReuseCapacityRule(model, o, t):
 
         constraint = (
-            sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
-            + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
-            + sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
+            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+            )
             <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
         )
 
@@ -2973,20 +2902,13 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = (
             model.v_C_Disposal[k, t]
             == (
-                sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-                + sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k])
-                + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-                + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
+                sum(
+                    model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
-                )
-                + sum(
-                    model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
-                )
-                + sum(
-                    model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
+                    model.v_F_Trucked[l, k, t]
+                    for l in model.s_L
+                    if (l, k) in model.s_LLT
                 )
             )
             * model.p_pi_Disposal[k]
@@ -3024,13 +2946,13 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = (
             model.v_C_Treatment[r, t]
             >= (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                sum(
+                    model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                    model.v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
                 )
                 - model.p_M_Flow
                 * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
@@ -3047,13 +2969,13 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = (
             model.v_C_Treatment[r, t]
             <= (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                sum(
+                    model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                    model.v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
                 )
                 + model.p_M_Flow
                 * (1 - sum(model.vb_y_Treatment[r, b, j] for j in model.s_J))
@@ -3084,31 +3006,13 @@ def create_model(df_sets, df_parameters, default={}):
     ):
         constraint = model.v_C_Reuse[p, t] == (
             (
-                sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCA[p_tilde, p]
+                sum(
+                    model.v_F_Piped[l, p, t] for l in model.s_L if (l, p) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCA[p_tilde, p]
-                )
-                + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
+                    model.v_F_Trucked[l, p, t]
+                    for l in model.s_L
+                    if (l, p) in model.s_LLT
                 )
             )
             * model.p_pi_Reuse[p]
@@ -3139,38 +3043,14 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]
+                        model.v_F_Piped[l, p, t]
+                        for l in (model.s_L - model.s_F)
+                        if (l, p) in model.s_LLA
                     )
                     + sum(
-                        model.v_F_Piped[p_tilde, p, t]
-                        for p_tilde in model.s_PP
-                        if model.p_PCA[p_tilde, p]
-                    )
-                    + sum(
-                        model.v_F_Piped[p_tilde, p, t]
-                        for p_tilde in model.s_CP
-                        if model.p_CCA[p_tilde, p]
-                    )
-                    + sum(
-                        model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p]
-                    )
-                    + sum(
-                        model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p]
-                    )
-                    + sum(
-                        model.v_F_Trucked[p_tilde, p, t]
-                        for p_tilde in model.s_PP
-                        if model.p_PCT[p_tilde, p]
-                    )
-                    + sum(
-                        model.v_F_Trucked[p_tilde, p, t]
-                        for p_tilde in model.s_CP
-                        if model.p_CCT[p_tilde, p]
-                    )
-                    + sum(
-                        model.v_F_Trucked[s, p, t]
-                        for s in model.s_S
-                        if model.p_SCT[s, p]
+                        model.v_F_Trucked[l, p, t]
+                        for l in (model.s_L - model.s_F)
+                        if (l, p) in model.s_LLT
                     )
                     for p in model.s_CP
                 )
@@ -3224,13 +3104,13 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageDepositCostRule(model, s, t):
         constraint = model.v_C_Storage[s, t] == (
             (
-                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-                + sum(model.v_F_Piped[r, s, t] for r in model.s_R if model.p_RSA[r, s])
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                sum(
+                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                    model.v_F_Trucked[l, s, t]
+                    for l in model.s_L
+                    if (l, s) in model.s_LLT
                 )
             )
             * model.p_pi_Storage[s]
@@ -3255,16 +3135,13 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageWithdrawalCreditRule(model, s, t):
         constraint = model.v_R_Storage[s, t] == (
             (
-                sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
-                + sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
-                + sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
-                + sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
-                + sum(
-                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                sum(
+                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                    model.v_F_Trucked[s, l, t]
+                    for l in model.s_L
+                    if (s, l) in model.s_LLT
                 )
             )
             * model.p_rho_Storage[s]
@@ -3699,7 +3576,6 @@ def create_model(df_sets, df_parameters, default={}):
         )
         return process_constraint(constraint)
 
-    # sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
     model.LogicConstraintDesalinationFlow = Constraint(
         model.s_R,
         model.s_T,
@@ -4021,10 +3897,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def BeneficialReuseDeliveriesRule(model, o, t):
         constraint = model.v_F_BeneficialReuseDestination[o, t] == sum(
-            model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
-        ) + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + sum(
-            model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
-        )
+            model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT)
         return process_constraint(constraint)
 
     model.BeneficialReuseDeliveries = Constraint(
@@ -4036,31 +3910,17 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsWaterDeliveriesRule(model, p, t):
         constraint = model.v_F_CompletionsDestination[p, t] == (
-            sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-            + sum(
-                model.v_F_Piped[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCA[p_tilde, p]
+            sum(
+                model.v_F_Piped[l, p, t]
+                for l in (model.s_L - model.s_F)
+                if (l, p) in model.s_LLA
             )
-            + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
-            + sum(
-                model.v_F_Piped[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCA[p_tilde, p]
-            )
-            + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
             + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
             + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCT[p_tilde, p]
+                model.v_F_Trucked[l, p, t]
+                for l in (model.s_L - model.s_F)
+                if (l, p) in model.s_LLT
             )
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
             + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
             - model.v_F_PadStorageIn[p, t]
         )
