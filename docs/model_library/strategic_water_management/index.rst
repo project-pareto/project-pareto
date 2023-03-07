@@ -177,9 +177,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{s,t}^{StorageEvaporationStream}}` =       Water at storage lost to evaporation
 
-:math:`\textcolor{red}{F_{r,t}^{ResidualWater}}` =                  Flow of residual water out at a treatment site
+:math:`\textcolor{red}{F_{r,t}^{TreatmentFeed}}` =       Flow of feed to a treatment site
 
-:math:`\textcolor{red}{F_{r,t}^{TreatedWater}}` =                   Flow of treated water out at a treatment site
+:math:`\textcolor{red}{F_{r,t}^{ResidualWater}}` =                  Flow of residual water out of a treatment site
+
+:math:`\textcolor{red}{F_{r,t}^{TreatedWater}}` =                   Flow of treated water out of a treatment site
 
 :math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}` =    Water delivered to completions pad for reuse
 
@@ -330,6 +332,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\epsilon_{r, wt}^{Treatment}}` =        Treatment efficiency for technology :math:`\textcolor{blue}{wt}` at treatment site
 
+:math:`\textcolor{green}{\epsilon_{r, wt, qc}^{TreatmentRemoval}}` =        Removal efficiency for technology :math:`\textcolor{blue}{wt}` and quality component :math:`\textcolor{blue}{qc}` at treatment site
+
 :math:`\textcolor{green}{\epsilon_{k,t}^{DisposalOperatingCapacity}}` = Operating capacity of disposal site [%]
 
 :math:`\textcolor{green}{\alpha^{AnnualizationRate}}` =         Annualization Rate [%]
@@ -407,6 +411,10 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                 Fresh sourcing cost
 
 :math:`\textcolor{green}{M^{Flow}}` =                           Big-M flow parameter
+
+:math:`\textcolor{green}{M^{Concentration}}` =                  Big-M concentration parameter
+
+:math:`\textcolor{green}{M^{FlowConcentration}}` =              Big-M flow concentration parameter
 
 :math:`\textcolor{green}{\psi^{FracDemand}}` =                  Slack cost parameter
 
@@ -859,9 +867,9 @@ The set :math:`\textcolor{blue}{J}` should also include the 0th case (e.g. 0 bbl
         \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
 
 
-**Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+**Treatment Feed Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
-At a treatment facility, the inlet raw produced water is treated and separated into treated water and residual water.
+At a treatment facility, the inlet raw produced water is combined into a single input treatment feed.
 
 .. math::
 
@@ -869,7 +877,15 @@ At a treatment facility, the inlet raw produced water is treated and separated i
         + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
         + \sum_{p \in P | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
         + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
-        
+        = \textcolor{red}{F_{r,t}^{TreatmentFeed}}
+
+**Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+
+At a treatment facility, the input treatment feed is treated and separated into treated water and residual water.
+
+.. math::
+
+        \textcolor{red}{F_{r,t}^{TreatmentFeed}}
         = \textcolor{red}{F_{r,t}^{ResidualWater}}
         + \textcolor{red}{F_{r,t}^{TreatedWater}}
 
@@ -878,25 +894,20 @@ At a treatment facility, the inlet raw produced water is treated and separated i
 
 The efficiency of a treatment technology determines the amount of residual water produced.
 
+*Residual Water LHS*
+
 .. math::
 
-        (\sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
-        + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
-        + \sum_{p \in P | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
-        + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}})
-        
+        \textcolor{red}{F_{r,t}^{TreatmentFeed}}
         \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{Treatment}})
         - \textcolor{green}{M^{Flow}}
          \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}})
         \leq \textcolor{red}{F_{r,t}^{ResidualWater}}
 
+*Residual Water RHS*
 
 .. math::
-        (\sum_{n \in N | (n, r) \in NRA}\textcolor{red}{F_{n,r,t}^{Piped}}
-        + \sum_{s \in S | (s, r) \in SRA}\textcolor{red}{F_{s,r,t}^{Piped}}
-        + \sum_{p \in P | (p, r) \in PRT}\textcolor{red}{F_{p,r,t}^{Trucked}}
-        + \sum_{p \in P | (p, r) \in CRT}\textcolor{red}{F_{p,r,t}^{Trucked}})
-        
+        \textcolor{red}{F_{r,t}^{TreatmentFeed}}
         \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{Treatment}})
         + \textcolor{green}{M^{Flow}}
          \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}})
@@ -1368,7 +1379,9 @@ Assumptions:
 
 :math:`\textcolor{blue}{p^{PadStorage} \in CP}`         Pad Storage
 
-:math:`\textcolor{blue}{r^{TreatedWaterIntermediateNode} \in R}`         Treated Water Intermediate Node
+:math:`\textcolor{blue}{r^{TreatedWaterNodes} \in R}`         Treated Water Nodes
+
+:math:`\textcolor{blue}{r^{ResidualWaterNodes} \in R}`         Residual Water Nodes
 
 
 **Water Quality Parameters**
@@ -1451,7 +1464,7 @@ For :math:`t > 1`:
         + \sum_{k \in K | (s, k) \in SKT}\textcolor{purple}{F_{s,k,t}^{Trucked}}
         + \textcolor{purple}{F_{s,t}^{StorageEvaporationStream}})
 
-**Treatment Site Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
+**Treatment Feed Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality at treatment sites is dependent on the flow rates into the treatment site and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality. The treatment process does not affect water quality.
 
@@ -1464,22 +1477,40 @@ The water quality at treatment sites is dependent on the flow rates into the tre
         + \sum_{p \in P | (p, r) \in CRT}\textcolor{purple}{F_{p,r,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
         = \textcolor{red}{Q_{r,qc,t}} \cdot
-         (\textcolor{purple}{F_{r,t}^{ResidualWater}}
-        + \textcolor{purple}{F_{r,t}^{TreatedWater}})
+         \textcolor{purple}{F_{r,t}^{TreatmentFeed}}
 
 
-**Treated Water Quality Rule** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
+**Treated Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 All treated water from a single treatment site and single time period will have the same water quality. This constraint allows us to
 easily track the water quality at treated water end points like desalinated water.
 
+*Treated Water Quality General Constraint*
+
 .. math::
 
+        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}}
+        = \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot
         \textcolor{purple}{F_{r,t}^{TreatedWater}}
-        = \textcolor{red}{Q_{r,qc,t}} \cdot
-        ( \sum_{p \in CP | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}}
-        + \sum_{s \in S | (r, s) \in RSA}\textcolor{purple}{F_{r,s,t}^{Piped}}
-        + \textcolor{purple}{F_{r,t}^{DesalinatedWater}})
+        + \textcolor{red}{Q_{r^{ResidualWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{ResidualWater}}
+
+*Treated Water Quality LHS Constraint*
+
+.. math::
+
+        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+        + \textcolor{green}{M^{FlowConcentration}}
+         \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+        \geq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
+*Treated Water Quality RHS Constraint*
+
+.. math::
+        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+        - \textcolor{green}{M^{FlowConcentration}}
+         \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+        \leq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
 
 **Network Node Water Quality** :math:`\forall \textcolor{blue}{n \in N}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
@@ -1522,7 +1553,7 @@ The water quality at the completions pad intermediate node is dependent on the f
         + \sum_{s \in S | (s, p) \in SCA}\textcolor{purple}{F_{s,p,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}
 
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
-        + \sum_{r \in R | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}} \cdot \textcolor{red}{Q_{r,qc,t}}
+        + \sum_{r \in R | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}} \cdot \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}}
         + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{red}{Q_{f,qc,t}}
 
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}

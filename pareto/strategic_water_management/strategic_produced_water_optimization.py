@@ -5281,7 +5281,7 @@ def water_quality(model):
     model.df_sets["TreatedWaterNodes"] = [
         r + treated_water_label for r in model.df_sets["TreatmentSites"]
     ]
-    model.quality.s_R_TreatedWaterIntermediateNode = Set(
+    model.quality.s_R_TreatedWaterNodes = Set(
         initialize=model.df_sets["TreatedWaterNodes"],
         doc="Treated Water Node",
     )
@@ -5301,7 +5301,7 @@ def water_quality(model):
             model.s_L
             | model.quality.s_CP_Storage
             | model.quality.s_CP_Intermediate
-            | model.quality.s_R_TreatedWaterIntermediateNode
+            | model.quality.s_R_TreatedWaterNodes
             | model.quality.s_R_ResidualWaterNodes
         ),
         doc="Locations with tracked water quality ",
