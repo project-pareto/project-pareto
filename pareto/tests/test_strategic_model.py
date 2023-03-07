@@ -1,14 +1,14 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021 by the software owners: The
-# Regents of the University of California, through Lawrence Berkeley National Laboratory, et al. All
-# rights reserved.
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
 #
-# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the
-# U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted
-# for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license
-# in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
-# publicly and display publicly, and to permit other to do so.
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 """
 Test strategic model
@@ -1075,7 +1075,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 20955
+    assert degrees_of_freedom(m) == 21319
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -1099,7 +1099,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 20955
+    assert degrees_of_freedom(m) == 21319
 
     # Test report building
     [model, results_dict] = generate_report(
