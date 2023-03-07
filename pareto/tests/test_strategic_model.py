@@ -1075,7 +1075,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 20955
+    assert degrees_of_freedom(m) == 21319
     # Check unit config arguments
     assert len(m.config) == 6
     assert m.config.objective
@@ -1099,7 +1099,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 20955
+    assert degrees_of_freedom(m) == 21319
 
     # Test report building
     [model, results_dict] = generate_report(
