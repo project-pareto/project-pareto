@@ -1,14 +1,14 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021 by the software owners: The
-# Regents of the University of California, through Lawrence Berkeley National Laboratory, et al. All
-# rights reserved.
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
 #
-# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the
-# U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted
-# for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license
-# in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
-# publicly and display publicly, and to permit other to do so.
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 # Title: STRATEGIC Produced Water Optimization Model
 
@@ -5118,13 +5118,13 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ReuseDestinationDeliveriesRule(model, p, t):
         constraint = model.v_F_ReuseDestination[p, t] == sum(
-            model.v_F_Piped[l, l_tilde, t]
-            for (l, l_tilde) in model.s_LLA
-            if (l_tilde == p) and (l not in model.s_F)
+            model.v_F_Piped[l, p, t]
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLA
         ) + sum(
-            model.v_F_Trucked[l, l_tilde, t]
-            for (l, l_tilde) in model.s_LLT
-            if (l_tilde == p) and (l not in model.s_F)
+            model.v_F_Trucked[l, p, t]
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLT
         )
 
         return process_constraint(constraint)
@@ -5138,10 +5138,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def DisposalDestinationDeliveriesRule(model, k, t):
         constraint = model.v_F_DisposalDestination[k, t] == sum(
-            model.v_F_Piped[l, k, t] for (l, l_tilde) in model.s_LLA if l_tilde == k
-        ) + sum(
-            model.v_F_Trucked[l, k, t] for (l, l_tilde) in model.s_LLT if l_tilde == k
-        )
+            model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT)
 
         return process_constraint(constraint)
 
