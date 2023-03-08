@@ -1357,6 +1357,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_QC,
         default=0,
         initialize=model.df_parameters["RemovalEfficiency"],
+        mutable=True,
         doc="Removal efficiency [%]",
     )
     # Note PipelineCapacityIncrements_Calculated is set in _pre_process. These values are already in model units, they
