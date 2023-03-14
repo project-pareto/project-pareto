@@ -1465,7 +1465,7 @@ For :math:`t > 1`:
 
 **Treatment Feed Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
-The water quality at treatment sites is dependent on the rate and quality of the feed stream(s) into the treatment site. Even mixing is assumed in calculating the quality of the combined feed stream.
+The water quality at treatment sites is dependent on the flow rates and qualities of the feed streams into the treatment site. Even mixing is assumed in calculating the quality of the combined feed stream.
 
 .. math::
 
