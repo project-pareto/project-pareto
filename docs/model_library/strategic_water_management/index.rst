@@ -1369,7 +1369,6 @@ Assumptions:
 
 * Water quality of produced water from production pads and completions pads remains the same across all time periods
 * When blending flows of different water quality, they blend linearly
-* Treatment does not affect water quality
 
 **Water Quality Sets**
 
@@ -1466,7 +1465,7 @@ For :math:`t > 1`:
 
 **Treatment Feed Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
-The water quality at treatment sites is dependent on the flow rates into the treatment site and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality. The treatment process does not affect water quality.
+The water quality at treatment sites is dependent on the flow rates into the treatment site and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality.
 
 .. math::
 
