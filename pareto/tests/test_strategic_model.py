@@ -123,6 +123,7 @@ def build_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -407,6 +408,7 @@ def build_reduced_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -663,8 +665,8 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m.quality) == 780
-    assert pytest.approx(4.7832, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert degrees_of_freedom(m.quality) == 884
+    assert pytest.approx(4.8342164, abs=1e-1) == pyo.value(m.quality.v_X)
     with nostdout():
         assert is_feasible(m)
 
@@ -787,6 +789,7 @@ def test_strategic_model_UI_display_units():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -882,6 +885,7 @@ def build_toy_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -1032,6 +1036,7 @@ def build_permian_demo_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",

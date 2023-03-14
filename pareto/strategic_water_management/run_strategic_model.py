@@ -94,6 +94,7 @@ parameter_list = [
     "StorageCapacityIncrements",
     "TreatmentCapacityIncrements",
     "TreatmentEfficiency",
+    "RemovalEfficiency",
     "DisposalExpansionCost",
     "StorageExpansionCost",
     "TreatmentExpansionCost",
