@@ -421,6 +421,14 @@ def generate_report(
             reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
 
+        # model.reuse_TotalResidualWater
+
+        # model.reuse_TotalReusedOutsideSystem
+
+        # model.reuse_TotalEvaporated
+
+        # Facility utiliztion buildout table
+
         # Infrastructure buildout table
 
         # Due to tolerances, binaries may not exactly equal 1
