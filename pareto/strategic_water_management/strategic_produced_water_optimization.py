@@ -1064,6 +1064,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_alpha_AnnualizationRate = Param(
         default=1,
         initialize=model.df_parameters["AnnualizationRate"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Annualization rate [%]",
     )
     model.p_gamma_Completions = Param(
@@ -1088,7 +1089,7 @@ def create_model(df_sets, df_parameters, default={}):
         ),
         units=model.model_units["volume"],
         doc="Total water demand over the planning horizon [volume]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     model.p_beta_Production = Param(
         model.s_P,
@@ -1131,7 +1132,7 @@ def create_model(df_sets, df_parameters, default={}):
         ),
         units=model.model_units["volume"],
         doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     model.p_sigma_Pipeline = Param(
         model.s_L,
@@ -1235,7 +1236,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Freshwater sourcing capacity at freshwater source [volume/time]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
 
     model.p_sigma_OffloadingPad = Param(
@@ -1255,7 +1256,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Truck offloading sourcing capacity per pad [volume/time]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     model.p_sigma_OffloadingStorage = Param(
         model.s_S,
@@ -1274,7 +1275,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Truck offloading capacity per pad [volume/time]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     model.p_sigma_ProcessingPad = Param(
         model.s_P,
@@ -1293,7 +1294,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Processing (e.g. clarification) capacity per pad [volume/time]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     model.p_sigma_ProcessingStorage = Param(
         model.s_S,
@@ -1312,7 +1313,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Processing (e.g. clarification) capacity per storage site [volume/time]",
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     if model.config.node_capacity == True:
         model.p_sigma_NetworkNode = Param(
@@ -1335,6 +1336,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_WT,
         default=1.0,
         initialize=model.df_parameters["TreatmentEfficiency"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Treatment efficiency [%]",
     )
 
@@ -1344,7 +1346,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_QC,
         default=0,
         initialize=model.df_parameters["RemovalEfficiency"],
-        mutable=True,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Removal efficiency [%]",
     )
     # Note PipelineCapacityIncrements_Calculated is set in _pre_process. These values are already in model units, they
@@ -1470,6 +1472,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         default=12,
         initialize=model.df_parameters["TruckingTime"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Drive time between locations [hr]",
     )
     model.p_lambda_Storage = Param(
@@ -1899,6 +1902,7 @@ def create_model(df_sets, df_parameters, default={}):
             key: 0 if value and value > 0 else 1
             for key, value in model.df_parameters["InitialDisposalCapacity"].items()
         },
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Indicates if Expansion is allowed at site k",
     )
 
@@ -1907,6 +1911,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=0,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Operating capacity of disposal site [%]",
     )
 
@@ -6085,6 +6090,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # For the discretization we need a upperbound for the maximum number of trucks for each truck flow
     model.p_max_number_of_trucks = Param(
         initialize=500,
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Max number of trucks. Needed for upperbound on v_F_Trucked",
     )
 
