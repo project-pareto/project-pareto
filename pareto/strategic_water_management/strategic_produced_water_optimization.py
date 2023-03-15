@@ -46,6 +46,12 @@ from enum import Enum
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 
+from pareto.utilities.bounding_functions import (
+    UniversalVariableBounds,
+    QualityPPVariableBounds,
+    QualityDiscreteVariableBounds,
+)
+
 
 class Objectives(Enum):
     cost = 0
@@ -5246,14 +5252,14 @@ def water_quality(model):
     for var in model.component_objects(Var):
         for index in var:
             # Check if the variable is indexed
-            if index is None:
+            if index is None and var.value is not None:
                 # Check if the value can reasonably be assumed to be non-zero
                 if abs(var.value) > 0.0000001:
                     var.fix()
                 # Otherwise, fix to 0
                 else:
                     var.fix(0)
-            elif index is not None:
+            elif index is not None and var[index].value is not None:
                 # Check if the value can reasonably be assumed to be non-zero
                 if var[index].value and abs(var[index].value) > 0.0000001:
                     var[index].fix()
@@ -6795,6 +6801,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
     DiscretizeFlowInPadStorageQuality(model)
     DiscretizeCompletionsDestinationQuality(model)
 
+    model = QualityDiscreteVariableBounds(model)
+
     # endregion
     # region Disposal
     # Material Balance
@@ -7236,6 +7244,10 @@ def process_constraint(constraint):
 def postprocess_water_quality_calculation(model, opt):
     # Add water quality formulation to input solved model
     water_quality_model = water_quality(model)
+    water_quality_model = QualityPPVariableBounds(water_quality_model)
+
+    # Add water quality formulation to input solved model
+    water_quality_model = water_quality(model)
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
@@ -7671,6 +7683,8 @@ def solve_discrete_water_quality(model, opt, scaled):
 
 
 def solve_model(model, options=None):
+    model = UniversalVariableBounds(model)
+
     if options is None:
         options = {
             "deactivate_slacks": True,
