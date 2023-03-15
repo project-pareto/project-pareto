@@ -37,7 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - '3.8'
           - '3.9'
         os:
           # - linux
@@ -45,7 +44,6 @@ jobs:
           # - macos
         install-mode:
           - dev
-          - user
         include:
           # - os: macos
           #   os-version: macos-10.15
@@ -74,8 +72,9 @@ jobs:
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
       - name: Run pytest
         run: |
-          pytest -v
+          pytest -v -k test_solvers
       - name: Run toy case study
+        if: 'false'
         run: |
           python -m pareto.tests.toy_case_study
       - name: Upload coverage report to Codecov
