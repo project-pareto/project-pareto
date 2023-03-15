@@ -27,6 +27,7 @@ defaults:
 env:
   # needed for colorized output to be shown in GHA logs
   PYTEST_ADDOPTS: "--color=yes"
+  PIP_PROGRESS_BAR: "off"
 
 jobs:
   pytest:
@@ -66,7 +67,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
-          pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
+          pip --no-cache-dir install ${{ matrix.pip-install-target }}
           idaes get-extensions --verbose
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
