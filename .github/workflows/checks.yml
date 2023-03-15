@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - '3.9'
+          - '3.8'
         os:
           # - linux
           - win64
@@ -77,6 +77,21 @@ jobs:
         if: 'false'
         run: |
           python -m pareto.tests.toy_case_study
+      - name: Upload coverage report as job artifact
+        if: matrix.cov-report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml
+          if-no-files-found: error
+
+  upload-codecov:
+    needs: [pytest]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: coverage-report
       - name: Upload coverage report to Codecov
         if: matrix.cov-report
         uses: codecov/codecov-action@v2
