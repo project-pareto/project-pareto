@@ -94,7 +94,6 @@ jobs:
         with:
           name: coverage-report
       - name: Upload coverage report to Codecov
-        if: matrix.cov-report
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
