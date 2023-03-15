@@ -43,6 +43,7 @@ jobs:
           - win64
           # - macos
         install-mode:
+          - user
           - dev
         include:
           # - os: macos
