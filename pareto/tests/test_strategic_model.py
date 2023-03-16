@@ -1,14 +1,14 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021 by the software owners: The
-# Regents of the University of California, through Lawrence Berkeley National Laboratory, et al. All
-# rights reserved.
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
 #
-# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the
-# U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted
-# for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license
-# in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
-# publicly and display publicly, and to permit other to do so.
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 """
 Test strategic model
@@ -123,6 +123,7 @@ def build_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -407,6 +408,7 @@ def build_reduced_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -663,8 +665,8 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m.quality) == 780
-    assert pytest.approx(4.7832, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert degrees_of_freedom(m.quality) == 884
+    assert pytest.approx(4.8342164, abs=1e-1) == pyo.value(m.quality.v_X)
     with nostdout():
         assert is_feasible(m)
 
@@ -787,6 +789,7 @@ def test_strategic_model_UI_display_units():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -882,6 +885,7 @@ def build_toy_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",
@@ -1032,6 +1036,7 @@ def build_permian_demo_strategic_model():
         "StorageCapacityIncrements",
         "TreatmentCapacityIncrements",
         "TreatmentEfficiency",
+        "RemovalEfficiency",
         "DisposalExpansionCost",
         "StorageExpansionCost",
         "TreatmentExpansionCost",

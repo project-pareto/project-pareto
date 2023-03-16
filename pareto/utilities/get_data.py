@@ -1,14 +1,14 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021 by the software owners: The
-# Regents of the University of California, through Lawrence Berkeley National Laboratory, et al. All
-# rights reserved.
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
 #
-# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the
-# U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted
-# for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license
-# in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
-# publicly and display publicly, and to permit other to do so.
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 """
 Module to read in input data from Excel spreadsheets and convert it into the
@@ -379,6 +379,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "StorageCapacityIncrements": user_units["volume"],
         "TreatmentCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
         "TreatmentEfficiency": "%",
+        "RemovalEfficiency": "%",
         "DisposalExpansionCost": user_units["currency"]
         + "/("
         + user_units["volume"]
