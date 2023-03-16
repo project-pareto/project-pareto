@@ -91,6 +91,8 @@ jobs:
     needs: [pytest]
     runs-on: ubuntu-latest
     steps:
+      # the checkout step is needed to have access to codecov.yml
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: coverage-report
