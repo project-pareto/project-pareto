@@ -80,16 +80,17 @@ Core-dev
 
 1. Fork the repo on GitHub (your copy of the main repo)
 
-2. Clone your fork locally, creating a workspace (github id is "myusername,")::
+2. Clone your fork locally, with only one of the following commands, creating a
+   workspace (replacing ``<githubid>`` with your github user id)::
 
-    git clone https://github.com/myusername/project-pareto
-    git clone git@github.com:myusername/project-pareto.
+    git clone https://github.com/<githubid>/project-pareto
+    git clone git@github.com:<githubid>/project-pareto
 
 3. In this new project-pareto directory, run the following command which
    installs PARETO in editable mode so that developers can make changes and
    push to their fork/branch::
 
-    pip install -e
+    pip install -e .
 
 .. _min_install_hybrid:
 
@@ -99,7 +100,7 @@ Hybrid
 
 1. Create environment::
 
-    conda create -n pareto-env python=3.8pip --yes
+    conda create -n pareto-env python=3.8 pip --yes
     conda activate pareto-env
 
 2. Download zip files (project-pareto-main)
@@ -125,5 +126,5 @@ folder, as follows::
     $ cd project-pareto/docs/
     $ make html
 
-Visit the `Sphinx Style Guide <https://gdal.org/contributing/rst_style.html>`_ for information on
+Visit the `Sphinx Style Guide <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_ for information on
 syntax rules, tips, and FAQ.
