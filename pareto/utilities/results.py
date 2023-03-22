@@ -422,13 +422,62 @@ def generate_report(
             reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
 
-        # model.reuse_TotalResidualWater
+        # Total Residual Water
+        model.totalResidualKPI = Var(
+            doc="Total Residual Water [volume]", units=model.model_units["volume"]
+        )
+        totalResidual_value = sum(
+            sum(value(model.v_F_ResidualWater[r, t]) for r in model.s_R)
+            for t in model.s_T
+        )
+        model.totalResidualKPI.value = totalResidual_value
 
-        # model.reuse_TotalReusedOutsideSystem
+        # Total Water Reused Outside of System
+        model.totalReusedOutsideSystemKPI = Var(
+            doc="Total Water Reused Outside System [volume]",
+            units=model.model_units["volume"],
+        )
+        totalReusedOutsideSystem_value = sum(
+            sum(
+                value(model.v_F_ReuseDestination[p, t])
+                for p in model.s_CP
+                if model.p_chi_OutsideCompletionsPad[p] == 1
+            )
+            for t in model.s_T
+        )
+        model.totalReusedOutsideSystemKPI.value = totalReusedOutsideSystem_value
 
-        # model.reuse_TotalEvaporated
+        # Total Water Reused Inside of System
+        model.totalReusedInsideSystemKPI = Var(
+            doc="Total Water Reused Inside System [volume]",
+            units=model.model_units["volume"],
+        )
+        totalReusedInsideSystem_value = sum(
+            sum(
+                value(model.v_F_ReuseDestination[p, t])
+                for p in model.s_CP
+                if model.p_chi_OutsideCompletionsPad[p] == 0
+            )
+            for t in model.s_T
+        )
+        model.totalReusedInsideSystemKPI.value = totalReusedInsideSystem_value
 
-        # Facility utiliztion buildout table
+        # Total Water Evaporated
+        model.totalEvaporatedKPI = Var(
+            doc="Total Water Evaporated [volume]", units=model.model_units["volume"]
+        )
+        totalEvaporated_value = sum(
+            sum(value(model.v_F_StorageEvaporationStream[s, t]) for s in model.s_S)
+            for t in model.s_T
+        )
+        model.totalEvaporatedKPI.value = totalEvaporated_value
+
+        # Facility utilization buildout table
+
+        # headers["utilization"]
+        # # capacity data
+        # #
+        # # utilization rate
 
         # Infrastructure buildout table
 
