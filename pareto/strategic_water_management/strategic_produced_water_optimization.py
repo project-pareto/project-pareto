@@ -68,6 +68,11 @@ class WaterQuality(Enum):
     discrete = 2
 
 
+class RemovalEfficiencyMethod(Enum):
+    load_based = 0
+    concentration_based = 1
+
+
 # create config dictionary
 CONFIG = ConfigBlock()
 CONFIG.declare(
@@ -153,6 +158,22 @@ CONFIG.declare(
         **WaterQuality.False** - Exclude water quality from model,
         **WaterQuality.post_process** - Include water quality as post process
         **WaterQuality.discrete** - Include water quality as discrete values in model
+        }""",
+    ),
+)
+
+
+CONFIG.declare(
+    "removal_efficiency_method",
+    ConfigValue(
+        default=RemovalEfficiencyMethod.concentration_based,
+        domain=In(RemovalEfficiencyMethod),
+        description="Removal efficiency calculation method",
+        doc="""Method for calculating removal efficiency (load or concentration based).
+        ***default*** - RemovalEfficiencyMethod.concentration_based
+        **Valid Values:** - {
+        **RemovalEfficiencyMethod.load_based** - use contaminant load (flow times concentration) to calculate removal efficiency,
+        **RemovalEfficiencyMethod.concentration_based** - use contaminant concentration to calculate removal efficiency
         }""",
     ),
 )
@@ -5634,7 +5655,41 @@ def water_quality(model):
         doc="Treatment water quality",
     )
 
-    def TreatedWaterQualityLHSRule(b, r, wt, qc, t):
+    def TreatedWaterQualityConcentrationBasedLHSRule(b, r, wt, qc, t):
+        constraint = (
+            b.v_Q[r, qc, t]
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+            + b.parent_block().p_M_Concentration
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
+            >= b.v_Q[r + treated_water_label, qc, t]
+        )
+
+        return process_constraint(constraint)
+
+    def TreatedWaterQualityConcentrationBasedRHSRule(b, r, wt, qc, t):
+        constraint = (
+            b.v_Q[r, qc, t]
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+            - b.parent_block().p_M_Concentration
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
+            <= b.v_Q[r + treated_water_label, qc, t]
+        )
+
+        return process_constraint(constraint)
+
+    def TreatedWaterQualityLoadBasedLHSRule(b, r, wt, qc, t):
         constraint = (
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
@@ -5653,16 +5708,7 @@ def water_quality(model):
 
         return process_constraint(constraint)
 
-    model.quality.TreatmentWaterQualityLHS = Constraint(
-        model.s_R,
-        model.s_WT,
-        model.s_QC,
-        model.s_T,
-        rule=TreatedWaterQualityLHSRule,
-        doc="Treatment water quality",
-    )
-
-    def TreatedWaterQualityRHSRule(b, r, wt, qc, t):
+    def TreatedWaterQualityLoadBasedRHSRule(b, r, wt, qc, t):
         constraint = (
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
@@ -5681,14 +5727,43 @@ def water_quality(model):
 
         return process_constraint(constraint)
 
-    model.quality.TreatmentWaterQualityRHS = Constraint(
-        model.s_R,
-        model.s_WT,
-        model.s_QC,
-        model.s_T,
-        rule=TreatedWaterQualityRHSRule,
-        doc="Treatment water quality",
-    )
+    if (
+        model.config.removal_efficiency_method
+        == RemovalEfficiencyMethod.concentration_based
+    ):
+        model.quality.TreatmentWaterQualityLHS = Constraint(
+            model.s_R,
+            model.s_WT,
+            model.s_QC,
+            model.s_T,
+            rule=TreatedWaterQualityConcentrationBasedLHSRule,
+            doc="Treatment water quality with concentration based removal efficiency",
+        )
+        model.quality.TreatmentWaterQualityRHS = Constraint(
+            model.s_R,
+            model.s_WT,
+            model.s_QC,
+            model.s_T,
+            rule=TreatedWaterQualityConcentrationBasedRHSRule,
+            doc="Treatment water quality with concentration based removal efficiency",
+        )
+    elif model.config.removal_efficiency_method == RemovalEfficiencyMethod.load_based:
+        model.quality.TreatmentWaterQualityLHS = Constraint(
+            model.s_R,
+            model.s_WT,
+            model.s_QC,
+            model.s_T,
+            rule=TreatedWaterQualityLoadBasedLHSRule,
+            doc="Treatment water quality with load based removal efficiency",
+        )
+        model.quality.TreatmentWaterQualityRHS = Constraint(
+            model.s_R,
+            model.s_WT,
+            model.s_QC,
+            model.s_T,
+            rule=TreatedWaterQualityLoadBasedRHSRule,
+            doc="Treatment water quality with load based removal efficiency",
+        )
 
     # endregion
 
