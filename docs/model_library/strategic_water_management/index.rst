@@ -932,8 +932,8 @@ Completions reuse water is all water that meets completions pad demand, excludin
 .. math::
 
     \textcolor{red}{C_{p,t}^{CompletionsReuse}}
-        = (\sum_{l \in L | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        = (\sum_{l \in (L - F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \sum_{l \in (L - F) | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
         ) \cdot \textcolor{green}{\pi_{p}^{CompletionsReuse}}
 
 
@@ -955,15 +955,15 @@ The total reuse volume is the total volume of produced water reused, or the tota
         + \sum_{l \in (L-F) | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}})
 
 
-**Piping Cost:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
+**Piping Cost:** :math:`\forall \textcolor{blue}{l \in (L - O - K)}, \forall \textcolor{blue}{\tilde{l} \in (L - F)}, \forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
 
 Piping cost is the total volume of piped water multiplied by the cost for piping.
 
 .. math::
 
     \textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
-        = (\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
-        + \textcolor{red}{F_{l,\tilde{l},t}^{Sourced})} \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
+        = (\textcolor{red}{F_{l \notin F,\tilde{l},t}^{Piped}}
+        + \textcolor{red}{F_{l \in F,\tilde{l},t}^{Sourced})} \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
 
 .. math::
     \textcolor{red}{C^{TotalPiping}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
