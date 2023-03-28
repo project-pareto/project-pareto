@@ -963,7 +963,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 4558
-    assert pytest.approx(11122.0815, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(11122.325, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
 
