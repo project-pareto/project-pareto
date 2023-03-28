@@ -2760,11 +2760,13 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = model.v_C_Reuse[p, t] == (
             (
                 sum(
-                    model.v_F_Piped[l, p, t] for l in model.s_L if (l, p) in model.s_LLA
+                    model.v_F_Piped[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLA
                 )
                 + sum(
                     model.v_F_Trucked[l, p, t]
-                    for l in model.s_L
+                    for l in (model.s_L - model.s_F)
                     if (l, p) in model.s_LLT
                 )
             )
@@ -2818,10 +2820,17 @@ def create_model(df_sets, df_parameters, default={}):
 
     def PipingCostRule(model, l, l_tilde, t):
         if (l, l_tilde) in model.s_LLA:
-            constraint = (
-                model.v_C_Piped[l, l_tilde, t]
-                == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-            )
+            if l in model.s_F:
+                constraint = (
+                    model.v_C_Piped[l, l_tilde, t]
+                    == model.v_F_Sourced[l, l_tilde, t]
+                    * model.p_pi_Pipeline[l, l_tilde]
+                )
+            else:
+                constraint = (
+                    model.v_C_Piped[l, l_tilde, t]
+                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                )
             return process_constraint(constraint)
         else:
             return Constraint.Skip
