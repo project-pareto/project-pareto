@@ -1072,11 +1072,14 @@ def generate_report(
         )
 
     # Creating the Excel report
-    with pd.ExcelWriter(fname) as writer:
-        for i in headers:
-            df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
-            df.fillna("")
-            df.to_excel(writer, sheet_name=i[: -len("_dict")], index=False, startrow=1)
+    if fname is not None:
+        with pd.ExcelWriter(fname) as writer:
+            for i in headers:
+                df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
+                df.fillna("")
+                df.to_excel(
+                    writer, sheet_name=i[: -len("_dict")], index=False, startrow=1
+                )
 
     return model, headers
 
