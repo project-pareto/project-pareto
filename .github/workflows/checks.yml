@@ -27,6 +27,7 @@ defaults:
 env:
   # needed for colorized output to be shown in GHA logs
   PYTEST_ADDOPTS: "--color=yes"
+  PIP_PROGRESS_BAR: "off"
 
 jobs:
   pytest:
@@ -43,8 +44,8 @@ jobs:
           - win64
           # - macos
         install-mode:
-          - dev
           - user
+          - dev
         include:
           # - os: macos
           #   os-version: macos-10.15
@@ -66,7 +67,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
-          pip --no-cache-dir install --progress-bar off ${{ matrix.pip-install-target }}
+          pip --no-cache-dir install ${{ matrix.pip-install-target }}
           idaes get-extensions --verbose
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
@@ -77,8 +78,25 @@ jobs:
       - name: Run toy case study
         run: |
           python -m pareto.tests.toy_case_study
-      - name: Upload coverage report to Codecov
+      - name: Upload coverage report as job artifact
         if: matrix.cov-report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml
+          if-no-files-found: error
+
+  upload-codecov:
+    name: Upload coverage to Codecov
+    needs: [pytest]
+    runs-on: ubuntu-latest
+    steps:
+      # the checkout step is needed to have access to codecov.yml
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: coverage-report
+      - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
