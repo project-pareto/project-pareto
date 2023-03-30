@@ -2215,8 +2215,8 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
 
     model.BidirectionalFlow1 = Constraint(
+        (model.s_L - model.s_F - model.s_O),
         (model.s_L - model.s_F),
-        model.s_L,
         model.s_T,
         rule=BidirectionalFlowRule1,
         doc="Bi-directional flow",
@@ -2233,7 +2233,7 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
 
     model.BidirectionalFlow2 = Constraint(
-        (model.s_L - model.s_F - model.s_O - model.s_K),
+        (model.s_L - model.s_F - model.s_O),
         (model.s_L - model.s_F),
         model.s_T,
         rule=BidirectionalFlowRule2,

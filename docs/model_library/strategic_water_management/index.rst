@@ -481,7 +481,7 @@ If :math:`\textcolor{green}{\chi_{p}^{OutsideCompletionsPad}} = 1`:
 
     \textcolor{green}{\gamma_{p,t}^{Completions}}
         \geq \sum_{l \in (L-F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
+        + \sum_{f \in F | (f, p) \in LLA}\textcolor{red}{F_{f,p,t}^{Sourced}}
         + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
 
         + \textcolor{red}{F_{p,t}^{PadStorageOut}} - \textcolor{red}{F_{p,t}^{PadStorageIn}} + \textcolor{red}{S_{p,t}^{FracDemand}}
@@ -492,7 +492,7 @@ Else if :math:`\textcolor{green}{\chi_{p}^{OutsideCompletionsPad}} = 0`:
 
     \textcolor{green}{\gamma_{p,t}^{Completions}}
         = \sum_{l \in (L-F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
+        + \sum_{f \in F | (f, p) \in LLA}\textcolor{red}{F_{f,p,t}^{Sourced}}
         + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
 
         + \textcolor{red}{F_{p,t}^{PadStorageOut}} - \textcolor{red}{F_{p,t}^{PadStorageIn}} + \textcolor{red}{S_{p,t}^{FracDemand}}
@@ -576,7 +576,7 @@ For each completions pad and time period, the volume of water (excluding freshwa
         \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
 
 
-.. note:: This constraint has not actually been implemented yet.
+.. note:: The above constraint has not been implemented yet.
 
 
 **Storage Site Truck Offloading Capacity:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
@@ -634,7 +634,7 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
         = \sum_{l \in L | (n, l) \in LLA}\textcolor{red}{F_{n,l,t}^{Piped}}
 
 
-**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
+**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{l \in (L-F-O)}, \textcolor{blue}{\tilde{l} \in (L-F)}, \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
 
 There can only be flow in one direction for a given pipeline arc in a given time period. Flow is only allowed in a given direction if the binary indicator for that direction is "on".
 
@@ -642,7 +642,7 @@ There can only be flow in one direction for a given pipeline arc in a given time
 
     \textcolor{red}{y_{l,\tilde{l},t}^{Flow}}+\textcolor{red}{y_{\tilde{l},l,t}^{Flow}} = 1
 
-.. note:: Technically this constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
+.. note:: Technically the above constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
 
 .. math::
 
@@ -698,16 +698,10 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
         \leq \textcolor{green}{\sigma_{n}^{Node}}
 
 
-**Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in \{PCA,PNA,PPA,NKA,CNA,NCA,NSA,NOA,FCA,RCA,SKA,SOA,RSA,SRA\}}, [\textcolor{blue}{t \in T}]`
+**Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, [\textcolor{blue}{t \in T}]`
 
-Sets the flow capacity in a given pipeline during a given time period. Different constraints apply depending on if the pipeline is reversible or not.
+Sets the flow capacity in a given pipeline during a given time period. The following constraint assumes that all pipelines may allow reversible flows. Also, an inherrent assumption is that there can be a maximum of 2 pipelines between any 2 nodes.
 The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
-
-.. math::
-
-    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}+\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
-
-:math:`\forall \textcolor{blue}{(l,\tilde{l}) \in \{PPA,CNA,NNA,NCA,NSA,NRA,RNA,RKA,SNA,SCA\}},[\textcolor{blue}{t \in T}]`
 
 .. math::
 
@@ -733,7 +727,7 @@ The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl
 
 **Storage Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{s \in S}, [\textcolor{blue}{t \in T}]`
 
-This constraint accounts for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon.
+The following 2 constraints account for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon.
 The set :math:`\textcolor{blue}{C}` should also include the 0th case (0 bbl) that indicates the choice to not expand capacity.
 
 .. math::
@@ -749,7 +743,7 @@ The set :math:`\textcolor{blue}{C}` should also include the 0th case (0 bbl) tha
 
 **Disposal Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{k \in K}, [\textcolor{blue}{t \in T}]`
 
-This constraint accounts for the expansion of available disposal sites or installation of new disposal sites. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
+The following 2 constraints account for the expansion of available disposal sites or installation of new disposal sites. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
 The set :math:`\textcolor{blue}{I}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
 
 .. math::
@@ -963,7 +957,7 @@ Piping cost is the total volume of piped water multiplied by the cost for piping
 
     \textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
         = (\textcolor{red}{F_{l \notin F,\tilde{l},t}^{Piped}}
-        + \textcolor{red}{F_{l \in F,\tilde{l},t}^{Sourced})} \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
+        + \textcolor{red}{F_{l \in F,\tilde{l},t}^{Sourced}}) \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
 
 .. math::
     \textcolor{red}{C^{TotalPiping}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
@@ -1002,7 +996,7 @@ Credits from withdrawing from storage is equal to the total volume of water move
 ..
     **Pad Storage Cost:** :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}, \textcolor{blue}{t \in T}`
 
-**Trucking Cost (Simplified)**
+**Trucking Cost (Simplified)** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLT}, [\textcolor{blue}{t \in T}]`
 
 Trucking cost between two locations for time period is equal to the trucking volume between locations in time :math:`\textcolor{blue}{t}` divided by the truck capacity [this gets # of truckloads] multiplied by the lead time between two locations and hourly trucking cost.
 
@@ -1115,7 +1109,7 @@ Alternatively, if it is desired to only consider sizes to build, the 0th case ca
 
     \sum_{c \in C}\textcolor{red}{y_{s,c,[t]}^{Storage}} = 1
 
-:math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}`
+:math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}`
 
 .. math::
 
@@ -1223,7 +1217,7 @@ Beneficial reuse deliveries for beneficial reuse site :math:`\textcolor{blue}{o}
 
     \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
         = \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
-        + \textcolor{red}{F_{l,o,t}^{Trucked}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
 
 Completions deliveries destination for completions pad :math:`\textcolor{blue}{p}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the completions pad.
 :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
@@ -1363,7 +1357,7 @@ The water quality at treatment sites is dependent on the flow rates and qualitie
 
 **Treated Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
-All treated water from a single treatment site and single time period will have the same water quality. This constraint allows us to
+All treated water from a single treatment site and single time period will have the same water quality. The following constraints allow us to
 easily track the water quality at treated water end points like desalinated water.
 
 *Treated Water Quality General Constraint*
