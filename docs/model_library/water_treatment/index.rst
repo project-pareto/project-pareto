@@ -651,7 +651,7 @@ Estimating specific heat capacities:
 
 .. math:: 
 
-    C_p^{feed} = 0.001(4206.8 - 6.6197 X_s^{in} + 1.22 \times 10^{-2} X_{s}^{in^2} + (-1.262 + 5.418 \times 10^{-2}X_s^{in})T_{feed}
+    C_p^{feed} = 0.001(4206.8 - 6.6197 Q_s^{in} + 1.22 \times 10^{-2} Q_{s}^{in^2} + (-1.262 + 5.418 \times 10^{-2}Q_s^{in})T_{feed})
 
     C_p^{mix} = 0.001(4206.8 - 1.1262 T_{mix}^{out})
 
