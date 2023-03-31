@@ -174,3 +174,334 @@ The third method for incorporating treatment costs into PARETO is through the in
 
 Mechanical vapor recompression model
 --------------------------------------
+
+Single effect evaporation and multi effect evaporation has been studied for shale water desalination. Mechanical vapor recompression, uses a compressor to utilize the heat from the evaporated vapor for further evaporation. As shown in the schematic in Figure (2), for a system with I effects, the produced water is fed into evaporator I. After evaporation, the brine from the i\ :sup:`th` effect is sent to the (i-1)\ :sup:`th` effect and the vapor from the (i-1)\ :sup:`th` effect is sent to the i\ :sup:`th` effect.
+
+.. figure:: ../../img/mee_svr_schematic.png
+    :width: 600
+    :align: center
+
+    Figure 2. MEE-SVR treatment flowsheet
+
+The vapor from the I\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
+
+Model Description:
+------------------
+
+The multi effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
+The model is built in Pyomo and is based of equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
+
+Modeling Equations:
+-------------------
+
+Evaporator model
+++++++++++++++++
+
+Flow balance in the evaporators:
+
+.. math::
+
+    F_{in} = F_{brine}^{(I)} + F_{vapor}^{(I)}
+
+    F_{in}^{(i+1)} = F_{brine}^{(i)} + F_{vapor}^{(i)} \quad \forall i < I
+
+Flow matching between super heated vapor and flow of vapor from the evaporator:
+
+.. math:: 
+
+    F_{spv} = F_{vapor}^{(I)}
+
+Mass balance in the evaporators:
+
+.. math:: 
+
+    F_{in}S_{in} = F_{brine}^{(I)}S_{brine}^{(I)}
+
+    F_{brine}^{(i+1)}S_{brine}^{(i+1)}=F_{brine}^{(i)}S_{brine}^{(i)} \quad \forall i < I
+
+Calculating mass fraction of salt from salt salinity:
+
+.. math:: 
+
+    X_{s}^{in} = 0.001 S_{in}
+
+    X_s^{(i)} = 0.001 S_{brine}^{(i)} \quad \forall i \in \{0,...,I\}
+
+Energy balance in the evaporator:
+
+.. math:: 
+
+    Q^{(I)} + F_{in}H_{in} = F_{brine}^{(I)}H_{brine}^{(I)} + F_{vapor}^{(I)}H_{vapor}^{(I)}
+
+    Q^{(i)} + F_{brine}^{(i+1)}H_{brine}^{(i+1)} = F_{brine}^{(i)}H_{brine}^{(i)} + F_{vapor}^{(i)}H_{vapor}^{(i)} \quad \forall i < I
+
+    Q^{(1)} =  F_{spv}C_p^{vapor}(T_{spv} - T_{cond}^{(1)}) + F_{spv}(H_{cond}^{vap(1)} - H_{cond}^{(1)})
+
+    Q^{(i)} = F_{vapor}^{(i-1)} \lambda^{(i)} \quad \forall i \in \{2,...,I\}
+
+Thermodynamic Relations
+
+Relating pressures to temperatures using the Antoine equation: 
+
+.. math:: 
+
+    log(P_{vapor}^{(i)}) = a + \frac{b}{T_{ideal}^{(i)} + c} \quad \forall i \in \{1,.., I\}
+
+    log(P_{spv}^{(1)}) = a + \frac{b}{T_{cond}^{(1)} + c}
+
+    log(P_{sv}^{(i)}) = a + \frac{b}{T_{sv}^{(i)} + c} \quad \forall i \in \{2,..., I\}
+
+Calculating elevation in boiling point due to TDS in the feed water:
+
+.. math:: 
+
+    BPE^{(i)} = 0.1581 + 2.769 X_{s}^{(i)} - 0.002676 T_{ideal}^{(i)}+ 41.78 X_{s}^{(i)2} + 0.134 X_{s}^{(i)}T_{ideal}^{(i)}
+
+Calculating temperature of brine from BPE and ideal temperature in the evaporator:
+
+.. math:: 
+
+    T_{brine}^{(i)} = T_{ideal}^{(i)} + BPE^{(i)}
+
+Estimating the enthalpies:
+
+.. math:: 
+
+    H_{in} = -15940 + 8787X_{s}^{in} + 3.557 T_{in}
+
+    H_{brine}^{(i)} = -15940 + 8787X_{s}^{(i)} + 3.557 T_{brine}^{(i)}\quad \forall i \in \{1,..., I\}
+
+    H_{vapor}^{(i)} = -13470 + 1.84 T_{brine}^{(i)}\quad \forall i \in \{1,..., I\}
+
+    H_{cond}^{(i)vap} = -13470 + 1.84T_{cond}^{(i)}\quad \forall i \in \{1,..., I\}
+
+    H_{cond}^{(i)} = -15940 + 3.557T_{cond}^{(i)}\quad \forall i \in \{1,..., I\}
+
+Calculating LMTD:
+
+.. math:: 
+
+    \theta_1^{(i)} = T_{spv} - T_{brine}^{(i)} \quad \text{for } i = 1
+
+    \theta_1^{(i)} = T_{sv}^{(i)} - T_{brine}^{(i)} \quad \forall i > 1
+
+    \theta_2^{(i)} = T_{cond}^{(i)} - T_{brine}^{(i+1)} \quad \text{for } i = 1
+
+    \theta_2^{(i)} = T_{sv}^{(i)} - T_{brine}^{(i+1)} \quad \forall i \in \{2,.., I-1\}
+
+    \theta_2^{(i)} = T_{sv}^{(i)} - T_{in} \quad \text{for } i = I
+
+    LMTD^{(i)} = (0.5\theta_1^{(i)}\theta_2^{(i)}(\theta_1^{(i)}+\theta_2^{(i)}))^{1/3}
+
+Heat transfer coefficient for evaporator:
+
+.. math:: 
+
+    U_{evap}^{i} = 0.001(1939.4 + 1.40562T_{brine}^{(i)} - 0.002T_{brine}^{(i)2}+ 0.0023T_{brine}^{(i)3})
+
+Design Equations:
+
+Area of first evaporator calculation:
+
+.. math:: 
+
+    A_{evap}^{(1)} = F_{spv}C_{p}^{vapor}\frac{(T_{spv} - T_{cond}^{(1)})}{U_{s}(LMTD^{(1)})} + F_{spv}\frac{H_{cond}^{(1)vap} - H_{cond}^{(1)}}{U_{evap}^{(1)}(T_{cond}^{(1)} - T_{brine}^{(1)})}
+
+Total Evaporator Area:
+
+.. math:: 
+
+     A_{evap}^{total} = \sum_{i=1}^{I}\frac{Q^{(i)}}{U_{evap}^{(i)}LMTD^{(i)}}
+
+Compressor Model
+++++++++++++++++
+
+Thermodynamic Relations
+
+Isentropic temperature calculation:
+
+.. math:: 
+
+    T_{is} = (T_{brine}^{(I)} + 273.5)(\frac{P_{spv}}{P_{vapor}^{I}})^{\frac{\gamma -1}{\gamma}} - 273.5
+
+Temperature of the super heated vapor can be calculated as:
+
+.. math:: 
+
+    T_{spv} = T_{brine}^{(I)} + \frac{1}{\eta}(T_{is} - T_{brine}^{(I)})
+
+The enthalpy of the super heated vapor can be estimated by:
+
+.. math:: 
+
+    H_{spv} = -13470 + 1.84T_{spv}
+
+Design Equations:
+
+The compression work is given by:
+
+.. math::
+    
+    W_{compr} = F_{spv}(H_{spv} - H_{vap}^{(I)})
+
+The compressor capacity in horse power is given by:
+
+.. math:: 
+
+    \mathcal{C}_{compr} = W_{compr} \times 1.34
+
+Mixer Model
+++++++++++++
+
+Mass balance in the mixer:
+
+.. math:: 
+    
+    F_{fresh water} = \sum_{i = 1}^{I}F_{vapor}^{i}
+
+Energy balance in the mixer:
+
+.. math:: 
+
+    T_{mix}^{out} = \frac{\sum_{i = 1}^{I} F_{vapor}^{(i)}T_{brine^{(i)}}}{F_{freshwater}}
+
+Preheater Model
++++++++++++++++
+
+Energy balance in the preheater:
+
+.. math:: 
+
+    F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
+
+Thermodynamic Relations
+
+Estimating specific heat capacities:
+
+.. math:: 
+
+    C_p^{feed} = 0.001(4206.8 - 6.6197 X_s^{in} + 1.22 \times 10^{-2} X_{s}^{in^2} + (-1.262 + 5.418 \times 10^{-2}X_s^{in}))T_{feed}
+
+    C_p^{mix} = 0.001(4206.8 - 1.1262 T_{mix}^{out})
+
+Preheater heat transfer coefficient calculation:
+
+.. math:: 
+
+    U_{ph} = 0.001(1939.4 + 1.40562T_{mix}^{out} - 0.002T_{mix}^{out2} + 0.0023T_{mix}^{out3})
+
+Preheater LMTD calculation:
+
+.. math:: 
+
+    \theta_{1ph} = T_{mix}^{out} - T_{in}
+
+    \theta_{2ph} = T_{freshwater} - T_{feed}
+
+     LMTD_{ph} = (0.5 \theta_{1ph} \theta_{2ph}(\theta_{1ph} + \theta_{2ph}))^{1/3}
+
+Design Equations
+
+Preheater area calculation:
+
+.. math:: 
+
+    A_{ph} = \frac{F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater})}{U_{ph}LMTD_{ph}}
+
+Bounds for feasible operation:
+
+.. math:: 
+
+    T_{spv} \geq T_{cond}^{(1)} + \Delta T_1^{min}
+
+    T_{brine}^{(I)} \geq T_{in} + \Delta T_{2}^{min}
+
+    T_{cond}^{(I)} \geq T_{in} + \Delta T^{min}
+
+    T_{brine}^{(i-1)} \geq T_{cond}^{(i)} + \Delta T_1^{min} \quad \forall i \in \{2,..,I\}
+
+    T_{brine}^{(i-1)} \geq T_{brine}^{(i)} + \Delta T_{stage}^{min} \quad \forall i \in \{2,..,I\}
+
+    T_{cond}^{(i)} \geq T_{brine}^{(i+1)} + \Delta T^{min} \quad \forall i \in \{1,..,I-1\}
+
+    T_{cond}^{(i)} \geq T_{brine}^{(i)} + \Delta T^{min} \quad \forall i \in \{1,...,I\}
+
+    T_{sv}^{(i)} \geq T_{brine}^{(i)} + \Delta T^{min} \quad \forall i \in \{1,...,I\}
+
+    CR_{max}P_{vapor}^{(I)} \geq P_{spv} \geq P_{vapor}^{(I)}
+
+    S_{brine}^{(1)} \geq S_{spec}
+
+Objective function
+++++++++++++++++++
+
+The goal is to minimize the total annualized cost (TAC) of the treatent unit. CAPEX of the equipments were calculated using empirical relations from IDAES costing. Assuming the evaporator is a U-tube heat exchanger, the CAPEX of the evaporators in kUSD is given by:
+
+.. math:: 
+
+    CAPEX_{evap} = \frac{1.05}{1000}\sum_{i = 1}^{N_{evap}} exp(11.3852 -0.9186(log(A_{evap}^{(i)}\times 1.1)) + 0.0979(log(A_{evap}^{(i)}\times 1.1))^2 )
+
+CAPEX of centrifugal compressor in kUSD is given by:
+
+.. math:: 
+
+    CAPEX_{compr} = \sum_{i = 1}^{N_{compr}} exp(7.58 + 0.8\times log(\mathcal{C}_{compr}))
+
+Assuming the preheater is a U-tube heat exchanger, the CAPEX of the preheater is given by:
+
+.. math:: 
+
+    CAPEX_{ph} = \frac{1.05}{1000} (exp(11.3852 -0.9186(log(A_{ph} \times 1.1)) + 0.0979(log(A_{ph} \times 1.1))^2 ))
+
+Note: For CAPEX calculation, the areas have to be in sq. ft.
+
+The total CAPEX is given by: 
+
+.. math:: 
+
+    CAPEX = \frac{CEPCI_{2022}}{CEPCI_{base}}(CAPEX_{evap} + CAPEX_{compr} + CAPEX_{ph})
+
+Annualization factor: The annualization factor for CAPEX is calculated based on fractional interest rate $r = 0.1$ per year and amortization period $y = 10$ years. 
+
+.. math:: 
+
+    fac =  \frac{r(1+r)^y}{(1+r)^y -1}
+
+The annualized CAPEX is calculated by:
+
+.. math:: 
+
+    CAPEX_{ann} = fac \times CAPEX
+
+The cost of operating the treatment unit comes from operating the compressor using electricity. 
+
+.. math:: 
+
+    OPEX_{ann} = C_{elec} \times W_{compr}
+
+The total annualized cost is therefore given by: 
+
+.. math:: 
+
+    TAC = CAPEX_{ann} + OPEX_{ann}
+
+This is our objective function which we'll minimize. 
+
+Sensitivity Analysis
+++++++++++++++++++++
+
+To demonstrate the effect of the feed salinty on the TAC, we consider a single effect evaporator without heat integration using a preheater. The feed flow rate is fixed to 10 kg/s and the outlet brine TDS concentration needs to be above 250 g/kg. The salt concentration in the feed is varied from 70 g/kg to 190 g/kg. A plot of feed salinity vs TAC is generated as shown in Figure (3)
+
+.. figure:: ../../img/Sensitivity_analysis_1.png
+    :width: 600
+    :align: center
+
+    Figure 3. TAC vs feed salinity for a single effect evaporator
+
+For the same conditions, the sensitivity analysis for a multi-effect evaporator with two stages and heat integration using a preheater is shown in Figure (4)
+
+.. figure:: ../../img/Sensitivity_analysis_2.png
+    :width: 600
+    :align: center
+
+    Figure 4. TAC vs feed salinity for a two effect evaporator with heat integration
