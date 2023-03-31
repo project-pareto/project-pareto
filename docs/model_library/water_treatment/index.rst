@@ -185,13 +185,13 @@ Single effect evaporation and multi effect evaporation has been studied for shal
 
 The vapor from the I\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
 
-Model Description:
+Model Description
 ------------------
 
 The multi effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
 The model is built in Pyomo and is based of equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
 
-Variable Definitions:
+Variable Definitions
 +++++++++++++++++++++
 
 .. list-table:: Variable definitions
@@ -462,7 +462,7 @@ Variable Definitions:
 
 
 
-Modeling Equations:
+Modeling Equations
 -------------------
 
 Evaporator model
