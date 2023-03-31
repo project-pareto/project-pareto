@@ -20,7 +20,8 @@ Treatment systems play a crucial role for achieving desired water quality for va
 +--------------------------------------------------------+
 | :ref:`treatment_cost`                                  |
 +--------------------------------------------------------+
-
+| :ref:`Mechanical_vapor_recompression_model`            |
++--------------------------------------------------------+
 
 .. _treatmet_model_within_pareto_network:
 
@@ -99,26 +100,33 @@ Removal efficiency is a measure of the overall reduction in the concentration or
 
 .. math::
     
-    \text{Removal Efficiency (%)} = \frac{Q^{treatment\ feed} - Q^{treated\ water}}{Q^{treatment\ feed}} \times 100
+    \text{Removal Efficiency (%)}_{concentration} = \frac{Q^{treatment\ feed} - Q^{treated\ water}}{Q^{treatment\ feed}} \times 100
 
 For example, if the influent concentration of a constituent is 200 mg/L and the effluent concentration is 20 mg/L, then the removal efficiency can be calculated as:
 
 .. math::
     
-    \text{Removal Efficiency (%)} = \frac{200 - 20}{200} = 0.9 = 90\%
+    \text{Removal Efficiency (%)}_{concentration} = \frac{200 - 20}{200} = 0.9 = 90\%
 
 Another method for calculating removal efficiency is the measure of overall reduction in the load (mass times flow) instead of reduction in concentration. This approach is specifically useful in situations where there are substantial water losses due to evaporation and evapotranspiration. 
 
 .. math::
 
-   \text{Removal Efficiency (%)} = \frac{F^{treatment\ feed}Q^{treatment\ feed} - F^{treated\ water}Q^{treated\ water}}{F^{treatment\ feed}Q^{treatment\ feed}}
+   \text{Removal Efficiency (%)}_{load} = \frac{F^{treatment\ feed}Q^{treatment\ feed} - F^{treated\ water}Q^{treated\ water}}{F^{treatment\ feed}Q^{treatment\ feed}}
 
 
-it should be paid attention that the load-based definition of removal efficiency will have a non-zero value even for situations where there is no concentration reduction happening, such as a simple splitter. To correctly evaluate the load-based removal efficiency in this case, considering `Qfeed = Qtreatedwater` and substituting `Qfeed` with `Qtreatedwater` in the load-based removal efficiency formula, we will obtain the removal efficiency value as follows:
+it should be noted that the load-based definition of removal efficiency will have a non-zero value even for situations where there is no concentration reduction happening, such as a simple splitter. In such cases, introducing an equality constraint on the quality of the streams in the load-based approach will result in the following equation:
 
-Removal efficiency = 1 - treatment efficiency (recovery)
+.. math::
 
-It is worth noting that in cases where there is minimal water loss to the residual stream, such that the treated water flow is approximately equal to the feed flow, the removal efficiency values obtained by the two definitions become the same. 
+    Q^{treatment\ feed} = Q^{treated\ water}  
+
+.. math::
+    
+    \text{Removal efficiency}_{load} = 1 - \text{treatment efficiency}
+
+
+It is worth noting that in cases where there is minimal water loss to the residual stream, such that the treated water flow is approximately equal to the feed flow, the removal efficiency values obtained by the two definitions (concentration based and load based) become the same. 
 
 PARETO supports both formulations and gives the user the option to choose between the two methods based on their available data or the technology considered. The two options are expressed as `RemovalEfficiencyMethod.Concentration_based` and `RemovalEfficiencyMethod.Load_based` in PARETO configruation argument for removal efficiency.
 
@@ -126,11 +134,10 @@ PARETO supports both formulations and gives the user the option to choose betwee
 
 Water Treatment Cost
 ---------------------
+
 The total cost of produced water treatment consist of capital costs and annual operating costs.Capital costs include the costs associated with the land purchanse, construction, purchasing process equipment, and installation. Annual operating costs refer to the cost during plant operation such as cost of energy, equimpment replacement, chemicals, labor, and maintenance. The sum of the unit operating costs and the unit annualized capital costs determines the total capital cost per unit volume of produced water.
 
-In PARETO, treatment costs can be incorporated in three ways. Firstly, users may enter their own estimated values for operating and capital costs of each treatment technology. PARETO provides a treatment technology matrix displayed below (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../2022_10_31_206_017_PWTreatment_Technology_matrix.xlsx>`)
-
-) with data collected from available literature on various technologies, such as membrane distillation, multieffect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis. The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
+Treatment costs can be incorporated into PARETO with three methods. To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multieffect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../2022_10_31_206_017_PWTreatment_Technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
 It is important to note that currently, PARETO incorporates treatment costs for discrete values of treatment capacity expansions. In other words, the treatment cost calculations are limited to specific capacity levels.
 
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
@@ -163,3 +170,7 @@ An alternative approach to incorporating treatment costs in PARETO is through th
 
 The third method for incorporating treatment costs into PARETO is through the integration of rigorous technoeconomic optimization treatment models. These models allow for accurate capture of the effect of changes in input parameters on treatment plant performance and costs. Currently, a technoeconomic optimization-based modeling approach for single effect and multi-effect mechanical vapor compression (MVR) desalination systems is available for integration with PARETO. The following section will provide a detailed description of the MVR modeling effort.
 
+.. _Mechanical_vapor_recompression_model:
+
+Mechanical vapor recompression model
+--------------------------------------
