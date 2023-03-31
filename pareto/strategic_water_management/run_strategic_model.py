@@ -98,6 +98,7 @@ parameter_list = [
     "StorageCapacityIncrements",
     "TreatmentCapacityIncrements",
     "TreatmentEfficiency",
+    "RemovalEfficiency",
     "DisposalExpansionCost",
     "StorageExpansionCost",
     "TreatmentExpansionCost",
@@ -148,10 +149,8 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 6000,
+    "running_time": 100,
     "gap": 0,
-    # "water_quality": True,
-    "hydraulics": True
 }
 
 results = solve_model(model=strategic_model, options=options)

@@ -86,7 +86,7 @@ Strategic Model Mathematical Notation
     The sets for capacity sizes :math:`\textcolor{blue}{d \in D}`, :math:`\textcolor{blue}{c \in C}`, :math:`\textcolor{blue}{j \in J}`, :math:`\textcolor{blue}{i \in I}` should also include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
     Alternatively, if it is desired to only consider sizes to build, the 0th case can be left out.
 
-:math:`\textcolor{blue}{b \in B}`           Treatment technologies
+:math:`\textcolor{blue}{wt \in WT}`           Treatment technologies
 
 :math:`\textcolor{blue}{(p,p) \in PCA}`     Production-to-completions pipeline arcs
 
@@ -177,9 +177,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{s,t}^{StorageEvaporationStream}}` =       Water at storage lost to evaporation
 
-:math:`\textcolor{red}{F_{r,t}^{ResidualWater}}` =                  Flow of residual water out at a treatment site
+:math:`\textcolor{red}{F_{r,t}^{TreatmentFeed}}` =       Flow of feed to a treatment site
 
-:math:`\textcolor{red}{F_{r,t}^{TreatedWater}}` =                   Flow of treated water out at a treatment site
+:math:`\textcolor{red}{F_{r,t}^{ResidualWater}}` =                  Flow of residual water out of a treatment site
+
+:math:`\textcolor{red}{F_{r,t}^{TreatedWater}}` =                   Flow of treated water out of a treatment site
 
 :math:`\textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}` =    Water delivered to completions pad for reuse
 
@@ -276,7 +278,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{y_{s,c,[t]}^{Storage}}` =        New or additional storage facility installed at storage site with specific storage capacity
 
-:math:`\textcolor{red}{y_{r,b,j,[t]}^{Treatment}}` =      New or additional treatment capacity installed at treatment site with specific treatment capacity and treatment technology
+:math:`\textcolor{red}{y_{r,wt,j,[t]}^{Treatment}}` =      New or additional treatment capacity installed at treatment site with specific treatment capacity and treatment technology
 
 :math:`\textcolor{red}{y_{k,i,[t]}^{Disposal}}` =       New or additional disposal facility installed at disposal site with specific injection capacity
 
@@ -310,7 +312,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{p,t}^{PadStorage}}` =          Storage capacity at completions site
 
-:math:`\textcolor{green}{\sigma_{r,b}^{Treatment}}` =             Initial treatment capacity at treatment site
+:math:`\textcolor{green}{\sigma_{r,wt}^{Treatment}}` =             Initial treatment capacity at treatment site
 
 :math:`\textcolor{green}{\sigma_{o}^{BeneficialReuse}}` =       Initial reuse capacity at reuse site
 
@@ -328,7 +330,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{W_{r}^{TreatmentComponent}}` =         Water quality component treated for at treatment site
 
-:math:`\textcolor{green}{\epsilon_{r, b}^{Treatment}}` =        Treatment efficiency for technology :math:`\textcolor{blue}{b}` at treatment site
+:math:`\textcolor{green}{\epsilon_{r, wt}^{Treatment}}` =        Treatment efficiency for technology :math:`\textcolor{blue}{wt}` at treatment site
+
+:math:`\textcolor{green}{\epsilon_{r, wt, qc}^{TreatmentRemoval}}` =        Removal efficiency for technology :math:`\textcolor{blue}{wt}` and quality component :math:`\textcolor{blue}{qc}` at treatment site
 
 :math:`\textcolor{green}{\epsilon_{k,t}^{DisposalOperatingCapacity}}` = Operating capacity of disposal site [%]
 
@@ -336,7 +340,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\chi_{p}^{OutsideCompletionsPad}}` = Binary parameter designating the completion pads that are outside the system
 
-:math:`\textcolor{green}{\chi_{b}^{DesalinationTechnology}}` = Binary parameter designating which treatment technologies are for desalination (1) and which are not (0)
+:math:`\textcolor{green}{\chi_{wt}^{DesalinationTechnology}}` = Binary parameter designating which treatment technologies are for desalination (1) and which are not (0)
 
 :math:`\textcolor{green}{\chi_{r}^{DesalinationSites}}` = Binary parameter designating which treatment sites are for desalination (1) and which are not (0)
 
@@ -348,7 +352,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\delta_{c}^{Storage}}` =               Increments for installation/expansion of storage capacity
 
-:math:`\textcolor{green}{\delta_{b, j}^{Treatment}}` =             Increments for installation/expansion of treatment capacity
+:math:`\textcolor{green}{\delta_{wt, j}^{Treatment}}` =             Increments for installation/expansion of treatment capacity
 
 :math:`\textcolor{green}{\delta^{Truck}}` =                     Truck capacity
 
@@ -372,7 +376,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\kappa_{s,c}^{Storage}}` =             Storage construction or expansion capital cost for selected capacity increment
 
-:math:`\textcolor{green}{\kappa_{r,b,j}^{Treatment}}` =           Treatment construction or expansion capital cost for selected capacity increment
+:math:`\textcolor{green}{\kappa_{r,wt,j}^{Treatment}}` =           Treatment construction or expansion capital cost for selected capacity increment
 
 
 **The cost parameter for expanding or constructing new pipeline capacity is structured differently depending on model configuration settings. If the pipeline cost configuration is distance based:**
@@ -392,7 +396,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                 Disposal operational cost
 
-:math:`\textcolor{green}{\pi_{r, b}^{Treatment}}` =                Treatment operational cost
+:math:`\textcolor{green}{\pi_{r, wt}^{Treatment}}` =                Treatment operational cost
 
 :math:`\textcolor{green}{\pi_{p}^{CompletionReuse}}` =          Completions reuse operational cost
 
@@ -407,6 +411,10 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                 Fresh sourcing cost
 
 :math:`\textcolor{green}{M^{Flow}}` =                           Big-M flow parameter
+
+:math:`\textcolor{green}{M^{Concentration}}` =                  Big-M concentration parameter
+
+:math:`\textcolor{green}{M^{FlowConcentration}}` =              Big-M flow concentration parameter
 
 :math:`\textcolor{green}{\psi^{FracDemand}}` =                  Slack cost parameter
 
@@ -473,7 +481,7 @@ If :math:`\textcolor{green}{\chi_{p}^{OutsideCompletionsPad}} = 1`:
 
     \textcolor{green}{\gamma_{p,t}^{Completions}}
         \geq \sum_{l \in (L-F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
+        + \sum_{f \in F | (f, p) \in LLA}\textcolor{red}{F_{f,p,t}^{Sourced}}
         + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
 
         + \textcolor{red}{F_{p,t}^{PadStorageOut}} - \textcolor{red}{F_{p,t}^{PadStorageIn}} + \textcolor{red}{S_{p,t}^{FracDemand}}
@@ -484,7 +492,7 @@ Else if :math:`\textcolor{green}{\chi_{p}^{OutsideCompletionsPad}} = 0`:
 
     \textcolor{green}{\gamma_{p,t}^{Completions}}
         = \sum_{l \in (L-F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
+        + \sum_{f \in F | (f, p) \in LLA}\textcolor{red}{F_{f,p,t}^{Sourced}}
         + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
 
         + \textcolor{red}{F_{p,t}^{PadStorageOut}} - \textcolor{red}{F_{p,t}^{PadStorageIn}} + \textcolor{red}{S_{p,t}^{FracDemand}}
@@ -568,7 +576,7 @@ For each completions pad and time period, the volume of water (excluding freshwa
         \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
 
 
-.. note:: This constraint has not actually been implemented yet.
+.. note:: The above constraint has not been implemented yet.
 
 
 **Storage Site Truck Offloading Capacity:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
@@ -626,7 +634,7 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
         = \sum_{l \in L | (n, l) \in LLA}\textcolor{red}{F_{n,l,t}^{Piped}}
 
 
-**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
+**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{l \in (L-F-O)}, \textcolor{blue}{\tilde{l} \in (L-F)}, \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
 
 There can only be flow in one direction for a given pipeline arc in a given time period. Flow is only allowed in a given direction if the binary indicator for that direction is "on".
 
@@ -634,7 +642,7 @@ There can only be flow in one direction for a given pipeline arc in a given time
 
     \textcolor{red}{y_{l,\tilde{l},t}^{Flow}}+\textcolor{red}{y_{\tilde{l},l,t}^{Flow}} = 1
 
-.. note:: Technically this constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
+.. note:: Technically the above constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
 
 .. math::
 
@@ -690,16 +698,10 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
         \leq \textcolor{green}{\sigma_{n}^{Node}}
 
 
-**Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in \{PCA,PNA,PPA,NKA,CNA,NCA,NSA,NOA,FCA,RCA,SKA,SOA,RSA,SRA\}}, [\textcolor{blue}{t \in T}]`
+**Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, [\textcolor{blue}{t \in T}]`
 
-Sets the flow capacity in a given pipeline during a given time period. Different constraints apply depending on if the pipeline is reversible or not.
+Sets the flow capacity in a given pipeline during a given time period. The following constraint assumes that all pipelines may allow reversible flows. Also, an inherrent assumption is that there can be a maximum of 2 pipelines between any 2 nodes.
 The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
-
-.. math::
-
-    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}+\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
-
-:math:`\forall \textcolor{blue}{(l,\tilde{l}) \in \{PPA,CNA,NNA,NCA,NSA,NRA,RNA,RKA,SNA,SCA\}},[\textcolor{blue}{t \in T}]`
 
 .. math::
 
@@ -725,7 +727,7 @@ The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl
 
 **Storage Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{s \in S}, [\textcolor{blue}{t \in T}]`
 
-This constraint accounts for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon.
+The following 2 constraints account for the expansion of available storage capacity or installation of storage facilities. If expansion/construction is selected, expand the capacity by the set expansion amount. The water level at the storage site must be less than this capacity. As of now, the model considers that a storage facility is expanded or built at the beginning of the planning horizon.
 The set :math:`\textcolor{blue}{C}` should also include the 0th case (0 bbl) that indicates the choice to not expand capacity.
 
 .. math::
@@ -741,7 +743,7 @@ The set :math:`\textcolor{blue}{C}` should also include the 0th case (0 bbl) tha
 
 **Disposal Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{k \in K}, [\textcolor{blue}{t \in T}]`
 
-This constraint accounts for the expansion of available disposal sites or installation of new disposal sites. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
+The following 2 constraints account for the expansion of available disposal sites or installation of new disposal sites. If expansion/construction is selected, expand the capacity by the set expansion amount. The total disposed water in a given time period must be less than this new capacity.
 The set :math:`\textcolor{blue}{I}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
 
 .. math::
@@ -764,9 +766,9 @@ The set :math:`\textcolor{blue}{J}` should also include the 0th case (e.g. 0 bbl
 
 .. math::
 
-    \sum_{b \in B, j \in J}
-        (\textcolor{green}{\sigma_{r,b}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
-        + \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}})
+    \sum_{wt \in WT, j \in J}
+        (\textcolor{green}{\sigma_{r,wt}^{Treatment}} \cdot \textcolor{red}{y_{r,wt,j}^{Treatment}}
+        + \textcolor{green}{\delta_{wt, j}^{Treatment}} \cdot \textcolor{red}{y_{r,wt,j}^{Treatment}})
         = \textcolor{red}{T_{r}^{Capacity}}
 
 
@@ -779,14 +781,23 @@ The set :math:`\textcolor{blue}{J}` should also include the 0th case (e.g. 0 bbl
         \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
 
 
-**Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+**Treatment Feed Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
 
-At a treatment facility, the inlet raw produced water is treated and separated into treated water and residual water.
+At a treatment facility, the inlet raw produced water is combined into a single input treatment feed.
 
 .. math::
 
     \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
+        = \textcolor{red}{F_{r,t}^{TreatmentFeed}}
+
+**Treatment Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+
+At a treatment facility, the input treatment feed is treated and separated into treated water and residual water.
+
+.. math::
+
+        \textcolor{red}{F_{r,t}^{TreatmentFeed}}
         = \textcolor{red}{F_{r,t}^{ResidualWater}}
         + \textcolor{red}{F_{r,t}^{TreatedWater}}
 
@@ -795,26 +806,27 @@ At a treatment facility, the inlet raw produced water is treated and separated i
 
 The efficiency of a treatment technology determines the amount of residual water produced.
 
+*Residual Water LHS*
+
 .. math::
 
-    \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
-        + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
-        \cdot (1 - \textcolor{green}{\epsilon_{r, b}^{Treatment}})
+        \textcolor{red}{F_{r,t}^{TreatmentFeed}}
+        \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{Treatment}})
         - \textcolor{green}{M^{Flow}}
-         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}})
+         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}})
         \leq \textcolor{red}{F_{r,t}^{ResidualWater}}
 
+*Residual Water RHS*
 
 .. math::
-    \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
-        + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
-        \cdot (1 - \textcolor{green}{\epsilon_{r, b}^{Treatment}})
+        \textcolor{red}{F_{r,t}^{TreatmentFeed}}
+        \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{Treatment}})
         + \textcolor{green}{M^{Flow}}
-         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}})
+         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}})
         \geq \textcolor{red}{F_{r,t}^{ResidualWater}}
 
 
-**Treated Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{b \in B}, \textcolor{blue}{t \in T}`
+**Treated Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{wt \in WT}, \textcolor{blue}{t \in T}`
 
 Treated water is either reused in the completion pads or stored in ponds or removed for beneficial reuse (if desalinated).
 
@@ -893,7 +905,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         \geq (\sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
         - \textcolor{green}{M^{Flow}}
-        \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
+        \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}}))
 
 .. math::
 
@@ -901,7 +913,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         \leq (\sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
         + \textcolor{green}{M^{Flow}}
-        \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,b,j}^{Treatment}}))
+        \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}}))
 
 .. math::
     \textcolor{red}{C^{TotalTreatment}} = \sum_{t \in T}\sum_{r \in R}\textcolor{red}{C_{r,t}^{Treatment}}
@@ -914,8 +926,8 @@ Completions reuse water is all water that meets completions pad demand, excludin
 .. math::
 
     \textcolor{red}{C_{p,t}^{CompletionsReuse}}
-        = (\sum_{l \in L | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        = (\sum_{l \in (L - F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \sum_{l \in (L - F) | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
         ) \cdot \textcolor{green}{\pi_{p}^{CompletionsReuse}}
 
 
@@ -937,15 +949,15 @@ The total reuse volume is the total volume of produced water reused, or the tota
         + \sum_{l \in (L-F) | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}})
 
 
-**Piping Cost:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
+**Piping Cost:** :math:`\forall \textcolor{blue}{l \in (L - O - K)}, \forall \textcolor{blue}{\tilde{l} \in (L - F)}, \forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
 
 Piping cost is the total volume of piped water multiplied by the cost for piping.
 
 .. math::
 
     \textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
-        = (\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
-        + \textcolor{red}{F_{l,\tilde{l},t}^{Sourced})} \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
+        = (\textcolor{red}{F_{l \notin F,\tilde{l},t}^{Piped}}
+        + \textcolor{red}{F_{l \in F,\tilde{l},t}^{Sourced}}) \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
 
 .. math::
     \textcolor{red}{C^{TotalPiping}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
@@ -984,7 +996,7 @@ Credits from withdrawing from storage is equal to the total volume of water move
 ..
     **Pad Storage Cost:** :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}, \textcolor{blue}{t \in T}`
 
-**Trucking Cost (Simplified)**
+**Trucking Cost (Simplified)** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLT}, [\textcolor{blue}{t \in T}]`
 
 Trucking cost between two locations for time period is equal to the trucking volume between locations in time :math:`\textcolor{blue}{t}` divided by the truck capacity [this gets # of truckloads] multiplied by the lead time between two locations and hourly trucking cost.
 
@@ -1031,7 +1043,7 @@ Cost related to expanding or constructing new treatment capacity. Takes into con
 
 .. math::
 
-    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J}\sum_{b \in B}\textcolor{green}{\kappa_{r,b,j}^{Treatment}} \cdot \textcolor{green}{\delta_{b, j}^{Treatment}} \cdot \textcolor{red}{y_{r,b,j}^{Treatment}}
+    \textcolor{red}{C^{TreatmentCapEx}} = \sum_{r \in R}\sum_{j \in J}\sum_{wt \in WT}\textcolor{green}{\kappa_{r,wt,j}^{Treatment}} \cdot \textcolor{green}{\delta_{wt, j}^{Treatment}} \cdot \textcolor{red}{y_{r,wt,j}^{Treatment}}
 
 
 **Pipeline Construction or Capacity Expansion Cost:**
@@ -1097,7 +1109,7 @@ Alternatively, if it is desired to only consider sizes to build, the 0th case ca
 
     \sum_{c \in C}\textcolor{red}{y_{s,c,[t]}^{Storage}} = 1
 
-:math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}`
+:math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}`
 
 .. math::
 
@@ -1107,7 +1119,7 @@ Alternatively, if it is desired to only consider sizes to build, the 0th case ca
 
 .. math::
 
-    \sum_{j \in J, b \in B}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
+    \sum_{j \in J, b \in B}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 1
 
 
 **Logic Constraints for Desalination:**
@@ -1121,8 +1133,8 @@ Desalinated water is not reused for completions pad demand or stored in the stor
     \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
         + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
         \leq \textcolor{green}{M^{Flow}} \cdot (1 -
-        \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,b,j}^{Treatment}})
+        \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
+        \textcolor{red}{y_{r,wt,j}^{Treatment}})
 
 
 Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
@@ -1135,8 +1147,8 @@ If desalination technology is not selected, then the amount of desalinated water
 
     \textcolor{red}{F_{r,t}^{DesalinatedWater}}
         \leq \textcolor{green}{M^{Flow}} \cdot
-        \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,b,j}^{Treatment}}
+        \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
+        \textcolor{red}{y_{r,wt,j}^{Treatment}}
 
 
 Desalination technology is assigned to a pre-determined site.
@@ -1148,7 +1160,7 @@ if :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
 
 .. math::
 
-    \sum_{j \in J, b \in B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
+    \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 1
 
 
 Clean brine technology is assigned to a non-desalination site.
@@ -1160,7 +1172,7 @@ if NOT :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
 
 .. math::
 
-    \sum_{j \in J, b \notin B | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,b,j}^{Treatment}} = 1
+    \sum_{j \in J, wt \notin WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 1
 
 
 **Evaporation Flow Constraint**
@@ -1205,7 +1217,7 @@ Beneficial reuse deliveries for beneficial reuse site :math:`\textcolor{blue}{o}
 
     \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
         = \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
-        + \textcolor{red}{F_{l,o,t}^{Trucked}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
 
 Completions deliveries destination for completions pad :math:`\textcolor{blue}{p}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the completions pad.
 :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
@@ -1233,52 +1245,53 @@ Assumptions:
 
 * Water quality of produced water from production pads and completions pads remains the same across all time periods
 * When blending flows of different water quality, they blend linearly
-* Treatment does not affect water quality
 
 **Water Quality Sets**
 
-:math:`\textcolor{blue}{w \in W}`                       Water Quality Components (e.g., TDS)
+:math:`\textcolor{blue}{qc \in QC}`                       Water Quality Components (e.g., TDS)
 
 :math:`\textcolor{blue}{p^{IntermediateNode} \in CP}`   Intermediate Completions Pad Nodes
 
 :math:`\textcolor{blue}{p^{PadStorage} \in CP}`         Pad Storage
 
-:math:`\textcolor{blue}{r^{TreatedWaterIntermediateNode} \in R}`         Treated Water Intermediate Node
+:math:`\textcolor{blue}{r^{TreatedWaterNodes} \in R}`         Treated Water Nodes
+
+:math:`\textcolor{blue}{r^{ResidualWaterNodes} \in R}`         Residual Water Nodes
 
 
 **Water Quality Parameters**
 
-:math:`\textcolor{green}{\nu_{p,w,[t]}}` =                Water quality at well pad
+:math:`\textcolor{green}{\nu_{p,qc,[t]}}` =                Water quality at well pad
 
-:math:`\textcolor{green}{\xi_{s,w}^{StorageSite}}` =    Initial water quality at storage
+:math:`\textcolor{green}{\xi_{s,qc}^{StorageSite}}` =    Initial water quality at storage
 
-:math:`\textcolor{green}{\xi_{p,w}^{PadStorage}}` =     Initial water quality at pad storage
+:math:`\textcolor{green}{\xi_{p,qc}^{PadStorage}}` =     Initial water quality at pad storage
 
 
 **Water Quality Variables**
 
-:math:`\textcolor{red}{Q_{l,w,t}}` =                    Water quality at location
+:math:`\textcolor{red}{Q_{l,qc,t}}` =                    Water quality at location
 
 
-**Disposal Site Water Quality** :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Disposal Site Water Quality** :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality of disposed water is dependent on the flow rates into the disposal site and the quality of each of these flows.
 
 .. math::
 
-    \sum_{n \in N | (n, k) \in NKA}\textcolor{purple}{F_{n,k,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
-        + \sum_{s \in S | (s, k) \in SKA}\textcolor{purple}{F_{s,k,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
-        + \sum_{r \in R | (r, k) \in RKA}\textcolor{purple}{F_{r,k,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
+    \sum_{n \in N | (n, k) \in NKA}\textcolor{purple}{F_{n,k,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}}
+        + \sum_{s \in S | (s, k) \in SKA}\textcolor{purple}{F_{s,k,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}
+        + \sum_{r \in R | (r, k) \in RKA}\textcolor{purple}{F_{r,k,t}^{Piped}} \cdot \textcolor{red}{Q_{r,qc,t}}
 
-        + \sum_{s \in S | (s, k) \in SKT}\textcolor{purple}{F_{s,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,w,t}}
-        + \sum_{p \in P | (p, k) \in PKT}\textcolor{purple}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
+        + \sum_{s \in S | (s, k) \in SKT}\textcolor{purple}{F_{s,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,qc,t}}
+        + \sum_{p \in P | (p, k) \in PKT}\textcolor{purple}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
-        + \sum_{p \in P | (p, k) \in CKT}\textcolor{purple}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
-        + \sum_{r \in R | (r, k) \in RKT}\textcolor{purple}{F_{r,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{r,w,t}}
+        + \sum_{p \in P | (p, k) \in CKT}\textcolor{purple}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
+        + \sum_{r \in R | (r, k) \in RKT}\textcolor{purple}{F_{r,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{r,qc,t}}
 
-        = \textcolor{purple}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,w,t}}
+        = \textcolor{purple}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,qc,t}}
 
-**Storage Site Water Quality** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Storage Site Water Quality** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality at storage sites is dependent on the flow rates into the storage site, the volume of water in storage in the previous time period, and the quality of each of these flows. Even mixing is assumed, so all outgoing flows have the same water quality. If it is the first time period, the initial storage level and initial water quality, respectively, replace the water stored and water quality in the previous time period.
 
@@ -1286,14 +1299,14 @@ For :math:`t = 1`:
 
 .. math::
 
-    \textcolor{green}{\lambda_{s,t=1}^{Storage}} \cdot \textcolor{green}{\xi_{s,w}^{StorageSite}} 
-        + \sum_{n \in N | (n, s) \in NSA}\textcolor{purple}{F_{n,s,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
+    \textcolor{green}{\lambda_{s,t=1}^{Storage}} \cdot \textcolor{green}{\xi_{s,qc}^{StorageSite}} 
+        + \sum_{n \in N | (n, s) \in NSA}\textcolor{purple}{F_{n,s,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}}
 
-        + \sum_{r \in R | (r, s) \in RSA}\textcolor{purple}{F_{r,s,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
-        + \sum_{p \in P | (p, s) \in PST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
-        + \sum_{p \in P | (p, s) \in CST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
+        + \sum_{r \in R | (r, s) \in RSA}\textcolor{purple}{F_{r,s,t}^{Piped}} \cdot \textcolor{red}{Q_{r,qc,t}}
+        + \sum_{p \in P | (p, s) \in PST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
+        + \sum_{p \in P | (p, s) \in CST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
-        = \textcolor{red}{Q_{s,w,t}} \cdot (\textcolor{purple}{L_{s,t}^{Storage}}
+        = \textcolor{red}{Q_{s,qc,t}} \cdot (\textcolor{purple}{L_{s,t}^{Storage}}
         + \sum_{n \in N | (s, n) \in SNA}\textcolor{purple}{F_{s,n,t}^{Piped}}
         + \sum_{p \in P | (s, p) \in SCA}\textcolor{purple}{F_{s,p,t}^{Piped}}
         + \sum_{k \in K | (s, k) \in SKA}\textcolor{purple}{F_{s,k,t}^{Piped}}
@@ -1308,14 +1321,14 @@ For :math:`t > 1`:
 
 .. math::
 
-    \textcolor{purple}{L_{s,t-1}^{Storage}} \cdot \textcolor{red}{Q_{s,w,t-1}}
-        + \sum_{n \in N | (n, s) \in NSA}\textcolor{purple}{F_{n,s,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
+    \textcolor{purple}{L_{s,t-1}^{Storage}} \cdot \textcolor{red}{Q_{s,qc,t-1}}
+        + \sum_{n \in N | (n, s) \in NSA}\textcolor{purple}{F_{n,s,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}}
 
-        + \sum_{r \in R | (r, s) \in RSA}\textcolor{purple}{F_{r,s,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
-        + \sum_{p \in P | (p, s) \in PST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
-        + \sum_{p \in P | (p, s) \in CST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
+        + \sum_{r \in R | (r, s) \in RSA}\textcolor{purple}{F_{r,s,t}^{Piped}} \cdot \textcolor{red}{Q_{r,qc,t}}
+        + \sum_{p \in P | (p, s) \in PST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
+        + \sum_{p \in P | (p, s) \in CST}\textcolor{purple}{F_{p,s,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
-        = \textcolor{red}{Q_{s,w,t}} \cdot (\textcolor{purple}{L_{s,t}^{Storage}}
+        = \textcolor{red}{Q_{s,qc,t}} \cdot (\textcolor{purple}{L_{s,t}^{Storage}}
         + \sum_{n \in N | (s, n) \in SNA}\textcolor{purple}{F_{s,n,t}^{Piped}}
         + \sum_{p \in P | (s, p) \in SCA}\textcolor{purple}{F_{s,p,t}^{Piped}}
         + \sum_{k \in K | (s, k) \in SKA}\textcolor{purple}{F_{s,k,t}^{Piped}}
@@ -1326,51 +1339,69 @@ For :math:`t > 1`:
         + \sum_{k \in K | (s, k) \in SKT}\textcolor{purple}{F_{s,k,t}^{Trucked}}
         + \textcolor{purple}{F_{s,t}^{StorageEvaporationStream}})
 
-**Treatment Site Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Treatment Feed Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
-The water quality at treatment sites is dependent on the flow rates into the treatment site and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality. The treatment process does not affect water quality.
+The water quality at treatment sites is dependent on the flow rates and qualities of the feed streams into the treatment site. Even mixing is assumed in calculating the quality of the combined feed stream.
 
 .. math::
 
-        \sum_{n \in N | (n, r) \in NRA}\textcolor{purple}{F_{n,r,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
-        + \sum_{s \in S | (s, r) \in SRA}\textcolor{purple}{F_{s,r,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
+        \sum_{n \in N | (n, r) \in NRA}\textcolor{purple}{F_{n,r,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}}
+        + \sum_{s \in S | (s, r) \in SRA}\textcolor{purple}{F_{s,r,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}
 
-        + \sum_{p \in P | (p, r) \in PRT}\textcolor{purple}{F_{p,r,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
-        + \sum_{p \in P | (p, r) \in CRT}\textcolor{purple}{F_{p,r,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
+        + \sum_{p \in P | (p, r) \in PRT}\textcolor{purple}{F_{p,r,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
+        + \sum_{p \in P | (p, r) \in CRT}\textcolor{purple}{F_{p,r,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
-        = \textcolor{red}{Q_{r,w,t}} \cdot
-         (\textcolor{purple}{F_{r,t}^{ResidualWater}}
-        + \textcolor{purple}{F_{r,t}^{TreatedWater}})
+        = \textcolor{red}{Q_{r,qc,t}} \cdot
+         \textcolor{purple}{F_{r,t}^{TreatmentFeed}}
 
 
-**Treated Water Quality Rule** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Treated Water Quality** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
-All treated water from a single treatment site and single time period will have the same water quality. This constraint allows us to
+All treated water from a single treatment site and single time period will have the same water quality. The following constraints allow us to
 easily track the water quality at treated water end points like desalinated water.
 
+*Treated Water Quality General Constraint*
+
 .. math::
 
+        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}}
+        = \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot
         \textcolor{purple}{F_{r,t}^{TreatedWater}}
-        = \textcolor{red}{Q_{r,w,t}} \cdot
-        ( \sum_{p \in CP | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}}
-        + \sum_{s \in S | (r, s) \in RSA}\textcolor{purple}{F_{r,s,t}^{Piped}}
-        + \textcolor{purple}{F_{r,t}^{DesalinatedWater}})
+        + \textcolor{red}{Q_{r^{ResidualWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{ResidualWater}}
 
-**Network Node Water Quality** :math:`\forall \textcolor{blue}{n \in N}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+*Treated Water Quality LHS Constraint*
+
+.. math::
+
+        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+        + \textcolor{green}{M^{FlowConcentration}}
+         \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+        \geq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
+*Treated Water Quality RHS Constraint*
+
+.. math::
+        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+        - \textcolor{green}{M^{FlowConcentration}}
+         \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+        \leq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
+
+**Network Node Water Quality** :math:`\forall \textcolor{blue}{n \in N}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality at nodes is dependent on the flow rates into the node and the water quality of the flows. Even mixing is assumed, so all outgoing flows have the same water quality.
 
 .. math::
 
-    \sum_{p \in P | (p, n) \in PNA}\textcolor{purple}{F_{p,n,t}^{Piped}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
-        + \sum_{p \in P | (p, n) \in CNA}\textcolor{purple}{F_{p,n,t}^{Piped}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
+    \sum_{p \in P | (p, n) \in PNA}\textcolor{purple}{F_{p,n,t}^{Piped}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
+        + \sum_{p \in P | (p, n) \in CNA}\textcolor{purple}{F_{p,n,t}^{Piped}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
-        + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{purple}{F_{\tilde{n},n,t}^{Piped}} \cdot \textcolor{red}{Q_{\tilde{n},w,t}}
-        + \sum_{s \in S | (s, n) \in SNA}\textcolor{purple}{F_{s,n,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
+        + \sum_{\tilde{n} \in N | (\tilde{n}, n) \in NNA}\textcolor{purple}{F_{\tilde{n},n,t}^{Piped}} \cdot \textcolor{red}{Q_{\tilde{n},qc,t}}
+        + \sum_{s \in S | (s, n) \in SNA}\textcolor{purple}{F_{s,n,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}
 
-        + \sum_{r \in R | (r, n) \in RNA}\textcolor{purple}{F_{r,n,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
+        + \sum_{r \in R | (r, n) \in RNA}\textcolor{purple}{F_{r,n,t}^{Piped}} \cdot \textcolor{red}{Q_{r,qc,t}}
 
-        = \textcolor{red}{Q_{n,w,t}} \cdot
+        = \textcolor{red}{Q_{n,qc,t}} \cdot
          (\sum_{\tilde{n} \in N | (n, \tilde{n}) \in NNA}\textcolor{purple}{F_{n,\tilde{n},t}^{Piped}}
         + \sum_{p \in P | (n, p) \in NCA}\textcolor{purple}{F_{n,p,t}^{Piped}}
 
@@ -1381,7 +1412,7 @@ The water quality at nodes is dependent on the flow rates into the node and the 
         + \sum_{o \in O | (n, o) \in NOA}\textcolor{purple}{F_{n,o,t}^{Piped}})
 
 
-**Completions Pad Intermediate Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Completions Pad Intermediate Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 .. admonition:: Water Quality at Completions Pads
 
@@ -1392,34 +1423,34 @@ The water quality at the completions pad intermediate node is dependent on the f
 
 .. math::
 
-    \sum_{n \in N | (n, p) \in NCA}\textcolor{purple}{F_{n,p,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},w,[t]}}
-        + \sum_{s \in S | (s, p) \in SCA}\textcolor{purple}{F_{s,p,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
+    \sum_{n \in N | (n, p) \in NCA}\textcolor{purple}{F_{n,p,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
+        + \sum_{s \in S | (s, p) \in SCA}\textcolor{purple}{F_{s,p,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}
 
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},w,[t]}}
-        + \sum_{r \in R | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{red}{Q_{f,w,t}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
+        + \sum_{r \in R | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}} \cdot \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}}
+        + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{red}{Q_{f,qc,t}}
 
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},w,[t]}}
-        + \sum_{s \in S | (s, p) \in SCT}\textcolor{purple}{F_{s,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,w,t}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},w,[t]}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
+        + \sum_{s \in S | (s, p) \in SCT}\textcolor{purple}{F_{s,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,qc,t}}
+        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
 
-        + \sum_{f \in F | (f, p) \in FCT}\textcolor{purple}{F_{f,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{f,w,t}}
-        = \textcolor{red}{Q_{p^{IntermediateNode},w,t}} \cdot (\textcolor{purple}{F_{p,t}^{PadStorageIn}}
+        + \sum_{f \in F | (f, p) \in FCT}\textcolor{purple}{F_{f,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{f,qc,t}}
+        = \textcolor{red}{Q_{p^{IntermediateNode},qc,t}} \cdot (\textcolor{purple}{F_{p,t}^{PadStorageIn}}
         + \textcolor{purple}{F_{p,t}^{CompletionsDestination}})
 
 
-**Completions Pad Input Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Completions Pad Input Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality at the completions pad input is dependent on the flow rates of water from pad storage and water from the intermediate node. Even mixing is assumed, so all water into the pad is of the same water quality.
 
 .. math::
 
-    \textcolor{purple}{F_{p,t}^{PadStorageOut}} \cdot \textcolor{red}{Q_{p^{PadStorage},w,t}}+\textcolor{purple}{F_{p,t}^{CompletionsDestination}} \cdot \textcolor{red}{Q_{p^{IntermediateNode},w,t}}
-        = \textcolor{red}{Q_{p,w,t}} \cdot \textcolor{green}{\gamma_{p,t}^{Completions}}
+    \textcolor{purple}{F_{p,t}^{PadStorageOut}} \cdot \textcolor{red}{Q_{p^{PadStorage},qc,t}}+\textcolor{purple}{F_{p,t}^{CompletionsDestination}} \cdot \textcolor{red}{Q_{p^{IntermediateNode},qc,t}}
+        = \textcolor{red}{Q_{p,qc,t}} \cdot \textcolor{green}{\gamma_{p,t}^{Completions}}
 
 
-**Completions Pad Storage Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Completions Pad Storage Node Water Quality** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality at pad storage sites is dependent on the flow rates into the pad storage site, the volume of water in pad storage in the previous time period, and the quality of each of these flows. Even mixing is assumed, so the outgoing flow to completions pad and water in storage at the end of the period have the same water quality. If it is the first time period, the initial storage level and initial water quality, respectively, replace the water stored and water quality in the previous time period.
 
@@ -1427,34 +1458,34 @@ For :math:`t = 1`:
 
 .. math::
 
-    \textcolor{green}{\lambda_{s,t=1}^{PadStorage}} \cdot \textcolor{green}{\xi_{p,w}^{PadStorage}}
-        + \textcolor{purple}{F_{p,t}^{PadStorageIn}} \cdot \textcolor{red}{Q_{p^{IntermediateNode},w}}
+    \textcolor{green}{\lambda_{s,t=1}^{PadStorage}} \cdot \textcolor{green}{\xi_{p,qc}^{PadStorage}}
+        + \textcolor{purple}{F_{p,t}^{PadStorageIn}} \cdot \textcolor{red}{Q_{p^{IntermediateNode},qc}}
 
-        = \textcolor{red}{Q_{p^{PadStorage},w,t}} \cdot (\textcolor{purple}{L_{s,t}^{PadStorage}}
+        = \textcolor{red}{Q_{p^{PadStorage},qc,t}} \cdot (\textcolor{purple}{L_{s,t}^{PadStorage}}
         + \textcolor{purple}{F_{p,t}^{PadStorageOut}})
 
 For :math:`t > 1`:
 
 .. math::
 
-    \textcolor{purple}{L_{s,t-1}^{PadStorage}} \cdot \textcolor{red}{Q_{p^{PadStorage},w,t-1}}
-        + \textcolor{purple}{F_{p,t}^{PadStorageIn}} \cdot \textcolor{red}{Q_{p^{IntermediateNode},w}}
+    \textcolor{purple}{L_{s,t-1}^{PadStorage}} \cdot \textcolor{red}{Q_{p^{PadStorage},qc,t-1}}
+        + \textcolor{purple}{F_{p,t}^{PadStorageIn}} \cdot \textcolor{red}{Q_{p^{IntermediateNode},qc}}
 
-        = \textcolor{red}{Q_{p^{PadStorage},w,t}} \cdot (\textcolor{purple}{L_{s,t}^{PadStorage}}
+        = \textcolor{red}{Q_{p^{PadStorage},qc,t}} \cdot (\textcolor{purple}{L_{s,t}^{PadStorage}}
         + \textcolor{purple}{F_{p,t}^{PadStorageOut}})
 
 
-**Beneficial Reuse Water Quality** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{w \in W}, \textcolor{blue}{t \in T}`
+**Beneficial Reuse Water Quality** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
 
 The water quality at beneficial reuse sites is dependent on the flow rates into the site and the water quality of the flows.
 
 .. math::
 
-    \sum_{n \in N | (n, o) \in NOA}\textcolor{purple}{F_{n,o,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
-        + \sum_{s \in S | (s, o) \in SOA}\textcolor{purple}{F_{s,o,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
-        + \sum_{p \in P | (p, o) \in POT}\textcolor{purple}{F_{p,o,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,w,[t]}}
+    \sum_{n \in N | (n, o) \in NOA}\textcolor{purple}{F_{n,o,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}}
+        + \sum_{s \in S | (s, o) \in SOA}\textcolor{purple}{F_{s,o,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}
+        + \sum_{p \in P | (p, o) \in POT}\textcolor{purple}{F_{p,o,t}^{Trucked}} \cdot \textcolor{green}{\nu_{p,qc,[t]}}
 
-        = \textcolor{red}{Q_{o,w,t}} \cdot \textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
+        = \textcolor{red}{Q_{o,qc,t}} \cdot \textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
 
 
 .. _strategic_model_discrete_water_quality_extension:
@@ -1469,7 +1500,7 @@ Take for example this term from the Disposal Site Water Quality:
 
 .. math::
 
-    \textcolor{red}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,w,t}}
+    \textcolor{red}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,qc,t}}
 
 Both terms are continuous, so this is non-linear.
 
@@ -1481,83 +1512,83 @@ First we introduce a set, parameter, variables and constraints
 
 **Discrete Water Quality Parameters**
 
-:math:`\textcolor{green}{Q_{w,q}^{DiscreteQuality}}` = 	        Values for discrete Water Qualities
+:math:`\textcolor{green}{Q_{qc,q}^{DiscreteQuality}}` = 	        Values for discrete Water Qualities
 
 **Discrete Water Quality Variables**
 
-:math:`\textcolor{red}{Z_{l,t,w,q}}` =           Binary decision variable for which discrete quality chosen
+:math:`\textcolor{red}{Z_{l,t,qc,q}}` =           Binary decision variable for which discrete quality chosen
 
-:math:`\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}}` =           Water injected at disposal site for each discrete quality
+:math:`\textcolor{red}{F_{k,t,qc,q}^{DiscreteDisposalDestination}}` =           Water injected at disposal site for each discrete quality
 
-**Only One Discrete Quality Per Location** ∀l \in L, t \in T, w \in W
+**Only One Discrete Quality Per Location** ∀l \in L, t \in T, qc \in QC
 
 For each location in time only one discrete water quality can be chosen for a water quality component.
 
 .. math::
-    \sum_{(q) \in Q}\textcolor{red}{Z_{l,t,w,q}} = 1
+    \sum_{(q) \in Q}\textcolor{red}{Z_{l,t,qc,q}} = 1
 
-**Discrete Max Disposal Destination** ∀l \in L, t \in T, w \in W, q \in Q
+**Discrete Max Disposal Destination** ∀l \in L, t \in T, qc \in QC, q \in Q
 
 For each location in time only for one discrete quality there can be water injected at the disposal site and at most the capacity for that disposal site. For all the others it is equal to zero.
 
 .. math::
 
-    \textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} \leq \textcolor{green}{D_{k,[t]}^{Capacity}} \cdot \textcolor{red}{Z_{l,t,w,q}} 
+    \textcolor{red}{F_{k,t,qc,q}^{DiscreteDisposalDestination}} \leq \textcolor{green}{D_{k,[t]}^{Capacity}} \cdot \textcolor{red}{Z_{l,t,qc,q}} 
 
-**Sum Flow Discrete Disposal Destinations is Flow Disposal Destination** ∀l \in L, t \in T, w \in W
+**Sum Flow Discrete Disposal Destinations is Flow Disposal Destination** ∀l \in L, t \in T, qc \in QC
 
 For each location in time the sum of the flows for all the discrete qualities is equal to the actual flow going to the disposal site.
 
 .. math::
 
-    \sum_{(q) \in Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} = \textcolor{red}{F_{k,t}^{DisposalDestination}}
+    \sum_{(q) \in Q}\textcolor{red}{F_{k,t,qc,q}^{DiscreteDisposalDestination}} = \textcolor{red}{F_{k,t}^{DisposalDestination}}
 
 
 We can now rewrite the non linear equation showed before to:
 
 .. math::
 
-    \sum_{(q) \in Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    \sum_{(q) \in Q}\textcolor{red}{F_{k,t,qc,q}^{DiscreteDisposalDestination}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
 Rewriting the whole constraints goes as follows:
 
-**Disposal Site Water Quality** ∀k \in K, w \in W, t \in T
+**Disposal Site Water Quality** ∀k \in K, qc \in QC, t \in T
 
 The water quality of disposed water is dependent on the flow rates into the disposal site and the quality of each of these flows.
 
 .. math::
 
-    \sum_{n \in N | (n,k) \in NKA}\textcolor{red}{F_{n,k,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum_{s \in S | (s,k) \in SKA}\textcolor{red}{F_{s,k,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum_{r \in R | (r,k) \in RKA}\textcolor{red}{F_{r,k,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
+    \sum_{n \in N | (n,k) \in NKA}\textcolor{red}{F_{n,k,t}^{Piped}} \cdot \textcolor{red}{Q_{n,qc,t}} +\sum_{s \in S | (s,k) \in SKA}\textcolor{red}{F_{s,k,t}^{Piped}} \cdot \textcolor{red}{Q_{s,qc,t}}+\sum_{r \in R | (r,k) \in RKA}\textcolor{red}{F_{r,k,t}^{Piped}} \cdot \textcolor{red}{Q_{r,qc,t}}
 
-    +\sum_{s \in S | (s,k) \in SKT}\textcolor{red}{F_{s,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum_{p \in P | (p,k) \in PKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}
+    +\sum_{s \in S | (s,k) \in SKT}\textcolor{red}{F_{s,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,qc,t}}+\sum_{p \in P | (p,k) \in PKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,qc,[t]}}
 
-    +\sum_{p \in P | (p,k) \in CKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}+\sum_{r \in R | (r,k) \in RKT}\textcolor{red}{F_{r,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{r,w,t}}
+    +\sum_{p \in P | (p,k) \in CKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,qc,[t]}}+\sum_{r \in R | (r,k) \in RKT}\textcolor{red}{F_{r,k,t}^{Trucked}} \cdot \textcolor{red}{Q_{r,qc,t}}
 
-    =\textcolor{red}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,w,t}}
+    =\textcolor{red}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,qc,t}}
 
 Can be rewritten as
 
-**Discrete Disposal Site Water Quality** ∀k \in K, w \in W, t \in T
+**Discrete Disposal Site Water Quality** ∀k \in K, qc \in QC, t \in T
 
 The water quality of disposed water is dependent on the flow rates into the disposal site and the quality of each of these flows.
 
 .. math::
 
-    \sum_{n \in N | (n,k) \in NKA}\sum_{(q) \in Q}\textcolor{red}{F_{n,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    \sum_{n \in N | (n,k) \in NKA}\sum_{(q) \in Q}\textcolor{red}{F_{n,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
-    +\sum_{s \in S | (s,k) \in SKA}\sum_{(q) \in Q}\textcolor{red}{F_{s,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    +\sum_{s \in S | (s,k) \in SKA}\sum_{(q) \in Q}\textcolor{red}{F_{s,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
-    +\sum_{r \in R | (r,k) \in RKA}\sum_{(q) \in Q}\textcolor{red}{F_{r,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    +\sum_{r \in R | (r,k) \in RKA}\sum_{(q) \in Q}\textcolor{red}{F_{r,k,t,q}^{DiscretePiped}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
-    +\sum_{s \in S | (s,k) \in SKT}\sum_{(q) \in Q}\textcolor{red}{F_{s,k,t,q}^{DiscreteTrucked}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    +\sum_{s \in S | (s,k) \in SKT}\sum_{(q) \in Q}\textcolor{red}{F_{s,k,t,q}^{DiscreteTrucked}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
-    +\sum_{p \in P | (p,k) \in PKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}
+    +\sum_{p \in P | (p,k) \in PKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,qc,[t]}}
 
-    +\sum_{p \in P | (p,k) \in CKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,w,[t]}}
+    +\sum_{p \in P | (p,k) \in CKT}\textcolor{red}{F_{p,k,t}^{Trucked}} \cdot \textcolor{green}{v_{p,qc,[t]}}
    
-    +\sum_{r \in R | (r,k) \in RKT}\sum_{(q) \in Q}\textcolor{red}{F_{r,k,t,q}^{DiscreteTrucked}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    +\sum_{r \in R | (r,k) \in RKT}\sum_{(q) \in Q}\textcolor{red}{F_{r,k,t,q}^{DiscreteTrucked}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
-    \leq \sum_{(q) \in Q}\textcolor{red}{F_{k,t,w,q}^{DiscreteDisposalDestination}} \cdot \textcolor{green}{Q_{w,q}^{DiscreteQuality}}
+    \leq \sum_{(q) \in Q}\textcolor{red}{F_{k,t,qc,q}^{DiscreteDisposalDestination}} \cdot \textcolor{green}{Q_{qc,q}^{DiscreteQuality}}
 
 The constraints for the DiscretePiped and DiscreteTrucked are similar to the DiscreteDisposalDestination.
 

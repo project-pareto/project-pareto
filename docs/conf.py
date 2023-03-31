@@ -36,9 +36,9 @@ copyright = "2021-2023, PARETO"
 author = "The PARETO Project"
 
 # The full version, including alpha/beta/rc tags
-release = "0.7.dev0"
+release = "0.8.dev0"
 # The short X.Y version
-version = "0.7.dev0"
+version = "0.8.dev0"
 # -- General configuration ---------------------------------------------------
 
 
