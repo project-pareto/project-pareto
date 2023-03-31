@@ -38,7 +38,7 @@ The following equation describes the flow balance at location :math:`r`:
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{n,r,t} \cdot Q_{n,qc,t} = Q_{r,qc,t} \cdot F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{n,r,t} \cdot Q_{n,qc,t} = Q_{r,qc,t}^{treatment\ feed} \cdot F_{r,t}^{treatment\ feed}
 
 where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of streams. The units of concentration are typically reported as mass/volume (mg/L, g/m3, kg/L, etc.) and the units of flow rate are reported in volume/time (e.g. bbl/week).
 
@@ -93,7 +93,7 @@ Note that treatment efficiency can also be expressed as a percentage by multiply
 
 .. _removal_efficiency:
 
-Water Treatment Removal Efficiency
+Treatment Removal Efficiency
 -----------------------------------
 
 Removal efficiency is a measure of the overall reduction in the concentration or load of a constituent in a treatment plant, expressed as a percentage. The removal efficiency of a certain constituent is commonly calculated based on the influent (feed) concentration and the effluent (treated water) concentration as follows:
@@ -112,7 +112,7 @@ Another method for calculating removal efficiency is the measure of overall redu
 
 .. math::
 
-   \text{Removal Efficiency (%)}_{load} = \frac{F^{treatment\ feed}Q^{treatment\ feed} - F^{treated\ water}Q^{treated\ water}}{F^{treatment\ feed}Q^{treatment\ feed}}
+   \text{Removal Efficiency (%)}_{load} = \frac{F^{treatment\ feed}Q^{treatment\ feed} - F^{treated\ water}Q^{treated\ water}}{F^{treatment\ feed}Q^{treatment\ feed}} \times 100
 
 
 it should be noted that the load-based definition of removal efficiency will have a non-zero value even for situations where there is no concentration reduction happening, such as a simple splitter. In such cases, introducing an equality constraint on the quality of the streams in the load-based approach will result in the following equation:
@@ -132,10 +132,10 @@ PARETO supports both formulations and gives the user the option to choose betwee
 
 .. _treatment_cost:
 
-Water Treatment Cost
+Treatment Cost
 ---------------------
 
-The total cost of produced water treatment consist of capital costs and annual operating costs.Capital costs include the costs associated with the land purchanse, construction, purchasing process equipment, and installation. Annual operating costs refer to the cost during plant operation such as cost of energy, equimpment replacement, chemicals, labor, and maintenance. The sum of the unit operating costs and the unit annualized capital costs determines the total capital cost per unit volume of produced water.
+The total cost of produced water treatment consist of capital costs and annual operating costs. Capital costs include the costs associated with the land purchanse, construction, purchasing process equipment, and installation. Annual operating costs refer to the cost during plant operation such as cost of energy, equimpment replacement, chemicals, labor, and maintenance. The sum of the unit operating costs and the unit annualized capital costs determines the total capital cost per unit volume of produced water.
 
 Treatment costs can be incorporated into PARETO with three methods. To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multieffect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../2022_10_31_206_017_PWTreatment_Technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
 It is important to note that currently, PARETO incorporates treatment costs for discrete values of treatment capacity expansions. In other words, the treatment cost calculations are limited to specific capacity levels.
@@ -191,6 +191,277 @@ Model Description:
 The multi effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
 The model is built in Pyomo and is based of equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
 
+Variable Definitions:
++++++++++++++++++++++
+
+.. list-table:: Variable definitions
+    :widths: 15 50 15 15
+    :header-rows: 1
+
+    * - Symbol
+      - Doc
+      - Units
+      - Index sets
+  
+    * - :math:`{F_{in}}`
+      - Flow rate of the feed
+      - kg/s
+      - None
+  
+    * - :math:`{F_{brine}}`
+      - Flow rate of brine
+      - kg/s
+      - i
+  
+    * - :math:`{F_{vapor}}`
+      - Flow rate of the vapor
+      - kg/s
+      - i
+
+    * - :math:`{F_{spv}}`
+      - Flow rate of super heated vapor
+      - kg/s
+      - None
+
+    * - :math:`{F_{freshwater}}`
+      - Flow rate of fresh water
+      - kg/s
+      - None
+
+    * - :math:`{T_{feed}}`
+      - Temperature of feed water
+      - :math:`{^{\circ} C}`
+      - None
+
+    * - :math:`{T_{in}}`
+      - Temperature of water entering the :math:`{I^{th}}`
+      - :math:`{^{\circ} C}`
+      - None
+
+    * - :math:`{T_{cond}}`
+      - Temperature of condensate
+      - :math:`{^{\circ} C}`
+      - i
+
+    * - :math:`{T_{brine}}`
+      - Temperature of brine
+      - :math:`{^{\circ} C}`
+      - i
+
+    * - :math:`{T_{vapor}}`
+      - Temperature of vapor from the evaporators
+      - :math:`{^{\circ} C}`
+      - i
+
+    * - :math:`{T_{spv}}`
+      - Temperature of super heated vapor
+      - :math:`{^{\circ} C}`
+      - None
+
+    * - :math:`{T_{ideal}}`
+      - Ideal temperature in th evaporators
+      - :math:`{^{\circ} C}`
+      - i
+  
+    * - :math:`{T_{sv}}`
+      - Temperature of saturated vapor
+      - :math:`{^{\circ} C}`
+      - i
+  
+    * - :math:`{T_{mix}^{out}}`
+      - Temperature of mixer outlet
+      - :math:`{^{\circ} C}`
+      - None
+
+    * - :math:`{T_{freshwater}}`
+      - Temperature of fresh water
+      - :math:`{^{\circ} C}`
+      - None
+
+    * - BPE
+      - Boiling point elevation
+      - :math:`{^{\circ} C}`
+      - i
+
+    * - :math:`{H_{feed}}`
+      - Enthalpy of the feed water
+      - kJ/kg
+      - None
+
+    * - :math:`{H_{in}}`
+      - Enthalpy of the water entering the :math:`{I^{th}}` evaporator
+      - kJ/kg
+      - None
+
+    * - :math:`{H_{brine}}`
+      - Enthalpy of brine
+      - kJ/kg
+      - i
+
+    * - :math:`{H_{vapor}}`
+      - Enthalpy of vapor
+      - kJ/kg
+      - i
+
+    * - :math:`{H_{spv}}`
+      - Enthalpy of super heated vapor
+      - kJ/kg
+      - None
+
+    * - :math:`{H_{cond}^{vap}}`
+      - Enthalpy of condensate vapor
+      - kJ/kg
+      - None
+
+    * - :math:`{H_{cond}}`
+      - Enthalpy of condensate
+      - kJ/kg
+      - None
+
+    * - :math:`{P_{vapor}}`
+      - Vapor pressure in the evaporator
+      - kPa
+      - i
+
+    * - :math:`{P_{sv}}`
+      - Saturated vapor pressure
+      - kPa
+      - i
+
+    * - :math:`{P_{spv}}`
+      - Pressure of the super heated vapor
+      - kPa
+      - None
+  
+    * - :math:`{Q_{in}}`
+      - TDS concentration of the feed
+      - g/kg
+      - None
+  
+    * - :math:`{Q_{brine}}`
+      - TDS concentration in the brine
+      - g/kg
+      - i
+  
+    * - :math:`{Q_{spec}}`
+      - TDS specification in the outlet brine stream
+      - g/kg
+      - None
+
+    * - :math:`{X_{s}^{in}}`
+      - Mass fraction of TDS in feed
+      - (-)
+      - None
+
+    * - :math:`{X_{s}^{brine}}`
+      - Mass fraction of TDS in brine
+      - (-)
+      - i
+  
+    * - E
+      - Heat flow in the evaporator
+      - kW
+      - i
+  
+    * - :math:`{W_{compr}}`
+      - Work done by the compressor
+      - kW
+      - None
+  
+    * - :math:`{C_{compr}}`
+      - Capacity of the compressor
+      - HP 
+      - None
+  
+    * - :math:`{\eta}`
+      - Isentropic efficiency of the compressor
+      - (-)
+      - None
+
+    * - :math:`{U_{evap}}`
+      - Overall heat transfer coefficient of the evaporator (latent heat)
+      - :math:`{\frac{kW}{m^2K}}`
+      - i
+  
+    * - :math:`{U_{s}}`
+      - Overall heat transfer coefficient of the evaporator (Sensible heat)
+      - :math:`{\frac{kW}{m^2K}}`
+      - None
+  
+    * - :math:`{U_{ph}}`
+      - Overall heat transfer coefficient of the preheater
+      - :math:`{\frac{kW}{m^2K}}`
+      - None
+
+    * - :math:`{A_{evap}}`
+      - Area of the evaporator
+      - :math:`{m^2}`
+      - i
+
+    * - :math:`{A_{ph}}`
+      - Area of the preheater
+      - :math:`{m^2}`
+      - None
+
+    * - :math:`{C_{p}^{feed}}`
+      - Specific heat capacity of the feed water
+      - :math:`{kJ/(kg ^{\circ}C)}`
+      - None
+
+    * - :math:`{C_{p}^{vapor}}`
+      - Specific heat capacity of vapor
+      - :math:`{kJ/(kg ^{\circ}C)}`
+      - None
+
+    * - :math:`{C_{p}^{mix}}`
+      - Specific heat capacity of water from the outlet of the mixer
+      - :math:`{kJ/(kg ^{\circ}C)}`
+      - None
+
+    * - :math:`{{\Delta}T }`
+      - Approach temperatures
+      - :math:`{^{\circ}C}`
+      - None
+
+    * - :math:`{{\Delta}P }`
+      - Minimum pressure difference between evaporator stages
+      - :math:`{kPa}`
+      - None
+
+    * - :math:`{C_{elec}}`
+      - Cost of electricity  
+      - :math:`{kUSD/kW year}`
+      - None
+
+    * - :math:`{CAPEX_{evap}}`
+      - Capital cost for all evaporators
+      - :math:`{kUSD}`
+      - None
+
+    * - :math:`{CAPEX_{ph}}`
+      - Capital cost for Preheater
+      - :math:`{kUSD}`
+      - None
+
+    * - :math:`{CAPEX_{compr}}`
+      - Capital cost for compressor 
+      - :math:`{kUSD}`
+      - None
+
+    * - :math:`{OPEX_{ann}}`
+      - Annualized operating cost
+      - :math:`{kUSD/year}`
+      - None
+
+    * - :math:`{CAPEX_{ann}}`
+      - Annualized capital cost
+      - :math:`{kUSD/year}`
+      - None
+
+
+
+
+
 Modeling Equations:
 -------------------
 
@@ -215,29 +486,29 @@ Mass balance in the evaporators:
 
 .. math:: 
 
-    F_{in}S_{in} = F_{brine}^{(I)}S_{brine}^{(I)}
+    F_{in}Q_{in} = F_{brine}^{(I)}Q_{brine}^{(I)}
 
-    F_{brine}^{(i+1)}S_{brine}^{(i+1)}=F_{brine}^{(i)}S_{brine}^{(i)} \quad \forall i < I
+    F_{brine}^{(i+1)}Q_{brine}^{(i+1)}=F_{brine}^{(i)}Q_{brine}^{(i)} \quad \forall i < I
 
 Calculating mass fraction of salt from salt salinity:
 
 .. math:: 
 
-    X_{s}^{in} = 0.001 S_{in}
+    X_{s}^{in} = 0.001 Q_{in}
 
-    X_s^{(i)} = 0.001 S_{brine}^{(i)} \quad \forall i \in \{0,...,I\}
+    X_s^{(i)} = 0.001 Q_{brine}^{(i)} \quad \forall i \in \{0,...,I\}
 
 Energy balance in the evaporator:
 
 .. math:: 
 
-    Q^{(I)} + F_{in}H_{in} = F_{brine}^{(I)}H_{brine}^{(I)} + F_{vapor}^{(I)}H_{vapor}^{(I)}
+    E^{(I)} + F_{in}H_{in} = F_{brine}^{(I)}H_{brine}^{(I)} + F_{vapor}^{(I)}H_{vapor}^{(I)}
 
-    Q^{(i)} + F_{brine}^{(i+1)}H_{brine}^{(i+1)} = F_{brine}^{(i)}H_{brine}^{(i)} + F_{vapor}^{(i)}H_{vapor}^{(i)} \quad \forall i < I
+    E^{(i)} + F_{brine}^{(i+1)}H_{brine}^{(i+1)} = F_{brine}^{(i)}H_{brine}^{(i)} + F_{vapor}^{(i)}H_{vapor}^{(i)} \quad \forall i < I
 
-    Q^{(1)} =  F_{spv}C_p^{vapor}(T_{spv} - T_{cond}^{(1)}) + F_{spv}(H_{cond}^{vap(1)} - H_{cond}^{(1)})
+    E^{(1)} =  F_{spv}C_p^{vapor}(T_{spv} - T_{cond}^{(1)}) + F_{spv}(H_{cond}^{vap(1)} - H_{cond}^{(1)})
 
-    Q^{(i)} = F_{vapor}^{(i-1)} \lambda^{(i)} \quad \forall i \in \{2,...,I\}
+    E^{(i)} = F_{vapor}^{(i-1)} \lambda^{(i)} \quad \forall i \in \{2,...,I\}
 
 Thermodynamic Relations
 
@@ -311,7 +582,7 @@ Total Evaporator Area:
 
 .. math:: 
 
-     A_{evap}^{total} = \sum_{i=1}^{I}\frac{Q^{(i)}}{U_{evap}^{(i)}LMTD^{(i)}}
+     A_{evap}^{total} = \sum_{i=1}^{I}\frac{E^{(i)}}{U_{evap}^{(i)}LMTD^{(i)}}
 
 Compressor Model
 ++++++++++++++++
@@ -380,7 +651,7 @@ Estimating specific heat capacities:
 
 .. math:: 
 
-    C_p^{feed} = 0.001(4206.8 - 6.6197 X_s^{in} + 1.22 \times 10^{-2} X_{s}^{in^2} + (-1.262 + 5.418 \times 10^{-2}X_s^{in}))T_{feed}
+    C_p^{feed} = 0.001(4206.8 - 6.6197 X_s^{in} + 1.22 \times 10^{-2} X_{s}^{in^2} + (-1.262 + 5.418 \times 10^{-2}X_s^{in})T_{feed}
 
     C_p^{mix} = 0.001(4206.8 - 1.1262 T_{mix}^{out})
 
@@ -428,6 +699,8 @@ Bounds for feasible operation:
 
     T_{sv}^{(i)} \geq T_{brine}^{(i)} + \Delta T^{min} \quad \forall i \in \{1,...,I\}
 
+    P_{vapor}^{(i)} \geq P_{vapor}^{i+1} + \Delta P^{min} \quad \forall i \in \{1,...,I-1\}
+
     CR_{max}P_{vapor}^{(I)} \geq P_{spv} \geq P_{vapor}^{(I)}
 
     S_{brine}^{(1)} \geq S_{spec}
@@ -439,19 +712,19 @@ The goal is to minimize the total annualized cost (TAC) of the treatent unit. CA
 
 .. math:: 
 
-    CAPEX_{evap} = \frac{1.05}{1000}\sum_{i = 1}^{N_{evap}} exp(11.3852 -0.9186(log(A_{evap}^{(i)}\times 1.1)) + 0.0979(log(A_{evap}^{(i)}\times 1.1))^2 )
+    CAPEX_{evap} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.05}{1000}\sum_{i = 1}^{N_{evap}} exp(11.3852 -0.9186(log(A_{evap}^{(i)}\times 1.1)) + 0.0979(log(A_{evap}^{(i)}\times 1.1))^2 )
 
 CAPEX of centrifugal compressor in kUSD is given by:
 
 .. math:: 
 
-    CAPEX_{compr} = \sum_{i = 1}^{N_{compr}} exp(7.58 + 0.8\times log(\mathcal{C}_{compr}))
+    CAPEX_{compr} = \frac{CEPCI_{2022}}{CEPCI_{base}}\sum_{i = 1}^{N_{compr}} exp(7.58 + 0.8\times log(\mathcal{C}_{compr}))
 
 Assuming the preheater is a U-tube heat exchanger, the CAPEX of the preheater is given by:
 
 .. math:: 
 
-    CAPEX_{ph} = \frac{1.05}{1000} (exp(11.3852 -0.9186(log(A_{ph} \times 1.1)) + 0.0979(log(A_{ph} \times 1.1))^2 ))
+    CAPEX_{ph} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.05}{1000} (exp(11.3852 -0.9186(log(A_{ph} \times 1.1)) + 0.0979(log(A_{ph} \times 1.1))^2 ))
 
 Note: For CAPEX calculation, the areas have to be in sq. ft.
 
@@ -459,7 +732,7 @@ The total CAPEX is given by:
 
 .. math:: 
 
-    CAPEX = \frac{CEPCI_{2022}}{CEPCI_{base}}(CAPEX_{evap} + CAPEX_{compr} + CAPEX_{ph})
+    CAPEX = CAPEX_{evap} + CAPEX_{compr} + CAPEX_{ph}
 
 Annualization factor: The annualization factor for CAPEX is calculated based on fractional interest rate $r = 0.1$ per year and amortization period $y = 10$ years. 
 
