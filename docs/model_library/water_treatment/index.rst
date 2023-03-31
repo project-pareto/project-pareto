@@ -2,7 +2,7 @@ Water Treatment
 ===============
 
 Overview
---------
+-----------
 
 Treatment systems play a crucial role for achieving desired water quality for various purposes, such as recycling for hydraulic fracturing, beneficial reuse applications, and critical mineral recovery.  Depending on the purpose and degree of treatment, the costs associated with treatment systems can be significant and greatly impact the investment cost in a management option. This makes it necessary to carefully consider the treatment models and their costs when evaluating produced water management strategies. Therefore, it is essential to integrate treatment models into the PARETO decision-making process. This will enable stakeholders to better understand the trade-offs between different management options and their associated costs, ultimately leading to more informed decisions.
 
@@ -25,7 +25,7 @@ Treatment systems play a crucial role for achieving desired water quality for va
 .. _treatmet_model_within_pareto_network:
 
 Treatment model within PARETO network
--------------------------------------
+-----------------------------------------
 
 The PARETO network identifies treatment plants based on their location (:math:`r \in R`), capacity (:math:`j \in J`), and technology (:math:`wt \in WT`). The streams that are piped or trucked to treatment plants are represented by arcs (:math:`(l,r) \in LRA \cup LRT`), where l can be any location or node in PARETO network. The indices :math:`j` and :math:`wt` are employed in conjunction with a binary variable to install or expand a treatment plant with a specific capacity (for further details, please refer to `strategic  water management <../strategic_water_management/index.rst>`_).
     
@@ -45,7 +45,7 @@ where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of s
 .. _treatment_model_description:
 
 Treatment Model Description
------------------------
+--------------------------------
 
 Water treatment systems are modeled using overall water and constituent balances, treatment and removal efficiencies, and operating cost and capital cost values/equations. The schematic in Figure 1 depicts a treatment unit that processes a treatment feed with specific qualities, yielding two output streams: treated water and residual water. The treated water and residual water streams have distinct qualities, which vary depending on the specific treatment process employed.
 The overall water and constituent balance equations for water treatment systems are as follows:
@@ -162,3 +162,4 @@ It is important to note that currently, PARETO incorporates treatment costs for 
 An alternative approach to incorporating treatment costs in PARETO is through the use of surrogate models. These models allow for linear or nonlinear approximations of treatment costs as a function of treatment capacity, feed quality, and recovery. This method is currently under development and not yet available in the current version of PARETO, and it is planned for inclusion in future updates.
 
 The third method for incorporating treatment costs into PARETO is through the integration of rigorous technoeconomic optimization treatment models. These models allow for accurate capture of the effect of changes in input parameters on treatment plant performance and costs. Currently, a technoeconomic optimization-based modeling approach for single effect and multi-effect mechanical vapor compression (MVR) desalination systems is available for integration with PARETO. The following section will provide a detailed description of the MVR modeling effort.
+
