@@ -34,7 +34,7 @@ The following equation describes the flow balance at location :math:`r`:
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT}F_{n,r,t} = F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT}F_{l,r,t} = F_{r,t}^{treatment\ feed}
 
 .. math::
     
