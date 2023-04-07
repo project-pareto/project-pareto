@@ -734,7 +734,7 @@ The total CAPEX is given by:
 
     CAPEX = CAPEX_{evap} + CAPEX_{compr} + CAPEX_{ph}
 
-Annualization factor: The annualization factor for CAPEX is calculated based on fractional interest rate $r = 0.1$ per year and amortization period $y = 10$ years. 
+Annualization factor: The annualization factor for CAPEX is calculated based on fractional interest rate :math:`r = 0.1` per year and amortization period :math:`y = 10` years. 
 
 .. math:: 
 
