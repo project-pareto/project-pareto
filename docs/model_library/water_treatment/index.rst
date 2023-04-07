@@ -38,7 +38,7 @@ The following equation describes the flow balance at location :math:`r`:
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{n,r,t} \cdot Q_{n,qc,t} = Q_{r,qc,t}^{treatment\ feed} \cdot F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{l,r,t} \cdot Q_{l,qc,t} = Q_{r,qc,t}^{treatment\ feed} \cdot F_{r,t}^{treatment\ feed}
 
 where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of streams. The units of concentration are typically reported as mass/volume (mg/L, g/m3, kg/L, etc.) and the units of flow rate are reported in volume/time (e.g. bbl/week).
 
