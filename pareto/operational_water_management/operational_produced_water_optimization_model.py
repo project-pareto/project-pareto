@@ -910,11 +910,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.s_LLT = Set(
         initialize=list(df_parameters["LLT"].keys()),
-        doc="Location-to-location piping arcs",
+        doc="Location-to-location trucking arcs",
     )
     model.s_LLP = Set(
         initialize=list(df_parameters["LLP"].keys()),
-        doc="Location-to-location trucking arcs",
+        doc="Location-to-location piping arcs",
     )
 
     if model.config.production_tanks == ProdTank.individual:
