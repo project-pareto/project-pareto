@@ -96,7 +96,7 @@ Note that treatment efficiency can also be expressed as a percentage by multiply
 
 .. _removal_efficiency:
 
-Treatment Removal Efficiency
+Treatment Component Removal Efficiency
 -----------------------------------
 
 Removal efficiency is a measure of the overall reduction in the concentration or load of a constituent in a treatment plant, expressed as a percentage. The removal efficiency of a certain constituent is commonly calculated based on the influent (feed) concentration and the effluent (treated water) concentration as follows:
