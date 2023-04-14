@@ -78,7 +78,7 @@ The overall water and constituent balance equations for water treatment systems 
 
 .. _treatment_efficiency_(recovery):
 
-Treatment Efficiency (Recovery)
+Treatment Efficiency (water recovery fraction)
 --------------------------------------
 
 Treatment efficiency is defined as the ratio of the treated water volume to the ratio of the feed water volume to the treatment plant as follows:
@@ -96,7 +96,7 @@ Note that treatment efficiency can also be expressed as a percentage by multiply
 
 .. _removal_efficiency:
 
-Treatment Removal Efficiency
+Treatment Component Removal Efficiency
 -----------------------------------
 
 Removal efficiency is a measure of the overall reduction in the concentration or load of a constituent in a treatment plant, expressed as a percentage. The removal efficiency of a certain constituent is commonly calculated based on the influent (feed) concentration and the effluent (treated water) concentration as follows:
@@ -111,7 +111,7 @@ For example, if the influent concentration of a constituent is 200 mg/L and the 
     
     \text{Removal Efficiency (%)}_{concentration} = \frac{200 - 20}{200} = 0.9 = 90\%
 
-Another method for calculating removal efficiency is the measure of overall reduction in the load (mass times flow) instead of reduction in concentration. This approach is specifically useful in situations where there are substantial water losses due to evaporation and evapotranspiration. 
+Another method for calculating removal efficiency is the measure of overall reduction in the load of the contaminant (volumetric flowrate times concentration) instead of reduction in concentration. This approach is specifically useful in situations where there are substantial water losses due to evaporation and evapotranspiration. 
 
 .. math::
 
@@ -131,7 +131,7 @@ it should be noted that the load-based definition of removal efficiency will hav
 
 It is worth noting that in cases where there is minimal water loss to the residual stream, such that the treated water flow is approximately equal to the feed flow, the removal efficiency values obtained by the two definitions (concentration based and load based) become the same. 
 
-PARETO supports both formulations and gives the user the option to choose between the two methods based on their available data or the technology considered. The two options are expressed as `RemovalEfficiencyMethod.Concentration_based` and `RemovalEfficiencyMethod.Load_based` in PARETO configruation argument for removal efficiency.
+PARETO supports both formulations and gives the user the option to choose between the two methods based on their available data or the technology considered. The two options are expressed as ``RemovalEfficiencyMethod.Concentration_based`` and ``RemovalEfficiencyMethod.Load_based`` in PARETO configruation argument for removal efficiency.
 
 .. _treatment_cost:
 
@@ -140,7 +140,7 @@ Treatment Cost
 
 The total cost of produced water treatment consist of capital costs and annual operating costs. Capital costs include the costs associated with the land purchanse, construction, purchasing process equipment, and installation. Annual operating costs refer to the cost during plant operation such as cost of energy, equimpment replacement, chemicals, labor, and maintenance. The sum of the unit operating costs and the unit annualized capital costs determines the total capital cost per unit volume of produced water.
 
-Treatment costs can be incorporated into PARETO with three methods. To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multieffect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../2022_10_31_206_017_PWTreatment_Technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
+Treatment costs can be incorporated into PARETO with three methods. To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multi-effect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../2022_10_31_206_017_PWTreatment_Technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
 It is important to note that currently, PARETO incorporates treatment costs for discrete values of treatment capacity expansions. In other words, the treatment cost calculations are limited to specific capacity levels.
 
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
@@ -186,13 +186,13 @@ Single effect evaporation and multi effect evaporation has been studied for shal
 
     Figure 2. MEE-SVR treatment flowsheet
 
-The vapor from the I\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
+The vapor from the i\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of the 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
 
 Model Description
 ------------------
 
-The multi effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
-The model is built in Pyomo and is based of equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
+The multi-effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
+The model is built in Pyomo and is based on equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
 
 Variable Definitions
 +++++++++++++++++++++
@@ -513,7 +513,7 @@ Energy balance in the evaporator:
 
     E^{(i)} = F_{vapor}^{(i-1)} \lambda^{(i)} \quad \forall i \in \{2,...,I\}
 
-Thermodynamic Relations
+**Thermodynamic Relations**
 
 Relating pressures to temperatures using the Antoine equation: 
 
@@ -573,7 +573,7 @@ Heat transfer coefficient for evaporator:
 
     U_{evap}^{i} = 0.001(1939.4 + 1.40562T_{brine}^{(i)} - 0.002T_{brine}^{(i)2}+ 0.0023T_{brine}^{(i)3})
 
-Design Equations:
+**Design Equations**
 
 Area of first evaporator calculation:
 
@@ -590,7 +590,7 @@ Total Evaporator Area:
 Compressor Model
 ++++++++++++++++
 
-Thermodynamic Relations
+**Thermodynamic Relations**
 
 Isentropic temperature calculation:
 
@@ -610,7 +610,7 @@ The enthalpy of the super heated vapor can be estimated by:
 
     H_{spv} = -13470 + 1.84T_{spv}
 
-Design Equations:
+**Design Equations**
 
 The compression work is given by:
 
@@ -648,7 +648,7 @@ Energy balance in the preheater:
 
     F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
 
-Thermodynamic Relations
+**Thermodynamic Relations**
 
 Estimating specific heat capacities:
 
@@ -674,7 +674,7 @@ Preheater LMTD calculation:
 
      LMTD_{ph} = (0.5 \theta_{1ph} \theta_{2ph}(\theta_{1ph} + \theta_{2ph}))^{1/3}
 
-Design Equations
+**Design Equations**
 
 Preheater area calculation:
 
@@ -766,7 +766,7 @@ This is our objective function which we'll minimize.
 Sensitivity Analysis
 ++++++++++++++++++++
 
-To demonstrate the effect of the feed salinty on the TAC, we consider a single effect evaporator without heat integration using a preheater. The feed flow rate is fixed to 10 kg/s and the outlet brine TDS concentration needs to be above 250 g/kg. The salt concentration in the feed is varied from 70 g/kg to 190 g/kg. A plot of feed salinity vs TAC is generated as shown in Figure (3)
+To demonstrate the effect of the feed salinity on the TAC, we consider a single effect evaporator without heat integration using a preheater. The feed flow rate is fixed to 10 kg/s and the outlet brine TDS concentration needs to be above 250 g/kg. The salt concentration in the feed is varied from 70 g/kg to 190 g/kg. A plot of feed salinity vs TAC is generated as shown in Figure 3:
 
 .. figure:: ../../img/sensitivity_analysis_1.png
     :width: 600
@@ -774,7 +774,7 @@ To demonstrate the effect of the feed salinty on the TAC, we consider a single e
 
     Figure 3. TAC vs feed salinity for a single effect evaporator
 
-For the same conditions, the sensitivity analysis for a multi-effect evaporator with two stages and heat integration using a preheater is shown in Figure (4)
+For the same conditions, the sensitivity analysis for a multi-effect evaporator with two stages and heat integration using a preheater is shown in Figure 4:
 
 .. figure:: ../../img/sensitivity_analysis_2.png
     :width: 600
