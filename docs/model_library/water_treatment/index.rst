@@ -37,11 +37,11 @@ The following equation describes the flow balance at location :math:`r`:
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT}F_{l,r,t} = F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT}F_{l,r,t} = F_{r,t}^{feed}
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{l,r,t} \cdot Q_{l,qc,t} = Q_{r,qc,t}^{treatment\ feed} \cdot F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{l,r,t} \cdot Q_{l,qc,t} = Q_{r,qc,t}^{feed} \cdot F_{r,t}^{feed}
 
 .. math::
 
@@ -76,13 +76,13 @@ The overall water and constituent balance equations for water treatment systems 
 
   .. math::
 
-      F^{treatment\ feed} = F^{treated\ water} + F^{residual\ water}
+      F^{feed} = F^{treated} + F^{residual}
 
 * Overall constituent balance: 
 
   .. math::
 
-      F^{treatment\ feed}Q^{feed} = F^{treated\ water}Q^{treated\ water} + F^{residual\ water}Q^{residual\ water}
+      F^{feed}Q^{feed} = F^{treated}Q^{treated} + F^{residual}Q^{residual}
 
 
 .. _treatment_efficiency_(water_recovery):
@@ -94,13 +94,13 @@ Treatment efficiency is defined as the ratio of the treated water volume to the 
 
 .. math::
     
-    \text{Treatment efficiency} = \frac{F^{treated\ water}}{F^{treatment\ feed}}
+    \text{Treatment efficiency} = \frac{F^{treated}}{F^{feed}}
 
 Note that treatment efficiency can also be expressed as a percentage by multiplying the above expression by 100.
 
 .. math::
     
-    \text{Treatment efficiency (%)} = \frac{F^{treated\ water}}{F^{feed}} \times 100
+    \text{Treatment efficiency (%)} = \frac{F^{treated}}{F^{feed}} \times 100
     
 
 .. _removal_efficiency:
@@ -112,7 +112,7 @@ Removal efficiency is a measure of the overall reduction in the concentration or
 
 .. math::
     
-    \text{Removal Efficiency (%)}_{concentration} = \frac{Q^{treatment\ feed} - Q^{treated\ water}}{Q^{treatment\ feed}} \times 100
+    \text{Removal Efficiency (%)}_{concentration} = \frac{Q^{feed} - Q^{treated}}{Q^{feed}} \times 100
 
 For example, if the influent concentration of a constituent is 200 mg/L and the effluent concentration is 20 mg/L, then the removal efficiency can be calculated as:
 
@@ -124,14 +124,14 @@ Another method for calculating removal efficiency is the measure of overall redu
 
 .. math::
 
-   \text{Removal Efficiency (%)}_{load} = \frac{F^{treatment\ feed}Q^{treatment\ feed} - F^{treated\ water}Q^{treated\ water}}{F^{treatment\ feed}Q^{treatment\ feed}} \times 100
+   \text{Removal Efficiency (%)}_{load} = \frac{F^{feed}Q^{feed} - F^{treated}Q^{treated}}{F^{feed}Q^{feed}} \times 100
 
 
 it should be noted that the load-based definition of removal efficiency will have a non-zero value even for situations where there is no concentration reduction happening, such as a simple splitter. In such cases, introducing an equality constraint on the quality of the streams in the load-based approach will result in the following equation:
 
 .. math::
 
-    Q^{treatment\ feed} = Q^{treated\ water}  
+    Q^{feed} = Q^{treated}  
 
 .. math::
     
@@ -150,6 +150,7 @@ Treatment Cost
 The total cost of produced water treatment consist of capital costs and annual operating costs. Capital costs include the costs associated with the land purchanse, construction, purchasing process equipment, and installation. Annual operating costs refer to the cost during plant operation such as cost of energy, equimpment replacement, chemicals, labor, and maintenance. The sum of the unit operating costs and the unit annualized capital costs determines the total capital cost per unit volume of produced water.
 
 Treatment costs can be incorporated into PARETO with three methods:
+
 1) To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multi-effect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../2022_10_31_206_017_PWTreatment_Technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
 It is important to note that currently, PARETO incorporates treatment costs for discrete values of treatment capacity expansions. In other words, the treatment cost calculations are limited to specific capacity levels.
 
@@ -168,7 +169,7 @@ It is important to note that currently, PARETO incorporates treatment costs for 
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
 | Energy type                                                                   | Varies          | Thermal                        | Electrical                                | Thermal                                    | Thermal                                   | Thermal                                   | Thermal                                   | Thermal                                    | Thermal                                    | Electrical                                 | Electrical                                             | Electrical                                 | Electrical                                 | Electrical                                       | Electrical                                 |
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
-| Theoretical energy requirements [kWh/m\ :sup                                  | Varies          | 200 kWth/m3                    | 20-30                                     | 182-359 kWth/m3                            | 117-167 kWth/m3                           | 395-1214 kWth/m3                          | 164-354 kWth/m3                           | 364 kWth/m3                                | 130-640 kWth/m3                            | 8-20                                       | 12.8                                                   | 28.9                                       | 16.13                                      | 17.46                                            | 26.6                                       |
+| Theoretical energy requirements [kWh/m\ :sup:`3`]                             | Varies          | 200 kWht/m\ :sup:`3`           | 20-30                                     | 182-359 kWht/m\ :sup:`3`                   | 117-167 kWth/m3                           | 395-1214 kWht/m\ :sup:`3`                 | 164-354 kWht/m\ :sup:`3`                  | 364 kWht/m\ :sup:`3`                       | 130-640 kWht/m\ :sup:`3`                   | 8-20                                       | 12.8                                                   | 28.9                                       | 16.13                                      | 17.46                                            | 26.6                                       |
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
 | Water recovery [%]                                                            | Varies          | 82                             | 82                                        | varies                                     | 74                                        | 74                                        | 74                                        | 74                                         | 74                                         | varies                                     | 75                                                     | 75                                         | 74                                         | 74                                               | 74                                         |
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
