@@ -513,7 +513,7 @@ Energy balance in the evaporator:
 
     E^{(i)} = F_{vapor}^{(i-1)} \lambda^{(i)} \quad \forall i \in \{2,...,I\}
 
-Thermodynamic Relations
+**Thermodynamic Relations**
 
 Relating pressures to temperatures using the Antoine equation: 
 
