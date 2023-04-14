@@ -94,6 +94,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{(s,o) \in SOA}`                                   Storage-to-beneficial reuse pipeline arcs
 
+:math:`\textcolor{blue}{(l,\tilde{l}) \in LLA}`     All valid pipeline arcs
 
 :math:`\textcolor{blue}{(p,p) \in PCT}`                                   Production-to-completions trucking arcs
 
@@ -120,6 +121,8 @@ Operational Model Mathematical Notation
 :math:`\textcolor{blue}{(s,k) \in SKT}`                                 Storage-to-disposal trucking arcs
 
 :math:`\textcolor{blue}{(r,k) \in RKT}`                                   Treatment-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(l,\tilde{l}) \in LLT}`     All valid trucking arcs
 
 :math:`\textcolor{blue}{(p,a) \in PAL}`                                   Pad-to-tank links
 
