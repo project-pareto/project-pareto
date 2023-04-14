@@ -17,7 +17,7 @@ Treatment systems play a crucial role for achieving desired water quality for va
 +--------------------------------------------------------+
 | :ref:`treatment_model_description`                     |
 +--------------------------------------------------------+
-| :ref:`treatment_efficiency_(water recovery)`                 |
+| :ref:`treatment_efficiency_(water_recovery)`           |
 +--------------------------------------------------------+
 | :ref:`removal_efficiency`                              |
 +--------------------------------------------------------+
