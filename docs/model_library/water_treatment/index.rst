@@ -76,10 +76,10 @@ The overall water and constituent balance equations for water treatment systems 
       F^{treatment\ feed}Q^{feed} = F^{treated\ water}Q^{treated\ water} + F^{residual\ water}Q^{residual\ water}
 
 
-.. _treatment_efficiency_(recovery):
+.. _treatment_efficiency_(water_recovery):
 
-Treatment Efficiency (water recovery fraction)
---------------------------------------
+Treatment Efficiency (water recovery)
+-----------------------------------------------
 
 Treatment efficiency is defined as the ratio of the treated water volume to the ratio of the feed water volume to the treatment plant as follows:
 
@@ -97,7 +97,7 @@ Note that treatment efficiency can also be expressed as a percentage by multiply
 .. _removal_efficiency:
 
 Treatment Component Removal Efficiency
------------------------------------
+----------------------------------------
 
 Removal efficiency is a measure of the overall reduction in the concentration or load of a constituent in a treatment plant, expressed as a percentage. The removal efficiency of a certain constituent is commonly calculated based on the influent (feed) concentration and the effluent (treated water) concentration as follows:
 
