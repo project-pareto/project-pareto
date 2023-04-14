@@ -186,7 +186,7 @@ Single effect evaporation and multi effect evaporation has been studied for shal
 
     Figure 2. MEE-SVR treatment flowsheet
 
-The vapor from the I\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
+The vapor from the i\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of the 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
 
 Model Description
 ------------------
