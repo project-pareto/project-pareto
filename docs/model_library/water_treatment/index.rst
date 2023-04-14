@@ -573,7 +573,7 @@ Heat transfer coefficient for evaporator:
 
     U_{evap}^{i} = 0.001(1939.4 + 1.40562T_{brine}^{(i)} - 0.002T_{brine}^{(i)2}+ 0.0023T_{brine}^{(i)3})
 
-Design Equations:
+**Design Equations**
 
 Area of first evaporator calculation:
 
