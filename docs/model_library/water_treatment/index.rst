@@ -78,7 +78,7 @@ The overall water and constituent balance equations for water treatment systems 
 
 .. _treatment_efficiency_(recovery):
 
-Treatment Efficiency (Recovery)
+Treatment Efficiency (water recovery fraction)
 --------------------------------------
 
 Treatment efficiency is defined as the ratio of the treated water volume to the ratio of the feed water volume to the treatment plant as follows:
