@@ -26,20 +26,11 @@ from pyomo.environ import (
     Binary,
     units as pyunits,
 )
-from pareto.utilities.get_data import get_data
-from importlib import resources
-import pyomo.environ
 from pyomo.core.base.constraint import simple_constraint_rule
-from pyomo.core.expr.current import identify_variables
 
 # import gurobipy
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum
-
-from pareto.utilities.solvers import get_solver
-
-
-import time
 
 
 class ProdTank(Enum):
@@ -106,7 +97,6 @@ def create_model(df_sets, df_parameters, default={}):
     Args: list with sets and parameters
     Return: mathematical model
     """
-    START_TIME = time.time()
 
     model = ConcreteModel()
     # import config dictionary
