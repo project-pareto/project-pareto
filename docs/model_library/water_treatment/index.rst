@@ -111,7 +111,7 @@ For example, if the influent concentration of a constituent is 200 mg/L and the 
     
     \text{Removal Efficiency (%)}_{concentration} = \frac{200 - 20}{200} = 0.9 = 90\%
 
-Another method for calculating removal efficiency is the measure of overall reduction in the load (mass times flow) instead of reduction in concentration. This approach is specifically useful in situations where there are substantial water losses due to evaporation and evapotranspiration. 
+Another method for calculating removal efficiency is the measure of overall reduction in the load of the contaminant (volumetric flowrate times concentration) instead of reduction in concentration. This approach is specifically useful in situations where there are substantial water losses due to evaporation and evapotranspiration. 
 
 .. math::
 
