@@ -766,7 +766,7 @@ This is our objective function which we'll minimize.
 Sensitivity Analysis
 ++++++++++++++++++++
 
-To demonstrate the effect of the feed salinty on the TAC, we consider a single effect evaporator without heat integration using a preheater. The feed flow rate is fixed to 10 kg/s and the outlet brine TDS concentration needs to be above 250 g/kg. The salt concentration in the feed is varied from 70 g/kg to 190 g/kg. A plot of feed salinity vs TAC is generated as shown in Figure (3)
+To demonstrate the effect of the feed salinity on the TAC, we consider a single effect evaporator without heat integration using a preheater. The feed flow rate is fixed to 10 kg/s and the outlet brine TDS concentration needs to be above 250 g/kg. The salt concentration in the feed is varied from 70 g/kg to 190 g/kg. A plot of feed salinity vs TAC is generated as shown in Figure 3:
 
 .. figure:: ../../img/sensitivity_analysis_1.png
     :width: 600
