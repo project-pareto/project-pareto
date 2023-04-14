@@ -145,7 +145,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 60,
+    "running_time": 100,
     "gap": 0,
 }
 

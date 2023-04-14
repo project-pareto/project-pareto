@@ -31,17 +31,17 @@ Treatment systems play a crucial role for achieving desired water quality for va
 Treatment model within PARETO network
 -----------------------------------------
 
-The PARETO network identifies treatment plants based on their location (:math:`r \in R`), capacity (:math:`j \in J`), and technology (:math:`wt \in WT`). The streams that are piped or trucked to treatment plants are represented by arcs (:math:`(l,r) \in LRA \cup LRT`), where l can be any location or node in PARETO network. The indices :math:`j` and :math:`wt` are employed in conjunction with a binary variable to install or expand a treatment plant with a specific capacity (for further details, please refer to `strategic  water management <../strategic_water_management/index.rst>`_).
+The PARETO network identifies treatment plants based on their location (:math:`r \in R`), capacity (:math:`j \in J`), and technology (:math:`wt \in WT`). The streams that are piped or trucked to treatment plants are represented by arcs (:math:`(l,r) \in LRA \cup LRT`), where :math:`l` can be any location or node in PARETO network. The indices :math:`j` and :math:`wt` are employed in conjunction with a binary variable to install or expand a treatment plant with a specific capacity (for further details, please refer to `strategic  water management <../strategic_water_management/index.rst>`_).
     
 The following equation describes the flow balance at location :math:`r`:
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT}F_{n,r,t} = F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT}F_{l,r,t} = F_{r,t}^{treatment\ feed}
 
 .. math::
     
-    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{n,r,t} \cdot Q_{n,qc,t} = Q_{r,qc,t}^{treatment\ feed} \cdot F_{r,t}^{treatment\ feed}
+    \sum_{l \in L | (l, r) \in LRA \cup LRT} F_{l,r,t} \cdot Q_{l,qc,t} = Q_{r,qc,t}^{treatment\ feed} \cdot F_{r,t}^{treatment\ feed}
 
 where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of streams. The units of concentration are typically reported as mass/volume (mg/L, g/m3, kg/L, etc.) and the units of flow rate are reported in volume/time (e.g. bbl/week).
 
@@ -737,7 +737,7 @@ The total CAPEX is given by:
 
     CAPEX = CAPEX_{evap} + CAPEX_{compr} + CAPEX_{ph}
 
-Annualization factor: The annualization factor for CAPEX is calculated based on fractional interest rate $r = 0.1$ per year and amortization period $y = 10$ years. 
+Annualization factor: The annualization factor for CAPEX is calculated based on fractional interest rate :math:`r = 0.1` per year and amortization period :math:`y = 10` years. 
 
 .. math:: 
 
