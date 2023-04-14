@@ -590,7 +590,7 @@ Total Evaporator Area:
 Compressor Model
 ++++++++++++++++
 
-Thermodynamic Relations
+**Thermodynamic Relations**
 
 Isentropic temperature calculation:
 
