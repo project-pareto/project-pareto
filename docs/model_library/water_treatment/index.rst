@@ -674,7 +674,7 @@ Preheater LMTD calculation:
 
      LMTD_{ph} = (0.5 \theta_{1ph} \theta_{2ph}(\theta_{1ph} + \theta_{2ph}))^{1/3}
 
-Design Equations
+**Design Equations**
 
 Preheater area calculation:
 
