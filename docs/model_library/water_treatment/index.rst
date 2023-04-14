@@ -774,7 +774,7 @@ To demonstrate the effect of the feed salinity on the TAC, we consider a single 
 
     Figure 3. TAC vs feed salinity for a single effect evaporator
 
-For the same conditions, the sensitivity analysis for a multi-effect evaporator with two stages and heat integration using a preheater is shown in Figure (4)
+For the same conditions, the sensitivity analysis for a multi-effect evaporator with two stages and heat integration using a preheater is shown in Figure 4:
 
 .. figure:: ../../img/sensitivity_analysis_2.png
     :width: 600
