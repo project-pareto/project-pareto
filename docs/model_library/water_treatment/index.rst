@@ -648,7 +648,7 @@ Energy balance in the preheater:
 
     F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
 
-Thermodynamic Relations
+**Thermodynamic Relations**
 
 Estimating specific heat capacities:
 
