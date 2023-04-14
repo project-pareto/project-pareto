@@ -610,7 +610,7 @@ The enthalpy of the super heated vapor can be estimated by:
 
     H_{spv} = -13470 + 1.84T_{spv}
 
-Design Equations:
+**Design Equations**
 
 The compression work is given by:
 
