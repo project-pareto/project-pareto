@@ -131,7 +131,7 @@ it should be noted that the load-based definition of removal efficiency will hav
 
 It is worth noting that in cases where there is minimal water loss to the residual stream, such that the treated water flow is approximately equal to the feed flow, the removal efficiency values obtained by the two definitions (concentration based and load based) become the same. 
 
-PARETO supports both formulations and gives the user the option to choose between the two methods based on their available data or the technology considered. The two options are expressed as `RemovalEfficiencyMethod.Concentration_based` and `RemovalEfficiencyMethod.Load_based` in PARETO configruation argument for removal efficiency.
+PARETO supports both formulations and gives the user the option to choose between the two methods based on their available data or the technology considered. The two options are expressed as ``RemovalEfficiencyMethod.Concentration_based`` and ``RemovalEfficiencyMethod.Load_based`` in PARETO configruation argument for removal efficiency.
 
 .. _treatment_cost:
 
