@@ -117,7 +117,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo.xlsx",
+    "strategic_small_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -128,6 +128,7 @@ with resources.path(
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
  """
 
 strategic_model = create_model(
@@ -147,7 +148,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 60,
+    "running_time": 100,
     "gap": 0,
 }
 

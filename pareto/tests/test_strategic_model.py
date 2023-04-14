@@ -30,6 +30,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     PipelineCapacity,
+    RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -524,7 +525,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 58841
+    assert degrees_of_freedom(m) == 104601
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -650,6 +651,7 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.post_process,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         }
     )
 
@@ -665,8 +667,182 @@ def test_water_quality_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     # solutions obtained from running the reduced generic case study water quality
-    assert degrees_of_freedom(m.quality) == 884
+    assert degrees_of_freedom(m.quality) == 1768
     assert pytest.approx(4.8342164, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert isinstance(m.p_epsilon_TreatmentRemoval, pyo.Param)
+    assert (
+        len(m.p_epsilon_TreatmentRemoval) > 1
+    )  # Check if multiple components have removal efficiency values
+    assert pytest.approx(0.1649151, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentTreatedWaterNode", "TDS", "T01"]
+    )
+    assert pytest.approx(0.1649151, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentTreatedWaterNode", "TDS", "T01"]
+    )
+    assert pytest.approx(0.0000063868, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentTreatedWaterNode", "Fe", "T01"]
+    )
+    assert pytest.approx(0.0011560108, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentResidualNode", "Fe", "T01"]
+    )
+    with nostdout():
+        assert is_feasible(m)
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        results,
+        is_print=[PrintValues.essential],
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+@pytest.fixture(scope="module")
+def build_modified_reduced_strategic_model():
+    # This modifies the small strategic case study for load-based removal efficiency values
+    # The modified excel sheet is located in the test folder
+    set_list = [
+        "ProductionPads",
+        "ProductionTanks",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "RemovalEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+    ]
+
+    # note the double backslashes '\\' in that path reference
+    with resources.path(
+        "pareto.tests",
+        "strategic_small_case_study_load_removaleff.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            modified_reduced_strategic_model = create_model(
+                df_sets, df_parameters, config_dict
+            )
+            return modified_reduced_strategic_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.component
+def test_water_quality_reduced_strategic_model(build_modified_reduced_strategic_model):
+    m = build_modified_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.post_process,
+            "removal_efficiency_method": RemovalEfficiencyMethod.load_based,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    # solutions obtained from running the reduced generic case study water quality
+    assert degrees_of_freedom(m.quality) == 1768
+    assert pytest.approx(4.8342164, abs=1e-1) == pyo.value(m.quality.v_X)
+    assert isinstance(
+        m.p_epsilon_TreatmentRemoval, pyo.Param
+    )  # Check if the removal efficiency parameter is correctly initialized
+    assert (
+        len(m.p_epsilon_TreatmentRemoval) > 1
+    )  # Check if multiple components have removal efficiency values
+    assert pytest.approx(0.1649151, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentTreatedWaterNode", "TDS", "T01"]
+    )
+    assert pytest.approx(0.1649151, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentTreatedWaterNode", "TDS", "T01"]
+    )
+    assert pytest.approx(0.0000063868, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentTreatedWaterNode", "Fe", "T01"]
+    )
+    assert pytest.approx(0.0011560108, abs=1e-6) == pyo.value(
+        m.quality.v_Q["R01-PostTreatmentResidualNode", "Fe", "T01"]
+    )
     with nostdout():
         assert is_feasible(m)
 
