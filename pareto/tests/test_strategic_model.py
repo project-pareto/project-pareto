@@ -644,7 +644,9 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
 
 @pytest.mark.component
-def test_water_quality_reduced_strategic_model_removal_concentration(build_reduced_strategic_model):
+def test_water_quality_reduced_strategic_model_removal_concentration(
+    build_reduced_strategic_model,
+):
     m = build_reduced_strategic_model(
         config_dict={
             "objective": Objectives.cost,
@@ -800,7 +802,9 @@ def build_modified_reduced_strategic_model():
 
 
 @pytest.mark.component
-def test_water_quality_reduced_strategic_model_removal_load(build_modified_reduced_strategic_model):
+def test_water_quality_reduced_strategic_model_removal_load(
+    build_modified_reduced_strategic_model,
+):
     m = build_modified_reduced_strategic_model(
         config_dict={
             "objective": Objectives.cost,
