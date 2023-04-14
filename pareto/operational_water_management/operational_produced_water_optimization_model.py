@@ -39,6 +39,9 @@ from enum import Enum
 from pareto.utilities.solvers import get_solver
 
 
+import time
+
+
 class ProdTank(Enum):
     individual = 0
     equalized = 1
@@ -103,6 +106,8 @@ def create_model(df_sets, df_parameters, default={}):
     Args: list with sets and parameters
     Return: mathematical model
     """
+    START_TIME = time.time()
+
     model = ConcreteModel()
     # import config dictionary
     model.config = CONFIG(default)
@@ -260,394 +265,6 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_C = Set(initialize=["C0"], doc="Storage capacities")
     model.s_I = Set(initialize=["I0"], doc="Injection (i.e. disposal) capacities")
 
-    # Define continuous variables #
-    model.v_Objective = Var(
-        within=Reals,
-        units=model.model_units["currency"],
-        doc="Objective function variable [currency]",
-    )
-
-    model.v_F_Piped = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Produced water quantity piped from location l to location l [volume/time]",
-    )
-    model.v_F_Trucked = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Produced water quantity trucked from location l to location l [volume/time]",
-    )
-    model.v_F_Sourced = Var(
-        model.s_F,
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Fresh water sourced from source f to completions pad p [volume/time]",
-    )
-    model.v_F_PadStorageIn = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Water put into completions" " pad storage [volume/time]",
-    )
-    model.v_F_PadStorageOut = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Water from completions pad storage" " used for fracturing [volume/time]",
-    )
-    model.v_F_UnusedTreatedWater = Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Water leftover from the treatment process [volume/time]",
-    )
-    if model.config.production_tanks == ProdTank.individual:
-        model.v_F_Drain = Var(
-            model.s_P,
-            model.s_A,
-            model.s_T,
-            within=NonNegativeReals,
-            units=model.model_units["volume_time"],
-            doc="Produced water drained from" " production tank [volume/time]",
-        )
-        model.v_L_ProdTank = Var(
-            model.s_P,
-            model.s_A,
-            model.s_T,
-            within=NonNegativeReals,
-            units=model.model_units["volume"],
-            doc="Water level in production tank [volume]",
-        )
-    elif model.config.production_tanks == ProdTank.equalized:
-        model.v_F_Drain = Var(
-            model.s_P,
-            model.s_T,
-            within=NonNegativeReals,
-            units=model.model_units["volume_time"],
-            doc="Produced water drained from" " production tank [volume/time]",
-        )
-        model.v_L_ProdTank = Var(
-            model.s_P,
-            model.s_T,
-            within=NonNegativeReals,
-            units=model.model_units["volume"],
-            doc="Water level in production tank [volume]",
-        )
-    else:
-        raise Exception("storage type not supported")
-    model.v_L_PadStorage = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume"],
-        doc="Water level in completions pad storage [volume]",
-    )
-    model.v_B_Production = Var(
-        model.s_P,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Produced water for transport from pad [volume/time]",
-    )
-    model.v_L_Storage = Var(
-        model.s_S,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Water level at storage site [volume]",
-    )
-    model.v_C_Piped = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of piping produced water from location l to location l [currency/time]",
-    )
-    model.v_C_Trucked = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of trucking produced water from location l to location l [currency/time]",
-    )
-    model.v_C_Sourced = Var(
-        model.s_F,
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of sourcing fresh water from source f to completion pad p [currency/time]",
-    )
-    model.v_C_Disposal = Var(
-        model.s_K,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of injecting produced water at disposal site [currency/time]",
-    )
-    model.v_C_Treatment = Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of treating produced water at treatment site [currency/time]",
-    )
-    model.v_C_Reuse = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of reusing produced water at completions site [currency/time]",
-    )
-    model.v_C_Storage = Var(
-        model.s_S,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of storing produced water at storage site [currency/time]",
-    )
-    model.v_C_PadStorage = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Cost of storing produced water at completions pad storage [currency]",
-    )
-    model.v_R_Storage = Var(
-        model.s_S,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_volume"],
-        doc="Credit for retrieving stored produced water from storage site [currency/volume]",
-    )
-    model.v_F_TotalSourced = Var(
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Total volume freshwater sourced [volume]",
-    )
-    model.v_C_TotalSourced = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of sourcing freshwater [currency]",
-    )
-    model.v_C_TotalDisposal = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of injecting produced water [currency]",
-    )
-    model.v_C_TotalTreatment = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of treating produced water [currency]",
-    )
-    model.v_C_TotalReuse = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of reusing produced water [currency]",
-    )
-    model.v_C_TotalPiping = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of piping produced water [currency]",
-    )
-    model.v_C_TotalStorage = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of storing produced water [currency]",
-    )
-    model.v_C_TotalPadStorage = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of storing produced water at completions site [currency]",
-    )
-    model.v_C_TotalTrucking = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of trucking produced water [currency]",
-    )
-    model.v_C_Slack = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of slack variables [currency]",
-    )
-    model.v_R_TotalStorage = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total credit for withdrawing produced water [currency]",
-    )
-
-    model.v_F_ReuseDestination = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to completions pad [volume/time]",
-    )
-    model.v_F_DisposalDestination = Var(
-        model.s_K,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to disposal site [volume/time]",
-    )
-    model.v_F_TreatmentDestination = Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to treatment site [volume/time]",
-    )
-    model.v_F_BeneficialReuseDestination = Var(
-        model.s_O,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
-    )
-    model.v_D_Capacity = Var(
-        model.s_K,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Disposal capacity at a disposal site [volume/time]",
-    )
-    model.v_X_Capacity = Var(
-        model.s_S,
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Storage capacity at a storage site [volume]",
-    )
-    model.v_F_Capacity = Var(
-        model.s_L,
-        model.s_L,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Flow capacity along pipeline arc [volume/time]",
-    )
-    model.v_C_DisposalCapEx = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding disposal capacity [currency]",
-    )
-    model.v_C_PipelineCapEx = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding piping capacity [currency]",
-    )
-    model.v_C_StorageCapEx = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding storage capacity [currency]",
-    )
-    model.v_S_FracDemand = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to meet the completions demand [volume/time]",
-    )
-    model.v_S_Production = Var(
-        model.s_PP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to process the produced water production [volume/time]",
-    )
-    model.v_S_Flowback = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to process flowback water production [volume/time]",
-    )
-    model.v_S_PipelineCapacity = Var(
-        model.s_L,
-        model.s_L,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary pipeline capacity [volume/time]",
-    )
-    model.v_S_StorageCapacity = Var(
-        model.s_S,
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Slack variable to provide necessary storage capacity [volume]",
-    )
-    model.v_S_DisposalCapacity = Var(
-        model.s_K,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary disposal capacity [volume/time]",
-    )
-    model.v_S_TreatmentCapacity = Var(
-        model.s_R,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary treatment capacity [volume/time]",
-    )
-    model.v_S_ReuseCapacity = Var(
-        model.s_O,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary reuse capacity [volume/time]",
-    )
-    # Define binary variables #
-    model.vb_y_Pipeline = Var(
-        model.s_L,
-        model.s_L,
-        model.s_D,
-        within=Binary,
-        doc="New pipeline installed between one location and another location with specific diameter",
-    )
-    model.vb_y_Storage = Var(
-        model.s_S,
-        model.s_C,
-        within=Binary,
-        doc="New or additional storage facility installed at storage site with specific storage capacity",
-    )
-    model.vb_y_Disposal = Var(
-        model.s_K,
-        model.s_I,
-        within=Binary,
-        doc="New or additional disposal facility installed at disposal site with specific injection capacity",
-    )
-    model.vb_y_Flow = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=Binary,
-        doc="Directional flow between two locations",
-    )
-    model.vb_z_PadStorage = Var(
-        model.s_CP, model.s_T, within=Binary, doc="Completions pad storage use"
-    )
-    model.vb_y_Truck = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=Binary,
-        doc="Trucking between two locations",
-    )
-
     # Define model parameters #
     model.p_PCA = Param(
         model.s_PP,
@@ -789,17 +406,10 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={},
         doc="Valid storage-to-reuse pipeline arcs [-]",
     )
-    df_parameters["LLP"] = {
+    df_parameters["LLA"] = {
         **df_parameters["RCA"],
         **df_parameters["FCA"],
     }
-    model.p_LLP = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLP"],
-        doc="Valid location-to-location piping arcs [-]",
-    )
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
@@ -900,20 +510,13 @@ def create_model(df_sets, df_parameters, default={}):
         **df_parameters["PKT"],
         **df_parameters["PRT"],
     }
-    model.p_LLT = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLT"],
-        doc="Valid location-to-location trucking arcs [-]",
-    )
 
     model.s_LLT = Set(
         initialize=list(df_parameters["LLT"].keys()),
         doc="Location-to-location trucking arcs",
     )
-    model.s_LLP = Set(
-        initialize=list(df_parameters["LLP"].keys()),
+    model.s_LLA = Set(
+        initialize=list(df_parameters["LLA"].keys()),
         doc="Location-to-location piping arcs",
     )
 
@@ -1506,6 +1109,386 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
+
+    # Define continuous variables #
+    model.v_Objective = Var(
+        within=Reals,
+        units=model.model_units["currency"],
+        doc="Objective function variable [currency]",
+    )
+
+    model.v_F_Piped = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Produced water quantity piped from location l to location l [volume/time]",
+    )
+    model.v_F_Trucked = Var(
+        model.s_LLT,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Produced water quantity trucked from location l to location l [volume/time]",
+    )
+    model.v_F_Sourced = Var(
+        model.s_F,
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Fresh water sourced from source f to completions pad p [volume/time]",
+    )
+    model.v_F_PadStorageIn = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Water put into completions" " pad storage [volume/time]",
+    )
+    model.v_F_PadStorageOut = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Water from completions pad storage" " used for fracturing [volume/time]",
+    )
+    model.v_F_UnusedTreatedWater = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Water leftover from the treatment process [volume/time]",
+    )
+    if model.config.production_tanks == ProdTank.individual:
+        model.v_F_Drain = Var(
+            model.s_P,
+            model.s_A,
+            model.s_T,
+            within=NonNegativeReals,
+            units=model.model_units["volume_time"],
+            doc="Produced water drained from" " production tank [volume/time]",
+        )
+        model.v_L_ProdTank = Var(
+            model.s_P,
+            model.s_A,
+            model.s_T,
+            within=NonNegativeReals,
+            units=model.model_units["volume"],
+            doc="Water level in production tank [volume]",
+        )
+    elif model.config.production_tanks == ProdTank.equalized:
+        model.v_F_Drain = Var(
+            model.s_P,
+            model.s_T,
+            within=NonNegativeReals,
+            units=model.model_units["volume_time"],
+            doc="Produced water drained from" " production tank [volume/time]",
+        )
+        model.v_L_ProdTank = Var(
+            model.s_P,
+            model.s_T,
+            within=NonNegativeReals,
+            units=model.model_units["volume"],
+            doc="Water level in production tank [volume]",
+        )
+    else:
+        raise Exception("storage type not supported")
+    model.v_L_PadStorage = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume"],
+        doc="Water level in completions pad storage [volume]",
+    )
+    model.v_B_Production = Var(
+        model.s_P,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Produced water for transport from pad [volume/time]",
+    )
+    model.v_L_Storage = Var(
+        model.s_S,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Water level at storage site [volume]",
+    )
+    model.v_C_Piped = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of piping produced water from location l to location l [currency/time]",
+    )
+    model.v_C_Trucked = Var(
+        model.s_LLT,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of trucking produced water from location l to location l [currency/time]",
+    )
+    model.v_C_Sourced = Var(
+        model.s_F,
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of sourcing fresh water from source f to completion pad p [currency/time]",
+    )
+    model.v_C_Disposal = Var(
+        model.s_K,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of injecting produced water at disposal site [currency/time]",
+    )
+    model.v_C_Treatment = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of treating produced water at treatment site [currency/time]",
+    )
+    model.v_C_Reuse = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of reusing produced water at completions site [currency/time]",
+    )
+    model.v_C_Storage = Var(
+        model.s_S,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of storing produced water at storage site [currency/time]",
+    )
+    model.v_C_PadStorage = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Cost of storing produced water at completions pad storage [currency]",
+    )
+    model.v_R_Storage = Var(
+        model.s_S,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency_volume"],
+        doc="Credit for retrieving stored produced water from storage site [currency/volume]",
+    )
+    model.v_F_TotalSourced = Var(
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume freshwater sourced [volume]",
+    )
+    model.v_C_TotalSourced = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of sourcing freshwater [currency]",
+    )
+    model.v_C_TotalDisposal = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of injecting produced water [currency]",
+    )
+    model.v_C_TotalTreatment = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of treating produced water [currency]",
+    )
+    model.v_C_TotalReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of reusing produced water [currency]",
+    )
+    model.v_C_TotalPiping = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of piping produced water [currency]",
+    )
+    model.v_C_TotalStorage = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of storing produced water [currency]",
+    )
+    model.v_C_TotalPadStorage = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of storing produced water at completions site [currency]",
+    )
+    model.v_C_TotalTrucking = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of trucking produced water [currency]",
+    )
+    model.v_C_Slack = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of slack variables [currency]",
+    )
+    model.v_R_TotalStorage = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total credit for withdrawing produced water [currency]",
+    )
+
+    model.v_F_ReuseDestination = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Total deliveries to completions pad [volume/time]",
+    )
+    model.v_F_DisposalDestination = Var(
+        model.s_K,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Total deliveries to disposal site [volume/time]",
+    )
+    model.v_F_TreatmentDestination = Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Total deliveries to treatment site [volume/time]",
+    )
+    model.v_F_BeneficialReuseDestination = Var(
+        model.s_O,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
+    )
+    model.v_D_Capacity = Var(
+        model.s_K,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Disposal capacity at a disposal site [volume/time]",
+    )
+    model.v_X_Capacity = Var(
+        model.s_S,
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Storage capacity at a storage site [volume]",
+    )
+    model.v_F_Capacity = Var(
+        model.s_LLA,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Flow capacity along pipeline arc [volume/time]",
+    )
+    model.v_C_DisposalCapEx = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of constructing or expanding disposal capacity [currency]",
+    )
+    model.v_C_PipelineCapEx = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of constructing or expanding piping capacity [currency]",
+    )
+    model.v_C_StorageCapEx = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of constructing or expanding storage capacity [currency]",
+    )
+    model.v_S_FracDemand = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to meet the completions demand [volume/time]",
+    )
+    model.v_S_Production = Var(
+        model.s_PP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to process the produced water production [volume/time]",
+    )
+    model.v_S_Flowback = Var(
+        model.s_CP,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to process flowback water production [volume/time]",
+    )
+    model.v_S_PipelineCapacity = Var(
+        model.s_LLA,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to provide necessary pipeline capacity [volume/time]",
+    )
+    model.v_S_StorageCapacity = Var(
+        model.s_S,
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Slack variable to provide necessary storage capacity [volume]",
+    )
+    model.v_S_DisposalCapacity = Var(
+        model.s_K,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to provide necessary disposal capacity [volume/time]",
+    )
+    model.v_S_TreatmentCapacity = Var(
+        model.s_R,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to provide necessary treatment capacity [volume/time]",
+    )
+    model.v_S_ReuseCapacity = Var(
+        model.s_O,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to provide necessary reuse capacity [volume/time]",
+    )
+    # Define binary variables #
+    model.vb_y_Pipeline = Var(
+        model.s_LLA,
+        model.s_D,
+        within=Binary,
+        doc="New pipeline installed between one location and another location with specific diameter",
+    )
+    model.vb_y_Storage = Var(
+        model.s_S,
+        model.s_C,
+        within=Binary,
+        doc="New or additional storage facility installed at storage site with specific storage capacity",
+    )
+    model.vb_y_Disposal = Var(
+        model.s_K,
+        model.s_I,
+        within=Binary,
+        doc="New or additional disposal facility installed at disposal site with specific injection capacity",
+    )
+    model.vb_y_Flow = Var(
+        model.s_LLA,
+        model.s_T,
+        within=Binary,
+        doc="Directional flow between two locations",
+    )
+    model.vb_z_PadStorage = Var(
+        model.s_CP, model.s_T, within=Binary, doc="Completions pad storage use"
+    )
+    model.vb_y_Truck = Var(
+        model.s_LLT,
+        model.s_T,
+        within=Binary,
+        doc="Trucking between two locations",
+    )
+
     # Define objective function #
     def ObjectiveFunctionRule(model):
         return model.v_Objective == (
@@ -1660,7 +1643,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TrucksMaxCapacityRule(model, l, l_tilde, t):
-        if model.p_LLT[l, l_tilde]:
+        if (l, l_tilde) in model.s_LLT:
             return (
                 model.v_F_Trucked[l, l_tilde, t]
                 <= model.p_sigma_MaxTruckFlow * model.vb_y_Truck[l, l_tilde, t]
@@ -1677,7 +1660,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TrucksMinCapacityRule(model, l, l_tilde, t):
-        if model.p_LLT[l, l_tilde]:
+        if (l, l_tilde) in model.s_LLT:
             return (
                 model.v_F_Trucked[l, l_tilde, t]
                 >= model.p_sigma_MinTruckFlow * model.vb_y_Truck[l, l_tilde, t]
@@ -2493,96 +2476,8 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def PipelineCapacityRule(model, l, l_tilde, t):
-        if l in model.s_PP and l_tilde in model.s_CP:
-            if model.p_PCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_N:
-            if model.p_PNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_PP:
-            if model.p_PPA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_N:
-            if model.p_CNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_N:
-            if model.p_NNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_CP:
-            if model.p_NCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_K:
-            if model.p_NKA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_S:
-            if model.p_NSA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_R:
-            if model.p_NRA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_O:
-            if model.p_NOA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_F and l_tilde in model.s_CP:
-            if model.p_FCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_K:
-            if model.p_RKA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_N:
-            if model.p_SNA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_CP:
-            if model.p_SCA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_K:
-            if model.p_SKA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_R:
-            if model.p_SRA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_O:
-            if model.p_SOA[l, l_tilde]:
-                return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            else:
-                return Constraint.Skip
+        if (l, l_tilde) in model.s_LLA:
+            return model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
         else:
             return Constraint.Skip
 
@@ -2857,151 +2752,18 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def PipingCostRule(model, l, l_tilde, t):
-        if l in model.s_PP and l_tilde in model.s_CP:
-            if model.p_PCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_N:
-            if model.p_PNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_PP:
-            if model.p_PPA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_N:
-            if model.p_CNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_CP:
-            if model.p_CCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_N:
-            if model.p_NNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_CP:
-            if model.p_NCA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_K:
-            if model.p_NKA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_S:
-            if model.p_NSA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_R:
-            if model.p_NRA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_O:
-            if model.p_NOA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_K:
-            if model.p_RKA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_N:
-            if model.p_SNA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_K:
-            if model.p_SKA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_R:
-            if model.p_SRA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_O:
-            if model.p_SOA[l, l_tilde]:
-                return (
-                    model.v_C_Piped[l, l_tilde, t]
-                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_F and l_tilde in model.s_CP:
-            if model.p_FCA[l, l_tilde]:
+        if (l, l_tilde) in model.s_LLA:
+            if l in model.s_F:
                 return (
                     model.v_C_Piped[l, l_tilde, t]
                     == model.v_F_Sourced[l, l_tilde, t]
                     * model.p_pi_Pipeline[l, l_tilde]
                 )
             else:
-                return Constraint.Skip
+                return (
+                    model.v_C_Piped[l, l_tilde, t]
+                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                )
         else:
             return Constraint.Skip
 
@@ -3224,162 +2986,15 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TruckingCostRule(model, l, l_tilde, t):
-        if l in model.s_PP and l_tilde in model.s_CP:
-            if model.p_PCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_F and l_tilde in model.s_CP:
-            if model.p_FCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_K:
-            if model.p_PKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_S:
-            if model.p_PST[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_R:
-            if model.p_PRT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_O:
-            if model.p_POT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_K:
-            if model.p_CKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_CP:
-            if model.p_CCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_S:
-            if model.p_CST[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_R:
-            if model.p_CRT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_CP:
-            if model.p_SCT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_K:
-            if model.p_SKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_K:
-            if model.p_RKT[l, l_tilde]:
-                return (
-                    model.v_C_Trucked[l, l_tilde, t]
-                    == model.v_F_Trucked[l, l_tilde, t]
-                    * 1
-                    / model.p_delta_Truck
-                    * model.p_tau_Trucking[l, l_tilde]
-                    * model.p_pi_Trucking[l]
-                )
-            else:
-                return Constraint.Skip
+        if (l, l_tilde) in model.s_LLT:
+            return (
+                model.v_C_Trucked[l, l_tilde, t]
+                == model.v_F_Trucked[l, l_tilde, t]
+                * 1
+                / model.p_delta_Truck
+                * model.p_tau_Trucking[l, l_tilde]
+                * model.p_pi_Trucking[l]
+            )
         else:
             return Constraint.Skip
 
@@ -3390,110 +3005,7 @@ def create_model(df_sets, df_parameters, default={}):
     def TotalTruckingCostRule(model):
         return model.v_C_TotalTrucking == (
             sum(
-                sum(
-                    sum(
-                        model.v_C_Trucked[p, p_tilde, t]
-                        for p in model.s_PP
-                        if model.p_PCT[p, p_tilde]
-                    )
-                    for p_tilde in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, k, t]
-                        for p in model.s_PP
-                        if model.p_PKT[p, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, s, t]
-                        for p in model.s_PP
-                        if model.p_PST[p, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, r, t]
-                        for p in model.s_PP
-                        if model.p_PRT[p, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, o, t]
-                        for p in model.s_PP
-                        if model.p_POT[p, o]
-                    )
-                    for o in model.s_O
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, k, t]
-                        for p in model.s_CP
-                        if model.p_CKT[p, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, s, t]
-                        for p in model.s_CP
-                        if model.p_CST[p, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, r, t]
-                        for p in model.s_CP
-                        if model.p_CRT[p, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[s, p, t]
-                        for s in model.s_S
-                        if model.p_SCT[s, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[s, k, t]
-                        for s in model.s_S
-                        if model.p_SKT[s, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[r, k, t]
-                        for r in model.s_R
-                        if model.p_RKT[r, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[f, p, t]
-                        for f in model.s_F
-                        if model.p_FCT[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Trucked[p, p_tilde, t]
-                        for p in model.s_CP
-                        if model.p_CCT[p, p_tilde]
-                    )
-                    for p_tilde in model.s_CP
-                )
+                sum(model.v_C_Trucked[l, l_tilde, t] for (l, l_tilde) in model.s_LLT)
                 for t in model.s_T
             )
         )
@@ -4120,8 +3632,6 @@ def discrete_water_quality_list(steps=6) -> list:
 
 
 def water_quality_discrete(model, df_parameters, df_sets):
-    # region Add sets, parameters and constraints
-
     # Quality at pad
     model.p_nu_pad = Param(
         model.s_P,
@@ -4177,8 +3687,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="Initial Water Quality at storage site [mg/L]",
     )
 
-    # region discretization
-
     # Create list of discretized qualities
     discrete_quality_list = discrete_water_quality_list(6)
 
@@ -4207,7 +3715,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     model.s_NonPLP = Set(
         initialize=[
             NonFromPPipelines
-            for NonFromPPipelines in model.s_LLP
+            for NonFromPPipelines in model.s_LLA
             if not NonFromPPipelines[0] in (model.s_P | model.s_F)
         ],
         doc="location-to-location with discrete quality piping arcs",
