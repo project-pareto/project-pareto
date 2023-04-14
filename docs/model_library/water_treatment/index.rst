@@ -1,6 +1,9 @@
 Water Treatment
 ===============
 
+.. note::
+   The treatment model discussed in this section primarily applies to the strategic model within PARETO. The content presented here is therefore focused on its relevance to the strategic model. Although some concepts might be applicable to PARETO as a whole, it is essential to note that component removal efficiency has not been implemented for the operational model.
+
 Overview
 -----------
 
@@ -14,7 +17,7 @@ Treatment systems play a crucial role for achieving desired water quality for va
 +--------------------------------------------------------+
 | :ref:`treatment_model_description`                     |
 +--------------------------------------------------------+
-| :ref:`treatment_efficiency_(recovery)`                 |
+| :ref:`treatment_efficiency_(water recovery)`                 |
 +--------------------------------------------------------+
 | :ref:`removal_efficiency`                              |
 +--------------------------------------------------------+
