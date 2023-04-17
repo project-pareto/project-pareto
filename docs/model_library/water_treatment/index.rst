@@ -108,7 +108,7 @@ Note that treatment efficiency can also be expressed as a percentage by multiply
 Treatment Component Removal Efficiency
 ----------------------------------------
 
-Removal efficiency is a measure of the overall reduction in the concentration or load of a constituent in a treatment plant, expressed as a percentage. The removal efficiency of a certain constituent is commonly calculated based on the influent (feed) concentration and the effluent (treated water) concentration as follows:
+Removal efficiency is a measure of the overall reduction in the concentration or load of a constituent in a treatment plant, expressed as a percentage [1]_. The removal efficiency of a certain constituent is commonly calculated based on the influent (feed) concentration and the effluent (treated water) concentration as follows:
 
 .. math::
     
@@ -203,7 +203,7 @@ Model Description
 ~~~~~~~~~~~~~~~~~~
 
 The multi-effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
-The model is built in Pyomo and is based on equations Onishi et al.'s study [1]_ on shale gas flowback water desalination. 
+The model is built in Pyomo and is based on equations Onishi et al.'s study [2]_ on shale gas flowback water desalination. 
 
 Variable Definitions
 +++++++++++++++++++++
@@ -797,4 +797,5 @@ For the same conditions, the sensitivity analysis for a multi-effect evaporator 
 References
 ---------------
 
-.. [1] Onishi, Viviani C., et al. "Shale gas flowback water desalination: Single vs multiple-effect evaporation with vapor recompression cycle and thermal integration." Desalination 404 (2017): 230-248.
+.. [1] Von Sperling, M., Verbyla, M. E., & Oliveira, S. M. (2020). Assessment of treatment plant performance and water quality data: a guide for students, researchers and practitioners. IWA publishing.
+.. [2] Onishi, V. C., Carrero-Parreño, A., Reyes-Labarta, J. A., Ruiz-Femenia, R., Salcedo-Díaz, R., Fraga, E. S., & Caballero, J. A. (2017). Shale gas flowback water desalination: Single vs multiple-effect evaporation with vapor recompression cycle and thermal integration. Desalination, 404, 230-248.
