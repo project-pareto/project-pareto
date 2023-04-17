@@ -203,7 +203,7 @@ Model Description
 ~~~~~~~~~~~~~~~~~~
 
 The multi-effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
-The model is built in Pyomo and is based on equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
+The model is built in Pyomo and is based on equations Onishi et al.'s study [1]_ on shale gas flowback water desalination. 
 
 Variable Definitions
 +++++++++++++++++++++
@@ -792,3 +792,9 @@ For the same conditions, the sensitivity analysis for a multi-effect evaporator 
     :align: center
 
     Figure 4. TAC vs feed salinity for a two effect evaporator with heat integration
+
+
+References
+---------------
+
+.. [1] Onishi, Viviani C., et al. "Shale gas flowback water desalination: Single vs multiple-effect evaporation with vapor recompression cycle and thermal integration." Desalination 404 (2017): 230-248.
