@@ -135,7 +135,7 @@ it should be noted that the load-based definition of removal efficiency will hav
 
 .. math::
     
-    \text{Removal efficiency}_{load} = 1 - \text{treatment efficiency}
+    \text{Removal efficiency (%)}_{load} = 100 - \text{treatment efficiency (%)}
 
 
 It is worth noting that in cases where there is minimal water loss to the residual stream, such that the treated water flow is approximately equal to the feed flow, the removal efficiency values obtained by the two definitions (concentration based and load based) become the same. 
@@ -182,7 +182,7 @@ Treatment costs can be incorporated into PARETO with three methods:
 
  2) An alternative approach to incorporating treatment costs in PARETO is through the use of surrogate models. These models allow for linear or nonlinear approximations of treatment costs as a function of treatment capacity, feed quality, and recovery. This method is currently under development and not yet available in the current version of PARETO, and it is planned for inclusion in future updates.
 
- 3) The third method for incorporating treatment costs into PARETO is through the integration of rigorous technoeconomic optimization treatment models. These models allow for accurate capture of the effect of changes in input parameters on treatment plant performance and costs. Currently, a technoeconomic optimization-based modeling approach for single effect and multi-effect mechanical vapor compression (MVC) desalination systems is available for integration with PARETO. The following section will provide a detailed description of the MVC modeling effort.
+ 3) The third method for incorporating treatment costs into PARETO is through the integration of rigorous technoeconomic optimization treatment models. These models allow for accurate capture of the effect of changes in input parameters on treatment plant performance and costs. Currently, a technoeconomic optimization-based modeling approach for single effect and multi-effect mechanical vapor compression (MVC) desalination systems is being developed for integration with PARETO. The following section will provide a detailed description of the MVC modeling effort.
 
 .. _Mechanical_vapor_recompression_model:
 
