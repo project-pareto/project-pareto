@@ -151,8 +151,8 @@ The total cost of produced water treatment consist of capital costs and annual o
 
 Treatment costs can be incorporated into PARETO with three methods:
 
-1) To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multi-effect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../treatment_technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
-It is important to note that currently, PARETO incorporates treatment costs for discrete values of treatment capacity expansions. In other words, the treatment cost calculations are limited to specific capacity levels.
+ 1) To begin, users can provide their own estimated capital and operating costs for each treatment technology. PARETO provides a treatment technology matrix (shown below) with data collected from available literature on various technologies such as membrane distillation, multi-effect distillation, mechanical vapor recompression, and osmotically assisted reverse osmosis (for further detail regarding selected technologies and references please refer to the provided sheet: :download:`treatment matrix <../treatment_technology_matrix.xlsx>`). The technologies considered in this matrix are capable of treating hypersaline produced water up to saturation limits. Users may use these values to evaluate treatment options using PARETO. However, we encourage users to provide their own cost data, obtained from treatment technology vendors, to enable better evaluation of management options.
+    It is important to note that currently, PARETO incorporates treatment costs for discrete values of treatment capacity expansions. In other words, the treatment cost calculations are limited to specific capacity levels.
 
 +-------------------------------------------------------------------------------+-----------------+--------------------------------+-------------------------------------------+--------------------------------------------+-------------------------------------------+-------------------------------------------+-------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------------+--------------------------------------------+
 |                                   Treatment Technology                        |  Pretreatment   | Multi-effect evaopration       | Mechanical vapor compression (MVC)        | Direct contact membrane distillation (DCMD)| Air gap membrane distillation (AGMD)      | Permeate gap membrane distillation (PGMD) |Conductive gap membrane distillation (CGMD)| Sweeping gas membrane distillation (SGMD)  | Vacuum membrane distillation (VMD)         | Osmotically assisted reverse osmosis (OARO)| Cascading osmotically mediated reverse osmosis (COMRO) | Low-salt rejection reverse osmosis (LSRRO) | Brine reflux OARO (BR-OARO)                | Split feed counterflow reverse osmosis (SF-OARO) | Consecutive loop OARO (CL-OARO)            |
@@ -180,9 +180,9 @@ It is important to note that currently, PARETO incorporates treatment costs for 
 
 
 
-2) An alternative approach to incorporating treatment costs in PARETO is through the use of surrogate models. These models allow for linear or nonlinear approximations of treatment costs as a function of treatment capacity, feed quality, and recovery. This method is currently under development and not yet available in the current version of PARETO, and it is planned for inclusion in future updates.
+ 2) An alternative approach to incorporating treatment costs in PARETO is through the use of surrogate models. These models allow for linear or nonlinear approximations of treatment costs as a function of treatment capacity, feed quality, and recovery. This method is currently under development and not yet available in the current version of PARETO, and it is planned for inclusion in future updates.
 
-3) The third method for incorporating treatment costs into PARETO is through the integration of rigorous technoeconomic optimization treatment models. These models allow for accurate capture of the effect of changes in input parameters on treatment plant performance and costs. Currently, a technoeconomic optimization-based modeling approach for single effect and multi-effect mechanical vapor compression (MVC) desalination systems is available for integration with PARETO. The following section will provide a detailed description of the MVC modeling effort.
+ 3) The third method for incorporating treatment costs into PARETO is through the integration of rigorous technoeconomic optimization treatment models. These models allow for accurate capture of the effect of changes in input parameters on treatment plant performance and costs. Currently, a technoeconomic optimization-based modeling approach for single effect and multi-effect mechanical vapor compression (MVC) desalination systems is available for integration with PARETO. The following section will provide a detailed description of the MVC modeling effort.
 
 .. _Mechanical_vapor_recompression_model:
 
@@ -200,7 +200,7 @@ Single effect evaporation and multi effect evaporation has been studied for shal
 The vapor from the i\ :sup:`th` evaporator is sent to the compressor for recompression. The superheated vapor from the compressor is then sent into the tubes of the 1\ :sup:`st` evaporator to carry out the evaporation process. The condensate from all the evaporator effects is sent to the preheater where it preheats the feed and thus aids in heat integration.
 
 Model Description
-------------------
+~~~~~~~~~~~~~~~~~~
 
 The multi-effect evaporator model is built to consider multiple evaporator effects. The user can specify the number of effects, feed flow rate, TDS concentration in feed and the minimum TDS specification in the brine. The model then calculates the capital costs, operating costs, compressor work, compressor capacity, evaporator heat exchange area and the preheater area. The user can also obtain the pressures, temperatures and concentrations of the individual streams. 
 The model is built in Pyomo and is based on equations taken from Onishi's 2017 paper on shale gas flowback water desalination. 
@@ -477,7 +477,7 @@ Variable Definitions
 
 
 Modeling Equations
--------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Evaporator model
 ++++++++++++++++
