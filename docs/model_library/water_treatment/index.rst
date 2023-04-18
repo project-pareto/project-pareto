@@ -45,11 +45,11 @@ The following equation describes the flow balance at location :math:`r`:
 
 .. math::
 
-   LRA = \{(l, r) \in LLA | r \in R\}
+   LRA = \{(l, r) \in LLA \ | \ r \in R\}
 
 .. math::
 
-   LRT = \{(l, r) \in LLT | r \in R\}
+   LRT = \{(l, r) \in LLT \ | \ r \in R\}
 
 
 where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of streams. The units of concentration are typically reported as mass/volume (mg/L, g/m\ :sup:`3`, kg/L, etc.) and the units of flow rate are reported in volume/time (e.g. bbl/week).
@@ -189,7 +189,11 @@ Treatment costs can be incorporated into PARETO with three methods:
 Mechanical vapor compression model
 --------------------------------------
 
+<<<<<<< HEAD
 Single effect evaporation and multi effect evaporation has been studied for shale water desalination. Mechanical vapor compression, uses a compressor to utilize the heat from the evaporated vapor for further evaporation. As shown in the schematic in Figure (2), for a system with I effects, the produced water is fed into evaporator I. After evaporation, the brine from the i\ :sup:`th` effect is sent to the (i-1)\ :sup:`th` effect and the vapor from the (i-1)\ :sup:`th` effect is sent to the i\ :sup:`th` effect.
+=======
+Single effect evaporation and multi-effect evaporation has been studied for shale water desalination. Mechanical vapor recompression, uses a compressor to utilize the heat from the evaporated vapor for further evaporation. As shown in the schematic in Figure (2), for a system with I effects, the produced water is fed into evaporator I. After evaporation, the brine from the i\ :sup:`th` effect is sent to the (i-1)\ :sup:`th` effect and the vapor from the (i-1)\ :sup:`th` effect is sent to the i\ :sup:`th` effect.
+>>>>>>> 2c4c34f6c132963ce2486219d05b0a1e8ecbc845
 
 .. figure:: ../../img/mee_svr_schematic.png
     :width: 600
