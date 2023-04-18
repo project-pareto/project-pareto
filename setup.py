@@ -76,6 +76,7 @@ setup(
         "requests",
         "plotly==5.11.0",
         "kaleido",
+        "ipywidgets>=8.0.0",
     ],
     extras_require={
         "testing": [
