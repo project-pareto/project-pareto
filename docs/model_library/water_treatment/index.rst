@@ -45,7 +45,7 @@ The following equation describes the flow balance at location :math:`r`:
 
 .. math::
 
-   LRA = \{(l, r) \in LLA | r \in R\}
+   LRA = \{(l, r) \in LLA \ | \ r \in R\}
 
 .. math::
 
