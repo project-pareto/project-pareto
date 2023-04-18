@@ -189,7 +189,7 @@ Treatment costs can be incorporated into PARETO with three methods:
 Mechanical vapor recompression model
 --------------------------------------
 
-Single effect evaporation and multi effect evaporation has been studied for shale water desalination. Mechanical vapor recompression, uses a compressor to utilize the heat from the evaporated vapor for further evaporation. As shown in the schematic in Figure (2), for a system with I effects, the produced water is fed into evaporator I. After evaporation, the brine from the i\ :sup:`th` effect is sent to the (i-1)\ :sup:`th` effect and the vapor from the (i-1)\ :sup:`th` effect is sent to the i\ :sup:`th` effect.
+Single effect evaporation and multi-effect evaporation has been studied for shale water desalination. Mechanical vapor recompression, uses a compressor to utilize the heat from the evaporated vapor for further evaporation. As shown in the schematic in Figure (2), for a system with I effects, the produced water is fed into evaporator I. After evaporation, the brine from the i\ :sup:`th` effect is sent to the (i-1)\ :sup:`th` effect and the vapor from the (i-1)\ :sup:`th` effect is sent to the i\ :sup:`th` effect.
 
 .. figure:: ../../img/mee_svr_schematic.png
     :width: 600
