@@ -694,7 +694,7 @@ def test_water_quality_reduced_strategic_model_removal_concentration(
     [model, results_dict] = generate_report(
         m,
         results,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
