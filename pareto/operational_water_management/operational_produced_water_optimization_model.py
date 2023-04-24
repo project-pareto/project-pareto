@@ -1450,33 +1450,42 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         model.s_D,
         within=Binary,
+        initialize=0,
         doc="New pipeline installed between one location and another location with specific diameter",
     )
     model.vb_y_Storage = Var(
         model.s_S,
         model.s_C,
         within=Binary,
+        initialize=0,
         doc="New or additional storage facility installed at storage site with specific storage capacity",
     )
     model.vb_y_Disposal = Var(
         model.s_K,
         model.s_I,
         within=Binary,
+        initialize=0,
         doc="New or additional disposal facility installed at disposal site with specific injection capacity",
     )
     model.vb_y_Flow = Var(
         model.s_LLA,
         model.s_T,
         within=Binary,
+        initialize=0,
         doc="Directional flow between two locations",
     )
     model.vb_z_PadStorage = Var(
-        model.s_CP, model.s_T, within=Binary, doc="Completions pad storage use"
+        model.s_CP,
+        model.s_T,
+        within=Binary,
+        initialize=0,
+        doc="Completions pad storage use",
     )
     model.vb_y_Truck = Var(
         model.s_LLT,
         model.s_T,
         within=Binary,
+        initialize=0,
         doc="Trucking between two locations",
     )
 
