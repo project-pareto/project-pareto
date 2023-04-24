@@ -1369,22 +1369,42 @@ easily track the water quality at treated water end points like desalinated wate
         \textcolor{purple}{F_{r,t}^{TreatedWater}}
         + \textcolor{red}{Q_{r^{ResidualWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{ResidualWater}}
 
-*Treated Water Quality LHS Constraint*
+*Treated Water Quality Concentration-Based LHS Constraint*
 
 .. math::
 
-        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
-        + \textcolor{green}{M^{FlowConcentration}}
-         \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
-        \geq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+    \textcolor{red}{Q_{r,qc,t}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+    + \textcolor{green}{M^{Concentration}}
+     \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+    \geq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}}
 
-*Treated Water Quality RHS Constraint*
+*Treated Water Quality Concentration-Based RHS Constraint*
 
 .. math::
-        \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
-        - \textcolor{green}{M^{FlowConcentration}}
-         \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
-        \leq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
+    \textcolor{red}{Q_{r,qc,t}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+    - \textcolor{green}{M^{Concentration}}
+     \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+    \leq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}}
+
+*Treated Water Quality Load-Based LHS Constraint*
+
+.. math::
+
+    \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+    + \textcolor{green}{M^{FlowConcentration}}
+     \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+    \geq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
+*Treated Water Quality Load-Based RHS Constraint*
+
+.. math::
+
+    \textcolor{red}{Q_{r,qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatmentFeed}} \cdot (1 - \textcolor{green}{\epsilon_{r, wt}^{TreatmentRemoval}})
+    - \textcolor{green}{M^{FlowConcentration}}
+     \cdot (1 - \sum_{j \in J}\textcolor{purple}{y_{r,wt,j}^{Treatment}})
+    \leq \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}} \cdot \textcolor{purple}{F_{r,t}^{TreatedWater}}
+
 
 
 **Network Node Water Quality** :math:`\forall \textcolor{blue}{n \in N}, \textcolor{blue}{qc \in QC}, \textcolor{blue}{t \in T}`
