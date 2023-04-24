@@ -1446,7 +1446,8 @@ def create_model(df_sets, df_parameters, default={}):
     )
     # Define binary variables #
     model.vb_y_Pipeline = Var(
-        model.s_LLA,
+        model.s_L,
+        model.s_L,
         model.s_D,
         within=Binary,
         doc="New pipeline installed between one location and another location with specific diameter",
@@ -1504,32 +1505,17 @@ def create_model(df_sets, df_parameters, default={}):
     # Define constraints #
     def CompletionsPadDemandBalanceRule(model, p, t):
         return model.p_gamma_Completions[p, t] == (
-            sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-            + sum(
-                model.v_F_Piped[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCA[p_tilde, p]
+            sum(
+                model.v_F_Piped[l, p, t]
+                for l in (model.s_L - model.s_F)
+                if (l, p) in model.s_LLA
             )
-            + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
             + sum(
-                model.v_F_Piped[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCA[p_tilde, p]
+                model.v_F_Sourced[f, p, t] for f in model.s_F if (f, p) in model.s_LLA
             )
-            + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
-            + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
             + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCT[p_tilde, p]
+                model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT
             )
-            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
             + model.v_F_PadStorageOut[p, t]
             - model.v_F_PadStorageIn[p, t]
             + model.v_S_FracDemand[p, t]
@@ -1611,18 +1597,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
         return (
-            sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_PP
-                if model.p_PCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p])
-            + sum(
-                model.v_F_Trucked[p_tilde, p, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p_tilde, p]
-            )
-            + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
+            sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
         ) <= model.p_sigma_OffloadingPad[p]
 
     model.CompletionsPadTruckOffloadingCapacity = Constraint(
@@ -1668,8 +1643,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteTruckOffloadingCapacityRule(model, s, t):
         return (
-            sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
+            sum(model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT)
             <= model.p_sigma_OffloadingStorage[s]
         )
 
@@ -1682,9 +1656,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def StorageSiteProcessingCapacityRule(model, s, t):
         return (
-            sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s])
+            sum(model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT
+            )
             <= model.p_sigma_ProcessingStorage[s]
         )
 
@@ -1877,26 +1852,10 @@ def create_model(df_sets, df_parameters, default={}):
     def ProductionPadSupplyBalanceRule(model, p, t):
         return (
             model.v_B_Production[p, t]
-            == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_PNA[p, n])
+            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
-                model.v_F_Piped[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_PCA[p, p_tilde]
+                model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
             )
-            + sum(
-                model.v_F_Piped[p, p_tilde, t]
-                for p_tilde in model.s_PP
-                if model.p_PPA[p, p_tilde]
-            )
-            + sum(
-                model.v_F_Trucked[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_PCT[p, p_tilde]
-            )
-            + sum(model.v_F_Trucked[p, k, t] for k in model.s_K if model.p_PKT[p, k])
-            + sum(model.v_F_Trucked[p, s, t] for s in model.s_S if model.p_PST[p, s])
-            + sum(model.v_F_Trucked[p, r, t] for r in model.s_R if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, o, t] for o in model.s_O if model.p_POT[p, o])
             + model.v_S_Production[p, t]
         )
 
@@ -1910,19 +1869,9 @@ def create_model(df_sets, df_parameters, default={}):
     def CompletionsPadSupplyBalanceRule(model, p, t):
         return (
             model.v_B_Production[p, t]
-            == sum(model.v_F_Piped[p, n, t] for n in model.s_N if model.p_CNA[p, n])
+            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
-                model.v_F_Piped[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_CCA[p, p_tilde]
-            )
-            + sum(model.v_F_Trucked[p, k, t] for k in model.s_K if model.p_CKT[p, k])
-            + sum(model.v_F_Trucked[p, s, t] for s in model.s_S if model.p_CST[p, s])
-            + sum(model.v_F_Trucked[p, r, t] for r in model.s_R if model.p_CRT[p, r])
-            + sum(
-                model.v_F_Trucked[p, p_tilde, t]
-                for p_tilde in model.s_CP
-                if model.p_CCT[p, p_tilde]
+                model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
             )
             + model.v_S_Flowback[p, t]
         )
@@ -1936,302 +1885,39 @@ def create_model(df_sets, df_parameters, default={}):
 
     def NetworkNodeBalanceRule(model, n, t):
         return sum(
-            model.v_F_Piped[p, n, t] for p in model.s_PP if model.p_PNA[p, n]
-        ) + sum(
-            model.v_F_Piped[p, n, t] for p in model.s_CP if model.p_CNA[p, n]
-        ) + sum(
-            model.v_F_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-        ) + sum(
-            model.v_F_Piped[n_tilde, n, t]
-            for n_tilde in model.s_N
-            if model.p_NNA[n_tilde, n]
-        ) == sum(
-            model.v_F_Piped[n, n_tilde, t]
-            for n_tilde in model.s_N
-            if model.p_NNA[n, n_tilde]
-        ) + sum(
-            model.v_F_Piped[n, p, t] for p in model.s_CP if model.p_NCA[n, p]
-        ) + sum(
-            model.v_F_Piped[n, k, t] for k in model.s_K if model.p_NKA[n, k]
-        ) + sum(
-            model.v_F_Piped[n, r, t] for r in model.s_R if model.p_NRA[n, r]
-        ) + sum(
-            model.v_F_Piped[n, s, t] for s in model.s_S if model.p_NSA[n, s]
-        ) + sum(
-            model.v_F_Piped[n, o, t] for o in model.s_O if model.p_NOA[n, o]
-        )
+            model.v_F_Piped[l, n, t] for l in model.s_L if (l, n) in model.s_LLA
+        ) == sum(model.v_F_Piped[n, l, t] for l in model.s_L if (n, l) in model.s_LLA)
 
     model.NetworkBalance = Constraint(
         model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc="Network node balance"
     )
 
     def BidirectionalFlowRule1(model, l, l_tilde, t):
-        if l in model.s_PP and l_tilde in model.s_CP:
-            if model.p_PCA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_N:
-            if model.p_PNA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_PP:
-            if model.p_PPA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_N:
-            if model.p_CNA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_N:
-            if model.p_NNA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_CP:
-            if model.p_NCA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_K:
-            if model.p_NKA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_S:
-            if model.p_NSA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_R:
-            if model.p_NRA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_O:
-            if model.p_NOA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_K:
-            if model.p_RKA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_CP:
-            if model.p_SCA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_K:
-            if model.p_SKA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_R:
-            if model.p_SRA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_O:
-            if model.p_SOA[l, l_tilde]:
-                return (
-                    model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-                )
-            else:
-                return Constraint.Skip
+        if (l, l_tilde) in model.s_LLA:
+            return model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
         else:
             return Constraint.Skip
 
     model.BidirectionalFlow1 = Constraint(
-        model.s_L,
-        model.s_L,
+        (model.s_L - model.s_F - model.s_O),
+        (model.s_L - model.s_F),
         model.s_T,
         rule=BidirectionalFlowRule1,
         doc="Bi-directional flow",
     )
 
     def BidirectionalFlowRule2(model, l, l_tilde, t):
-        if l in model.s_PP and l_tilde in model.s_CP:
-            if model.p_PCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_N:
-            if model.p_PNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_PP:
-            if model.p_PPA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_N:
-            if model.p_CNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_N:
-            if model.p_NNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_CP:
-            if model.p_NCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_K:
-            if model.p_NKA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_S:
-            if model.p_NSA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_R:
-            if model.p_NRA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_O:
-            if model.p_NOA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_K:
-            if model.p_RKA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_N:
-            if model.p_SNA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_CP:
-            if model.p_SCA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_K:
-            if model.p_SKA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_R:
-            if model.p_SRA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_O:
-            if model.p_SOA[l, l_tilde]:
-                return (
-                    model.v_F_Piped[l, l_tilde, t]
-                    <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-                )
-            else:
-                return Constraint.Skip
+        if (l, l_tilde) in model.s_LLA:
+            return (
+                model.v_F_Piped[l, l_tilde, t]
+                <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
+            )
         else:
             return Constraint.Skip
 
     model.BidirectionalFlow2 = Constraint(
-        model.s_L,
-        model.s_L,
+        (model.s_L - model.s_F - model.s_O),
+        (model.s_L - model.s_F),
         model.s_T,
         rule=BidirectionalFlowRule2,
         doc="Bi-directional flow",
@@ -2240,50 +1926,20 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
             return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
-                model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-            ) - sum(
-                model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-            ) - sum(
-                model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p]
-            ) - sum(
-                model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-            ) - sum(
-                model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-            ) - sum(
-                model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-            ) - sum(
-                model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
-            ) - sum(
-                model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
             )
+            +sum(model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT)
+            -sum(model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA)
+            -sum(model.v_F_Trucked[s, l, t] for l in model.s_L if (s, l) in model.s_LLT)
         else:
             return model.v_L_Storage[s, t] == model.v_L_Storage[
                 s, model.s_T.prev(t)
             ] + sum(
-                model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
-            ) + sum(
-                model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
-            ) - sum(
-                model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n]
-            ) - sum(
-                model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p]
-            ) - sum(
-                model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k]
-            ) - sum(
-                model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r]
-            ) - sum(
-                model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o]
-            ) - sum(
-                model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
-            ) - sum(
-                model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
             )
+            +sum(model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT)
+            -sum(model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA)
+            -sum(model.v_F_Trucked[s, l, t] for l in model.s_L if (s, l) in model.s_LLT)
 
     model.StorageSiteBalance = Constraint(
         model.s_S,
@@ -2293,168 +1949,20 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def PipelineCapacityExpansionRule(model, l, l_tilde):
-        if l in model.s_PP and l_tilde in model.s_CP:
-            if model.p_PCA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
+        if (l, l_tilde) in model.s_LLA:
+            return (
+                model.v_F_Capacity[l, l_tilde]
+                == model.p_sigma_Pipeline[l, l_tilde]
+                + sum(
+                    model.p_delta_Pipeline[d]
+                    * (
+                        model.vb_y_Pipeline[l, l_tilde, d]
+                        + model.vb_y_Pipeline[l_tilde, l, d]
+                    )
+                    for d in model.s_D
                 )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_N:
-            if model.p_PNA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_PP and l_tilde in model.s_PP:
-            if model.p_PPA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_CP and l_tilde in model.s_N:
-            if model.p_CNA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_N:
-            if model.p_NNA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_CP:
-            if model.p_NCA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_K:
-            if model.p_NKA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_S:
-            if model.p_NSA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_R:
-            if model.p_NRA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_N and l_tilde in model.s_O:
-            if model.p_NOA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_F and l_tilde in model.s_CP:
-            if model.p_FCA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_N:
-            if model.p_RNA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_R and l_tilde in model.s_K:
-            if model.p_RKA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_N:
-            if model.p_SNA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_CP:
-            if model.p_SCA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_K:
-            if model.p_SKA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_R:
-            if model.p_SRA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
-        elif l in model.s_S and l_tilde in model.s_O:
-            if model.p_SOA[l, l_tilde]:
-                return (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-            else:
-                return Constraint.Skip
+                + model.v_S_PipelineCapacity[l, l_tilde]
+            )
         else:
             return Constraint.Skip
 
@@ -2472,8 +1980,8 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
 
     model.PipelineCapacity = Constraint(
-        model.s_L,
-        model.s_L,
+        (model.s_L - model.s_O - model.s_K),
+        (model.s_L - model.s_F),
         model.s_T,
         rule=PipelineCapacityRule,
         doc="Pipeline capacity",
@@ -2512,12 +2020,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def DisposalCapacityRule(model, k, t):
         return (
-            sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-            + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-            + sum(model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k])
-            + sum(model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k])
-            + sum(model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k])
+            sum(model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT
+            )
             <= model.v_D_Capacity[k]
         )
 
@@ -2527,10 +2033,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentCapacityRule(model, r, t):
         return (
-            sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-            + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r])
-            + sum(model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r])
+            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+            )
             <= model.p_sigma_Treatment[r] + model.v_S_TreatmentCapacity[r]
         )
 
@@ -2542,13 +2048,13 @@ def create_model(df_sets, df_parameters, default={}):
         return (
             model.p_epsilon_Treatment[r, "TDS"]
             * (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                sum(
+                    model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                    model.v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
                 )
             )
             == sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
@@ -2564,9 +2070,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def BeneficialReuseCapacityRule(model, o, t):
         return (
-            sum(model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o])
-            + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o])
-            + sum(model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o])
+            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+            )
             <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
         )
 
@@ -2627,20 +2134,13 @@ def create_model(df_sets, df_parameters, default={}):
         return (
             model.v_C_Disposal[k, t]
             == (
-                sum(model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k])
-                + sum(model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k])
-                + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k])
-                + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
+                sum(
+                    model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
-                )
-                + sum(
-                    model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
-                )
-                + sum(
-                    model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
+                    model.v_F_Trucked[l, k, t]
+                    for l in model.s_L
+                    if (l, k) in model.s_LLT
                 )
             )
             * model.p_pi_Disposal[k]
@@ -2663,13 +2163,13 @@ def create_model(df_sets, df_parameters, default={}):
         return (
             model.v_C_Treatment[r, t]
             == (
-                sum(model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r])
-                + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r])
-                + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
+                sum(
+                    model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, r, t] for p in model.s_CP if model.p_CRT[p, r]
+                    model.v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
                 )
             )
             * model.p_pi_Treatment[r]
@@ -2695,31 +2195,15 @@ def create_model(df_sets, df_parameters, default={}):
     ):
         return model.v_C_Reuse[p, t] == (
             (
-                sum(model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p])
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCA[p_tilde, p]
-                )
-                + sum(model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p])
-                + sum(model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p])
-                + sum(
-                    model.v_F_Piped[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCA[p_tilde, p]
+                sum(
+                    model.v_F_Piped[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_PP
-                    if model.p_PCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[p_tilde, p, t]
-                    for p_tilde in model.s_CP
-                    if model.p_CCT[p_tilde, p]
-                )
-                + sum(
-                    model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
+                    model.v_F_Trucked[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLT
                 )
             )
             * model.p_pi_Reuse[p]
@@ -2758,7 +2242,11 @@ def create_model(df_sets, df_parameters, default={}):
             return Constraint.Skip
 
     model.PipingCost = Constraint(
-        model.s_L, model.s_L, model.s_T, rule=PipingCostRule, doc="Piping cost"
+        (model.s_L - model.s_O - model.s_K),
+        (model.s_L - model.s_F),
+        model.s_T,
+        rule=PipingCostRule,
+        doc="Piping cost",
     )
 
     def TotalPipingCostRule(model):
@@ -2766,123 +2254,11 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.v_C_Piped[p, p_tilde, t]
-                        for p in model.s_PP
-                        if model.p_PCA[p, p_tilde]
+                        model.v_C_Piped[l, l_tilde, t]
+                        for l in (model.s_L - model.s_O - model.s_K)
+                        if (l, l_tilde) in model.s_LLA
                     )
-                    for p_tilde in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[p, n, t]
-                        for p in model.s_PP
-                        if model.p_PNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[p, p_tilde, t]
-                        for p in model.s_PP
-                        if model.p_PPA[p, p_tilde]
-                    )
-                    for p_tilde in model.s_PP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[p, n, t]
-                        for p in model.s_CP
-                        if model.p_CNA[p, n]
-                    )
-                    for n in model.s_N
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[n, n_tilde, t]
-                        for n in model.s_N
-                        if model.p_NNA[n, n_tilde]
-                    )
-                    for n_tilde in model.s_N
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s]
-                    )
-                    for s in model.s_S
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
-                    )
-                    for o in model.s_O
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[f, p, t] for f in model.s_F if model.p_FCA[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[r, n, t] for r in model.s_R if model.p_RNA[r, n]
-                    )
-                    for n in model.s_N
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k]
-                    )
-                    for k in model.s_K
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[s, n, t] for s in model.s_S if model.p_SNA[s, n]
-                    )
-                    for n in model.s_N
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r]
-                    )
-                    for r in model.s_R
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]
-                    )
-                    for o in model.s_O
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[f, p, t] for f in model.s_F if model.p_FCA[f, p]
-                    )
-                    for p in model.s_CP
-                )
-                + sum(
-                    sum(
-                        model.v_C_Piped[p, p_tilde, t]
-                        for p in model.s_CP
-                        if model.p_CCA[p, p_tilde]
-                    )
-                    for p_tilde in model.s_CP
+                    for l_tilde in (model.s_L - model.s_F)
                 )
                 for t in model.s_T
             )
@@ -2895,12 +2271,13 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageDepositCostRule(model, s, t):
         return model.v_C_Storage[s, t] == (
             (
-                sum(model.v_F_Piped[n, s, t] for n in model.s_N if model.p_NSA[n, s])
-                + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_PP if model.p_PST[p, s]
+                sum(
+                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[p, s, t] for p in model.s_CP if model.p_CST[p, s]
+                    model.v_F_Trucked[l, s, t]
+                    for l in model.s_L
+                    if (l, s) in model.s_LLT
                 )
             )
             * model.p_pi_Storage[s]
@@ -2922,16 +2299,13 @@ def create_model(df_sets, df_parameters, default={}):
     def StorageWithdrawalCreditRule(model, s, t):
         return model.v_R_Storage[s, t] == (
             (
-                sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
-                + sum(model.v_F_Piped[s, p, t] for p in model.s_CP if model.p_SCA[s, p])
-                + sum(model.v_F_Piped[s, k, t] for k in model.s_K if model.p_SKA[s, k])
-                + sum(model.v_F_Piped[s, r, t] for r in model.s_R if model.p_SRA[s, r])
-                + sum(model.v_F_Piped[s, o, t] for o in model.s_O if model.p_SOA[s, o])
-                + sum(
-                    model.v_F_Trucked[s, p, t] for p in model.s_CP if model.p_SCT[s, p]
+                sum(
+                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
                 )
                 + sum(
-                    model.v_F_Trucked[s, k, t] for k in model.s_K if model.p_SKT[s, k]
+                    model.v_F_Trucked[s, l, t]
+                    for l in model.s_L
+                    if (s, l) in model.s_LLT
                 )
             )
             * model.p_rho_Storage[s]
@@ -3026,150 +2400,12 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(
                 sum(
-                    model.v_S_PipelineCapacity[p, p_tilde]
+                    model.v_S_PipelineCapacity[l, l_tilde]
                     * model.p_psi_PipelineCapacity
-                    for p in model.s_PP
-                    if model.p_PCA[p, p_tilde]
+                    for l in model.s_L
+                    if (l, l_tilde) in model.s_LLA
                 )
-                for p_tilde in model.s_CP
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
-                    for p in model.s_PP
-                    if model.p_PNA[p, n]
-                )
-                for n in model.s_N
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[p, p_tilde]
-                    * model.p_psi_PipelineCapacity
-                    for p in model.s_PP
-                    if model.p_PPA[p, p_tilde]
-                )
-                for p_tilde in model.s_PP
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[p, n] * model.p_psi_PipelineCapacity
-                    for p in model.s_CP
-                    if model.p_CNA[p, n]
-                )
-                for n in model.s_N
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[n, n_tilde]
-                    * model.p_psi_PipelineCapacity
-                    for n in model.s_N
-                    if model.p_NNA[n, n_tilde]
-                )
-                for n_tilde in model.s_N
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[n, p] * model.p_psi_PipelineCapacity
-                    for n in model.s_N
-                    if model.p_NCA[n, p]
-                )
-                for p in model.s_CP
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[n, k] * model.p_psi_PipelineCapacity
-                    for n in model.s_N
-                    if model.p_NKA[n, k]
-                )
-                for k in model.s_K
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[n, s] * model.p_psi_PipelineCapacity
-                    for n in model.s_N
-                    if model.p_NSA[n, s]
-                )
-                for s in model.s_S
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[n, r] * model.p_psi_PipelineCapacity
-                    for n in model.s_N
-                    if model.p_NRA[n, r]
-                )
-                for r in model.s_R
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[n, o] * model.p_psi_PipelineCapacity
-                    for n in model.s_N
-                    if model.p_NOA[n, o]
-                )
-                for o in model.s_O
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[f, p] * model.p_psi_PipelineCapacity
-                    for f in model.s_F
-                    if model.p_FCA[f, p]
-                )
-                for p in model.s_CP
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[r, n] * model.p_psi_PipelineCapacity
-                    for r in model.s_R
-                    if model.p_RNA[r, n]
-                )
-                for n in model.s_N
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[r, k] * model.p_psi_PipelineCapacity
-                    for r in model.s_R
-                    if model.p_RKA[r, k]
-                )
-                for k in model.s_K
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[s, n] * model.p_psi_PipelineCapacity
-                    for s in model.s_S
-                    if model.p_SNA[s, n]
-                )
-                for n in model.s_N
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[s, p] * model.p_psi_PipelineCapacity
-                    for s in model.s_S
-                    if model.p_SCA[s, p]
-                )
-                for p in model.s_CP
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[s, k] * model.p_psi_PipelineCapacity
-                    for s in model.s_S
-                    if model.p_SKA[s, k]
-                )
-                for k in model.s_K
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[s, r] * model.p_psi_PipelineCapacity
-                    for s in model.s_S
-                    if model.p_SRA[s, r]
-                )
-                for r in model.s_R
-            )
-            + sum(
-                sum(
-                    model.v_S_PipelineCapacity[s, o] * model.p_psi_PipelineCapacity
-                    for s in model.s_S
-                    if model.p_SOA[s, o]
-                )
-                for o in model.s_O
+                for l_tilde in model.s_L
             )
             + sum(
                 model.v_S_StorageCapacity[s] * model.p_psi_StorageCapacity
@@ -3193,29 +2429,13 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ReuseDestinationDeliveriesRule(model, p, t):
         return model.v_F_ReuseDestination[p, t] == sum(
-            model.v_F_Piped[n, p, t] for n in model.s_N if model.p_NCA[n, p]
+            model.v_F_Piped[l, p, t]
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLA
         ) + sum(
-            model.v_F_Piped[p_tilde, p, t]
-            for p_tilde in model.s_PP
-            if model.p_PCA[p_tilde, p]
-        ) + sum(
-            model.v_F_Piped[r, p, t] for r in model.s_R if model.p_RCA[r, p]
-        ) + sum(
-            model.v_F_Piped[s, p, t] for s in model.s_S if model.p_SCA[s, p]
-        ) + sum(
-            model.v_F_Piped[p_tilde, p, t]
-            for p_tilde in model.s_CP
-            if model.p_CCA[p_tilde, p]
-        ) + sum(
-            model.v_F_Trucked[p_tilde, p, t]
-            for p_tilde in model.s_CP
-            if model.p_CCT[p_tilde, p]
-        ) + sum(
-            model.v_F_Trucked[p_tilde, p, t]
-            for p_tilde in model.s_PP
-            if model.p_PCT[p_tilde, p]
-        ) + sum(
-            model.v_F_Trucked[s, p, t] for s in model.s_S if model.p_SCT[s, p]
+            model.v_F_Trucked[l, p, t]
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLT
         )
 
     model.ReuseDestinationDeliveries = Constraint(
@@ -3227,18 +2447,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def DisposalDestinationDeliveriesRule(model, k, t):
         return model.v_F_DisposalDestination[k, t] == sum(
-            model.v_F_Piped[n, k, t] for n in model.s_N if model.p_NKA[n, k]
-        ) + sum(model.v_F_Piped[s, k, t] for s in model.s_S if model.p_SKA[s, k]) + sum(
-            model.v_F_Piped[r, k, t] for r in model.s_R if model.p_RKA[r, k]
-        ) + sum(
-            model.v_F_Trucked[s, k, t] for s in model.s_S if model.p_SKT[s, k]
-        ) + sum(
-            model.v_F_Trucked[p, k, t] for p in model.s_PP if model.p_PKT[p, k]
-        ) + sum(
-            model.v_F_Trucked[p, k, t] for p in model.s_CP if model.p_CKT[p, k]
-        ) + sum(
-            model.v_F_Trucked[r, k, t] for r in model.s_R if model.p_RKT[r, k]
-        )
+            model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT)
 
     model.DisposalDestinationDeliveries = Constraint(
         model.s_K,
@@ -3249,12 +2459,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentDestinationDeliveriesRule(model, r, t):
         return model.v_F_TreatmentDestination[r, t] == sum(
-            model.v_F_Piped[n, r, t] for n in model.s_N if model.p_NRA[n, r]
-        ) + sum(model.v_F_Piped[s, r, t] for s in model.s_S if model.p_SRA[s, r]) + sum(
-            model.v_F_Trucked[p, r, t] for p in model.s_PP if model.p_PRT[p, r]
-        ) + sum(
-            model.v_F_Trucked[s, r, t] for s in model.s_CP if model.p_CRT[s, r]
-        )
+            model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
 
     model.TreatmentDestinationDeliveries = Constraint(
         model.s_R,
@@ -3265,10 +2471,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def BeneficialReuseDeliveriesRule(model, o, t):
         return model.v_F_BeneficialReuseDestination[o, t] == sum(
-            model.v_F_Piped[n, o, t] for n in model.s_N if model.p_NOA[n, o]
-        ) + sum(model.v_F_Piped[s, o, t] for s in model.s_S if model.p_SOA[s, o]) + sum(
-            model.v_F_Trucked[p, o, t] for p in model.s_PP if model.p_POT[p, o]
-        )
+            model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT)
 
     model.BeneficialReuseDeliveries = Constraint(
         model.s_O,
