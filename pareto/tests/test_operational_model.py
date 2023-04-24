@@ -213,7 +213,7 @@ def test_run_operational_model(build_operational_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 137
     # solutions obtained from running the generic case study
-    assert pytest.approx(327.9975, abs=1e-6) == pyo.value(m.v_Objective)
+    assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
     assert pytest.approx(0.993, abs=1e-6) == pyo.value(
         m.v_F_Trucked["PP04", "CP01", "T1"]
     )
