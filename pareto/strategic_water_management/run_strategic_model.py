@@ -18,6 +18,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
+    Hydraulics,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -45,7 +46,6 @@ set_list = [
     "StorageCapacities",
     "InjectionCapacities",
     "TreatmentCapacities",
-    "Locations",
     "TreatmentTechnologies",
 ]
 parameter_list = [
@@ -78,6 +78,7 @@ parameter_list = [
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "WellPressure",
     "NodeCapacities",
     "InitialPipelineCapacity",
     "InitialPipelineDiameters",
@@ -128,6 +129,7 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+ hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  """
@@ -139,7 +141,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
-        "hydraulics": True,
+        "hydraulics": Hydraulics.post_process,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
     },
@@ -149,7 +151,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 100,
+    "running_time": 200,
     "gap": 0,
 }
 

@@ -16,6 +16,7 @@
 from cmath import nan
 from unittest import result
 import numpy as np
+import os
 
 from pyomo.environ import (
     Var,
@@ -34,6 +35,7 @@ from pyomo.environ import (
     Suffix,
     TransformationFactory,
     value,
+    SolverFactory,
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
@@ -47,6 +49,7 @@ from enum import Enum
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 from idaes.core.util.model_statistics import degrees_of_freedom
+from pyomo.util.infeasible import log_infeasible_constraints, log_close_to_bounds
 
 
 class Objectives(Enum):
@@ -68,6 +71,12 @@ class WaterQuality(Enum):
     false = 0
     post_process = 1
     discrete = 2
+
+
+class Hydraulics(Enum):
+    false = 0
+    post_process = 1
+    co_optimize = 2
 
 
 # create config dictionary
@@ -111,14 +120,15 @@ CONFIG.declare(
 CONFIG.declare(
     "hydraulics",
     ConfigValue(
-        default=False,
-        domain=Bool,
+        default=Hydraulics.false,
+        domain=In(Hydraulics),
         description="add hydraulics constraints",
         doc="""Alternate pipeline capacity selection (calculated or input)
         ***default*** - False
         **Valid Values:** - {
-        **True** - adds parameters and constraints for pipeline hydraulics,
-        **False** - does not add hydraulics feature
+        **Hydraulics.false** - does not add hydraulics feature
+        **Hydraulics.post_process** - adds economic parameters for flow based on elevation cahnges and computes pressures at each node post-optimization,
+        **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
         }""",
     ),
 )
@@ -250,6 +260,7 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.kg / pyunits.liter,
         "currency": pyunits.kUSD,
+        "pressure": pyunits.pascal,
         "time": model.decision_period,
     }
     model.model_units["volume_time"] = (
@@ -278,6 +289,7 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.mg / pyunits.liter,
         "currency": pyunits.USD,
+        "pressure": pyunits.pascal,
         "time": model.decision_period,
     }
 
@@ -1090,11 +1102,19 @@ def create_model(df_sets, df_parameters, default={}):
 
     DisposalCapExTable = {("K02", "I0"): 0}
 
-    model.p_ELEVATION = Param(
+    model.p_Elevation = Param(
         model.s_L,
         default=100,
         domain=NonNegativeReals,
-        initialize=model.df_parameters["Elevation"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=pyunits.foot,
+                to_units=pyunits.meter,
+            )
+            for key, value in model.df_parameters["Elevation"].items()
+        },
+        units=pyunits.meter,
         doc="Elevation of each node in the network",
     )
     model.p_alpha_AnnualizationRate = Param(
@@ -1680,10 +1700,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     _df_parameters = {}
-    # for keys in model.df_parameters["PipelineOperationalCost"]:
-    #     print(keys)
-    # raise Exception()
-    if model.config.hydraulics is True:
+    if model.config.hydraulics == Hydraulics.post_process:
         # determine the max change in elevation from the elevation data
         max_elevation = max(
             [abs(val) for val in model.df_parameters["Elevation"].values()]
@@ -1695,29 +1712,29 @@ def create_model(df_sets, df_parameters, default={}):
         # Set economic penalties for pipeline operational Cost based on the elevation changes
         for k1 in model.s_L:
             for k2 in model.s_L:
-                elevation_delta = (
-                    model.df_parameters["Elevation"][k1]
-                    - model.df_parameters["Elevation"][k2]
-                )
-                _df_parameters[(k1, k2)] = max(
-                    0,
-                    (
-                        model.df_parameters["PipelineOperationalCost"][(k1, k2)]
-                        - (
-                            0.01
-                            * max(
-                                [
-                                    abs(val)
-                                    for val in model.df_parameters[
-                                        "PipelineOperationalCost"
-                                    ].values()
-                                ]
+                if (k1, k2) in model.s_LLA:
+                    elevation_delta = value(model.p_Elevation[k1]) - value(
+                        model.p_Elevation[k2]
+                    )
+                    _df_parameters[(k1, k2)] = max(
+                        0,
+                        (
+                            model.df_parameters["PipelineOperationalCost"][(k1, k2)]
+                            - (
+                                0.01
+                                * max(
+                                    [
+                                        abs(val)
+                                        for val in model.df_parameters[
+                                            "PipelineOperationalCost"
+                                        ].values()
+                                    ]
+                                )
+                                * elevation_delta
+                                / max_elevation_change
                             )
-                            * elevation_delta
-                            / max_elevation_change
-                        )
-                    ),
-                )
+                        ),
+                    )
     else:
         for k1 in model.s_L:
             for k2 in model.s_L:
@@ -3450,174 +3467,451 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def pipeline_hydraulics(model, opt):
-    # clone the model and fix the varibles to their optimized values
-    mh = model.clone()
-    for var in mh.component_data_objects(Var):
-        var.fix()
+def operational_hydraulics(model, opt):
 
-    mh.p_diameter_Pipeline = Param(
-        # model.p_diameter_Pipeline = Param(
-        mh.s_L,
-        mh.s_L,
-        default=0,
-        initialize=0,
-        mutable=True,
-        doc="Diameter of pipeline between two locations [inch]",
-    )
-    mh.p_HW_loss = Param(
-        mh.s_L,
-        mh.s_L,
-        default=0,
-        initialize=0,
-        mutable=True,
-        doc="Hazen-Williams Frictional loss",
-    )
-    mh.v_Pressure = Var(
-        model.s_L,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        doc="Pressure at node/location n/l at time t in Pa",
-    )
+    if model.config.hydraulics == Hydraulics.post_process:
+        """
+        For the post process method, the pressure is computed in using
+        Hazen-Williams equation in a separate stand alone model. This model
+        consists of a pressure balance equation at each node and bounds for
+        pressure. The objective is to minimize the total pressure change (deltaP)
+        due to pumps and valves.
+        """
+        # Create a model and add hydraulics constraint to compute pressure at each node
+        mh = ConcreteModel()
 
-    for key in mh.df_parameters["PipelineExpansionDistance"]:
-        try:
-            if mh.df_parameters["InitialPipelineDiameters"][key] is not None:
-                mh.p_diameter_Pipeline[key] = mh.df_parameters[
-                    "InitialPipelineDiameters"
-                ][key]
-            else:
-                mh.p_diameter_Pipeline[key] = sum(
-                    mh.vb_y_Pipeline[key, d]
-                    * mh.df_parameters["PipelineDiameterValues"][d]
-                    for d in mh.s_D
+        mh.p_HW_material_factor_pipeline = Param(
+            initialize=130,
+            mutable=True,
+            units=pyunits.dimensionless,
+            doc="Pipeline material factor for Hazen Williams equation",
+        )
+        mh.v_PumpHead = Var(
+            model.s_LLA,
+            model.s_T,
+            within=NonNegativeReals,
+            initialize=0,
+            units=pyunits.meter,
+            doc="Pump Head added in the direction of flow, m",
+        )
+        mh.v_ValveHead = Var(
+            model.s_LLA,
+            model.s_T,
+            within=NonNegativeReals,
+            initialize=0,
+            units=pyunits.meter,
+            doc="Valve Head removed in the direction of flow, m",
+        )
+        mh.p_rhog = Param(
+            initialize=9.8 * 1000,
+            units=model.model_units["pressure"] / pyunits.meter,
+            doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
+        )
+        mh.p_Min_AOP = Param(
+            initialize=14.7 * 6895,
+            mutable=True,
+            units=model.model_units["pressure"],
+            doc="Minimum ALlowable Operating Pressure 14.7 psi, in Pa",
+        )
+        mh.p_Max_AOP = Param(
+            initialize=150 * 6895,
+            mutable=True,
+            units=model.model_units["pressure"],
+            doc="Maximum ALlowable Operating Pressure 150 psi, in Pa",
+        )
+        mh.p_WellPressure = Param(
+            mh.s_P,
+            mh.s_T,
+            default=0,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=pyunits.psi,
+                    to_units=mh.model_units["pressure"],
                 )
-        except:
-            mh.p_diameter_Pipeline[key] = sum(
-                mh.vb_y_Pipeline[key, d] * mh.df_parameters["PipelineDiameterValues"][d]
-                for d in mh.s_D
+                for key, value in mh.df_parameters["WellPressure"].items()
+            },
+            units=mh.model_units["pressure"],
+            doc="Well pressure at production or completions pad [pressure]",
+        )
+
+        mh.v_Pressure = Var(
+            model.s_L,
+            model.s_T,
+            within=NonNegativeReals,
+            initialize=mh.p_Min_AOP,
+            bounds=(mh.p_Min_AOP, None),
+            units=model.model_units["pressure"],
+            doc="Pressure at location l at time t in Pa",
+        )
+        for p in mh.s_P:
+            for t in mh.s_T:
+                if value(mh.p_WellPressure[p, t]) > 0:
+                    mh.v_Pressure[p, t].fix(mh.p_WellPressure[p, t])
+
+        mh.p_diameter_Pipeline_eff = Param(
+            model.s_LLA,
+            default=0,
+            initialize=0,
+            mutable=True,
+            units=model.model_units["diameter"],
+            doc="Diameter of pipeline between two locations [inch]",
+        )
+        mh.p_HW_loss = Param(
+            model.s_LLA,
+            model.s_T,
+            default=0,
+            initialize=0,
+            within=NonNegativeReals,
+            mutable=True,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+        for key in model.s_LLA:
+            mh.p_diameter_Pipeline_eff[key] = model.df_parameters[
+                "InitialPipelineDiameters"
+            ][key] + sum(
+                model.vb_y_Pipeline[key, d]
+                * model.df_parameters["PipelineDiameterValues"][d]
+                for d in model.s_D
             )
 
-    print("Diameter PP01 to N01", value(mh.p_diameter_Pipeline["PP01", "N01"]))
-    print("Diameter PP02 to N05", value(mh.p_diameter_Pipeline["PP02", "N05"]))
-    print("Diameter PP03 to N06", value(mh.p_diameter_Pipeline["PP03", "N06"]))
-
-    for t0 in mh.s_T:
-        for key in mh.df_parameters["PipelineExpansionDistance"]:
-            if mh.df_parameters["PipelineExpansionDistance"][key] > 0:
-                if value(mh.v_F_Piped[key, t0]) > 0.001:
-                    if value(mh.p_diameter_Pipeline[key]) > 0.1:
-                        mh.p_HW_loss[key, t0] = _hazen_william_head(
-                            mh.df_parameters["PipelineExpansionDistance"][key],
-                            mh.p_diameter_Pipeline[key],
-                            mh.v_F_Piped[key, t0],
+        # Compute Hazen Williams head
+        for t0 in model.s_T:
+            for key in model.s_LLA:
+                if value(model.v_F_Piped[key, t0]) > 0.01:
+                    if value(mh.p_diameter_Pipeline_eff[key]) > 0.1:
+                        mh.p_HW_loss[key, t0] = _hazen_williams_head(
+                            mh.p_HW_material_factor_pipeline,
+                            pyunits.convert(
+                                model.p_lambda_Pipeline[key], to_units=pyunits.meter
+                            ),
+                            pyunits.convert(
+                                mh.p_diameter_Pipeline_eff[key], to_units=pyunits.meter
+                            ),
+                            pyunits.convert_value(
+                                value(model.v_F_Piped[key, t0]),
+                                from_units=pyunits.koil_bbl / pyunits.week,
+                                to_units=pyunits.m**3 / pyunits.s,
+                            ),
                         )
 
-    for t0 in model.s_T:
-        # if t0 is model.s_T.first():
-        model.hydraulics.v_Pressure["PP01", t0].setub(5.034e9)
-    #         # model.v_Pressure['PP02', t0].fix(1.034e8)
-    #         # model.v_Pressure['PP03', t0].fix(1.034e8)
-    #         # model.v_Pressure['PP01', t0].fix(1.034e8)
-    #         # # model.v_Pressure['PP02', t0].fix(1.034e8)
-    #         # # model.v_Pressure['PP03', t0].fix(1.034e8)
+        def NodePressureRule(b, l1, l2, t1):
+            if value(model.v_F_Piped[l1, l2, t1]) > 0.01:
+                constraint = (
+                    b.v_Pressure[l1, t1] + model.p_Elevation[l1] * mh.p_rhog
+                    == b.v_Pressure[l2, t1]
+                    + model.p_Elevation[l2] * mh.p_rhog
+                    + b.p_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                )
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
 
-    def NodePressureRule(b, l1, l2, t1):
-        if value(b.v_F_Piped[l1, l2, t1]) > 0.001:
-            constraint = (
-                b.v_Pressure[l1, t1] + b.df_parameters["Elevation"][l1] * 0.3048 * 9800
-                == b.v_Pressure[l2, t1]
-                + b.df_parameters["Elevation"][l2] * 0.3048 * 9800
-                + b.p_HW_loss[l1, l2] * 9800
+        mh.NodePressure = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressureRule,
+            doc="Pressure at Node L",
+        )
+
+        def MAOPressureRule(b, l1, t1):
+            constraint = b.v_Pressure[l1, t1] <= b.p_Max_AOP
+            return process_constraint(constraint)
+
+        mh.MAOPressure = Constraint(
+            mh.s_L - mh.s_P,
+            mh.s_T,
+            rule=MAOPressureRule,
+            doc="Max allowable pressure rule",
+        )
+
+        mh.objective = Objective(
+            expr=(
+                sum(
+                    sum(
+                        (mh.v_PumpHead[key, t] * 10 + mh.v_ValveHead[key, t])
+                        for key in model.s_LLA
+                    )
+                    for t in model.s_T
+                )
+            ),
+            sense=minimize,
+            doc="Objective function",
+        )
+
+        opt.solve(mh, tee=True)
+
+    elif model.config.hydraulics == Hydraulics.co_optimize:
+        """
+        For the co-optimize method, first, the strategic model is cloned and then,
+        constraints for computing pressures at every node using
+        Hazen-Williams equation is added to the model. The original objective
+        function of minmizing the cost is modified to include of the cost of
+        operating pumps and valves as a function of the deltaP.
+        """
+        # Clone the model to add hydraulics constraints
+        # The cloned model will be a MINLP formulation. The exisiting objective
+        # must be modified to add operating costs for pumps and valves.
+        mh = model.clone()
+        del mh.objective
+
+        mh.p_HW_material_factor_pipeline = Param(
+            initialize=130,
+            mutable=True,
+            units=pyunits.dimensionless,
+            doc="Pipeline material factor for Hazen Williams equation",
+        )
+        mh.v_PumpHead = Var(
+            model.s_LLA,
+            model.s_T,
+            within=NonNegativeReals,
+            initialize=0,
+            units=pyunits.meter,
+            doc="Pump Head added in the direction of flow, m",
+        )
+        mh.v_ValveHead = Var(
+            model.s_LLA,
+            model.s_T,
+            within=NonNegativeReals,
+            initialize=0,
+            units=pyunits.meter,
+            doc="Valve Head removed in the direction of flow, m",
+        )
+        mh.p_rhog = Param(
+            initialize=9.8 * 1000,
+            units=model.model_units["pressure"] / pyunits.meter,
+            doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
+        )
+        mh.p_Min_AOP = Param(
+            initialize=14.7 * 6895,
+            mutable=True,
+            units=model.model_units["pressure"],
+            doc="Minimum ALlowable Operating Pressure 14.7 psi, in Pa",
+        )
+        mh.p_Max_AOP = Param(
+            initialize=150 * 6895,
+            mutable=True,
+            units=model.model_units["pressure"],
+            doc="Maximum ALlowable Operating Pressure 150 psi, in Pa",
+        )
+        mh.v_Pressure = Var(
+            mh.s_L,
+            mh.s_T,
+            within=NonNegativeReals,
+            initialize=mh.p_Min_AOP,
+            bounds=(mh.p_Min_AOP, None),
+            units=model.model_units["pressure"],
+            doc="Pressure at location l at time t in Pa",
+        )
+        mh.p_WellPressure = Param(
+            mh.s_P,
+            mh.s_T,
+            default=0,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=pyunits.psi,
+                    to_units=mh.model_units["pressure"],
+                )
+                for key, value in mh.df_parameters["WellPressure"].items()
+            },
+            units=mh.model_units["pressure"],
+            doc="Well pressure at production or completions pad [pressure]",
+        )
+
+        for p in mh.s_P:
+            for t in mh.s_T:
+                if value(mh.p_WellPressure[p, t]) > 0:
+                    mh.v_Pressure[p, t].fix(mh.p_WellPressure[p, t])
+
+        mh.v_HW_loss = Var(
+            mh.s_LLA,
+            mh.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+        mh.v_diameter_Pipeline_eff = Var(
+            mh.s_LLA,
+            initialize=0,
+            units=model.model_units["diameter"],
+            doc="Diameter of pipeline between two locations [inch]",
+        )
+
+        def EffectiveDiameterRule(b, l1, l2, t1):
+            constraint = mh.v_diameter_Pipeline_eff[l1, l2] == mh.df_parameters[
+                "InitialPipelineDiameters"
+            ][l1, l2] + sum(
+                mh.vb_y_Pipeline[l1, l2, d]
+                * mh.df_parameters["PipelineDiameterValues"][d]
+                for d in model.s_D
             )
-        else:
-            Constraint.Skip
-            constraint = b.v_Pressure[l1, t1] >= 0
-        return process_constraint(constraint)
-        # else:
-        #     Constraint.Skip
+            return process_constraint(constraint)
 
-    mh.NodePressure = Constraint(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        rule=NodePressureRule,
-        doc="Pressure at Node L",
-    )
+        mh.EffectiveDiameter = Constraint(
+            mh.s_LLA,
+            mh.s_T,
+            rule=EffectiveDiameterRule,
+            doc="Pressure at Node L",
+        )
 
-    mh.hydraulics.objective = Objective(
-        expr=mh.v_Pressure["PP01", "T52"], sense=minimize, doc="Objective function"
-    )
+        def HazenWilliamsRule(b, l1, l2, t1):
+            constraint = b.v_HW_loss[l1, l2, t1] * (
+                pyunits.convert(mh.v_diameter_Pipeline_eff[l1, l2], to_units=pyunits.m)
+                ** 4.87
+            ) * (mh.p_HW_material_factor_pipeline**1.85) == 10.704 * (
+                pyunits.convert(
+                    mh.v_F_Piped[l1, l2, t1], to_units=pyunits.m**3 / pyunits.s
+                )
+                ** 1.85
+            ) * (
+                pyunits.convert(mh.p_lambda_Pipeline[l1, l2], to_units=pyunits.m)
+                ** 4.87
+            ) * sum(
+                mh.vb_y_Pipeline[l1, l2, d] for d in mh.s_D if d is not mh.s_D.first()
+            )
+            return process_constraint(constraint)
 
-    opt.solve(mh, tee=True)
+        mh.HW_loss_equaltion = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=HazenWilliamsRule,
+            doc="Pressure at Node L",
+        )
 
-    print(
-        "flow from PP01 to N01",
-        value(model.v_F_Piped["PP01", "N01", "T01"]),
-        "pressure at PP01",
-        value(model.hydraulics.v_Pressure["PP01", "T01"]),
-        "pressure at N01",
-        value(model.hydraulics.v_Pressure["N01", "T01"]),
-    )
-    print(
-        "flow from PP02 to N05",
-        value(model.v_F_Piped["PP02", "N05", "T01"]),
-        "pressure at PP02",
-        value(model.hydraulics.v_Pressure["PP02", "T01"]),
-        "pressure at N05",
-        value(model.hydraulics.v_Pressure["N05", "T01"]),
-    )
-    print(
-        "flow from PP03 to N06",
-        value(model.v_F_Piped["PP03", "N06", "T01"]),
-        "pressure at PP03",
-        value(model.hydraulics.v_Pressure["PP03", "T01"]),
-        "pressure at N06",
-        value(model.hydraulics.v_Pressure["N06", "T01"]),
-    )
-    print(
-        "flow from N01 to K01",
-        value(model.v_F_Piped["N01", "K01", "T01"]),
-        "pressure at N01",
-        value(model.hydraulics.v_Pressure["N01", "T01"]),
-        "pressure at K01",
-        value(model.hydraulics.v_Pressure["K01", "T01"]),
-    )
-    print(
-        "flow from N04 to K02",
-        value(model.v_F_Piped["N04", "K02", "T01"]),
-        "pressure at N04",
-        value(model.hydraulics.v_Pressure["N04", "T01"]),
-        "pressure at K02",
-        value(model.hydraulics.v_Pressure["K02", "T01"]),
-    )
+        def NodePressureRule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1] + mh.p_Elevation[l1] * mh.p_rhog
+                == b.v_Pressure[l2, t1]
+                + mh.p_Elevation[l2] * mh.p_rhog
+                + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+            )
+            return process_constraint(constraint)
 
-    return model
+        mh.NodePressure = Constraint(
+            mh.s_LLA,
+            mh.s_T,
+            rule=NodePressureRule,
+            doc="Pressure at Node L",
+        )
+
+        def MAOPressureRule(b, l1, t1):
+            constraint = b.v_Pressure[l1, t1] <= b.p_Max_AOP
+            return process_constraint(constraint)
+
+        mh.MAOPressure = Constraint(
+            mh.s_L - mh.s_P,
+            mh.s_T,
+            rule=MAOPressureRule,
+            doc="Max allowable pressure rule",
+        )
+
+        mh.objective = Objective(
+            expr=(
+                mh.v_Z
+                + (
+                    sum(
+                        sum(
+                            (mh.v_PumpHead[key, t] * 10 + mh.v_ValveHead[key, t])
+                            for key in mh.s_LLA
+                        )
+                        for t in mh.s_T
+                    )
+                )
+            ),
+            sense=minimize,
+            doc="Objective function",
+        )
+
+        # MINLP solver is currently accessed through GAMS. User must specify
+        # available solvers to solve this problem.
+        # TODO: check to use open source solvers
+        solver = SolverFactory("gams")
+        mathoptsolver = "baron"
+        solver_options = {
+            "firstfeas": 1,
+        }
+
+        if not os.path.exists("temp"):
+            os.makedirs("temp")
+
+        with open("temp/" + mathoptsolver + ".opt", "w") as f:
+            for k, v in solver_options.items():
+                f.write(str(k) + " " + str(v) + "\n")
+
+        solver.solve(
+            mh,
+            tee=True,
+            keepfiles=True,
+            solver=mathoptsolver,
+            tmpdir="temp",
+            add_options=["gams_model.optfile=1;"],
+        )
+
+        # second solve with dicopt
+        solver2 = SolverFactory("gams")
+        mathoptsolver2 = "dicopt"
+        solver_options2 = {
+            "tol": 1e-3,
+            "max_iter": 1000,
+            "constr_viol_tol": 0.009,
+            "acceptable_constr_viol_tol": 0.01,
+            "acceptable_tol": 1e-6,
+            "mu_strategy": "adaptive",
+            "mu_init": 1e-10,
+            "mu_max": 1e-1,
+            "print_user_options": "yes",
+            "warm_start_init_point": "yes",
+            "warm_start_mult_bound_push": 1e-60,
+            "warm_start_bound_push": 1e-60,
+        }
+
+        if not os.path.exists("temp"):
+            os.makedirs("temp")
+
+        with open("temp/" + mathoptsolver2 + ".opt", "w") as f:
+            for k, v in solver_options2.items():
+                f.write(str(k) + " " + str(v) + "\n")
+
+        solver2.solve(
+            mh,
+            tee=True,
+            keepfiles=True,
+            solver=mathoptsolver2,
+            tmpdir="temp",
+            add_options=["gams_model.optfile=1;"],
+        )
+
+    return mh
 
 
-def _hazen_william_head(length, diameter, flow):
+def _hazen_williams_head(mat_factor, length, diameter, flow):
+    """
+    Computes Hazen Williams (HW) head in a pipeline
 
-    mat_factor = 130  # cast iron
-    length_in_m = pyunits.convert_value(
-        length,
-        from_units=pyunits.mile,
-        to_units=pyunits.m,
-    )
-    diameter_in_m = pyunits.convert_value(
-        value(diameter),
-        from_units=pyunits.inch,
-        to_units=pyunits.m,
-    )
-    flow_m3_s = pyunits.convert_value(
-        value(flow),
-        from_units=pyunits.koil_bbl / pyunits.week,
-        to_units=pyunits.m**3 / pyunits.s,
-    )
-    temp_1 = length_in_m / (diameter_in_m**4.87)
-    temp_2 = (flow_m3_s / mat_factor) ** 1.85
+    Input Args
+    ----------
+    mat_factor: pipeline material factor for HW equation
+    length : length of pipeline segment in m.
+    diameter : diameter of pipeline segment in m.
+    flow : water flow through the pipeline segment in m3/s.
+
+    Returns
+    -------
+    hw_friction_head : TYPE
+        DESCRIPTION.
+
+    """
+
+    temp_1 = length / (diameter**4.87)
+    temp_2 = (flow / mat_factor) ** 1.85
     hw_friction_head = 10.704 * temp_2 * temp_1
-    # print(hw_friction_head)
     return hw_friction_head
 
 
@@ -6077,88 +6371,89 @@ def solve_model(model, options=None):
     else:
         print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
-    # if options["deactivate_slacks"] is True:
-    #     model.v_C_Slack.fix(0)
-    #     model.v_S_FracDemand.fix(0)
-    #     model.v_S_Production.fix(0)
-    #     model.v_S_Flowback.fix(0)
-    #     model.v_S_PipelineCapacity.fix(0)
-    #     model.v_S_StorageCapacity.fix(0)
-    #     model.v_S_DisposalCapacity.fix(0)
-    #     model.v_S_TreatmentCapacity.fix(0)
-    #     model.v_S_ReuseCapacity.fix(0)
+    if options["deactivate_slacks"] is True:
+        model.v_C_Slack.fix(0)
+        model.v_S_FracDemand.fix(0)
+        model.v_S_Production.fix(0)
+        model.v_S_Flowback.fix(0)
+        model.v_S_PipelineCapacity.fix(0)
+        model.v_S_StorageCapacity.fix(0)
+        model.v_S_DisposalCapacity.fix(0)
+        model.v_S_TreatmentCapacity.fix(0)
+        model.v_S_ReuseCapacity.fix(0)
 
-    # if options["scale_model"] is True:
-    #     # Step 1: scale model
-    #     scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
-    #     # Step 2: solve scaled mathematical model
-    #     print("\n")
-    #     print("*" * 50)
-    #     print(" " * 15, "Solving scaled model")
-    #     print("*" * 50)
-    #     # Step 3: check model to be solved
-    #     #       option 3.1 - full space model,
-    #     #       option 3.2 - post process water quality,
-    #     #       option 3.3 - discrete water quality,
-    #     if model.config.water_quality is WaterQuality.discrete:
-    #         # option 3.3:
-    #         results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
-    #     elif model.config.water_quality is WaterQuality.post_process:
-    #         # option 3.2:
-    #         results = opt.solve(scaled_model, tee=True)
-    #         if results.solver.termination_condition != TerminationCondition.infeasible:
-    #             TransformationFactory("core.scale_model").propagate_solution(
-    #                 scaled_model, model
-    #             )
-    #             model = postprocess_water_quality_calculation(model, opt)
-    #     else:
-    #         # option 3.1:
-    #         results = opt.solve(scaled_model, tee=True)
+    if options["scale_model"] is True:
+        # Step 1: scale model
+        scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
+        # Step 2: solve scaled mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving scaled model")
+        print("*" * 50)
+        # Step 3: check model to be solved
+        #       option 3.1 - full space model,
+        #       option 3.2 - post process water quality,
+        #       option 3.3 - discrete water quality,
+        if model.config.water_quality is WaterQuality.discrete:
+            # option 3.3:
+            results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
+        elif model.config.water_quality is WaterQuality.post_process:
+            # option 3.2:
+            results = opt.solve(scaled_model, tee=True)
+            if results.solver.termination_condition != TerminationCondition.infeasible:
+                TransformationFactory("core.scale_model").propagate_solution(
+                    scaled_model, model
+                )
+                model = postprocess_water_quality_calculation(model, opt)
+        else:
+            # option 3.1:
+            results = opt.solve(scaled_model, tee=True)
 
-    #     # Step 4: propagate scaled model results to original model
-    #     if results.solver.termination_condition != TerminationCondition.infeasible:
-    #         # if model is optimal propagate scaled model results to original model
-    #         if options["scale_model"] is True:
-    #             TransformationFactory("core.scale_model").propagate_solution(
-    #                 scaled_model, model
-    #             )
-    # else:
-    #     # Step 1: solve unscaled mathematical model
-    #     print("\n")
-    #     print("*" * 50)
-    #     print(" " * 15, "Solving unscaled model")
-    #     print("*" * 50)
-    #     # Step 2: check model to be solved
-    #     #       option 2.1 - full space model,
-    #     #       option 2.2 - post process water quality,
-    #     #       option 2.3 - discrete water quality,
-    #     if model.config.water_quality is WaterQuality.discrete:
-    #         # option 2.3:
-    #         results = solve_discrete_water_quality(model, opt, scaled=False)
-    #     elif model.config.water_quality is WaterQuality.post_process:
-    #         # option 2.2:
-    #         results = opt.solve(model, tee=True)
-    #         if results.solver.termination_condition != TerminationCondition.infeasible:
-    #             model = postprocess_water_quality_calculation(model, opt)
-    #     else:
-    #         # option 2.1:
-    #         results = opt.solve(model, tee=True)
+        # Step 4: propagate scaled model results to original model
+        if results.solver.termination_condition != TerminationCondition.infeasible:
+            # if model is optimal propagate scaled model results to original model
+            if options["scale_model"] is True:
+                TransformationFactory("core.scale_model").propagate_solution(
+                    scaled_model, model
+                )
+    else:
+        # Step 1: solve unscaled mathematical model
+        print("\n")
+        print("*" * 50)
+        print(" " * 15, "Solving unscaled model")
+        print("*" * 50)
+        # Step 2: check model to be solved
+        #       option 2.1 - full space model,
+        #       option 2.2 - post process water quality,
+        #       option 2.3 - discrete water quality,
+        if model.config.water_quality is WaterQuality.discrete:
+            # option 2.3:
+            results = solve_discrete_water_quality(model, opt, scaled=False)
+        elif model.config.water_quality is WaterQuality.post_process:
+            # option 2.2:
+            results = opt.solve(model, tee=True)
+            if results.solver.termination_condition != TerminationCondition.infeasible:
+                model = postprocess_water_quality_calculation(model, opt)
+        else:
+            # option 2.1:
+            results = opt.solve(model, tee=True)
 
-    # if results.solver.termination_condition == TerminationCondition.infeasible:
-    #     print(
-    #         "WARNING: Model is infeasible. We recommend adding Slack variables to avoid infeasibilities\n, \
-    #             however this is an indication that the input data should be revised. \
-    #             This can be done by selecting 'deactivate_slacks': False in the options"
-    #     )
+    if results.solver.termination_condition == TerminationCondition.infeasible:
+        print(
+            "WARNING: Model is infeasible. We recommend adding Slack variables to avoid infeasibilities\n, \
+                however this is an indication that the input data should be revised. \
+                This can be done by selecting 'deactivate_slacks': False in the options"
+        )
 
-    # ms.to_json(model, fname='optimal_strategic_model_solution_dist_dia.json')
-    # ms.from_json(model, fname='optimal_strategic_model_solution_quality.json')
-    ms.from_json(model, fname="optimal_strategic_model_solution_dist_dia.json")
-    if options["hydraulics"] is True:
-        model = pipeline_hydraulics(model, opt)
+    results.write()
+    # ms.to_json(model, fname='optimal_strategic_model_solution_for_hydraulics.json')
+    # ms.from_json(model, fname='optimal_strategic_model_solution_for_hydraulics.json')
+    if model.config.hydraulics != Hydraulics.false:
+        hydraulics_model = operational_hydraulics(model, opt)
 
+    return results
     # results.write()
-    return model
+    # return model
 
 
 #    return results
