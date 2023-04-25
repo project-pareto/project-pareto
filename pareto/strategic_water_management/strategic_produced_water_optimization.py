@@ -3508,7 +3508,7 @@ def operational_hydraulics(model, opt):
             doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
         )
         mh.p_Min_AOP = Param(
-            initialize=14.7 * 6895,
+            initialize=10 * 6895,
             mutable=True,
             units=model.model_units["pressure"],
             doc="Minimum ALlowable Operating Pressure 14.7 psi, in Pa",
@@ -3520,18 +3520,18 @@ def operational_hydraulics(model, opt):
             doc="Maximum ALlowable Operating Pressure 150 psi, in Pa",
         )
         mh.p_WellPressure = Param(
-            mh.s_P,
-            mh.s_T,
+            model.s_P,
+            model.s_T,
             default=0,
             initialize={
                 key: pyunits.convert_value(
                     value,
                     from_units=pyunits.psi,
-                    to_units=mh.model_units["pressure"],
+                    to_units=model.model_units["pressure"],
                 )
-                for key, value in mh.df_parameters["WellPressure"].items()
+                for key, value in model.df_parameters["WellPressure"].items()
             },
-            units=mh.model_units["pressure"],
+            units=model.model_units["pressure"],
             doc="Well pressure at production or completions pad [pressure]",
         )
 
@@ -3544,8 +3544,8 @@ def operational_hydraulics(model, opt):
             units=model.model_units["pressure"],
             doc="Pressure at location l at time t in Pa",
         )
-        for p in mh.s_P:
-            for t in mh.s_T:
+        for p in model.s_P:
+            for t in model.s_T:
                 if value(mh.p_WellPressure[p, t]) > 0:
                     mh.v_Pressure[p, t].fix(mh.p_WellPressure[p, t])
 
@@ -3622,8 +3622,8 @@ def operational_hydraulics(model, opt):
             return process_constraint(constraint)
 
         mh.MAOPressure = Constraint(
-            mh.s_L - mh.s_P,
-            mh.s_T,
+            model.s_L - model.s_P,
+            model.s_T,
             rule=MAOPressureRule,
             doc="Max allowable pressure rule",
         )
@@ -3686,7 +3686,7 @@ def operational_hydraulics(model, opt):
             doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
         )
         mh.p_Min_AOP = Param(
-            initialize=14.7 * 6895,
+            initialize=10 * 6895,
             mutable=True,
             units=model.model_units["pressure"],
             doc="Minimum ALlowable Operating Pressure 14.7 psi, in Pa",
