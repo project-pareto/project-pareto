@@ -203,7 +203,7 @@ def create_widgets(model):
         print("-----------------------------------")
         print(f"Technology: {technology}")
         print(f"Capacity: {capacity}")
-        print(f"Objective function value: {value(model.v_Z)}")
+        print(f"Objective function value [k$]: {value(model.v_Z)}")
         print()
 
     # Link callback function to optimize button
