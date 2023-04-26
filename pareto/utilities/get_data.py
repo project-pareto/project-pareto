@@ -20,6 +20,7 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 import numpy as np
+from pyomo.environ import units as pyunits
 
 
 def _read_data(_fname, _set_list, _parameter_list):
@@ -351,6 +352,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "CST": "",
         "CCT": "",
         "CKT": "",
+        "Elevation": pyunits.foot,
         "CompletionsPadOutsideSystem": "",
         "DesalinationTechnologies": "",
         "DesalinationSites": "",
@@ -358,8 +360,10 @@ def get_display_units(input_sheet_name_list, user_units):
         "CompletionsDemand": user_units["volume"] + "/" + user_units["time"],
         "PadRates": user_units["volume"] + "/" + user_units["time"],
         "FlowbackRates": user_units["volume"] + "/" + user_units["time"],
+        "WellPressure": user_units["pressure"],
         "NodeCapacities": user_units["volume"] + "/" + user_units["time"],
         "InitialPipelineCapacity": user_units["volume"] + "/" + user_units["time"],
+        "InitialPipelineDiameters": user_units["diameter"],
         "InitialDisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
         "FreshwaterSourcingAvailability": user_units["volume"]

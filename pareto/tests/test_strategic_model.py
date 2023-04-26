@@ -98,6 +98,7 @@ def build_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -105,8 +106,10 @@ def build_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -169,7 +172,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -192,7 +195,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -215,7 +218,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -238,7 +241,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -383,6 +386,7 @@ def build_reduced_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -390,8 +394,10 @@ def build_reduced_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -455,7 +461,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 13081
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -479,7 +485,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 13081
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -503,7 +509,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 13081
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -527,7 +533,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
     )
     assert degrees_of_freedom(m) == 104601
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -638,7 +644,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 11789
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(89201.666, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
 
@@ -742,6 +748,7 @@ def build_modified_reduced_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -749,8 +756,10 @@ def build_modified_reduced_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -943,6 +952,7 @@ def test_strategic_model_UI_display_units():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -950,8 +960,10 @@ def test_strategic_model_UI_display_units():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -1039,6 +1051,7 @@ def build_toy_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -1046,8 +1059,10 @@ def build_toy_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -1109,7 +1124,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 4907
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1190,6 +1205,7 @@ def build_permian_demo_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -1197,8 +1213,10 @@ def build_permian_demo_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -1262,7 +1280,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
     )
     assert degrees_of_freedom(m) == 21111
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
