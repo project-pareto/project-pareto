@@ -38,10 +38,9 @@ def _read_data(_fname, _set_list, _parameter_list):
         header=0,
         index_col=None,
         usecols="A",
-        squeeze=True,
         dtype="string",
         keep_default_na=False,
-    )
+    ).squeeze("columns")
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -57,9 +56,8 @@ def _read_data(_fname, _set_list, _parameter_list):
         header=1,
         index_col=None,
         usecols=None,
-        squeeze=True,
         keep_default_na=False,
-    )
+    ).squeeze("columns")
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
