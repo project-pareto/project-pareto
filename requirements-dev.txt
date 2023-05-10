@@ -7,4 +7,5 @@ myst-parser[linkify]
 sphinx_rtd_theme
 nbsphinx
 addheader
+pyyaml
 --editable .
