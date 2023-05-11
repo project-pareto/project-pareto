@@ -88,8 +88,8 @@ with resources.path(
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 # Additional input data
-df_parameters["MinTruckFlow"] = 75  # barrels/day
-df_parameters["MaxTruckFlow"] = 37000  # barrels/day
+df_parameters["MinTruckFlow"] = 0  # barrels/day
+df_parameters["MaxTruckFlow"] = 259000  # barrels/day
 
 # create mathematical model
 operational_model = create_model(
