@@ -110,13 +110,13 @@ set_timeout(opt, timeout_s=60)
 results = opt.solve(operational_model, tee=True)
 results.write()
 
-# with nostdout():
-#     feasibility_status = is_feasible(operational_model)
-#
-# if not feasibility_status:
-#     print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
-# else:
-#     print("\nModel results validated and found to pass feasibility tests\n" + "-" * 60)
+with nostdout():
+    feasibility_status = is_feasible(operational_model)
+
+if not feasibility_status:
+    print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
+else:
+    print("\nModel results validated and found to pass feasibility tests\n" + "-" * 60)
 
 
 if operational_model.config.water_quality is WaterQuality.post_process:
