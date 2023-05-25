@@ -75,7 +75,7 @@ Example of how this method is used::
 
  strategic_model = create_model(df_sets, df_parameters)
  results = opt.solve(strategic_model, tee=True)
- [model, results] = generate_report(strategic_model, is_print=[PrintValues.Detailed], fname="..\\..\\PARETO_report.xlsx")
+ [model, results] = generate_report(strategic_model, is_print=PrintValues.Detailed, fname="..\\..\\PARETO_report.xlsx")
 
 
 

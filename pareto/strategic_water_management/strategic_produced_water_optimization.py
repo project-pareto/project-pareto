@@ -76,19 +76,6 @@ class RemovalEfficiencyMethod(Enum):
 # create config dictionary
 CONFIG = ConfigBlock()
 CONFIG.declare(
-    "has_pipeline_constraints",
-    ConfigValue(
-        default=True,
-        domain=Bool,
-        description="build pipeline constraints",
-        doc="""Indicates whether holdup terms should be constructed or not.
-**default** - True.
-**Valid values:** {
-**True** - construct pipeline constraints,
-**False** - do not construct pipeline constraints}""",
-    ),
-)
-CONFIG.declare(
     "objective",
     ConfigValue(
         default=Objectives.cost,
@@ -135,7 +122,7 @@ CONFIG.declare(
         ***default*** - True
         **Valid Values:** - {
         **True** - Include network node capacity constraints,
-        **Fales** - Exclude network node capacity constraints
+        **False** - Exclude network node capacity constraints
         }""",
     ),
 )
@@ -153,9 +140,9 @@ CONFIG.declare(
         domain=In(WaterQuality),
         description="Water quality",
         doc="""Selection to include water quality
-        ***default*** - WaterQuality.continuous
+        ***default*** - WaterQuality.post_process
         **Valid Values:** - {
-        **WaterQuality.False** - Exclude water quality from model,
+        **WaterQuality.false** - Exclude water quality from model,
         **WaterQuality.post_process** - Include water quality as post process
         **WaterQuality.discrete** - Include water quality as discrete values in model
         }""",
@@ -5886,33 +5873,58 @@ def solve_discrete_water_quality(model, opt, scaled):
 
 
 def solve_model(model, options=None):
-    if options is None:
-        options = {
-            "deactivate_slacks": True,
-            "scale_model": False,
-            "scaling_factor": 1000000,
-            "running_time": 60,
-            "gap": 0,
-        }
-    # load pyomo solver
-    if "solver" not in options.keys():
-        opt = get_solver("gurobi_direct", "gurobi", "cbc")
-    else:
-        opt = get_solver(options["solver"])
+    # default option values
+    running_time = 60  # solver running time in seconds
+    gap = 0  # solver gap
+    deactivate_slacks = True  # yes/no to deactivate slack variables
+    use_scaling = False  # yes/no to scale the model
+    scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
+    solver = ("gurobi_direct", "gurobi", "cbc")  # solvers to try and load in order
+    gurobi_numeric_focus = 1
 
-    set_timeout(opt, timeout_s=options["running_time"])
+    # raise an exception if options is neither None nor a user-provided dictionary
+    if options is not None and not isinstance(options, dict):
+        raise Exception("options must either be None or a dictionary")
+
+    # Override any default values with user-specified options
+    if options is not None:
+        if "running_time" in options.keys():
+            running_time = options["running_time"]
+        if "gap" in options.keys():
+            gap = options["gap"]
+        if "deactivate_slacks" in options.keys():
+            deactivate_slacks = options["deactivate_slacks"]
+        if "scale_model" in options.keys():
+            # Note - we can't use "scale_model" as a local variable name because
+            # that is the name of the function that is called later to apply
+            # scaling to the model. So use "use_scaling" instead
+            use_scaling = options["scale_model"]
+        if "scaling_factor" in options.keys():
+            scaling_factor = options["scaling_factor"]
+        if "solver" in options.keys():
+            solver = options["solver"]
+        if "gurobi_numeric_focus" in options.keys():
+            gurobi_numeric_focus = options["gurobi_numeric_focus"]
+
+    # load pyomo solver
+    opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
+
+    # set maximum running time for solver
+    set_timeout(opt, timeout_s=running_time)
+
+    # set solver gap
     if opt.type in ("gurobi_direct", "gurobi"):
         # Apply Gurobi specific options
-        opt.options["mipgap"] = options["gap"]
-        opt.options["NumericFocus"] = 1
+        opt.options["mipgap"] = gap
+        opt.options["NumericFocus"] = gurobi_numeric_focus
     elif opt.type in ("cbc"):
         # Apply CBC specific option
-        opt.options["ratioGap"] = options["gap"]
-
+        opt.options["ratioGap"] = gap
     else:
         print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
-    if options["deactivate_slacks"] is True:
+    # deactivate slack variables if necessary
+    if deactivate_slacks:
         model.v_C_Slack.fix(0)
         model.v_S_FracDemand.fix(0)
         model.v_S_Production.fix(0)
@@ -5923,9 +5935,9 @@ def solve_model(model, options=None):
         model.v_S_TreatmentCapacity.fix(0)
         model.v_S_ReuseCapacity.fix(0)
 
-    if options["scale_model"] is True:
+    if use_scaling:
         # Step 1: scale model
-        scaled_model = scale_model(model, scaling_factor=options["scaling_factor"])
+        scaled_model = scale_model(model, scaling_factor=scaling_factor)
         # Step 2: solve scaled mathematical model
         print("\n")
         print("*" * 50)
@@ -5953,10 +5965,9 @@ def solve_model(model, options=None):
         # Step 4: propagate scaled model results to original model
         if results.solver.termination_condition != TerminationCondition.infeasible:
             # if model is optimal propagate scaled model results to original model
-            if options["scale_model"] is True:
-                TransformationFactory("core.scale_model").propagate_solution(
-                    scaled_model, model
-                )
+            TransformationFactory("core.scale_model").propagate_solution(
+                scaled_model, model
+            )
     else:
         # Step 1: solve unscaled mathematical model
         print("\n")
