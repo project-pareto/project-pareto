@@ -29,7 +29,9 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Objectives,
     scale_model,
     PipelineCost,
+    Hydraulics,
     PipelineCapacity,
+    pipeline_hydraulics,
     RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data, get_display_units
@@ -447,6 +449,78 @@ def build_reduced_strategic_model():
 
 
 @pytest.mark.unit
+def test_hydraulics_post_process_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.post_process,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    solver = get_solver("cbc")
+    results = solver.solve(m, tee=False)
+    mh = pipeline_hydraulics(m, solver)
+
+    assert isinstance(mh, pyo.ConcreteModel)
+    assert isinstance(mh.v_Pressure, pyo.Var)
+    assert isinstance(mh.v_PumpHead, pyo.Var)
+    assert isinstance(mh.v_ValveHead, pyo.Var)
+    assert isinstance(mh.p_HW_material_factor_pipeline, pyo.Param)
+    assert isinstance(mh.p_rhog, pyo.Param)
+    assert isinstance(mh.p_PumpingCost, pyo.Param)
+    assert isinstance(mh.p_WellPressure, pyo.Param)
+    assert isinstance(mh.p_effective_Pipeline_diameter, pyo.Param)
+    assert isinstance(mh.p_Min_AOP, pyo.Param)
+    assert isinstance(mh.p_Max_AOP, pyo.Param)
+    assert isinstance(mh.p_HW_loss, pyo.Param)
+    assert isinstance(mh.objective, pyo.Objective)
+    assert isinstance(mh.NodePressure, pyo.Constraint)
+    assert isinstance(mh.MAOPressure, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_hydraulics_co_optimize_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.co_optimize,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    solver = get_solver("cbc")
+    results = solver.solve(m, tee=False)
+    mh = pipeline_hydraulics(m, solver)
+
+    assert isinstance(mh, pyo.ConcreteModel)
+    assert isinstance(mh.v_Pressure, pyo.Var)
+    assert isinstance(mh.v_PumpHead, pyo.Var)
+    assert isinstance(mh.v_ValveHead, pyo.Var)
+    assert isinstance(mh.p_HW_material_factor_pipeline, pyo.Param)
+    assert isinstance(mh.p_rhog, pyo.Param)
+    assert isinstance(mh.p_PumpingCost, pyo.Param)
+    assert isinstance(mh.p_WellPressure, pyo.Param)
+    assert isinstance(mh.v_effective_Pipeline_diameter, pyo.Var)
+    assert isinstance(mh.p_Min_AOP, pyo.Param)
+    assert isinstance(mh.p_Max_AOP, pyo.Param)
+    assert isinstance(mh.v_HW_loss, pyo.Var)
+    assert isinstance(mh.objective, pyo.Objective)
+    assert isinstance(mh.HW_loss_equaltion, pyo.Constraint)
+    assert isinstance(mh.NodePressure, pyo.Constraint)
+    assert isinstance(mh.EffectiveDiameter, pyo.Constraint)
+    assert isinstance(mh.MAOPressure, pyo.Constraint)
+
+
+@pytest.mark.unit
 def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     build_reduced_strategic_model,
 ):
@@ -748,7 +822,6 @@ def build_modified_reduced_strategic_model():
         "CST",
         "CCT",
         "CKT",
-        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -756,10 +829,8 @@ def build_modified_reduced_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
-        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
-        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",

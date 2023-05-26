@@ -108,7 +108,7 @@ parameter_list = [
     "PipelineCapexCapacityBased",
     "PipelineCapacityIncrements",
     "PipelineExpansionDistance",
-    "PipelineExpansionDistance",
+    "Hydraulics",
     "Economics",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
@@ -121,7 +121,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo.xlsx",
+    "strategic_small_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -143,7 +143,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
-        "hydraulics": Hydraulics.false,
+        "hydraulics": Hydraulics.post_process,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,

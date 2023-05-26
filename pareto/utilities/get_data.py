@@ -352,7 +352,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "CST": "",
         "CCT": "",
         "CKT": "",
-        "Elevation": pyunits.foot,
+        "Elevation": user_units["elevation"],
         "CompletionsPadOutsideSystem": "",
         "DesalinationTechnologies": "",
         "DesalinationSites": "",
