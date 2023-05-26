@@ -340,7 +340,7 @@ def test_run_strategic_model(build_strategic_model):
     [model, results_dict] = generate_report(
         m,
         results,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
@@ -774,7 +774,7 @@ def test_water_quality_reduced_strategic_model_removal_concentration(
     [model, results_dict] = generate_report(
         m,
         results,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
@@ -934,7 +934,7 @@ def test_water_quality_reduced_strategic_model_removal_load(
     [model, results_dict] = generate_report(
         m,
         results,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
@@ -977,7 +977,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
     [model, results_dict] = generate_report(
         m,
         results,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
@@ -1378,7 +1378,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     # Test report building
     [model, results_dict] = generate_report(
         m,
-        is_print=[PrintValues.essential],
+        is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )

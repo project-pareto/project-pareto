@@ -232,8 +232,8 @@ def get_data(fname, set_list, parameter_list):
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
 
-    Similarly, the Set for Water Quality Index "model.s_W" is derived by the method based
-    on the Parameter: PadWaterQuality which is indexed by W
+    Similarly, the Set for Water Quality Index "model.s_QC" is derived by the method based
+    on the Parameter: PadWaterQuality which is indexed by QC
     """
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters, data_column] = _read_data(
