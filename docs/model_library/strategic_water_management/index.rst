@@ -701,7 +701,7 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
 **Pipeline Capacity Construction/Expansion:**
 
 Sets the flow capacity in a given pipeline during a given time period. The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
-Different constraints apply based on whether a pipeline is allowed to reverse flows at any time. Thus, the following constraints apply for all pipelines that allow reversible flows.
+Different constraints apply based on whether a pipeline is allowed to reverse flows at any time. Thus, the following constraint applies to all pipelines that allow reversible flows:
 
 :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, \textcolor{blue}{(\tilde{l}, l) \in LLA}, [\textcolor{blue}{t \in T}]`
 
@@ -709,7 +709,7 @@ Different constraints apply based on whether a pipeline is allowed to reverse fl
 
     \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}+\textcolor{green}{\sigma_{\tilde{l}, l}^{Pipeline}}+\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot (\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{y_{\tilde{l},l,d}^{Pipeline}} )+\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
 
-The following constraints apply, if the pipelines do not allow reversible flows. In the code, this condition is implemented using an `if` loop
+The following constraint applies to all pipelines that do not allow reversible flows:
 
 :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, [\textcolor{blue}{t \in T}]`
 
@@ -721,9 +721,9 @@ The following constraints apply, if the pipelines do not allow reversible flows.
 
     While popuplating the input data into the spreadsheet for initial pipeline capacities, users must use the following guidelines.
 
-    1. For unidirectional pipelines, the initial pipeline capacity must be populated only in the direction of flow else, it will be ignored by the model.
+    1. For uni-directional pipelines, the initial pipeline capacity must be populated only in the direction of flow else, it will be ignored by the model.
 
-    2. For bi-directional pipelines, the initial pipeline capacity can be populated in only one direction of flow and not both. The pipeline capacities will be aggregated for either direction.
+    2. For bi-directional pipelines, the initial pipeline capacity should be populated for only one of the allowable flow directions, not both. As the pipeline capacities will be aggregated for either direction so, the choice of direction for population the capacity is irrelevant.
 
 .. note::
 
