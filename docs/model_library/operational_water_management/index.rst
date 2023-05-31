@@ -151,13 +151,13 @@ Operational Model Mathematical Notation
 
 **If the production tanks are separate, water level and water drainage are tracked at each individual production tank:**
 
-    :math:`\textcolor{red}{F_{p,a,t}^{DrainF}}` =                       Produced water drained from production tank
+    :math:`\textcolor{red}{F_{p,a,t}^{Drain}}` =                       Produced water drained from production tank
 
-    :math:`\textcolor{red}{L_{p,a,t}^{ProdTankL}}` =                   Water level in production tank at the end of time period t
+    :math:`\textcolor{red}{L_{p,a,t}^{ProdTank}}` =                   Water level in production tank at the end of time period t
 
 **Otherwise, if the production tanks are equalized, the water level and water drainage can be aggregated to a pad level:**
 
-    :math:`\textcolor{red}{F_{p,t}^{DrainF}}` =                           Produced water drained from equalized production tanks
+    :math:`\textcolor{red}{F_{p,t}^{Drain}}` =                           Produced water drained from equalized production tanks
 
     :math:`\textcolor{red}{L_{p,t}^{ProdTank}}` =                       Water level in equalized production tanks at the end of time period t
 

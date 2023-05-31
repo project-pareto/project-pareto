@@ -1944,17 +1944,25 @@ def create_model(df_sets, df_parameters, default={}):
         if t == model.s_T.first():
             return model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + sum(
                 model.v_F_Piped[l, s, t] for l in model.s_L if model.p_LLA[l, s]
+            ) + sum(
+                model.v_F_Trucked[l, s, t] for l in model.s_L if model.p_LLT[l, s]
+            ) - sum(
+                model.v_F_Piped[s, l, t] for l in model.s_L if model.p_LLA[s, l]
+            ) - sum(
+                model.v_F_Trucked[s, l, t] for l in model.s_L if model.p_LLT[s, l]
             )
-            +sum(model.v_F_Trucked[l, s, t] for l in model.s_L if model.p_LLT[l, s])
-            -sum(model.v_F_Piped[s, l, t] for l in model.s_L if model.p_LLA[s, l])
-            -sum(model.v_F_Trucked[s, l, t] for l in model.s_L if model.p_LLT[s, l])
         else:
             return model.v_L_Storage[s, t] == model.v_L_Storage[
                 s, model.s_T.prev(t)
-            ] + sum(model.v_F_Piped[l, s, t] for l in model.s_L if model.p_LLA[l, s])
-            +sum(model.v_F_Trucked[l, s, t] for l in model.s_L if model.p_LLT[l, s])
-            -sum(model.v_F_Piped[s, l, t] for l in model.s_L if model.p_LLA[s, l])
-            -sum(model.v_F_Trucked[s, l, t] for l in model.s_L if model.p_LLT[s, l])
+            ] + sum(
+                model.v_F_Piped[l, s, t] for l in model.s_L if model.p_LLA[l, s]
+            ) + sum(
+                model.v_F_Trucked[l, s, t] for l in model.s_L if model.p_LLT[l, s]
+            ) - sum(
+                model.v_F_Piped[s, l, t] for l in model.s_L if model.p_LLA[s, l]
+            ) - sum(
+                model.v_F_Trucked[s, l, t] for l in model.s_L if model.p_LLT[s, l]
+            )
 
     model.StorageSiteBalance = Constraint(
         model.s_S,
