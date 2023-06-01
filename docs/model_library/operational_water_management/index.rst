@@ -471,18 +471,27 @@ If there are individual production tanks, the water level must be tracked at eac
 
 For individual production tanks: :math:`\forall (p,a) \in PAL, t \in T`
 
+For :math:`t = 1`:
+
 .. math::
+    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
-    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
+For :math:`t > 1`:
 
+.. math::
+    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
 For equalized production tanks: :math:`\forall p \in P, t \in T`
 
+For :math:`t = 1`:
+
 .. math::
+    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}-\textcolor{red}{F_{p,t}^{Drain}}
 
-    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,t=1}^{ProdTank}}+\textcolor{red}{L_{p,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}-\textcolor{red}{F_{p,t}^{Drain}}
+For :math:`t > 1`:
 
-
+.. math::
+    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{red}{L_{p,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}-\textcolor{red}{F_{p,t}^{Drain}}
 
 **Production Tank Capacity:**
 
@@ -579,7 +588,7 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
 
 
 
-**Bi-Directional Flow:** :math:`\forall (l,\tilde{l}) if (l,\tilde{l}) \in LLA and (\tilde{l}, l) \in LLA , t \in T`
+**Bi-Directional Flow:** :math:`\forall (l,\tilde{l}), \ t \in T` such that :math:`(l,\tilde{l}) \in LLA`, :math:`(\tilde{l}, l) \in LLA`, :math:`l \in L-F-O`, and :math:`\tilde{l} \in L - F`
 
 There can only be flow in one direction for a given pipeline arc in a given time period.
 
@@ -609,7 +618,6 @@ For :math:`t = 1`:
         + \sum_{l \in L | (l, s) \in LLT}\textcolor{red}{F_{l,s,t}^{Trucked}}
         - \sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
         - \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}
-        - \textcolor{red}{F_{s,t}^{StorageEvaporationStream}}
 
 For :math:`t > 1`:
 
@@ -621,7 +629,6 @@ For :math:`t > 1`:
         + \sum_{l \in L | (l, s) \in LLT}\textcolor{red}{F_{l,s,t}^{Trucked}}
         - \sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
         - \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}
-        - \textcolor{red}{F_{s,t}^{StorageEvaporationStream}}
 
 **Pipeline Capacity:**
 
@@ -639,7 +646,7 @@ For :math:`t > 1`:
 
 **Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, [\textcolor{blue}{t \in T}]`
 
-For :math:`(l,\tilde{l}) if (l,\tilde{l}) \in LLA and (\tilde{l}, l) \in LLA)`:
+:math:`\forall(l,\tilde{l})` if :math:`(l,\tilde{l}) \in LLA` and :math:`(\tilde{l}, l) \in LLA`:
 
 .. math::
 
@@ -650,13 +657,13 @@ For :math:`(l,\tilde{l}) if (l,\tilde{l}) \in LLA and (\tilde{l}, l) \in LLA)`:
         +\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
 
 
-For :math:`(l,\tilde{l}) if (l,\tilde{l}) \in LLA and (\tilde{l}, l) NOT \in LLA)`:
+:math:`\forall(l,\tilde{l})` if :math:`(l,\tilde{l}) \in LLA` and :math:`(\tilde{l}, l) \not\in LLA`:
 
 .. math::
 
     \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}}
         = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}
-        +\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot (\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}})
+        +\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
         +\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
 
 
