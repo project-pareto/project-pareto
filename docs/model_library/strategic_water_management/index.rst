@@ -723,7 +723,7 @@ The following constraint applies to all pipelines that do not allow reversible f
 
     1. For uni-directional pipelines, the initial pipeline capacity must be populated only in the direction of flow else, it will be ignored by the model.
 
-    2. For bi-directional pipelines, the initial pipeline capacity should be populated for only one of the allowable flow directions, not both. As the pipeline capacities will be aggregated for either direction so, the choice of direction for population the capacity is irrelevant.
+    2. For bi-directional pipelines, the initial pipeline capacity should be populated for only one of the allowable flow directions, not both. The pipeline capacities are aggregated for both directions, so the choice of direction for the capacity is irrelevant.
 
 .. note::
 
