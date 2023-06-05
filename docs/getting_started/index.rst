@@ -8,8 +8,7 @@ Installation
 
 To install the PARETO framework on Windows operating systems, follow the set of instructions below
 that are appropriate for your needs. If you need assistance please contact start a new discussion on
-our `GitHub Discussion form <https://github.com/project-pareto/project-pareto/discussions>`_ or send
-an email to `pareto-support@project-pareto.org <mailto: pareto-support@project-pareto.org>`_.
+our `GitHub Discussion forum <https://github.com/project-pareto/project-pareto/discussions>`_.
 
 Developer Role
 ^^^^^^^^^^^^^^
