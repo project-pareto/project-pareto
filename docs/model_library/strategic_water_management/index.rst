@@ -895,7 +895,7 @@ Total disposed volume over all time is the sum of all piped and trucked water to
         = \sum_{t \in T}\sum_{k \in K}\textcolor{red}{F_{k,t}^{DisposalDestination}}
 
 
-**Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+**Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{wt \in WT}, \textcolor{blue}{t \in T}`
 
 For each treatment site, for each time period, the treatment cost is equal to all water moved to the treatment site multiplied by the operational treatment cost. The total treatments cost is the sum of treatment costs over all time periods and all treatment sites.
 
@@ -906,6 +906,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
         - \textcolor{green}{M^{Flow}}
         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}}))
+        \cdot \textcolor{green}{\pi_{r, wt}^{Treatment}}
 
 .. math::
 
@@ -914,6 +915,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
         + \textcolor{green}{M^{Flow}}
         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}}))
+        \cdot \textcolor{green}{\pi_{r, wt}^{Treatment}}
 
 .. math::
     \textcolor{red}{C^{TotalTreatment}} = \sum_{t \in T}\sum_{r \in R}\textcolor{red}{C_{r,t}^{Treatment}}
@@ -935,7 +937,7 @@ Completions reuse water is all water that meets completions pad demand, excludin
 
 .. math::
 
-    \textcolor{red}{C^{TotalReuse}} = \sum_{t \in T}\sum_{p \in CP}\textcolor{red}{C_{p,t}^{Reuse}}
+    \textcolor{red}{C^{TotalCompletionsReuse}} = \sum_{t \in T}\sum_{p \in CP}\textcolor{red}{C_{p,t}^{Reuse}}
 
 
 **Total Completions Reuse Volume:**
