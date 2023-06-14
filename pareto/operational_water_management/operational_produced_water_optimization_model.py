@@ -583,6 +583,22 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["volume_time"],
             doc="Produced water supply forecast [volume/time]",
         )
+        model.p_beta_Flowback = Param(
+            model.s_P,
+            model.s_A,
+            model.s_T,
+            default=0,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=model.user_units["volume_time"],
+                    to_units=model.model_units["volume_time"],
+                )
+                for key, value in model.df_parameters["TankFlowbackRates"].items()
+            },
+            units=model.model_units["volume_time"],
+            doc="Flowback supply forecast for a completions pad [volume/time]",
+        )
         model.p_sigma_ProdTank = Param(
             model.s_P,
             model.s_A,
@@ -618,6 +634,21 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["volume_time"],
             doc="Produced water supply forecast [volume/time]",
         )
+        model.p_beta_Flowback = Param(
+            model.s_P,
+            model.s_T,
+            default=0,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=model.user_units["volume_time"],
+                    to_units=model.model_units["volume_time"],
+                )
+                for key, value in model.df_parameters["FlowbackRates"].items()
+            },
+            units=model.model_units["volume_time"],
+            doc="Flowback supply forecast for a completions pad [volume/time]",
+        )
         model.p_sigma_ProdTank = Param(
             model.s_P,
             default=pyunits.convert_value(
@@ -639,21 +670,6 @@ def create_model(df_sets, df_parameters, default={}):
     else:
         raise Exception("storage type not supported")
 
-    model.p_beta_Flowback = Param(
-        model.s_P,
-        model.s_T,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["FlowbackRates"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Flowback supply forecast for a completions pad [volume/time]",
-    )
     model.p_sigma_Pipeline = Param(
         model.s_L,
         model.s_L,
@@ -1701,6 +1717,7 @@ def create_model(df_sets, df_parameters, default={}):
                             model.v_L_ProdTank[p, a, t]
                             == model.p_lambda_ProdTank[p, a]
                             + model.p_beta_Production[p, a, t]
+                            + model.p_beta_Flowback[p, a, t]
                             - model.v_F_Drain[p, a, t]
                         )
                     else:
@@ -1714,6 +1731,7 @@ def create_model(df_sets, df_parameters, default={}):
                             model.v_L_ProdTank[p, a, t]
                             == model.v_L_ProdTank[p, a, model.s_T.prev(t)]
                             + model.p_beta_Production[p, a, t]
+                            + model.p_beta_Flowback[p, a, t]
                             - model.v_F_Drain[p, a, t]
                         )
                     else:

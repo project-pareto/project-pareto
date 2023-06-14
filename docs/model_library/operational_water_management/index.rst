@@ -242,6 +242,8 @@ Operational Model Mathematical Notation
 
     :math:`\textcolor{green}{\beta_{p,a,t}^{Production}}` =                Produced water supply forecast for a production pad
 
+    :math:`\textcolor{green}{\beta_{p,a,t}^{Flowback}}` =                Flowback water supply forecast for a completions pad
+
     :math:`\textcolor{green}{\sigma_{p,a}^{ProdTank}}` =                       Production tank capacity
 
     :math:`\textcolor{green}{\lambda_{p,a}^{ProdTank}}` =                        Initial water level in production tank
@@ -250,12 +252,12 @@ Operational Model Mathematical Notation
 
     :math:`\textcolor{green}{\beta_{p,t}^{Production}}` =                   Produced water supply forecast for a production pad
 
+    :math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =                           Flowback supply forecast for a completions pad
+
     :math:`\textcolor{green}{\sigma_{p}^{ProdTank}}` =                       Combined capacity of equalized production tanks
 
     :math:`\textcolor{green}{\lambda_{p}^{ProdTank}}` =                      Initial water level in equalized production tanks
 
-
-:math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =                           Flowback supply forecast for a completions pad
 
 :math:`\textcolor{green}{\sigma_{l,l}^{Pipeline}}` =                           Daily pipeline capacity between two locations
 
@@ -474,24 +476,24 @@ For individual production tanks: :math:`\forall (p,a) \in PAL, t \in T`
 For :math:`t = 1`:
 
 .. math::
-    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
+    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}+\textcolor{green}{\beta_{p,a,t}^{Flowback}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
 For :math:`t > 1`:
 
 .. math::
-    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
+    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}+\textcolor{green}{\beta_{p,a,t}^{Flowback}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
 For equalized production tanks: :math:`\forall p \in P, t \in T`
 
 For :math:`t = 1`:
 
 .. math::
-    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}-\textcolor{red}{F_{p,t}^{Drain}}
+    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}+\textcolor{green}{\beta_{p,t}^{Flowback}}-\textcolor{red}{F_{p,t}^{Drain}}
 
 For :math:`t > 1`:
 
 .. math::
-    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{red}{L_{p,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}-\textcolor{red}{F_{p,t}^{Drain}}
+    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{red}{L_{p,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}+\textcolor{green}{\beta_{p,t}^{Flowback}}-\textcolor{red}{F_{p,t}^{Drain}}
 
 **Production Tank Capacity:**
 
@@ -571,7 +573,7 @@ All flowback water must be accounted for.  For each completions pad and for each
 
 .. math::
 
-    \textcolor{green}{\beta_{p,t}^{Flowback}}
+    \textcolor{red}{B_{p,t}^{Production}}
         = \sum_{l \in L | (p, l) \in LLA}\textcolor{red}{F_{p,l,t}^{Piped}}
         + \sum_{l \in L | (p, l) \in LLT}\textcolor{red}{F_{p,l,t}^{Trucked}}
         + \textcolor{red}{S_{p,t}^{Flowback}}

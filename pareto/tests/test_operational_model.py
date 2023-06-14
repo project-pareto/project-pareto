@@ -74,6 +74,7 @@ def build_operational_model():
         "PAL",
         "CompletionsDemand",
         "PadRates",
+        "TankFlowbackRates",
         "FlowbackRates",
         "ProductionTankCapacity",
         "DisposalCapacity",
@@ -216,6 +217,26 @@ def test_run_operational_model(build_operational_model):
     assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
     assert pytest.approx(0.993, abs=1e-6) == pyo.value(
         m.v_F_Trucked["PP04", "CP01", "T1"]
+    )
+
+
+@pytest.mark.component
+def test_run_operational_model_ProdTank_individual(build_operational_model):
+    m = build_operational_model(
+        config_dict={
+            "has_pipeline_constraints": True,
+            "production_tanks": ProdTank.individual,
+            "water_quality": WaterQuality.false,
+        },
+    )
+    results = solver.solve(m, tee=True)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 175
+    # solutions obtained from running the generic case study
+    assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
+    assert pytest.approx(0.500, abs=1e-6) == pyo.value(
+        m.v_F_Trucked["CP01", "K01", "T5"]
     )
 
     # To DO:
