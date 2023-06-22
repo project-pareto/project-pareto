@@ -178,6 +178,13 @@ def generate_report(
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_R_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Credit For Sending Water to Beneficial Reuse",
+                )
+            ],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [

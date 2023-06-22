@@ -63,15 +63,23 @@ parameter_list = [
     "RSA",
     "SCA",
     "SNA",
+    "ROA",
+    "SOA",
+    "NOA",
     "PCT",
     "PKT",
     "FCT",
     "CST",
     "CCT",
     "CKT",
+    "RST",
+    "ROT",
+    "SOT",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "DesalinationBrineReuse",
+    "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
@@ -80,6 +88,7 @@ parameter_list = [
     "InitialPipelineCapacity",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
+    "ReuseCapacity",
     "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
@@ -116,7 +125,7 @@ parameter_list = [
 # note the double backslashes '\\' in that path reference
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
