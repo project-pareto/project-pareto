@@ -698,14 +698,32 @@ Flow capacity constraint. For each pipeline node and for each time period, the v
         \leq \textcolor{green}{\sigma_{n}^{Node}}
 
 
-**Pipeline Capacity Construction/Expansion:** :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, [\textcolor{blue}{t \in T}]`
+**Pipeline Capacity Construction/Expansion:**
 
-Sets the flow capacity in a given pipeline during a given time period. The following constraint assumes that all pipelines may allow reversible flows. Also, an inherrent assumption is that there can be a maximum of 2 pipelines between any 2 nodes.
-The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
+Sets the flow capacity in a given pipeline during a given time period. The set :math:`\textcolor{blue}{D}` should also include the 0th case (e.g. 0 bbl/day) that indicates the choice to not expand capacity.
+Different constraints apply based on whether a pipeline is allowed to reverse flows at any time. Thus, the following constraint applies to all pipelines that allow reversible flows:
+
+:math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, \textcolor{blue}{(\tilde{l}, l) \in LLA}, [\textcolor{blue}{t \in T}]`
 
 .. math::
 
-    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}+\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot (\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{y_{\tilde{l},l,d}^{Pipeline}} )+\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
+    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}+\textcolor{green}{\sigma_{\tilde{l}, l}^{Pipeline}}+\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot (\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{y_{\tilde{l},l,d}^{Pipeline}} )+\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
+
+The following constraint applies to all pipelines that do not allow reversible flows:
+
+:math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}, [\textcolor{blue}{t \in T}]`
+
+.. math::
+
+    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}+\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
+
+.. note::
+
+    While popuplating the input data into the spreadsheet for initial pipeline capacities, users must use the following guidelines.
+
+    1. For uni-directional pipelines, the initial pipeline capacity must be populated only in the direction of flow else, it will be ignored by the model.
+
+    2. For bi-directional pipelines, the initial pipeline capacity should be populated for only one of the allowable flow directions, not both. The pipeline capacities are aggregated for both directions, so the choice of direction for the capacity is irrelevant.
 
 .. note::
 

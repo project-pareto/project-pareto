@@ -2414,20 +2414,36 @@ def create_model(df_sets, df_parameters, default={}):
 
     def PipelineCapacityExpansionRule(model, l, l_tilde):
         if (l, l_tilde) in model.s_LLA:
-            constraint = (
-                model.v_F_Capacity[l, l_tilde]
-                == model.p_sigma_Pipeline[l, l_tilde]
-                + sum(
-                    model.p_delta_Pipeline[d]
-                    * (
-                        model.vb_y_Pipeline[l, l_tilde, d]
-                        + model.vb_y_Pipeline[l_tilde, l, d]
+            if (l_tilde, l) in model.s_LLA:
+                # i.e., if the pipeline is defined as birectional then the aggregated capacity is available in both directions
+                constraint = (
+                    model.v_F_Capacity[l, l_tilde]
+                    == model.p_sigma_Pipeline[l, l_tilde]
+                    + model.p_sigma_Pipeline[l_tilde, l]
+                    + sum(
+                        model.p_delta_Pipeline[d]
+                        * (
+                            model.vb_y_Pipeline[l, l_tilde, d]
+                            + model.vb_y_Pipeline[l_tilde, l, d]
+                        )
+                        for d in model.s_D
                     )
-                    for d in model.s_D
+                    + model.v_S_PipelineCapacity[l, l_tilde]
                 )
-                + model.v_S_PipelineCapacity[l, l_tilde]
-            )
-            return process_constraint(constraint)
+                return process_constraint(constraint)
+            else:
+                # i.e., if the pipeline is defined as unirectional then the capacity is only available in the defined direction
+                constraint = (
+                    model.v_F_Capacity[l, l_tilde]
+                    == model.p_sigma_Pipeline[l, l_tilde]
+                    + sum(
+                        model.p_delta_Pipeline[d] * model.vb_y_Pipeline[l, l_tilde, d]
+                        for d in model.s_D
+                    )
+                    + model.v_S_PipelineCapacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
+
         else:
             return Constraint.Skip
 
