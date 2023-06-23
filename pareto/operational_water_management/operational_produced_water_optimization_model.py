@@ -33,8 +33,6 @@ from pyomo.core.base.constraint import simple_constraint_rule
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum
 
-import time
-
 
 class ProdTank(Enum):
     individual = 0
