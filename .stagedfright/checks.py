@@ -28,7 +28,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/tests/test_operational_model.py": 15,
     "pareto/utilities/get_data.py": 24,
     "pareto/utilities/results.py": 194,
-    "pareto/tests/test_strategic_model.py": 54,
+    "pareto/tests/test_strategic_model.py": 81,
     "pareto/tests/test_solvers.py": 31,
     "pareto/tests/test_plot_scatter.py": 8,
     "pareto/tests/test_plot_sankey.py": 3,
