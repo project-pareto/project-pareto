@@ -18,6 +18,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
+    RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -33,7 +34,6 @@ from importlib import resources
 # Tabs in the input Excel spreadsheet
 set_list = [
     "ProductionPads",
-    "ProductionTanks",
     "CompletionsPads",
     "SWDSites",
     "FreshwaterSources",
@@ -114,6 +114,12 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
+"""By default, PARETO comes with the following 4 strategic case studies:
+strategic_treatment_demo.xlsx
+strategic_permian_demo.xlsx
+strategic_small_case_study.xlsx
+strategic_toy_case_study.xlsx
+"""
 with resources.path(
     "pareto.case_studies",
     "strategic_treatment_demo.xlsx",
@@ -127,6 +133,7 @@ with resources.path(
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
+ removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
  """
 
 strategic_model = create_model(
@@ -138,6 +145,7 @@ strategic_model = create_model(
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
+        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     },
 )
 
@@ -145,7 +153,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 60,
+    "running_time": 100,
     "gap": 0,
 }
 
@@ -167,7 +175,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
 [model, results_dict] = generate_report(
     strategic_model,
     results_obj=results,
-    is_print=[PrintValues.essential],
+    is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )

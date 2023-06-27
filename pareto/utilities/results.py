@@ -66,9 +66,9 @@ class OutputUnits(Enum):
 def generate_report(
     model,
     results_obj=None,
-    is_print=[],
+    is_print=None,
     output_units=OutputUnits.user_units,
-    fname=None,
+    fname="PARETO_report.xlsx",
 ):
     """
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
@@ -81,11 +81,11 @@ def generate_report(
     printing_list = []
 
     if model.type == "strategic":
-        if len(is_print) == 0:
+        if is_print is None:
             printing_list = []
         else:
             # PrintValues.detailed: Slacks values included, Same as "All"
-            if is_print[0].value == 0:
+            if is_print == PrintValues.detailed:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -122,7 +122,7 @@ def generate_report(
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
-            elif is_print[0].value == 1:
+            elif is_print == PrintValues.nominal:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -139,11 +139,13 @@ def generate_report(
                 ]
 
             # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-            elif is_print[0].value == 2:
+            elif is_print == PrintValues.essential:
                 printing_list = ["v_F_Overview"]
 
             else:
-                raise Exception("Report {0} not supported".format(is_print))
+                raise Exception(
+                    f"generate_report: {is_print} not supported for `is_print` argument"
+                )
 
         headers = {
             "v_F_Overview_dict": [("Variable Name", "Documentation", "Unit", "Total")],
@@ -616,11 +618,11 @@ def generate_report(
                 )
 
     elif model.type == "operational":
-        if len(is_print) == 0:
+        if is_print is None:
             printing_list = []
         else:
             # PrintValues.detailed: Slacks values included, Same as "All"
-            if is_print[0].value == 0:
+            if is_print == PrintValues.detailed:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -660,7 +662,7 @@ def generate_report(
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage
-            elif is_print[0].value == 1:
+            elif is_print == PrintValues.nominal:
                 printing_list = [
                     "v_F_Piped",
                     "v_F_Trucked",
@@ -678,7 +680,7 @@ def generate_report(
                 ]
 
             # PrintValues.essential: Just message about slacks, "Check detailed results", Overview, Economics, KPIs
-            elif is_print[0].value == 2:
+            elif is_print == PrintValues.essential:
                 printing_list = ["v_F_Overview"]
 
             else:
@@ -1127,14 +1129,14 @@ def generate_report(
         )
 
     # Creating the Excel report
-    if fname is None:
-        fname = "PARETO_report.xlsx"
-
-    with pd.ExcelWriter(fname) as writer:
-        for i in headers:
-            df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
-            df.fillna("")
-            df.to_excel(writer, sheet_name=i[: -len("_dict")], index=False, startrow=1)
+    if fname is not None:
+        with pd.ExcelWriter(fname) as writer:
+            for i in headers:
+                df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
+                df.fillna("")
+                df.to_excel(
+                    writer, sheet_name=i[: -len("_dict")], index=False, startrow=1
+                )
 
     return model, headers
 
@@ -1358,6 +1360,9 @@ def handle_time(variable, input_data):
             if (
                 "time_period" in input_data.keys()
             ):  # Checks if user passes in specific time periods they want used in the diagram, if none passed in then it returns original list
+                time_var.append(
+                    variable[0]
+                )  # plot_sankey assumes that the first entry of the returned list is a tuple of headers, so to begin, append it to time_var
                 for y in variable[1:]:
                     if y[-2] in input_data["time_period"]:
                         time_var.append((y))
@@ -1560,7 +1565,7 @@ def plot_bars(input_data, args):
             "Input data is not valid. Provide a pareto_var assigned to the key pareto_var"
         )
 
-    # Give group_by a value of None/"" if it is not provided
+    # Give group_by a value of None if it is not provided
     if "group_by" not in args.keys():
         args["group_by"] = None
 

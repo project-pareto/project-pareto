@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 
 
 NAME = "project-pareto"
-VERSION = "0.7.dev0"
+VERSION = "0.8.dev0"
 
 
 setup(
@@ -71,10 +71,12 @@ setup(
         "pandas==1.2.*",
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
-        "idaes-pse",
+        # https://peps.python.org/pep-0440/#compatible-release
+        "idaes-pse ~= 2.0",
         "requests",
         "plotly==5.11.0",
         "kaleido",
+        "ipywidgets>=8.0.0",
     ],
     extras_require={
         "testing": [
