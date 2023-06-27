@@ -7,7 +7,7 @@ PARETO currently has the following Jupyter notebook demonstrations available:
 1. `Strategic model demo <https://github.com/project-pareto/project-pareto/blob/main/pareto/examples/strategic_model_general_demo/strategic_model_general_demo.ipynb>`_
 2. `Strategic model - treatment module and sensitivity analysis demo <https://github.com/project-pareto/project-pareto/blob/main/pareto/examples/strategic_model_treatment_module_demo/strategic_model_treatment_module_demo.ipynb>`_
 
-We encourange new PARETO users to download and run these Jupyter notebooks. Additional Jupyter notebook tutorials and examples are currently under development and will be added to the `examples directory <https://github.com/project-pareto/project-pareto/tree/main/pareto/examples>`_ of the PARETO repository when they are available. The above list will be updated as well.
+Users interested in utilizing PARETO programmatically by writing Python code can download and run these Jupyter notebooks. Additional Jupyter notebook tutorials and examples are currently under development and will be added to the `examples directory <https://github.com/project-pareto/project-pareto/tree/main/pareto/examples>`_ of the PARETO repository when they are available. The above list will be updated as well.
 
 PARETO is an open source project in collaboration with the `IDAES <https://idaes-pse.readthedocs.io/en/latest/>`_ and `WaterTAP <https://watertap.readthedocs.io/en/latest/>`_ projects. As such, the `IDAES tutorials <https://idaes-pse.readthedocs.io/en/latest/tutorials/tutorials_examples.html>`_ and `WaterTAP tutorials <https://watertap.readthedocs.io/en/latest/tutorials/index.html>`_ are good ancillary learning materials.
 
