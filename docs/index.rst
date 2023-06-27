@@ -64,6 +64,7 @@ Contents
     case_studies/index
     tutorials_examples/index
     utilities/index
+    onboarding_training/index
     faq
     license
     copyright
