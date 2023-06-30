@@ -69,3 +69,4 @@ Water Management Model Library
     operational_water_management/index
     strategic_water_management/index
     water_treatment/index
+    beneficial_reuse/index
