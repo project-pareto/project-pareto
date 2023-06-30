@@ -109,6 +109,8 @@ parameter_list = [
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
     "DisposalOperatingCapacity",
+    "AirEmissionCoefficients",
+    "TreatmentEmissionCoefficients",
 ]
 
 # user needs to provide the path to the case study data file
@@ -177,7 +179,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results.xlsx",
+    fname="strategic_optimization_results_bigger.xlsx",
 )
 
 # This shows how to read data from PARETO reports

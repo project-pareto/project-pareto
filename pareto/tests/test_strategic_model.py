@@ -138,6 +138,8 @@ def build_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -423,6 +425,8 @@ def build_reduced_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -782,6 +786,8 @@ def build_modified_reduced_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -983,6 +989,8 @@ def test_strategic_model_UI_display_units():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1079,6 +1087,8 @@ def build_toy_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1230,6 +1240,8 @@ def build_permian_demo_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
     ]
 
     # note the double backslashes '\\' in that path reference

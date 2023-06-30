@@ -119,6 +119,13 @@ def generate_report(
                     "v_S_TreatmentCapacity",
                     "v_S_ReuseCapacity",
                     "v_Q",
+                    "v_E_TotalTruckingHours",
+                    "v_E_TotalTruckingEmissions",
+                    "v_E_TotalPipeOperationEmissions",
+                    "v_E_TotalPipeInstallEmissions",
+                    "v_E_TotalDisposalEmissions",
+                    "v_E_TotalStorageEmissions",
+                    "v_E_TotalTreatmentEmissions",
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -380,6 +387,24 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_E_TotalTruckingEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalPipeOperationEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalPipeInstallEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalDisposalEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalStorageEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalTreatmentEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
