@@ -40,20 +40,20 @@ Beneficial reuse nodes, therefore, are indexed based on the type of material the
 
 .. math::
 
-    \sum_{l \in L | (l, o, m) \in LOA \cup LOT}F_{l,o,m,t} = F_{o,m,t}
+    \sum_{l \in L | (l, o) \in LOA \cup LOT}F_{l,o,t} = F_{o,t}
 
 .. math::
 
-    \sum_{l \in L | (l, o, m) \in LOA \cup LOT} F_{l,o,m,t} \cdot Q_{l,m,qc,t} = Q_{o,qc,m,t} \cdot F_{o,m,t}
+    \sum_{l \in L | (l, o) \in LOA \cup LOT} F_{l,o,t} \cdot Q_{l,qc,t} = Q_{o,qc,t} \cdot F_{o,t}
 
 .. math::
 
-   LOA = \{(l, o) \in LLA \ | \ o \in O,}
+   LOA = \\{(l, o) \in LLA \ | \ o \in O\\}
 
 .. math::
 
-   LRT = \{(l, o) \in LLT \ | \ o \in O}
- 
+   LRT = \\{(l, o) \in LLT \ | \ o \in O\\}
+
 
 where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of streams. The units of concentration are typically reported as mass/volume (mg/L, g/m\ :sup:`3`, kg/L, etc.) and the units of flow rate are reported in volume/time (e.g. bbl/week).
 
