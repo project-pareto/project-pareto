@@ -53,7 +53,7 @@ Beneficial reuse nodes, therefore, are indexed based on the type of material the
 .. math::
 
    LRT = \{(l, o) \in LLT \ | \ o \in O}
-
+ 
 
 where :math:`F` and :math:`Q` denotes the flow and quality (concentrations) of streams. The units of concentration are typically reported as mass/volume (mg/L, g/m\ :sup:`3`, kg/L, etc.) and the units of flow rate are reported in volume/time (e.g. bbl/week).
 
@@ -141,29 +141,20 @@ Surface discharge, on the other hand, refers to releasing treated water back int
 
 The specific levels for other contaminants like Total Organic Carbon (TOC) and Biochemical Oxygen Demand (BOD) are determined by state regulations based on the intended use of the water. For example, in Pennsylvania, the Department of Environmental Protection (DEP) defines approved planned potable uses for indirect potable reuse, such as surface water spreading (Class A) for augmentation or recharge to potable or non-potable water aquifers, and direct injection (Class A+) for augmentation or recharge to potable or non-potable water aquifers, or saltwater intrusion barriers. For detailed information on the exact contaminant limitations, you can refer to the Pennsylvania DEP website at: https://www.epa.gov/waterreuse/pennsylvania-treated-municipal-wastewater-potable-water-reuse.
 
-The application of produced water or wastewater for these purposes is growing in response to escalating water scarcity. It's a practice that necessitates comprehensive treatment, strict monitoring, and adherence to regulations to protect public health and the environment.
 
-
-======================================================
 Irrigation
 ======================================================
 
 
 Produced water is a potential alternative for irrigation, with broad applications such as crop cultivation, parkland maintenance, and other landscaping requirements.
-
 A valuable method for employing produced water in agricultural irrigation is by cultivating high-salinity-tolerant crops. This approach can greatly reduce the need for costly purified water, instead, allowing the blending of produced water with saline groundwater sources. There has been also ongoing research focuses on non-edible crops like cotton, alfalfa, and biofuel crops, where regulatory and permit-related issues may be more straightforward. 
-
-An additional benefit of treated produced water in agricultural applications is the potential presence of nitrogen. This nutrient is essential for plant growth and its inclusion in irrigation water could enhance crop productivity. 
-
-Nevertheless, a careful examination of contaminants' impact on soil health and exhaustive toxicology studies on these crops is crucial.
-
+An additional benefit of treated produced water in agricultural applications is the potential presence of nitrogen. This nutrient is essential for plant growth and its inclusion in irrigation water could enhance crop productivity. Nevertheless, a careful examination of contaminants' impact on soil health and exhaustive toxicology studies on these crops is crucial.
 Key parameters to monitor in crop cultivation include the Sodium Adsorption Ratio (SAR) and boron concentration. The SAR indicates potential sodium accumulation in the soil, while boron, though a necessary micronutrient, can be toxic to plants when present in high concentrations. Different crops exhibit different tolerance thresholds. For instance:
 
 - Cotton can tolerate SAR levels up to 10 and boron concentrations ranging from 0.2 to 1 ppm, with a Total Dissolved Solids (TDS) limit around 7,700 ppm.
 - Alfalfa can cope with SAR levels up to 10 and boron levels below 1 ppm, with a TDS limit approximately 2,000 ppm.
 
 The water needs for crops change based on regional evapotranspiration rates and the crop’s growth stage. Evapotranspiration (ET) is the process of water loss through soil surface evaporation and plant transpiration. Water needs peak during the crop development phase. Factors considered for ET calculations include crop coefficients (Kc), which express the water consumption rate of the crop compared to reference evapotranspiration.
-
 Typical water requirements for cotton and alfalfa crops are:
 
 - Cotton requires 20-40 inches of water throughout the growing season.
@@ -180,11 +171,8 @@ Produced water can be a potential resource for fulfilling livestock water requir
 
 Sulfates are another significant factor to consider in livestock water. High sulfate levels can adversely affect livestock health, particularly in ruminants, and may reduce copper availability in their diet. The recommended sulfate levels are below 500 ppm for calves and below 1,000 ppm for adult cattle.
 
-
 While specific data for pollutants in produced water is scant, we have access to regulations related to wastewater provided by the Environmental Protection Agency (EPA). These regulations are diverse among states, determined by whether the wastewater is from dairy or non-dairy livestock operations. 
-
 The contaminants commonly monitored include: Biochemical Oxygen Demand (BOD), Total Suspended Solids (TSS), Fecal coliform, Total Residual Chlorine (TRC), Turbidity, Chlorine, Nitrogen, Phosphorus and pH
-
 To delve deeper into the distinct water quality standards for utilizing wastewater in livestock watering across different states, the tool "ReuseXplorer - Regulations and End-Use Specifications Explorer" can be employed.
 
 
@@ -198,9 +186,7 @@ Direct Air Carbon Capture (DAC) Technology
 =======================================================================
 
 Produced water has the potential to be utilized in direct air carbon capture (DAC) technology. DAC offers flexibility in location, making it well-suited for proximity to oil regions and the utilization of produced water resources. 
-
 Solvent-based DAC methods, commonly used in the industry, require significant water for cooling due to heat generation during CO2 capture. Water consumption can range from 1 to 9 tonnes per tonne of CO2 captured, depending on local conditions.
-
 Water quality requirements for DAC systems resemble those for industrial cooling. However, considering the availability and quality of produced water sources is crucial for the viability and environmental benefits of DAC technology.
 
 
@@ -211,3 +197,9 @@ Water consumption in hydrogen production varies based on hydrogen type and cooli
 For green hydrogen production, the use of ultra-pure water is essential. This includes employing deionized and demineralized water to minimize the presence of cations such as Fe3+, Mg2+, Ca2+, Cu2+, and Na+ in proton exchange membrane (PEM) applications. These divalent ions can have detrimental effects on the hydrogen production process. Similarly, blue hydrogen production requires pure water with low total dissolved solids (TDS) to ensure efficient and smooth operation.
 
 It is crucial to consider the Department of Energy (DOE) target of producing green hydrogen for less than $1 per kilogram of hydrogen. In achieving this goal, the treatment and transportation of hypersaline brine to the hydrogen hub should not interfere with the DOE's objective.
+
+
+Solution Mining
+====================
+
+Solution mining employs the technique of dissolving water-soluble minerals found beneath the Earth's surface, such as potash, salt, and trona, using water circulated through drilled wells. An innovative strategy within this field utilizes heated brine rather than fresh water for preferential solution mining, specifically useful in selectively retrieving potassium chloride from sylvinite deposits. This process, however, is water-intensive, and can consume millions of cubic meters of water annually depending on the scale and size of the mining operation. For instance, potash mining could require 10-15 million cubic meters of water annually. Produced water could potentially serve as an alternative water source for this operation. However, its use must be carefully managed to prevent mine contamination, necessitating further research and careful regulation for sustainable implementation.
