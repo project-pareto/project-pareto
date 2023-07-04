@@ -40,7 +40,7 @@ from pyomo.core.expr.current import identify_variables
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
-from enum import Enum
+from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
@@ -70,6 +70,11 @@ class WaterQuality(Enum):
 class RemovalEfficiencyMethod(Enum):
     load_based = 0
     concentration_based = 1
+
+
+class TreatmentStreams(IntEnum):
+    treated_stream = 1
+    residual_stream = 2
 
 
 # create config dictionary
@@ -719,11 +724,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_parameters["DesalinationSites"],
         doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
-    model.p_chi_DesalinationBrineReuse = Param(
-        model.s_R,
-        initialize=model.df_parameters["DesalinationBrineReuse"],
-        doc="Binary parameter designating if the brine from a desalination site should be sent to reuse (1) or not (0)",
-    )
 
     # If p_chi_DesalinationSites was not specified for one or more r, raise an
     # Exception
@@ -736,30 +736,6 @@ def create_model(df_sets, df_parameters, default={}):
             "The parameter chi_DesalinationSites must be specified for every treatment site (missing: "
             + ", ".join(missing_desal_sites)
             + ")"
-        )
-
-    # Check that every desal site is included in p_chi_DesalinationBrineReuse
-    # and that no clean brine sites are incldued in p_chi_DesalinationBrineReuse
-    desal_sites_brine_not_specified = []
-    cb_sites_brine_specified = []
-    for r in model.s_R:
-        if model.p_chi_DesalinationSites[r]:
-            # r is a desal site
-            if r not in model.p_chi_DesalinationBrineReuse:
-                desal_sites_brine_not_specified.append(r)
-        else:
-            # r is a clean brine site
-            if r in model.p_chi_DesalinationBrineReuse:
-                cb_sites_brine_specified.append(r)
-    if desal_sites_brine_not_specified:
-        raise Exception(
-            "The parameter chi_DesalinationBrineReuse was not specified for the following desalination sites: "
-            + ", ".join(desal_sites_brine_not_specified)
-        )
-    if cb_sites_brine_specified:
-        raise Exception(
-            "The paramter chi_DesalinationBrineReuse was specified for the following clean brine sites: "
-            + ", ".join(cb_sites_brine_specified)
         )
 
     model.v_C_DisposalCapEx = Var(
@@ -2659,11 +2635,13 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = model.v_F_TreatedWater[r, t] == sum(
             model.v_F_Piped[r, l, t]
             for l in model.s_L
-            if (r, l) in model.s_LLA and model.df_parameters["LLA"][r, l] == 1
+            if (r, l) in model.s_LLA
+            and model.df_parameters["LLA"][r, l] == TreatmentStreams.treated_stream
         ) + sum(
             model.v_F_Trucked[r, l, t]
             for l in model.s_L
-            if (r, l) in model.s_LLT and model.df_parameters["LLT"][r, l] == 1
+            if (r, l) in model.s_LLT
+            and model.df_parameters["LLT"][r, l] == TreatmentStreams.treated_stream
         )
         return process_constraint(constraint)
 
@@ -2671,18 +2649,29 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R, model.s_T, rule=TreatedWaterBalanceRule, doc="Treated water balance"
     )
 
+    # Create a set of all treatment sites for which the residual stream should
+    # be modeled
+    treatment_sites_with_modeled_residual = {
+        org
+        for ((org, dest), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if org in model.s_R and value == TreatmentStreams.residual_stream
+    }
+
     def ResidualWaterBalanceRule(model, r, t):
-        # If a treatment site is for desalination and brine is reused from the
-        # site, then create constraint for the residual water. Otherwise, skip.
-        if model.p_chi_DesalinationSites[r] and model.p_chi_DesalinationBrineReuse[r]:
+        # If residual stream from a treatment site should be modeled, then
+        # create constraint for the residual water. Otherwise, skip.
+        if r in treatment_sites_with_modeled_residual:
             constraint = model.v_F_ResidualWater[r, t] == sum(
                 model.v_F_Piped[r, l, t]
                 for l in model.s_L
-                if (r, l) in model.s_LLA and model.df_parameters["LLA"][r, l] == 2
+                if (r, l) in model.s_LLA
+                and model.df_parameters["LLA"][r, l] == TreatmentStreams.residual_stream
             ) + sum(
                 model.v_F_Trucked[r, l, t]
                 for l in model.s_L
-                if (r, l) in model.s_LLT and model.df_parameters["LLT"][r, l] == 2
+                if (r, l) in model.s_LLT
+                and model.df_parameters["LLT"][r, l] == TreatmentStreams.residual_stream
             )
             return process_constraint(constraint)
         else:
