@@ -19,8 +19,8 @@ import os
 
 # third-party
 import pytest
-import yaml
 
+yaml = pytest.importorskip("yaml", reason="pyyaml not available")
 _ = pytest.importorskip("addheader", reason="addheader not available")
 from addheader.add import FileFinder, detect_files
 
