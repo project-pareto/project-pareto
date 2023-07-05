@@ -27,7 +27,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
-from plotly.offline import init_notebook_mode, iplot
+from plotly.offline import init_notebook_mode, iplot  # TODO remove this import
 
 import contextlib
 import sys
@@ -1492,10 +1492,8 @@ def plot_bars(input_data, args):
     date_time = False
     print_data = False
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
-    jupyter_notebook = False
 
-    if "output_file" not in args.keys() or args["output_file"] is None:
+    if "output_file" not in args.keys():
         figure_output = "first_bar.html"
     else:
         figure_output = args["output_file"]
@@ -1530,11 +1528,6 @@ def plot_bars(input_data, args):
         yaxis_type = "log"
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
-
-    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-        jupyter_notebook = False
-    else:
-        jupyter_notebook = args["jupyter_notebook"]
 
     # Check the type of variable passed in and assign labels/Check for time indexing
     if isinstance(variable, list):
@@ -1687,21 +1680,20 @@ def plot_bars(input_data, args):
                 print(df_time_sort)
 
         # Write the figure to html format and open in the browser
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False, auto_play=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False, auto_play=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
     else:
 
         # Create dataframe for use in the method
@@ -1757,21 +1749,22 @@ def plot_bars(input_data, args):
             ):
                 print(df_new_updated)
 
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def plot_scatter(input_data, args):
