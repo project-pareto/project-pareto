@@ -203,3 +203,7 @@ Solution Mining
 ====================
 
 Solution mining employs the technique of dissolving water-soluble minerals found beneath the Earth's surface, such as potash, salt, and trona, using water circulated through drilled wells. An innovative strategy within this field utilizes heated brine rather than fresh water for preferential solution mining, specifically useful in selectively retrieving potassium chloride from sylvinite deposits. This process, however, is water-intensive, and can consume millions of cubic meters of water annually depending on the scale and size of the mining operation. For instance, potash mining could require 10-15 million cubic meters of water annually. Produced water could potentially serve as an alternative water source for this operation. However, its use must be carefully managed to prevent mine contamination, necessitating further research and careful regulation for sustainable implementation.
+
+
+Resource  recovery
+====================
