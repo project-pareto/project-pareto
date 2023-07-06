@@ -30,6 +30,20 @@ def input_data():
     }
 
 
+@pytest.fixture(scope="module")
+def input_data_static():
+    set_list = []
+    parameter_list = ["test_plot_bar_static"]
+
+    with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+    return {
+        "pareto_var": df_parameters["test_plot_bar_static"],
+        "labels": [("Origin", "Destination", "Value")],
+    }
+
+
 @pytest.fixture
 def plot_args():
     return {
@@ -37,9 +51,34 @@ def plot_args():
         "output_file": "first_bar.html",
         "group_by": "Destination",
         "print_data": True,
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
+
+
+@pytest.fixture
+def plot_args_incorrect_file_format():
+    return {
+        "plot_title": "Test Data",
+        "output_file": "first_bar.htlm",
+        "group_by": "Destination",
+        "print_data": True,
+    }
 
 
 def test_plot_bars(input_data, plot_args):
     plot_bars(input_data, args=plot_args)
+
+
+def test_plot_bars_incorrect_file_format(input_data, plot_args_incorrect_file_format):
+    with pytest.raises(Exception):
+        plot_bars(input_data, args=plot_args_incorrect_file_format)
+
+
+def test_plot_bars_static(input_data_static, plot_args):
+    plot_bars(input_data_static, args=plot_args)
+
+
+def test_plot_bars_static_incorrect_file_format(
+    input_data_static, plot_args_incorrect_file_format
+):
+    with pytest.raises(Exception):
+        plot_bars(input_data_static, args=plot_args_incorrect_file_format)
