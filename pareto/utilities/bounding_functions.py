@@ -27,6 +27,13 @@ from pyomo.environ import (
 ###############################################################################
 ### Variable bounding manager functions
 def VariableBounds(model):
+    """
+    This function adds bounds to variables in an PARETO existing model object.
+    At present, the following variables are included:
+        > v_F_Piped
+        > v_Q
+        > v_F_Trucked (NOTE: this is to be included in a future revision, but requires a change within the PARETO Strategic model code)
+    """
     model = Bound_v_F_Piped(model)
     if model.config.water_quality is WaterQuality.post_process:
         model = Bound_v_Q_PP(model)
@@ -45,7 +52,7 @@ def VariableBounds(model):
 def Bound_v_F_Piped(model):
     # initialization function for parameter
     def p_F_Piped_UB_init(model, l, l_tilde):
-        # set default value to pieline capacity plus maximum expansion capacity
+        # set default value to pipeline capacity plus maximum expansion capacity
         return model.p_sigma_Pipeline[l, l_tilde] + max(
             [value(model.p_delta_Pipeline[d]) for d in model.s_D]
         )
@@ -97,6 +104,7 @@ def Bound_v_Q_PP(model):
         max([x.value for x in model.quality.p_nu_freshwater.values()]),
     )
 
+    """
     # Create a parameter with maximum quality values
     model.quality.p_Q_UB = Param(
         model.quality.s_WQL,
@@ -107,6 +115,7 @@ def Bound_v_Q_PP(model):
         # initialize=p_Q_UB_init,
         units=model.model_units["concentration"],
     )
+    """
     # Assign upper bounds to variables
     for l in model.quality.s_WQL:
         for w in model.s_QC:
@@ -134,7 +143,7 @@ def TryOrNone(par, ind):
 def Bound_v_F_DiscretePiped(model):
     # initialization function for parameter
     def p_F_DiscretePiped_UB_init(model, l, l_tilde):
-        # set default value to pieline capacity plus maximum expansion capacity
+        # set default value to pipeline capacity plus maximum expansion capacity
         return model.p_sigma_Pipeline[l, l_tilde] + max(
             [value(model.p_delta_Pipeline[d]) for d in model.s_D]
         )

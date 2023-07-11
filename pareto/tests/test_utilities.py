@@ -24,13 +24,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import (
-    generate_report,
-    PrintValues,
-    OutputUnits,
-    is_feasible,
-    nostdout,
-)
 from importlib import resources
 
 from pyomo.environ import value
