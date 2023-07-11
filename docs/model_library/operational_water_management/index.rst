@@ -94,6 +94,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{(s,o) \in SOA}`                                   Storage-to-beneficial reuse pipeline arcs
 
+:math:`\textcolor{blue}{(l,\tilde{l}) \in LLA}`     All valid pipeline arcs
 
 :math:`\textcolor{blue}{(p,p) \in PCT}`                                   Production-to-completions trucking arcs
 
@@ -121,15 +122,17 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{(r,k) \in RKT}`                                   Treatment-to-disposal trucking arcs
 
+:math:`\textcolor{blue}{(l,\tilde{l}) \in LLT}`     All valid trucking arcs
+
 :math:`\textcolor{blue}{(p,a) \in PAL}`                                   Pad-to-tank links
 
 
 
 **Continuous Variables**
 
-:math:`\textcolor{red}{F_{l,l,t}^{Piped}}` =                           Produced water piped from one location to another location
+:math:`\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}` =                           Produced water piped from one location to another location
 
-:math:`\textcolor{red}{F_{l,l,t}^{Trucked}}` =                           Produced water trucked from one location to another location
+:math:`\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}` =                           Produced water trucked from one location to another location
 
 :math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                         Fresh water sourced from source to completions
 
@@ -148,13 +151,13 @@ Operational Model Mathematical Notation
 
 **If the production tanks are separate, water level and water drainage are tracked at each individual production tank:**
 
-    :math:`\textcolor{red}{F_{p,a,t}^{DrainF}}` =                       Produced water drained from production tank
+    :math:`\textcolor{red}{F_{p,a,t}^{Drain}}` =                       Produced water drained from production tank
 
-    :math:`\textcolor{red}{L_{p,a,t}^{ProdTankL}}` =                   Water level in production tank at the end of time period t
+    :math:`\textcolor{red}{L_{p,a,t}^{ProdTank}}` =                   Water level in production tank at the end of time period t
 
 **Otherwise, if the production tanks are equalized, the water level and water drainage can be aggregated to a pad level:**
 
-    :math:`\textcolor{red}{F_{p,t}^{DrainF}}` =                           Produced water drained from equalized production tanks
+    :math:`\textcolor{red}{F_{p,t}^{Drain}}` =                           Produced water drained from equalized production tanks
 
     :math:`\textcolor{red}{L_{p,t}^{ProdTank}}` =                       Water level in equalized production tanks at the end of time period t
 
@@ -166,9 +169,9 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{L_{p,t}^{PadStorage}}` =                           Water level in completions pad storage  at the end of time period t
 
-:math:`\textcolor{red}{C_{l,l,t}^{Piped}}` =                           Cost of piping produced water from one location to another location
+:math:`\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}` =                           Cost of piping produced water from one location to another location
 
-:math:`\textcolor{red}{C_{l,l,t}^{Trucked}}` =                           Cost of trucking produced water from one location to another location
+:math:`\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}` =                           Cost of trucking produced water from one location to another location
 
 :math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =                           Cost of sourcing fresh water from source to completions pad
 
@@ -211,7 +214,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{S_{p,t}^{Flowback}}` =                            Slack variable to process flowback water production
 
-:math:`\textcolor{red}{S_{l,l}^{Pipeline Capacity}}` =                 Slack variable to provide necessary pipeline capacity
+:math:`\textcolor{red}{S_{l,\tilde{l}}^{Pipeline Capacity}}` =                 Slack variable to provide necessary pipeline capacity
 
 :math:`\textcolor{red}{S_{s}^{StorageCapacity}}` =                     Slack variable to provide necessary storage capacity
 
@@ -226,7 +229,7 @@ Operational Model Mathematical Notation
 **Binary Variables**
 
 
-:math:`\textcolor{red}{y_{l,l,t}^{Flow}}` =                            Directional flow between two locations
+:math:`\textcolor{red}{y_{l,\tilde{l},t}^{Flow}}` =                            Directional flow between two locations
 
 :math:`\textcolor{red}{z_{p,t}^{PadStorage}}` =                        Completions pad storage use
 
@@ -239,6 +242,8 @@ Operational Model Mathematical Notation
 
     :math:`\textcolor{green}{\beta_{p,a,t}^{Production}}` =                Produced water supply forecast for a production pad
 
+    :math:`\textcolor{green}{\beta_{p,a,t}^{Flowback}}` =                Flowback water supply forecast for a completions pad
+
     :math:`\textcolor{green}{\sigma_{p,a}^{ProdTank}}` =                       Production tank capacity
 
     :math:`\textcolor{green}{\lambda_{p,a}^{ProdTank}}` =                        Initial water level in production tank
@@ -247,14 +252,14 @@ Operational Model Mathematical Notation
 
     :math:`\textcolor{green}{\beta_{p,t}^{Production}}` =                   Produced water supply forecast for a production pad
 
+    :math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =                           Flowback supply forecast for a completions pad
+
     :math:`\textcolor{green}{\sigma_{p}^{ProdTank}}` =                       Combined capacity of equalized production tanks
 
     :math:`\textcolor{green}{\lambda_{p}^{ProdTank}}` =                      Initial water level in equalized production tanks
 
 
-:math:`\textcolor{green}{\beta_{p,t}^{Flowback}}` =                           Flowback supply forecast for a completions pad
-
-:math:`\textcolor{green}{\sigma_{l,l}^{Pipeline}}` =                           Daily pipeline capacity between two locations
+:math:`\textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}` =                           Daily pipeline capacity between two locations
 
 :math:`\textcolor{green}{\sigma_{k}^{Disposal}}` =                           Daily disposal capacity at a disposal site
 
@@ -303,7 +308,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\theta_{p}^{PadStorage}}` =                        Terminal storage level at completions site
 
-:math:`\textcolor{green}{\lambda_{l,l}^{Pipeline}}` =                        Pipeline segment length
+:math:`\textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}` =                        Pipeline segment length
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                          Disposal operational cost
 
@@ -317,7 +322,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\rho_{s}^{Storage}}` =                           Storage withdrawal operational credit
 
-:math:`\textcolor{green}{\pi_{l,l}^{Pipeline}}` =                           Pipeline operational cost
+:math:`\textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}` =                           Pipeline operational cost
 
 :math:`\textcolor{green}{\pi_{l}^{Trucking}}` =                          Trucking hourly cost (by source)
 
@@ -365,13 +370,12 @@ The default objective function for this produced water operational model is to m
 
 .. math::
 
-    \textcolor{green}{\gamma_{p,t}^{Completions}}=\sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,p)\in PCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,p)\in SCA}\textcolor{red}{F_{l,l,t}^{Piped}}
+    \textcolor{green}{\gamma_{p,t}^{Completions}}
+        = \sum_{l \in (L-F) | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \sum_{f \in F | (f, p) \in LLA}\textcolor{red}{F_{f,p,t}^{Sourced}}
+        + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
 
-        +\sum\nolimits_{(p,c)\in CCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(f,p)\in FCA}\textcolor{red}{F_{l,l,t}^{Sourced}}
-
-        +\sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(f,p)\in FCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\textcolor{red}{F_{p,t}^{PadStorageOut}}-\textcolor{red}{F_{p,t}^{PadStorageIn}}+\textcolor{red}{S_{p,t}^{FracDemand}}
+        + \textcolor{red}{F_{p,t}^{PadStorageOut}} - \textcolor{red}{F_{p,t}^{PadStorageIn}} + \textcolor{red}{S_{p,t}^{FracDemand}}
 
 
 
@@ -410,7 +414,7 @@ For each freshwater source and each time period, the outgoing water from the fre
 
 .. math::
 
-      \sum\nolimits_{(f,p)\in FCA}\textcolor{red}{F_{l,l,t}^{Sourced}} +\sum\nolimits_{(f,p)\in FCT}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{green}{\sigma_{f,t}^{Freshwater}}
+      \sum\nolimits_{(f,p)\in FCA}\textcolor{red}{F_{l,\tilde{l},t}^{Sourced}} +\sum\nolimits_{(f,p)\in FCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \leq \textcolor{green}{\sigma_{f,t}^{Freshwater}}
 
 
 
@@ -420,9 +424,8 @@ For each completions pad and time period, the volume of water being trucked into
 
 .. math::
 
-    \sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(f,p)\in FCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{green}{\sigma_{p}^{Offloading,Pad}}
+    \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        \leq \textcolor{green}{\sigma_{p}^{Offloading,Pad}}
 
 
 
@@ -432,25 +435,25 @@ For each completions pad and time period, the volume of water (excluding freshwa
 
 .. math::
 
-    \sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,p)\in PCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,p)\in SCA}\textcolor{red}{F_{l,l,t}^{Piped}}
+    \sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(p,p)\in PCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(s,p)\in SCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
 
-        +\sum\nolimits_{(p,c)\in CCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
+        +\sum\nolimits_{(p,c)\in CCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}
 
-        +\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
+        +\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} +\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
 
 
 .. note:: This constraint has not actually been implemented yet.
 
 
 
-**Storage Site Truck Offloading Capacity:** :math:`\forall p \in S, t \in T`
+**Storage Site Truck Offloading Capacity:** :math:`\forall s \in S, t \in T`
 
 For each storage site and each time period, the volume of water being trucked into the storage site must be below the trucking offloading capacity for that storage site.
 
 .. math::
 
-    \sum\nolimits_{(p,s)\in PST}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(p,s)\in CST}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{green}{\sigma_{s}^{Offloading,Storage}}
-
+    \sum_{l \in L | (l, s) \in LLT}\textcolor{red}{F_{l,s,t}^{Trucked}}
+        \leq \textcolor{green}{\sigma_{s}^{Offloading,Storage}}
 
 
 **Storage Site Processing Capacity:** :math:`\forall s \in S, t \in T`
@@ -459,8 +462,9 @@ For each storage site and each time period, the volume of water being trucked in
 
 .. math::
 
-    \sum\nolimits_{(n,s)\in NSA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,s)\in PST}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(p,s)\in CST}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{green}{\sigma_{s}^{Processing,Storage}}
-
+    \sum_{l \in L | (l, s) \in LLA}\textcolor{red}{F_{l,s,t}^{Piped}}
+        + \sum_{l \in L | (l, s) \in LLT}\textcolor{red}{F_{l,s,t}^{Trucked}}
+        \leq \textcolor{green}{\sigma_{s}^{Processing,Storage}}
 
 
 **Production Tank Balance:**
@@ -469,18 +473,27 @@ If there are individual production tanks, the water level must be tracked at eac
 
 For individual production tanks: :math:`\forall (p,a) \in PAL, t \in T`
 
+For :math:`t = 1`:
+
 .. math::
+    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}+\textcolor{green}{\beta_{p,a,t}^{Flowback}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
-    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,a,t=1}^{ProdTank}}+\textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}-\textcolor{red}{F_{p,a,t}^{Drain}}
+For :math:`t > 1`:
 
+.. math::
+    \textcolor{red}{L_{p,a,t}^{ProdTank}} = \textcolor{red}{L_{p,a,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,a,t}^{Production}}+\textcolor{green}{\beta_{p,a,t}^{Flowback}}-\textcolor{red}{F_{p,a,t}^{Drain}}
 
 For equalized production tanks: :math:`\forall p \in P, t \in T`
 
+For :math:`t = 1`:
+
 .. math::
+    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,t=1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}+\textcolor{green}{\beta_{p,t}^{Flowback}}-\textcolor{red}{F_{p,t}^{Drain}}
 
-    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{green}{\lambda_{p,t=1}^{ProdTank}}+\textcolor{red}{L_{p,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}-\textcolor{red}{F_{p,t}^{Drain}}
+For :math:`t > 1`:
 
-
+.. math::
+    \textcolor{red}{L_{p,t}^{ProdTank}} = \textcolor{red}{L_{p,t-1}^{ProdTank}}+\textcolor{green}{\beta_{p,t}^{Production}}+\textcolor{green}{\beta_{p,t}^{Flowback}}-\textcolor{red}{F_{p,t}^{Drain}}
 
 **Production Tank Capacity:**
 
@@ -549,13 +562,10 @@ All produced water must be accounted for. For each production pad and for each t
 
 .. math::
 
-    \textcolor{red}{B_{p,t}^{Production}} = \sum\nolimits_{(p,n)\in PNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,p)\in PCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,p)\in PPA}\textcolor{red}{F_{l,l,t}^{Piped}}
-
-        +\sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(p,k)\in PKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(p,s)\in PST}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,r)\in PRT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\sum\nolimits_{(p,o)\in POT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\textcolor{red}{S_{p,t}^{Production}}
-
-
+    \textcolor{red}{B_{p,t}^{Production}}
+        = \sum_{l \in L | (p, l) \in LLA}\textcolor{red}{F_{p,l,t}^{Piped}}
+        + \sum_{l \in L | (p, l) \in LLT}\textcolor{red}{F_{p,l,t}^{Trucked}}
+        + \textcolor{red}{S_{p,t}^{Production}}
 
 **Completions Pad Supply Balance (i.e. Flowback Balance):** :math:`\forall p \in CP, t \in T`
 
@@ -563,10 +573,10 @@ All flowback water must be accounted for.  For each completions pad and for each
 
 .. math::
 
-    \textcolor{green}{\beta_{p,t}^{Flowback}} = \sum\nolimits_{(p,n)\in CNA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,c)\in CCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,l,t}^{Trucked}}+
-
-    \sum\nolimits_{(p,k)\in CKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(p,s)\in CST}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}} +\textcolor{red}{S_{p,t}^{Flowback}}
-
+    \textcolor{red}{B_{p,t}^{Production}}
+        = \sum_{l \in L | (p, l) \in LLA}\textcolor{red}{F_{p,l,t}^{Piped}}
+        + \sum_{l \in L | (p, l) \in LLT}\textcolor{red}{F_{p,l,t}^{Trucked}}
+        + \textcolor{red}{S_{p,t}^{Flowback}}
 
 
 **Network Node Balance:** :math:`\forall n \in N, t \in T`
@@ -575,15 +585,12 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
 
 .. math::
 
-    \sum\nolimits_{(p,n)\in PNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,n)\in CNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(\tilde{n},n)\in NNA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{red}{F_{l,l,t}^{Piped}}
-
-        = \sum\nolimits_{(n,\tilde{n})\in NNA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(n,k)\in NKA}\textcolor{red}{F_{l,l,t}^{Piped}}
-
-        +\sum\nolimits_{(n,r)\in NRA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,s)\in NSA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}}
+     \sum_{l \in L | (l, n) \in LLA}\textcolor{red}{F_{l,n,t}^{Piped}}
+            = \sum_{l \in L | (n, l) \in LLA}\textcolor{red}{F_{n,l,t}^{Piped}}
 
 
 
-**Bi-Directional Flow:** :math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,\ldots ,SOA}, t \in T`
+**Bi-Directional Flow:** :math:`\forall (l,\tilde{l}), \ t \in T` such that :math:`(l,\tilde{l}) \in LLA`, :math:`(\tilde{l}, l) \in LLA`, :math:`l \in L-F-O`, and :math:`\tilde{l} \in L - F`
 
 There can only be flow in one direction for a given pipeline arc in a given time period.
 
@@ -593,11 +600,9 @@ Flow is only allowed in a given direction if the binary indicator for that direc
 
     \textcolor{red}{y_{l,\tilde{l},t}^{Flow}}+\textcolor{red}{y_{\tilde{l},l,t}^{Flow}} = 1
 
-.. note:: Technically this constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
-
 .. math::
 
-    \textcolor{red}{F_{l,l,t}^{Piped}}\leq \textcolor{red}{y_{l,l,t}^{Flow}} \cdot \textcolor{green}{M^{Flow}}
+    \textcolor{red}{F_{l,\tilde{l},t}^{Piped}} \leq \textcolor{red}{y_{l,\tilde{l},t}^{Flow}} \cdot \textcolor{green}{M^{Flow}}
 
 
 
@@ -605,29 +610,57 @@ Flow is only allowed in a given direction if the binary indicator for that direc
 
 For each storage site and for each time period, if it is the first time period, the storage level is the initial storage. Otherwise, the storage level is equal to the storage level in the previous time period plus water inputs minus water outputs.
 
+For :math:`t = 1`:
+
 .. math::
 
-    \textcolor{red}{L_{s,t}^{Storage}} = \textcolor{green}{\lambda_{s,t=1}^{Storage}}+\textcolor{red}{L_{s,t-1}^{Storage}}+\sum\nolimits_{(n,s)\in NSA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,s)\in PST}\textcolor{red}{F_{l,l,t}^{Trucked}}
+    \textcolor{red}{L_{s,t}^{Storage}}
+        = \textcolor{green}{\lambda_{s,t=1}^{Storage}}
+        + \sum_{l \in L | (l, s) \in LLA}\textcolor{red}{F_{l,s,t}^{Piped}}
+        + \sum_{l \in L | (l, s) \in LLT}\textcolor{red}{F_{l,s,t}^{Trucked}}
+        - \sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
+        - \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}
 
-        +\sum\nolimits_{(p,s)\in CST}\textcolor{red}{F_{l,l,t}^{Trucked}}-\sum\nolimits_{(s,n)\in SNA}\textcolor{red}{F_{l,l,t}^{Piped}}-\sum\nolimits_{(s,p)\in SCA}\textcolor{red}{F_{l,l,t}^{Piped}}-\sum\nolimits_{(s,k)\in SKA}\textcolor{red}{F_{l,l,t}^{Piped}}
+For :math:`t > 1`:
 
-        -\sum\nolimits_{(s,r)\in SRA}\textcolor{red}{F_{l,l,t}^{Piped}}-\sum\nolimits_{(s,o)\in SOA}\textcolor{red}{F_{l,l,t}^{Piped}}-\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,l,t}^{Trucked}}-\sum\nolimits_{(s,k)\in SKT}\textcolor{red}{F_{l,l,t}^{Trucked}}
+.. math::
 
-
+    \textcolor{red}{L_{s,t}^{Storage}}
+        = \textcolor{red}{L_{s,t-1}^{Storage}}
+        + \sum_{l \in L | (l, s) \in LLA}\textcolor{red}{F_{l,s,t}^{Piped}}
+        + \sum_{l \in L | (l, s) \in LLT}\textcolor{red}{F_{l,s,t}^{Trucked}}
+        - \sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
+        - \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}
 
 **Pipeline Capacity:**
 
-:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,\ldots ,SOA}, [t \in T]`
+:math:`\forall (l,\tilde{l}) \in LLA, t \in T`
 
 .. math::
 
-    \textcolor{red}{F_{l,l,[t]}^{Capacity}} = \textcolor{green}{\sigma_{l,l}^{Pipeline}}+\textcolor{red}{S_{l,l}^{PipelineCapacity}}
+    \textcolor{red}{F_{l,\tilde{l},t}^{Piped}} \leq \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}}
 
-:math:`\forall (l,l) \in {PCA,PNA,PPA,CNA,NNA,NCA,NKA,NSA,NRA,\ldots ,SOA}, t \in T`
+**Pipeline Capacity Construction/Expansion:** :math:`\forall (l,\tilde{l}) \in LLA, [{t \in T}]`
+
+:math:`\forall(l,\tilde{l})` if :math:`(l,\tilde{l}) \in LLA` and :math:`(\tilde{l}, l) \in LLA`:
 
 .. math::
 
-    \textcolor{red}{F_{l,l,t}^{Piped}}\leq \textcolor{red}{F_{l,l,[t]}^{Capacity}}
+    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}}
+        = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}
+        + \textcolor{green}{\sigma_{\tilde{l},l}^{Pipeline}}
+        +\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot (\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{y_{\tilde{l},l,d}^{Pipeline}} )
+        +\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
+
+
+:math:`\forall(l,\tilde{l})` if :math:`(l,\tilde{l}) \in LLA` and :math:`(\tilde{l}, l) \not\in LLA`:
+
+.. math::
+
+    \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}}
+        = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}
+        +\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
+        +\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
 
 
 
@@ -663,19 +696,16 @@ The total disposed water in a given time period must be less than the capacity. 
 
 .. math::
 
-
-    \sum\nolimits_{(n,k)\in NKA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,k)\in SKA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,k)\in SKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(p,k)\in PKT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,k)\in CKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(r,k)\in RKT}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{red}{D_{k,[t]}^{Capacity}}
+    \sum_{l \in L | (l, k) \in LLA}\textcolor{red}{F_{l,k,t}^{Piped}}
+        + \sum_{l \in L | (l, k) \in LLT}\textcolor{red}{F_{l,k,t}^{Trucked}} \leq \textcolor{red}{D_{k,[t]}^{Capacity}}
 
 :math:`\forall k \in K, t \in T`
 
 .. math::
 
-
-    \sum\nolimits_{(n,k)\in NKA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,k)\in SKA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,k)\in SKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(p,k)\in PKT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,k)\in CKT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(r,k)\in RKT}\textcolor{red}{F_{l,l,t}^{Trucked}} =\textcolor{red}{F_{k,t}^{DisposalDestination}}
+    \textcolor{red}{F_{k,t}^{DisposalDestination}}
+        = \sum_{l \in L | (l, k) \in LLA}\textcolor{red}{F_{l,k,t}^{Piped}}
+        + \sum_{l \in L | (l, k) \in LLT}\textcolor{red}{F_{l,k,t}^{Trucked}}
 
 
 
@@ -687,17 +717,18 @@ The total treated water in a given time period must be less than the capacity. I
 
 .. math::
 
-    \sum\nolimits_{(n,r)\in NRA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,r)\in SRA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,r)\in PRT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}}\leq \textcolor{green}{\sigma_{r}^{Treatment}}+\textcolor{red}{S_{r}^{TreatmentCapacity}}
+    \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
+        + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}} \leq \textcolor{green}{\sigma_{r}^{Treatment}}+\textcolor{red}{S_{r}^{TreatmentCapacity}}
 
 :math:`\forall r \in R, t \in T`
 
+**Treatment Destination Deliveries:**
+The total water delivered to a treatment site is the sum of all piped and trucked flows into the site.
+
 .. math::
 
-    \sum\nolimits_{(n,r)\in NRA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,r)\in SRA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,r)\in PRT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}}=\textcolor{red}{F_{r,t}^{TreatmentDestination}}
+    \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
+        + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}=\textcolor{red}{F_{r,t}^{TreatmentDestination}}
 
 
 **Beneficial Reuse Capacity:**
@@ -708,13 +739,15 @@ The total water for beneficial reuse in a given time period must be less than th
 
 .. math::
 
-    \sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,o)\in POT}\textcolor{red}{F_{l,l,t}^{Trucked}} \leq \textcolor{green}{\sigma_{o}^{Reuse}}+\textcolor{red}{S_{o}^{ReuseCapacity}}
+    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}} \leq \textcolor{green}{\sigma_{o}^{Reuse}}+\textcolor{red}{S_{o}^{ReuseCapacity}}
 
 :math:`\forall o \in O, t \in T`
 
 .. math::
 
-    \sum\nolimits_{(n,o)\in NOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{red}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(p,o)\in POT}\textcolor{red}{F_{l,l,t}^{Trucked}} =\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+        \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}=\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
 
 
 **Fresh Sourcing Cost:**  :math:`\forall f \in F, p \in CP, t \in T`
@@ -725,7 +758,7 @@ For each freshwater source, for each completions pad, and for each time period, 
 
     \textcolor{red}{C_{f,p,t}^{Sourced}} =(\textcolor{red}{F_{f,p,t}^{Sourced}}+\textcolor{red}{F_{f,p,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{f}^{Sourcing}}
 
-    \textcolor{red}{C^{TotalSourced}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{(f,p)\in FCA}\textcolor{red}{C_{f,p,t}^{Sourced}}
+    \textcolor{red}{C^{TotalSourced}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{f \in F, p \in CP}\textcolor{red}{C_{f,p,t}^{Sourced}}
 
 
 
@@ -735,7 +768,7 @@ For each disposal site, for each time period, the disposal cost is equal to all 
 
 .. math::
 
-       \textcolor{red}{C_{k,t}^{Disposal}} = (\sum\nolimits_{(l,l)\in {NKA,RKA,SKA}}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(l,l)\in {PKT,CKT,SKT,RKT}}\textcolor{red}{F_{l,l,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{k}^{Disposal}}
+       \textcolor{red}{C_{k,t}^{Disposal}} = (\sum\nolimits_{(l,k)\in LLA}\textcolor{red}{F_{l,k,t}^{Piped}}+\sum\nolimits_{(l,k)\in LLT}\textcolor{red}{F_{l,k,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{k}^{Disposal}}
 
        \textcolor{red}{C^{TotalDisposal}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{k\in K}\textcolor{red}{C_{k,t}^{Disposal}}
 
@@ -747,7 +780,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
 
 .. math::
 
-    \textcolor{red}{C_{r,t}^{Treatment}} = (\sum\nolimits_{(l,l)\in {NRA,SRA}}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(l,l)\in {PRT,CRT}}\textcolor{red}{F_{l,l,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{r}^{Treatment}}
+    \textcolor{red}{C_{r,t}^{Treatment}} = (\sum\nolimits_{(l,r)\in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}+\sum\nolimits_{(l,r)\in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{r}^{Treatment}}
 
     \textcolor{red}{C^{TotalTreatment}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{r\in R}\textcolor{red}{C_{r,t}^{Treatment}}
 
@@ -759,9 +792,8 @@ Water input into treatment facility is treated with a level of efficiency, meani
 
 .. math::
 
-    \textcolor{green}{\varepsilon^{Treatment}} \cdot (\sum\nolimits_{(n,r)\in NRA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,r)\in SRA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,r)\in PRT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,r)\in CRT}\textcolor{red}{F_{l,l,t}^{Trucked}} )=\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,l,t}^{Piped}} + \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}
+     \textcolor{green}{\varepsilon^{Treatment}} \cdot (\sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
+        + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}})= \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{r,l,t}^{Piped}} + \textcolor{red}{F_{r,t}^{UnusedTreatedWater}}
 
 where :math:`\textcolor{green}{\varepsilon^{Treatment}} \leq 1`
 
@@ -773,11 +805,7 @@ Completions reuse water is all water that meets completions pad demand, excludin
 
 .. math::
 
-    \textcolor{red}{C_{p,t}^{CompletionsReuse}} = (\sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,p)\in PCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,l,t}^{Piped}}
-
-        +\sum\nolimits_{(s,p)\in SCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,c)\in CCA}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,l,t}^{Trucked}}
-
-        +\sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,l,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{p}^{CompletionsReuse}}
+    \textcolor{red}{C_{p,t}^{CompletionsReuse}} = (\sum\nolimits_{(l,\tilde{l})\in LLA, l\notin F}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}+\sum\nolimits_{(l,\tilde{l})\in LLT, l\notin F}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}) \cdot \textcolor{green}{\pi_{p}^{CompletionsReuse}}
 
 
 .. note:: Freshwater sourcing is excluded from completions reuse costs.
@@ -788,18 +816,31 @@ Completions reuse water is all water that meets completions pad demand, excludin
 
 
 
-**Piping Cost:** :math:`\forall (l,l) \in {PPA,\ldots ,CCA}, t \in T`
+**Piping Cost:** :math:`\forall {l \in (L - O - K)}, \forall {\tilde{l} \in (L - F)}, \forall {(l,\tilde{l}) \in LLA}, {t \in T}`
 
 Piping cost is the total volume of piped water multiplied by the cost for piping.
 
+:math:`\forall(l,\tilde{l})` if :math:`l \in F`:
+
 .. math::
 
-    \textcolor{red}{C_{l,l,t}^{Piped}} = (\textcolor{red}{F_{l,l,t}^{Piped}}+\textcolor{red}{F_{l,l,t}^{Sourced}}) \cdot \textcolor{green}{\pi_{l,l}^{Pipeline}}
+    \textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
+        = \textcolor{red}{F_{l,\tilde{l},t}^{Sourced}} \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
 
-    \textcolor{red}{C^{TotalPiping}} = \sum\nolimits_{t\in T}\sum\nolimits_{\forall (l,l)\in {PPA,\ldots }}\textcolor{red}{C_{l,l,t}^{Piped}}
+Otherwise, :math:`\forall(l,\tilde{l})` if :math:`l \notin F`:
 
+.. math::
 
-.. note:: The constraints above explicitly consider freshwater piping via FCA arcs.
+    \textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
+        = \textcolor{red}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}
+
+Total Piping Cost:
+
+.. math::
+
+    \textcolor{red}{C^{TotalPiping}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
+
+.. note:: Note: Freshwater piping is tracked through Sourced Flow variable.
 
 
 
@@ -809,7 +850,9 @@ Cost of depositing into storage is equal to the total volume of water moved into
 
 .. math::
 
-    \textcolor{red}{C_{s,t}^{Storage}} = (\sum\nolimits_{(l,l)\in {NSA}}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(l,l)\in {CST}}\textcolor{red}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(l,s)\in {PST}}\textcolor{red}{F_{l,s,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{s}^{Storage}}
+    \textcolor{red}{C_{s,t}^{Storage}}
+        = (\sum_{l \in L | (l, s) \in {LLA}}\textcolor{red}{F_{l,s,t}^{Piped}}
+        + \sum_{l \in L | (l, s) \in {LLT}}\textcolor{red}{F_{l,s,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{s}^{Storage}}
 
     \textcolor{red}{C^{TotalStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall s\in S}\textcolor{red}{C_{s,t}^{Storage}}
 
@@ -821,7 +864,9 @@ Credits from withdrawing from storage is equal to the total volume of water move
 
 .. math::
 
-    \textcolor{red}{R_{s,t}^{Storage}} = (\sum\nolimits_{(l,l)\in {SNA,SCA,SKA,SRA,SOA}}\textcolor{red}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(l,l)\in {SCT,SKT}}\textcolor{red}{F_{l,l,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{s}^{Storage}}
+    \textcolor{red}{R_{s,t}^{Storage}}
+        = (\sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
+        + \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{s}^{Storage}}
 
     \textcolor{red}{R^{TotalStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall s\in S}\textcolor{red}{R_{s,t}^{Storage}}
 
@@ -831,7 +876,7 @@ Credits from withdrawing from storage is equal to the total volume of water move
 
 .. math::
 
-    \textcolor{red}{C_{p,t}^{PadStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall p\in CP}\textcolor{red}{z_{p,t}^{PadStorage}} \cdot \textcolor{green}{\pi_{p,t}^{PadStorage}}
+    \textcolor{red}{C_{p,t}^{PadStorage}} = \textcolor{red}{z_{p,t}^{PadStorage}} \cdot \textcolor{green}{\pi_{p,t}^{PadStorage}}
 
     \textcolor{red}{C^{TotalPadStorage}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall p\in CP}\textcolor{red}{C_{p,t}^{PadStorage}}
 
@@ -843,10 +888,9 @@ Trucking cost between two locations for time period is equal to the trucking vol
 
     \textcolor{red}{C_{l,\tilde{l},t}^{Trucked}} = \textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{green}{1/\delta^{Truck}} \cdot \textcolor{green}{\tau_{p,p}^{Trucking}} \cdot \textcolor{green}{\pi_{l}^{Trucking}}
 
-    \textcolor{red}{C^{TotalTrucking}} = \sum\nolimits_{\forall t\in T}\sum\nolimits_{\forall (l,l)\in {PPA,\ldots ,CCT}}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
+    \textcolor{red}{C^{TotalTrucking}} = \sum_{t \in T}\sum_{(l, \tilde{l}) \in LLT}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
 
-
-.. note:: The constraints above explicitly consider freshwater trucking via FCT arcs.
+.. note:: The constraints above explicitly consider freshwater trucking via FCT arcs included in LLT.
 
 
 
@@ -858,7 +902,7 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 
     \textcolor{red}{C^{Slack}} = \sum\nolimits_{p\in CP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{FracDemand}} \cdot \textcolor{green}{\psi^{FracDemand}}+\sum\nolimits_{p\in PP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{Production}} \cdot \textcolor{green}{\psi^{Production}}
 
-        +\sum\nolimits_{p\in CP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{Flowback}} \cdot \textcolor{green}{\psi^{Flowback}}+\sum\nolimits_{(l,l)\in {\ldots }}\textcolor{red}{S_{l,l}^{PipelineCapacity}} \cdot \textcolor{green}{\psi^{PipeCapacity}}
+        +\sum\nolimits_{p\in CP}\sum\nolimits_{t\in T}\textcolor{red}{S_{p,t}^{Flowback}} \cdot \textcolor{green}{\psi^{Flowback}}+\sum\nolimits_{(l,\tilde{l})\in {\ldots }}\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}} \cdot \textcolor{green}{\psi^{PipeCapacity}}
 
          +\sum\nolimits_{s\in S}\textcolor{red}{S_{s}^{StorageCapacity}} \cdot \textcolor{green}{\psi^{StorageCapacity}}+\sum\nolimits_{k\in K}\textcolor{red}{S_{k}^{DisposalCapacity}} \cdot \textcolor{green}{\psi^{DisposalCapacity}}
 
@@ -902,11 +946,11 @@ The water quality of disposed water is dependent on the flow rates into the disp
 
 .. math::
 
-    \sum\nolimits_{(n,k)\in NKA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum\nolimits_{(s,k)\in SKA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum\nolimits_{(r,k)\in RKA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
+    \sum\nolimits_{(n,k)\in NKA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum\nolimits_{(s,k)\in SKA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum\nolimits_{(r,k)\in RKA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{r,w,t}}
 
-    +\sum\nolimits_{(s,k)\in SKT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum\nolimits_{(p,k)\in PKT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}
+    +\sum\nolimits_{(s,k)\in SKT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{s,w,t}}+\sum\nolimits_{(p,k)\in PKT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}
 
-    +\sum\nolimits_{(p,k)\in CKT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}+\sum\nolimits_{(r,k)\in RKT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{r,w,t}}
+    +\sum\nolimits_{(p,k)\in CKT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}+\sum\nolimits_{(r,k)\in RKT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{r,w,t}}
 
     =\textcolor{purple}{F_{k,t}^{DisposalDestination}} \cdot \textcolor{red}{Q_{k,w,t}}
 
@@ -916,13 +960,13 @@ The water quality at storage sites is dependent on the flow rates into the stora
 
 .. math::
 
-    \textcolor{green}{\lambda_{s,t=1}^{Storage}} \cdot \textcolor{green}{\xi_{s,w}} +\textcolor{purple}{L_{s,t-1}^{Storage}} \cdot \textcolor{red}{Q_{s,w,t-1}} +\sum\nolimits_{(n,s)\in NSA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
+    \textcolor{green}{\lambda_{s,t=1}^{Storage}} \cdot \textcolor{green}{\xi_{s,w}} +\textcolor{purple}{L_{s,t-1}^{Storage}} \cdot \textcolor{red}{Q_{s,w,t-1}} +\sum\nolimits_{(n,s)\in NSA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}
 
-    +\sum\nolimits_{(p,s)\in PST}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,s)\in CST}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}
+    +\sum\nolimits_{(p,s)\in PST}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,s)\in CST}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}
 
-    = \textcolor{red}{Q_{s,w,t}} \cdot (\textcolor{purple}{L_{s,t}^{Storage}} +\sum\nolimits_{(s,n)\in SNA}\textcolor{purple}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,p)\in SCA}\textcolor{purple}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,k)\in SKA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+    = \textcolor{red}{Q_{s,w,t}} \cdot (\textcolor{purple}{L_{s,t}^{Storage}} +\sum\nolimits_{(s,n)\in SNA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}+\sum\nolimits_{(s,p)\in SCA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}+\sum\nolimits_{(s,k)\in SKA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}
 
-    +\sum\nolimits_{(s,r)\in SRA}\textcolor{purple}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,o)\in SOA}\textcolor{purple}{F_{l,l,t}^{Piped}}+\sum\nolimits_{(s,p)\in SCT}\textcolor{purple}{F_{l,l,t}^{Trucked}}+\sum\nolimits_{(s,k)\in SKT}\textcolor{purple}{F_{l,l,t}^{Trucked}})
+    +\sum\nolimits_{(s,r)\in SRA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}+\sum\nolimits_{(s,o)\in SOA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}+\sum\nolimits_{(s,p)\in SCT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}}+\sum\nolimits_{(s,k)\in SKT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}})
 
 **Treatment Site Water Quality** :math:`\forall r \in R, w \in W, t \in T`
 
@@ -930,11 +974,11 @@ The water quality at treatment sites is dependent on the flow rates into the tre
 
 .. math::
 
-    \textcolor{green}{\varepsilon_{r,w}^{Treatment}} \cdot (\sum\nolimits_{(n,r)\in NRA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum\nolimits_{(s,r)\in SRA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
+    \textcolor{green}{\varepsilon_{r,w}^{Treatment}} \cdot (\sum\nolimits_{(n,r)\in NRA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum\nolimits_{(s,r)\in SRA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
 
-    +\sum\nolimits_{(p,r)\in PRT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,r)\in CRT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}} )
+    +\sum\nolimits_{(p,r)\in PRT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,r)\in CRT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}} )
 
-    = \textcolor{red}{Q_{r,w,t}} \cdot (\sum\nolimits_{(r,p)\in RCA}\textcolor{purple}{F_{l,l,t}^{Piped}} + \textcolor{purple}{F_{r,t}^{UnusedTreatedWater}})
+    = \textcolor{red}{Q_{r,w,t}} \cdot (\sum\nolimits_{(r,p)\in RCA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} + \textcolor{purple}{F_{r,t}^{UnusedTreatedWater}})
 
 where :math:`\textcolor{green}{\varepsilon_{r,w}^{Treatment}} \leq 1`
 
@@ -944,15 +988,15 @@ The water quality at nodes is dependent on the flow rates into the node and the 
 
 .. math::
 
-    \sum\nolimits_{(p,n)\in PNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,n)\in CNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{p,w,t}}
+    \sum\nolimits_{(p,n)\in PNA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{p,w,t}} +\sum\nolimits_{(p,n)\in CNA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{p,w,t}}
 
-    +\sum\nolimits_{(\tilde{n},n)\in NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
+    +\sum\nolimits_{(\tilde{n},n)\in NNA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}}+\sum\nolimits_{(s,n)\in SNA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}}
 
-    = \textcolor{red}{Q_{n,w,t}} \cdot (\sum\nolimits_{(n,\tilde{n})\in NNA}\textcolor{purple}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+    = \textcolor{red}{Q_{n,w,t}} \cdot (\sum\nolimits_{(n,\tilde{n})\in NNA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(n,p)\in NCA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}
 
-    +\sum\nolimits_{(n,k)\in NKA}\textcolor{purple}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,r)\in NRA}\textcolor{purple}{F_{l,l,t}^{Piped}}
+    +\sum\nolimits_{(n,k)\in NKA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(n,r)\in NRA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}}
 
-    +\sum\nolimits_{(n,s)\in NSA}\textcolor{purple}{F_{l,l,t}^{Piped}} +\sum\nolimits_{(n,o)\in NOA}\textcolor{purple}{F_{l,l,t}^{Piped}})
+    +\sum\nolimits_{(n,s)\in NSA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(n,o)\in NOA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}})
 
 
 **Beneficial Reuse Water Quality** :math:`\forall o \in O, w \in W, t \in T`
@@ -961,7 +1005,7 @@ The water quality at beneficial reuse sites is dependent on the flow rates into 
 
 .. math::
 
-    \sum\nolimits_{(n,o)\in NOA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{purple}{F_{l,l,t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}} +\sum\nolimits_{(p,o)\in POT}\textcolor{purple}{F_{l,l,t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}
+    \sum\nolimits_{(n,o)\in NOA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{n,w,t}} +\sum\nolimits_{(s,o)\in SOA}\textcolor{purple}{F_{l,\tilde{l},t}^{Piped}} \cdot \textcolor{red}{Q_{s,w,t}} +\sum\nolimits_{(p,o)\in POT}\textcolor{purple}{F_{l,\tilde{l},t}^{Trucked}} \cdot \textcolor{red}{Q_{p,w,t}}
 
     = \textcolor{red}{Q_{o,w,t}} \cdot \textcolor{purple}{F_{o,t}^{BeneficialReuseDestination}}
 
