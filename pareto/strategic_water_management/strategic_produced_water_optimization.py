@@ -1050,6 +1050,13 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={},
         doc="Valid production-to-treatment trucking arcs [-]",
     )
+    model.p_POT = Param(
+        model.s_PP,
+        model.s_O,
+        default=0,
+        initialize={},
+        doc="Valid production-to-reuse trucking arcs [-]",
+    )
     model.p_CKT = Param(
         model.s_CP,
         model.s_K,
@@ -4099,6 +4106,11 @@ def water_quality(model):
                 for s in b.parent_block().s_S
                 if b.parent_block().p_SOA[s, o]
             )
+            + sum(
+                b.parent_block().v_F_Trucked[p, o, t] * b.p_nu_pad[p, qc]
+                for p in b.parent_block().s_PP
+                if b.parent_block().p_POT[p, o]
+            )
             == b.v_Q[o, qc, t] * b.parent_block().v_F_BeneficialReuseDestination[o, t]
         )
         return process_constraint(constraint)
@@ -4877,6 +4889,11 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     for s in model.s_S
                     if model.p_SOA[s, o]
                 )
+                + sum(
+                    (model.p_delta_Truck * model.p_max_number_of_trucks)
+                    for p in model.s_PP
+                    if model.p_POT[p, o]
+                )
             )
             * model.v_DQ[o, t, qc, q],
             doc="Only one quantity for beneficial reuse destination o can be non-zero for quality component qc and all discretized quality q",
@@ -5343,6 +5360,10 @@ def water_quality_discrete(model, df_parameters, df_sets):
             )
             for s in model.s_S
             if model.p_SOA[s, o]
+        ) + sum(
+            model.v_F_Trucked[p, o, t] * b.p_nu_pad[p, qc]
+            for p in model.s_PP
+            if model.p_POT[p, o]
         ) <= sum(
             model.v_F_DiscreteBRDestination[o, t, qc, q]
             * model.p_discrete_quality[qc, q]
