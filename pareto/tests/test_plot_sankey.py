@@ -43,12 +43,25 @@ def plot_args():
         "font_size": 15,
         "plot_title": "Total Flows",
         "output_file": "first_sankey.html",
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
 def test_plot_sankey_aggregated(input_data, plot_args):
     plot_sankey(input_data, args=plot_args)
+
+
+@pytest.fixture
+def plot_args_incorrect_file_format():
+    return {
+        "font_size": 15,
+        "plot_title": "Total Flows",
+        "output_file": "first_sankey.htlm",
+    }
+
+
+def test_plot_sankey_incorrect_file_format(input_data, plot_args_incorrect_file_format):
+    with pytest.raises(Exception):
+        plot_sankey(input_data, args=plot_args_incorrect_file_format)
 
 
 @pytest.fixture(scope="module")
@@ -75,7 +88,6 @@ def plot_args_single_period():
         "font_size": 15,
         "plot_title": "Flow for T01",
         "output_file": "first_sankey.html",
-        "jupyter_notebook": False,
     }
 
 
@@ -97,8 +109,8 @@ def input_data_multi_regions():
     return {
         "pareto_var": df_parameters["test_plot_sankey"],
         "sections": {
-            "Region 1": ["Appalachia", "West Virginia", "Ohio"],
-            "Region 2": ["Washington, PA", "Company A", "Company B"],
+            "Region_1": ["Appalachia", "West Virginia", "Ohio"],
+            "Region_2": ["Washington, PA", "Company A", "Company B"],
         },
         "labels": [("Origin", "Destination", "Time", "Value")],
         "time_period": ["T01"],
@@ -111,7 +123,6 @@ def plot_args_multi_regions():
         "font_size": 15,
         "plot_title": "Flow for T01",
         "output_file": "first_sankey.html",
-        "jupyter_notebook": False,
     }
 
 

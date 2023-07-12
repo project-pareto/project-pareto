@@ -34,7 +34,9 @@ def input_data_animated_1():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["plot_scatter_vFPiped"],
@@ -66,7 +68,9 @@ def input_data_animated_2():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["plot_scatter_vFPiped"],
@@ -96,7 +100,9 @@ def input_data_animated_3():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["plot_scatter_vFPiped"],
@@ -126,7 +132,9 @@ def input_data_animated_4():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["plot_scatter_vFPiped"],
@@ -154,7 +162,9 @@ def input_data_static_1():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["test_plot_scatter_x_static"],
@@ -186,7 +196,9 @@ def input_data_static_2():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["test_plot_scatter_x_static"],
@@ -216,7 +228,9 @@ def input_data_static_3():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["test_plot_scatter_x_static"],
@@ -246,7 +260,9 @@ def input_data_static_4():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
 
     return {
         "pareto_var_x": df_parameters["test_plot_scatter_x_static"],
@@ -264,8 +280,18 @@ def plot_args1():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": True,
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
+
+
+@pytest.fixture(scope="module")
+def plot_args1_incorrect_file_format():
+    return {
+        "plot_title": "Test Data",
+        "group_by": "Destination",
+        "output_file": "first_scatter.htlm",
+        "print_data": True,
+        "group_by_category": True,
+    }
 
 
 @pytest.fixture(scope="module")
@@ -276,7 +302,6 @@ def plot_args2():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": False,
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -288,7 +313,6 @@ def plot_args3():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": False,
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -300,7 +324,6 @@ def plot_args4():
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": True,
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -322,14 +345,15 @@ def plot_args5():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
     return {
         "plot_title": "Test Data",
         "group_by": "Origin",
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": df_parameters["plot_scatter_Categories"],
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
@@ -351,20 +375,28 @@ def plot_args5_static():
     ]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(
+            fpath, set_list, parameter_list, sum_repeated_indexes=True
+        )
     return {
         "plot_title": "Test Data",
         "group_by": "Origin",
         "output_file": "first_scatter.html",
         "print_data": True,
         "group_by_category": df_parameters["plot_scatter_static_Categories"],
-        "jupyter_notebook": False,
     }  # 'jpg', 'jpeg', 'pdf', 'png', 'svg', 'html'
 
 
 @pytest.mark.unit
 def test_plot_scatter1(input_data_animated_1, plot_args1):
     plot_scatter(input_data_animated_1, args=plot_args1)
+
+
+def test_plot_scatter1_incorrect_file_format(
+    input_data_animated_1, plot_args1_incorrect_file_format
+):
+    with pytest.raises(Exception):
+        plot_scatter(input_data_animated_1, args=plot_args1_incorrect_file_format)
 
 
 def test_plot_scatter2(input_data_animated_1, plot_args2):
@@ -445,6 +477,13 @@ def test_plot_scatter20(input_data_animated_4, plot_args5):
 
 def test_plot_scatter21(input_data_static_1, plot_args1):
     plot_scatter(input_data_static_1, args=plot_args1)
+
+
+def test_plot_scatter21_incorrect_file_format(
+    input_data_static_1, plot_args1_incorrect_file_format
+):
+    with pytest.raises(Exception):
+        plot_scatter(input_data_static_1, args=plot_args1_incorrect_file_format)
 
 
 def test_plot_scatter22(input_data_static_1, plot_args2):
