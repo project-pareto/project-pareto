@@ -35,8 +35,6 @@ In the PARETO tool, beneficial reuse is represented as a unique kind of demand n
 
 Rather than handling only produced water or clean brine of various qualities, beneficial reuse nodes can accept a diverse array of streams. These might include untreated produced water, clean brine, desalinated water, and concentrated brine, as well as recovered resources in different material states—gas, liquid, or solid. 
 
-Beneficial reuse nodes, therefore, are indexed based on the type of material they receive, reflecting the specific material requirements of different beneficial reuse options. Correspondingly, the storage and transport options within the network for these materials also need to be indexed by the material type, acknowledging the distinct handling requirements for each type of material. This framework underscores the complexity and precision of managing different materials within the beneficial reuse network.
-
 
 .. math::
 
@@ -133,7 +131,7 @@ Additionally, the model facilitates sensitivity analysis, permitting examination
 Examples of Beneficial Reuse Options
 ====================================
 Aquifer recharge and surface discharge
-=======================================
+--------------------------------------------
 
 Aquifer recharge and surface discharge are potential beneficial reuse options for treated produced water or wastewater. Aquifer recharge, a process where water seeps into an aquifer through recharge basins or injection wells, replenishes groundwater resources and also serves as a wastewater disposal method. The treated water must meet stringent guidelines for quality to ensure safety and usability. Specific standards for Total Dissolved Solids (TDS) levels in aquifer recharge can vary greatly, depending on the local geology and the intended use of the groundwater.
 
@@ -143,10 +141,11 @@ The specific levels for other contaminants like Total Organic Carbon (TOC) and B
 
 
 Irrigation
-======================================================
+------------------------
 
 
-Produced water is a potential alternative for irrigation, with broad applications such as crop cultivation, parkland maintenance, and other landscaping requirements.
+Produced water is a potential alternative for irrigation, with broad applications such as crop cultivation, parkland maintenance, and other landscaping requirements. According to the USGS data, irrigation water consumption ranges from 3.6 x 10^9 liters annually in the Haynesville play to 841 x 10^9 liters annually in the Permian play and 867 x 10^9 liters annually in the Niobrara play. Irrigation has the highest water demand (among other sectors), surpassing the volume of produced water (PW) generated nationwide. However, identifying water-stressed regions and suitable crops for repurposing produced water could help mitigate drought-related challenges for farms.
+
 A valuable method for employing produced water in agricultural irrigation is by cultivating high-salinity-tolerant crops. This approach can greatly reduce the need for costly purified water, instead, allowing the blending of produced water with saline groundwater sources. There has been also ongoing research focuses on non-edible crops like cotton, alfalfa, and biofuel crops, where regulatory and permit-related issues may be more straightforward. 
 An additional benefit of treated produced water in agricultural applications is the potential presence of nitrogen. This nutrient is essential for plant growth and its inclusion in irrigation water could enhance crop productivity. Nevertheless, a careful examination of contaminants' impact on soil health and exhaustive toxicology studies on these crops is crucial.
 Key parameters to monitor in crop cultivation include the Sodium Adsorption Ratio (SAR) and boron concentration. The SAR indicates potential sodium accumulation in the soil, while boron, though a necessary micronutrient, can be toxic to plants when present in high concentrations. Different crops exhibit different tolerance thresholds. For instance:
@@ -165,7 +164,7 @@ Please note that a crop's water requirements can be influenced by regional clima
 
 
 Livestock Watering
-==================
+----------------------------
 
 Produced water can be a potential resource for fulfilling livestock water requirements. Salinity levels play a crucial role in determining water quality for livestock. The acceptable salinity levels vary based on the species and production stage. Generally, salinity levels below 3,000 ppm are considered satisfactory for most livestock, including cattle and sheep.
 
@@ -175,35 +174,47 @@ While specific data for pollutants in produced water is scant, we have access to
 The contaminants commonly monitored include: Biochemical Oxygen Demand (BOD), Total Suspended Solids (TSS), Fecal coliform, Total Residual Chlorine (TRC), Turbidity, Chlorine, Nitrogen, Phosphorus and pH
 To delve deeper into the distinct water quality standards for utilizing wastewater in livestock watering across different states, the tool "ReuseXplorer - Regulations and End-Use Specifications Explorer" can be employed.
 
+Livestock water consumption varies by counties and plays, and according to the USGS 2015 database, it ranges from 2.4 x 10^9 liters in the Midland play to 30 x 10^9 liters  and 38 x 10^9 liters annually in the Eagle Ford and Haynesville plays, respectively. 
+
+
 
 Industrial Applications: Cooling
-======================================================
+--------------------------------------
 
-Produced water is a potential asset in industrial applications, particularly in closed-loop cooling systems. The typical quality requirements for these systems include a Total Dissolved Solids (TDS) limit of 500 ppm, as well as concentrations of chlorine/bromine (<0.5 ppm), iron (<3 ppm), manganese (<0.1 ppm), sulfide (<1 ppm), and ammonia (<50 ppm). It's worth noting that the water demand for cooling purposes can fluctuate with seasonal variations, as changes in temperature and humidity can affect the evaporation rate in the plant region.
+Produced water is a potential asset in industrial applications, particularly in closed-loop cooling systems. According to the USGS data from 2015, the water consumption for cooling purposes ranges from 7.7 billion liters in the Permian play to 19.5 billion liters in the Eagle Ford play and 41 billion liters in the Oklahoma AOI, highlighting the varying cooling water demands across these regions. The typical quality requirements for these systems include a Total Dissolved Solids (TDS) limit of 500 ppm, as well as concentrations of chlorine/bromine (<0.5 ppm), iron (<3 ppm), manganese (<0.1 ppm), sulfide (<1 ppm), and ammonia (<50 ppm). It's worth noting that the water demand for cooling purposes can fluctuate with seasonal variations, as changes in temperature and humidity can affect the evaporation rate in the plant region.
 
 
 Direct Air Carbon Capture (DAC) Technology
-=======================================================================
+--------------------------------------------------
 
 Produced water has the potential to be utilized in direct air carbon capture (DAC) technology. DAC offers flexibility in location, making it well-suited for proximity to oil regions and the utilization of produced water resources. 
-Solvent-based DAC methods, commonly used in the industry, require significant water for cooling due to heat generation during CO2 capture. Water consumption can range from 1 to 9 tonnes per tonne of CO2 captured, depending on local conditions.
+Solvent-based DAC methods, commonly used in the industry, require significant water, especially for cooling due to heat generation during CO2 capture. Water consumption can range from 1 to 9 tonnes per tonne of CO2 captured, depending on local climate conditions.
 Water quality requirements for DAC systems resemble those for industrial cooling. However, considering the availability and quality of produced water sources is crucial for the viability and environmental benefits of DAC technology.
 
 
 Hydrogen production
-========================
-Water consumption in hydrogen production varies based on hydrogen type and cooling requirements. Green hydrogen production typically has a stochiometric ratio of around 9 kg of water per kilogram of hydrogen. However, when factoring in cooling demands, the average water consumption for green hydrogen increases to approximately 18.08 kg per kilogram of hydrogen. In contrast, blue hydrogen production has a stochiometric ratio of about 5.5 kg of water per kilogram of hydrogen, which rises to approximately 21.8 kg when considering cooling requirements.
+-------------------------------
+The potential for beneficial reuse of produced water in hydrogen hubs holds great promise for addressing water scarcity and supporting the energy transition. Water consumption in hydrogen production varies depending on the type of hydrogen and cooling requirements. Green hydrogen production typically requires around 9 kg of water per kilogram of hydrogen, but when considering cooling demands, the average water consumption increases to approximately 18.08 kg per kilogram of hydrogen. Blue hydrogen production has a stoichiometric ratio of about 5.5 kg of water per kilogram of hydrogen, which rises to approximately 21.8 kg when factoring in cooling requirements.
 
-For green hydrogen production, the use of ultra-pure water is essential. This includes employing deionized and demineralized water to minimize the presence of cations such as Fe3+, Mg2+, Ca2+, Cu2+, and Na+ in proton exchange membrane (PEM) applications. These divalent ions can have detrimental effects on the hydrogen production process. Similarly, blue hydrogen production requires pure water with low total dissolved solids (TDS) to ensure efficient and smooth operation.
+In the context of green hydrogen production, the use of ultra-pure water is crucial to ensure efficient operation. This involves employing deionized and demineralized water to minimize the presence of cations, such as Fe3+, Mg2+, Ca2+, Cu2+, and Na+, that can have detrimental effects on the hydrogen production process. The presence of these divalent ions can negatively impact the performance and durability of key components, such as proton exchange membranes (PEM), in hydrogen electrolyzers. Similarly, blue hydrogen production requires pure water with low total dissolved solids (TDS) for optimal performance.
 
-It is crucial to consider the Department of Energy (DOE) target of producing green hydrogen for less than $1 per kilogram of hydrogen. In achieving this goal, the treatment and transportation of hypersaline brine to the hydrogen hub should not interfere with the DOE's objective.
+Considering the DOE's target of producing green hydrogen for less than $1 per kilogram, it is important to ensure that the treatment and transportation of produced water, does not hinder this objective. Integrating produced water from oil and gas operations into hydrogen hubs offers a viable solution, particularly in highly water-stressed regions. This approach repurposes water that would otherwise be disposed of, reducing the pressure on freshwater resources and minimizing the environmental impacts associated with sea water desalination plants.
+
+The hydrogen explorer map, accessible via the provided link, provides valuable insights into the distribution and capacity requirements of proposed hydrogen hubs across different regions.
 
 
 Solution Mining
-====================
+---------------------------
 
 Solution mining employs the technique of dissolving water-soluble minerals found beneath the Earth's surface, such as potash, salt, and trona, using water circulated through drilled wells. An innovative strategy within this field utilizes heated brine rather than fresh water for preferential solution mining, specifically useful in selectively retrieving potassium chloride from sylvinite deposits. This process, however, is water-intensive, and can consume millions of cubic meters of water annually depending on the scale and size of the mining operation. For instance, potash mining could require 10-15 million cubic meters of water annually. Produced water could potentially serve as an alternative water source for this operation. However, its use must be carefully managed to prevent mine contamination, necessitating further research and careful regulation for sustainable implementation.
 
 
 Resource  recovery
-====================
+------------------------------------
+
+Produced water (PW) is increasingly being recognized as a potential source of valuable resources and critical minerals. Studies have highlighted the potential economic feasibility of extracting elements such as lithium, magnesium, strontium, and ammonium from PW, with potential yearly revenues per well reaching up to $250,000 per well in the Permian basin. 
+
+Emerging technologies such as adsorption, ion exchange, membrane-based technologies, and electrodialysis are playing a crucial role in resource recovery. These technologies, when effectively implemented, can enhance the efficiency and selectivity of resource recovery, turning PW from a waste stream into a multi-faceted resource. 
+For instance, a recent study demonstrated the feasibility of simultaneously recovering NH4+, K+ and Mg2+ from PW by struvite precipitation after calcium pretreatment. The process resulted in NH4+, K+ and Mg2+ recovery efficiencies of 85.9%, 24.8% and 96.8%, respectively, providing an example of a recovery-centered approach.
+
+However, the large-scale implementation of these technologies is dependent on the net value of recovered resources, which is a function of the market price of recovered elements, the concentration in the brine, and the extraction cost of any particular element. Therefore, the market consumption/demand of certain elements available from the waste brine must also be considered while determining the economic potential of resource recovery.
