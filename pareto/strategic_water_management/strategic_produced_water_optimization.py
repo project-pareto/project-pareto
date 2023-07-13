@@ -1316,6 +1316,21 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Initial treatment capacity at treatment site [volume/time]",
     )
+    model.p_sigma_ReuseMinimum = Param(
+        model.s_O,
+        model.s_T,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["ReuseMinimum"].items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Minimum flow that must be sent to reuse site [volume/time]",
+    )
     model.p_sigma_Reuse = Param(
         model.s_O,
         model.s_T,
@@ -2720,6 +2735,23 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=ResidualWaterBalanceRule,
         doc="Residual water balance",
+    )
+
+    def BeneficialReuseMinimumRule(model, o, t):
+        constraint = (
+            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+            )
+            >= model.p_sigma_ReuseMinimum[o, t]
+        )
+        return process_constraint(constraint)
+
+    model.BeneficialReuseMinimum = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseMinimumRule,
+        doc="Beneficial reuse minimum flow",
     )
 
     def BeneficialReuseCapacityRule(model, o, t):
@@ -5706,6 +5738,7 @@ def scale_model(model, scaling_factor=None):
     elif model.config.objective == Objectives.reuse:
         model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
 
+    model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
     # This constraints contains only binary variables
     model.scaling_factor[model.BidirectionalFlow1] = 1

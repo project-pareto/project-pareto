@@ -87,6 +87,7 @@ parameter_list = [
     "InitialPipelineCapacity",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
+    "ReuseMinimum",
     "ReuseCapacity",
     "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
