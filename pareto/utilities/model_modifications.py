@@ -12,7 +12,6 @@
 #####################################################################################################
 
 ###--- Imports ---###
-from importlib import resources
 from pyomo.environ import (
     Var,
     Binary,
