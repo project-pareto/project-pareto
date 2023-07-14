@@ -24,13 +24,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import (
-    generate_report,
-    PrintValues,
-    OutputUnits,
-    is_feasible,
-    nostdout,
-)
 from importlib import resources
 
 from pyomo.environ import value
@@ -40,12 +33,9 @@ from pareto.utilities.bounding_functions import VariableBounds
 from pareto.utilities.model_modifications import free_variables
 from pareto.utilities.model_modifications import deactivate_slacks
 
-# import pytest
-import pytest
-
 
 ############################
-def build_strategic_model(config_dict):
+def fetch_strategic_model(config_dict):
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
@@ -174,7 +164,7 @@ def test_utilities_wout_quality():
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = build_strategic_model(config_dict)
+    model = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -256,7 +246,7 @@ def test_utilities_w_post_quality():
         "water_quality": WaterQuality.post_process,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = build_strategic_model(config_dict)
+    model = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -311,7 +301,7 @@ def test_utilities_w_discrete_quality():
         "water_quality": WaterQuality.discrete,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = build_strategic_model(config_dict)
+    model = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
