@@ -52,9 +52,12 @@ def VariableBounds(model):
 def Bound_v_F_Piped(model):
     # initialization function for parameter
     def p_F_Piped_UB_init(model, l, l_tilde):
-        # set default value to pipeline capacity plus maximum expansion capacity
-        return model.p_sigma_Pipeline[l, l_tilde] + max(
-            [value(model.p_delta_Pipeline[d]) for d in model.s_D]
+        # set default value to pipeline capacity (including both [l, l_tilde] and [l_tilde, l] amounts)
+        # plus maximum expansion capacity, multiplied by 2 to account for bi-directional pipe installation
+        return (
+            model.p_sigma_Pipeline[l, l_tilde]
+            + model.p_sigma_Pipeline[l_tilde, l]
+            + 2 * max([value(model.p_delta_Pipeline[d]) for d in model.s_D])
         )
 
     # Set up bounds in a parameter
