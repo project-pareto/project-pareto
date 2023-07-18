@@ -118,9 +118,15 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
+"""By default, PARETO comes with the following 4 strategic case studies:
+strategic_treatment_demo.xlsx
+strategic_permian_demo.xlsx
+strategic_small_case_study.xlsx
+strategic_toy_case_study.xlsx
+"""
 with resources.path(
     "pareto.case_studies",
-    "strategic_small_case_study.xlsx",
+    "strategic_treatment_demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -142,7 +148,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
-        "hydraulics": Hydraulics.post_process,
+        "hydraulics": Hydraulics.co_optimize,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,

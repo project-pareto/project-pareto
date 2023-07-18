@@ -17,7 +17,7 @@ from cmath import nan
 from unittest import result
 import numpy as np
 import os
-
+import pandas as pd
 from pyomo.environ import (
     Var,
     Param,
@@ -39,7 +39,6 @@ from pyomo.environ import (
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
-from idaes.core.util import model_serializer as ms
 from pyomo.core.expr.current import identify_variables
 
 # from gurobipy import *
@@ -48,8 +47,6 @@ from enum import Enum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
-from idaes.core.util.model_statistics import degrees_of_freedom
-from pyomo.util.infeasible import log_infeasible_constraints, log_close_to_bounds
 
 
 class Objectives(Enum):
@@ -116,7 +113,7 @@ CONFIG.declare(
         domain=In(Hydraulics),
         description="add hydraulics constraints",
         doc="""option to include pipeline hydraulics in the model either during or post optimization
-        ***default*** - False
+        ***default*** - Hydraulics.false
         **Valid Values:** - {
         **Hydraulics.false** - does not add hydraulics feature
         **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
@@ -1799,7 +1796,7 @@ def create_model(df_sets, df_parameters, default={}):
                 key: pyunits.convert_value(
                     value,
                     from_units=model.user_units["elevation"],
-                    to_units=model.user_units["elevation"],
+                    to_units=model.model_units["elevation"],
                 )
                 for key, value in model.df_parameters["Elevation"].items()
             },
@@ -1809,12 +1806,8 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.hydraulics == Hydraulics.post_process:
         # In the post-process based hydraulics model an economics-based penalty is added
         # to moderate flow through pipelines based on the elevation change.
-        max_elevation = max(
-            [abs(val) for val in model.df_parameters["Elevation"].values()]
-        )
-        min_elevation = min(
-            [abs(val) for val in model.df_parameters["Elevation"].values()]
-        )
+        max_elevation = max([val for val in model.df_parameters["Elevation"].values()])
+        min_elevation = min([val for val in model.df_parameters["Elevation"].values()])
         max_elevation_change = max_elevation - min_elevation
         # Set economic penalties for pipeline operational Cost based on the elevation changes
         for k1 in model.s_L:
@@ -1831,7 +1824,7 @@ def create_model(df_sets, df_parameters, default={}):
                                 0.01
                                 * max(
                                     [
-                                        abs(val)
+                                        val
                                         for val in model.df_parameters[
                                             "PipelineOperationalCost"
                                         ].values()
@@ -2407,20 +2400,36 @@ def create_model(df_sets, df_parameters, default={}):
 
     def PipelineCapacityExpansionRule(model, l, l_tilde):
         if (l, l_tilde) in model.s_LLA:
-            constraint = (
-                model.v_F_Capacity[l, l_tilde]
-                == model.p_sigma_Pipeline[l, l_tilde]
-                + sum(
-                    model.p_delta_Pipeline[d]
-                    * (
-                        model.vb_y_Pipeline[l, l_tilde, d]
-                        + model.vb_y_Pipeline[l_tilde, l, d]
+            if (l_tilde, l) in model.s_LLA:
+                # i.e., if the pipeline is defined as birectional then the aggregated capacity is available in both directions
+                constraint = (
+                    model.v_F_Capacity[l, l_tilde]
+                    == model.p_sigma_Pipeline[l, l_tilde]
+                    + model.p_sigma_Pipeline[l_tilde, l]
+                    + sum(
+                        model.p_delta_Pipeline[d]
+                        * (
+                            model.vb_y_Pipeline[l, l_tilde, d]
+                            + model.vb_y_Pipeline[l_tilde, l, d]
+                        )
+                        for d in model.s_D
                     )
-                    for d in model.s_D
+                    + model.v_S_PipelineCapacity[l, l_tilde]
                 )
-                + model.v_S_PipelineCapacity[l, l_tilde]
-            )
-            return process_constraint(constraint)
+                return process_constraint(constraint)
+            else:
+                # i.e., if the pipeline is defined as unirectional then the capacity is only available in the defined direction
+                constraint = (
+                    model.v_F_Capacity[l, l_tilde]
+                    == model.p_sigma_Pipeline[l, l_tilde]
+                    + sum(
+                        model.p_delta_Pipeline[d] * model.vb_y_Pipeline[l, l_tilde, d]
+                        for d in model.s_D
+                    )
+                    + model.v_S_PipelineCapacity[l, l_tilde]
+                )
+                return process_constraint(constraint)
+
         else:
             return Constraint.Skip
 
@@ -3478,32 +3487,22 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def pipeline_hydraulics(model, opt):
+def pipeline_hydraulics(model):
+    """
+    The hydraulics module asssists in computing pressures at each node
+    in the network accounting for pressure drop due to friction using
+    Hazen-Williams equation and due to elevation change in the topology. This model
+    consists of a pressure balance equation for each pipeline and bounds for
+    pressure. The objective is to minimize the total cost of installing and operating pumps.
+    This method adds a block for hydraulics with all necessary variables and constriants.
+    Currently, there are two methods to solve the hydraulics block:
+        1) post-process method: only the hydraulics block is solved for pressures
+        2) co-optimize method: the hydraulics block is solved along with the network
+    """
 
-    if model.config.hydraulics == Hydraulics.post_process:
-        """
-        For the post process method, the pressure is computed using the
-        Hazen-Williams equation in a separate stand alone model. This model
-        consists of a pressure balance equation at each node and bounds for
-        pressure. The objective is to minimize the total pressure change (deltaP)
-        due to pumps and valves.
-        """
-        # Create a model and add hydraulics constraint to compute pressure at each node
-        mh = ConcreteModel()
-
-    elif model.config.hydraulics == Hydraulics.co_optimize:
-        """
-        For the co-optimize method, first, the strategic model is cloned and then,
-        constraints for computing pressures at every node using
-        Hazen-Williams equation is added to the model. The original objective
-        function of minimizing the cost is modified to include of the operating
-        cost of pumps and valves as a function of the deltaP.
-        """
-        # Clone the model to add hydraulics constraints
-        # The cloned model will be a MINLP formulation. The exisiting objective
-        # must be modified to add operating costs for pumps and valves.
-        mh = model.clone()
-        del mh.objective
+    # Create a block to add all variables and constraints for hydraulics within the model
+    model.hydraulics = Block()
+    mh = model.hydraulics
 
     # declaring variables and parameters required regardless of the hydraulics method
     mh.p_HW_material_factor_pipeline = Param(
@@ -3512,30 +3511,31 @@ def pipeline_hydraulics(model, opt):
         units=pyunits.dimensionless,
         doc="Pipeline material factor for Hazen-Williams equation",
     )
-    mh.v_PumpHead = Var(
-        model.s_LLA,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=pyunits.meter,
-        doc="Pump Head added in the direction of flow, m",
-    )
-    mh.v_ValveHead = Var(
-        model.s_LLA,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=pyunits.meter,
-        doc="Valve Head removed in the direction of flow, m",
-    )
     mh.p_rhog = Param(
         initialize=9.8 * 1000,
         units=model.model_units["pressure"] / pyunits.meter,
         doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
     )
-    mh.p_PumpingCost = Param(
-        initialize=1.2,
-        doc="Cost of pumping water",
+    mh.p_PumpFixedCost = Param(
+        initialize=1,
+        mutable=True,
+        units=model.model_units["currency"],
+        doc="Fixed cost of adding a pump in kUSD",
+    )
+    mh.p_ElectricityCost = Param(
+        initialize=0.1e-3,
+        mutable=True,
+        doc="Cost of Electricity assumed in kUSD/kWh",
+    )
+    mh.p_PumpEfficiency = Param(
+        initialize=0.9,
+        mutable=True,
+        doc="Pumps Efficiency",
+    )
+    mh.p_MotorEfficiency = Param(
+        initialize=0.9,
+        mutable=True,
+        doc="Motor Efficiency of the Pump",
     )
     mh.p_Min_AOP = Param(
         initialize=pyunits.convert_value(
@@ -3572,6 +3572,35 @@ def pipeline_hydraulics(model, opt):
         units=model.model_units["pressure"],
         doc="Well pressure at production or completions pad [pressure]",
     )
+    mh.vb_Y_Pump = Var(
+        model.s_LLA,
+        within=Binary,
+        initialize=0,
+        doc="Binary variable for fixed cost of Pump",
+    )
+    mh.v_PumpHead = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=pyunits.meter,
+        doc="Pump Head added in the direction of flow, m",
+    )
+    mh.v_ValveHead = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=pyunits.meter,
+        doc="Valve Head removed in the direction of flow, m",
+    )
+    mh.v_PumpCost = Var(
+        model.s_LLA,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["currency"],
+        doc="Pump cost",
+    )
     mh.v_Pressure = Var(
         model.s_L,
         model.s_T,
@@ -3581,11 +3610,19 @@ def pipeline_hydraulics(model, opt):
         units=model.model_units["pressure"],
         doc="Pressure at location l at time t in Pa",
     )
+    mh.v_Z_HydrualicsCost = Var(
+        within=Reals,
+        units=model.model_units["currency"],
+        doc="Total cost for Pumps and Valves [currency]",
+    )
+
+    # if the well pressure are known, i.e., for the production pads or the disposable wells, then fix them
     for p in model.s_P:
         for t in model.s_T:
             if value(mh.p_WellPressure[p, t]) > 0:
                 mh.v_Pressure[p, t].fix(mh.p_WellPressure[p, t])
 
+    # add all necessary constraints
     def MAOPressureRule(b, l1, t1):
         constraint = b.v_Pressure[l1, t1] <= b.p_Max_AOP
         return process_constraint(constraint)
@@ -3597,13 +3634,35 @@ def pipeline_hydraulics(model, opt):
         doc="Max allowable pressure rule",
     )
 
+    def PumpHeadeRule(b, l1, l2):
+        constraint = (
+            sum(b.v_PumpHead[l1, l2, t] for t in model.s_T)
+            <= model.p_M_Flow * mh.vb_Y_Pump[l1, l2]
+        )
+        return process_constraint(constraint)
+
+    mh.PumpHeadCons = Constraint(
+        model.s_LLA,
+        rule=PumpHeadeRule,
+        doc="Pump Head Constraint",
+    )
+
+    def HydraulicsCostRule(b):
+        constraint = mh.v_Z_HydrualicsCost == sum(
+            (mh.v_PumpCost[key]) for key in model.s_LLA
+        )
+        return process_constraint(constraint)
+
+    mh.HydraulicsCostEq = Constraint(
+        rule=HydraulicsCostRule,
+        doc="Total cost for pumps and valves rule",
+    )
+
     if model.config.hydraulics == Hydraulics.post_process:
         """
         For the post process method, the pressure is computed using the
-        Hazen-Williams equation in a separate stand alone model. This model
-        consists of a pressure balance equation at each node and bounds for
-        pressure. The objective is to minimize the total pressure change (deltaP)
-        due to pumps and valves.
+        Hazen-Williams equation in a separate stand alone method "_hazen_williams_head". In this method,
+        the hydraulics block is solved alone for the objective of minimizing total cost of pumps.
         """
         mh.p_effective_Pipeline_diameter = Param(
             model.s_LLA,
@@ -3634,7 +3693,7 @@ def pipeline_hydraulics(model, opt):
                 )
             )
 
-        # Compute Hazen Williams head
+        # Compute Hazen-Williams head
         for t0 in model.s_T:
             for key in model.s_LLA:
                 if value(model.v_F_Piped[key, t0]) > 0.01:
@@ -3675,59 +3734,76 @@ def pipeline_hydraulics(model, opt):
             doc="Pressure at Node L",
         )
 
-        mh.objective = Objective(
-            expr=(
-                sum(
-                    sum(
-                        (
-                            mh.v_PumpHead[key, t] * mh.p_PumpingCost
-                            + mh.v_ValveHead[key, t]
-                        )
-                        for key in model.s_LLA
+        def PumpCostRule(b, l1, l2):
+            constraint = b.v_PumpCost[l1, l2] == mh.p_PumpFixedCost * mh.vb_Y_Pump[
+                l1, l2
+            ] + (
+                (mh.p_ElectricityCost / 3.6e6)
+                * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
+                * sum(
+                    b.v_PumpHead[l1, l2, t]
+                    * pyunits.convert_value(
+                        value(model.v_F_Piped[l1, l2, t]),
+                        from_units=model.model_units["volume_time"],
+                        to_units=pyunits.meter**3 / pyunits.h,
                     )
                     for t in model.s_T
                 )
-            ),
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        mh.objective = Objective(
+            expr=(mh.v_Z_HydrualicsCost),
             sense=minimize,
-            doc="Objective function",
+            doc="Objective function for Hydraulics block",
         )
 
     elif model.config.hydraulics == Hydraulics.co_optimize:
         """
-        For the co-optimize method, first, the strategic model is cloned and then,
-        constraints for computing pressures at every node using
-        Hazen-Williams equation is added to the model. The original objective
-        function of minimizing the cost is modified to include of the operating
-        cost of pumps and valves as a function of the deltaP.
+        For the co-optimize method, the hydraulics block is solved along with
+        the network model to optimize the network in the presence of
+        hydraulics constraints. The objective is to minimize total cost including
+        the cost of pumps.
         """
+        # In the co_optimize method the objective should include the cost of pumps. So,
+        # delete the original objective to add a modified objective in this method.
+        del model.objective
+
+        # add necessary variables and constraints
         mh.v_HW_loss = Var(
-            mh.s_LLA,
-            mh.s_T,
+            model.s_LLA,
+            model.s_T,
             initialize=0,
             within=NonNegativeReals,
             units=pyunits.meter,
             doc="Hazen-Williams Frictional loss, m",
         )
         mh.v_effective_Pipeline_diameter = Var(
-            mh.s_LLA,
+            model.s_LLA,
             initialize=0,
             units=model.model_units["diameter"],
             doc="Diameter of pipeline between two locations [inch]",
         )
 
         def EffectiveDiameterRule(b, l1, l2, t1):
-            constraint = mh.v_effective_Pipeline_diameter[l1, l2] == mh.df_parameters[
-                "InitialPipelineDiameters"
-            ][l1, l2] + sum(
-                mh.vb_y_Pipeline[l1, l2, d]
-                * mh.df_parameters["PipelineDiameterValues"][d]
+            constraint = mh.v_effective_Pipeline_diameter[
+                l1, l2
+            ] == model.df_parameters["InitialPipelineDiameters"][l1, l2] + sum(
+                model.vb_y_Pipeline[l1, l2, d]
+                * model.df_parameters["PipelineDiameterValues"][d]
                 for d in model.s_D
             )
             return process_constraint(constraint)
 
         mh.EffectiveDiameter = Constraint(
-            mh.s_LLA,
-            mh.s_T,
+            model.s_LLA,
+            model.s_T,
             rule=EffectiveDiameterRule,
             doc="Pressure at Node L",
         )
@@ -3738,31 +3814,31 @@ def pipeline_hydraulics(model, opt):
                     mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
                 )
                 ** 4.87
-            ) * (mh.p_HW_material_factor_pipeline**1.85) == 10.704 * (
-                pyunits.convert(
-                    mh.v_F_Piped[l1, l2, t1], to_units=pyunits.m**3 / pyunits.s
+            ) == 10.704 * (
+                (
+                    pyunits.convert(
+                        model.v_F_Piped[l1, l2, t1], to_units=pyunits.m**3 / pyunits.s
+                    )
+                    / mh.p_HW_material_factor_pipeline
                 )
                 ** 1.85
             ) * (
-                pyunits.convert(mh.p_lambda_Pipeline[l1, l2], to_units=pyunits.m)
-                ** 4.87
-            ) * sum(
-                mh.vb_y_Pipeline[l1, l2, d] for d in mh.s_D if d is not mh.s_D.first()
+                pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m)
             )
             return process_constraint(constraint)
 
         mh.HW_loss_equaltion = Constraint(
-            mh.s_LLA,
-            mh.s_T,
+            model.s_LLA,
+            model.s_T,
             rule=HazenWilliamsRule,
             doc="Pressure at Node L",
         )
 
         def NodePressureRule(b, l1, l2, t1):
             constraint = (
-                b.v_Pressure[l1, t1] + mh.p_Elevation[l1] * mh.p_rhog
+                b.v_Pressure[l1, t1] + model.p_Elevation[l1] * mh.p_rhog
                 == b.v_Pressure[l2, t1]
-                + mh.p_Elevation[l2] * mh.p_rhog
+                + model.p_Elevation[l2] * mh.p_rhog
                 + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
                 - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
                 + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
@@ -3770,33 +3846,42 @@ def pipeline_hydraulics(model, opt):
             return process_constraint(constraint)
 
         mh.NodePressure = Constraint(
-            mh.s_LLA,
-            mh.s_T,
+            model.s_LLA,
+            model.s_T,
             rule=NodePressureRule,
             doc="Pressure at Node L",
         )
 
-        mh.objective = Objective(
-            expr=(
-                mh.v_Z
-                + (
-                    sum(
-                        sum(
-                            (
-                                mh.v_PumpHead[key, t] * mh.p_PumpingCost
-                                + mh.v_ValveHead[key, t]
-                            )
-                            for key in mh.s_LLA
-                        )
-                        for t in mh.s_T
+        def PumpCostRule(b, l1, l2):
+            constraint = b.v_PumpCost[l1, l2] == mh.p_PumpFixedCost * mh.vb_Y_Pump[
+                l1, l2
+            ] + (
+                (mh.p_ElectricityCost / 3.6e6)
+                * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
+                * sum(
+                    b.v_PumpHead[l1, l2, t]
+                    * pyunits.convert(
+                        (model.v_F_Piped[l1, l2, t]),
+                        to_units=pyunits.meter**3 / pyunits.h,
                     )
+                    for t in model.s_T
                 )
-            ),
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        model.objective = Objective(
+            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
             sense=minimize,
             doc="Objective function",
         )
 
-    return mh
+    return model
 
 
 def _hazen_williams_head(mat_factor, length, diameter, flow):
@@ -4612,7 +4697,7 @@ def get_max_value_for_parameter(parameter):
 
 
 def water_quality_discrete(model, df_parameters, df_sets):
-    # region Add sets, parameters and constraints
+    # Add sets, parameters and constraints
 
     # Crate a set for Completions Pad storage by appending "-storage" to each item in the CompletionsPads Set
     storage_label = "-storage"
@@ -6433,69 +6518,73 @@ def solve_model(model, options=None):
     results.write()
 
     if model.config.hydraulics != Hydraulics.false:
-        mh = pipeline_hydraulics(model, opt)
+        model_h = pipeline_hydraulics(model)
 
-        if model.config.hydraulics != Hydraulics.post_process:
+        if model.config.hydraulics == Hydraulics.post_process:
+            # In the post-process solve, only the hydraulics block is solved.
+
+            mh = model_h.hydraulics
             results_2 = opt.solve(mh, tee=True)
 
-        elif model.config.hydraulics != Hydraulics.co_optimize:
-            # MINLP solver is currently accessed through GAMS. User must specify
-            # available solvers to solve this problem.
-            # TODO: check to use open source solvers
-            solver = SolverFactory("gams")
-            mathoptsolver = "baron"
-            solver_options = {
-                "firstfeas": 1,
-            }
+        elif model.config.hydraulics == Hydraulics.co_optimize:
+            # Currently, this method is supported for only MINLP solvers accessed through GAMS.
+            # The default solver is Baron and is set to find the first feasible solution.
+            # If the user has SCIP, then the feasible solution from BARON is passed to SCIP, which is then solved to a gap of 0.3.
+            # If the user do not have these solvers installed then it limits the use of co_optimize method at this time.
+            # Ongoing work is geared to address this limitation and will soon be updated here.
 
-            if not os.path.exists("temp"):
-                os.makedirs("temp")
+            # Adding temporary variable bounds until the bounding method is implemented for the following Vars
+            model_h.v_F_Piped.setub(1050)
+            model_h.hydraulics.v_Pressure.setub(3.5e6)
 
-            with open("temp/" + mathoptsolver + ".opt", "w") as f:
-                for k, v in solver_options.items():
-                    f.write(str(k) + " " + str(v) + "\n")
+            try:
+                solver = SolverFactory("gams")
+                mathoptsolver = "baron"
+            except:
+                print(
+                    "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
+                      please continue to use the post-process method for hydraulics at this time"
+                )
+            else:
+                solver_options = {
+                    "firstfeas": 1,
+                }
 
-            results_baron = solver.solve(
-                mh,
-                tee=True,
-                keepfiles=True,
-                solver=mathoptsolver,
-                tmpdir="temp",
-                add_options=["gams_model.optfile=1;"],
-            )
+                if not os.path.exists("temp"):
+                    os.makedirs("temp")
 
-            # second solve with dicopt
-            solver2 = SolverFactory("gams")
-            mathoptsolver2 = "dicopt"
-            solver_options2 = {
-                "tol": 1e-3,
-                "max_iter": 1000,
-                "constr_viol_tol": 0.009,
-                "acceptable_constr_viol_tol": 0.01,
-                "acceptable_tol": 1e-6,
-                "mu_strategy": "adaptive",
-                "mu_init": 1e-10,
-                "mu_max": 1e-1,
-                "print_user_options": "yes",
-                "warm_start_init_point": "yes",
-                "warm_start_mult_bound_push": 1e-60,
-                "warm_start_bound_push": 1e-60,
-            }
+                with open("temp/" + mathoptsolver + ".opt", "w") as f:
+                    for k, v in solver_options.items():
+                        f.write(str(k) + " " + str(v) + "\n")
 
-            if not os.path.exists("temp"):
-                os.makedirs("temp")
+                results_baron = solver.solve(
+                    model_h,
+                    tee=True,
+                    keepfiles=True,
+                    solver=mathoptsolver,
+                    tmpdir="temp",
+                    add_options=["gams_model.optfile=1;"],
+                )
+                try:
+                    # second solve with SCIP
+                    solver2 = SolverFactory("scip", solver_io="nl")
+                    print("  ")
+                    print(
+                        "WARNING: A default relative optimality gap of 30%/ is set to obtain good solutions at this time"
+                    )
+                    print("  ")
+                except:
+                    print(
+                        "A second solve with SCIP cannot be executed as SCIP was not found. Please add it to Path. \
+                          If you do not haev SCIP, proceed with caution when using solution obtain from first solve using BARON"
+                    )
+                else:
+                    results_2 = solver2.solve(
+                        model_h, options={"limits/gap": 0.3}, tee=True
+                    )
 
-            with open("temp/" + mathoptsolver2 + ".opt", "w") as f:
-                for k, v in solver_options2.items():
-                    f.write(str(k) + " " + str(v) + "\n")
+        # Once the hydraulics block is solved, it is deactivated to retain the original MILP
+        model_h.hydraulics.deactivate()
 
-            results_2 = solver2.solve(
-                mh,
-                tee=True,
-                keepfiles=True,
-                solver=mathoptsolver2,
-                tmpdir="temp",
-                add_options=["gams_model.optfile=1;"],
-            )
-
+        results_2.write()
     return results

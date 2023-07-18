@@ -20,7 +20,6 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 import numpy as np
-from pyomo.environ import units as pyunits
 
 
 def _read_data(_fname, _set_list, _parameter_list):
