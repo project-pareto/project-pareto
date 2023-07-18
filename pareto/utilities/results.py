@@ -28,7 +28,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
-from plotly.offline import init_notebook_mode, iplot
 
 import contextlib
 import sys
@@ -1348,6 +1347,7 @@ def plot_sankey(input_data={}, args=None):
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
     if is_sections:
+        fig = []
         for key, val in input_data["sections"].items():
             for i, v in enumerate(val):
                 try:
@@ -1373,7 +1373,7 @@ def plot_sankey(input_data={}, args=None):
 
             args["section_name"] = key
 
-            generate_sankey(source, destination, value, updated_label, args)
+            fig.append(generate_sankey(source, destination, value, updated_label, args))
     else:
         source = df_updated["source"].to_list()
         destination = df_updated["destination"].to_list()
@@ -1381,7 +1381,9 @@ def plot_sankey(input_data={}, args=None):
 
         updated_label = outlet_flow(source, destination, label, value)
 
-        generate_sankey(source, destination, value, updated_label, args)
+        fig = generate_sankey(source, destination, value, updated_label, args)
+
+    return fig
 
 
 def handle_time(variable, input_data):
@@ -1497,14 +1499,12 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
     in a browser.
     """
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
 
     # Checking arguments and assigning appropriate values
     if args is None:
         font_size = 20
         plot_title = "Sankey Diagram"
         figure_output = "first_sankey.html"
-        jupyter_notebook = False
     else:
         if "font_size" not in args.keys() or args["font_size"] is None:
             font_size = 20
@@ -1522,21 +1522,16 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
             else:
                 plot_title = args["plot_title"]
 
-        if "output_file" not in args.keys() or args["output_file"] is None:
+        if "output_file" not in args.keys():
             if "section_name" in args:
                 figure_output = args["section_name"] + "_sankey.html"
             else:
                 figure_output = "first_sankey.html"
         else:
-            if "section_name" in args:
+            if "section_name" in args and args["output_file"] is not None:
                 figure_output = args["section_name"] + "_" + args["output_file"]
             else:
                 figure_output = args["output_file"]
-
-        if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-            jupyter_notebook = False
-        else:
-            jupyter_notebook = args["jupyter_notebook"]
 
     # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
     link = dict(source=source, target=destination, value=value)
@@ -1554,21 +1549,23 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
         font_size=font_size,
     )
 
-    if ".html" in figure_output:
-        fig.write_html(figure_output, auto_open=False)
-    elif any(x in figure_output for x in format_checklist):
-        fig.write_image(figure_output, height=850, width=1800)
-    else:
-        exception_string = ""
-        for x in format_checklist:
-            exception_string = exception_string + ", " + x
-        raise Exception(
-            "The file format provided is not supported. Please use either html{}.".format(
-                exception_string
+    # Save the figure if required
+    if figure_output is not None:
+        if ".html" in figure_output:
+            fig.write_html(figure_output, auto_open=False)
+        elif any(x in figure_output for x in format_checklist):
+            fig.write_image(figure_output, height=850, width=1800)
+        else:
+            exception_string = ""
+            for x in format_checklist:
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
             )
-        )
-    if jupyter_notebook:
-        iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def plot_bars(input_data, args):
@@ -1592,10 +1589,8 @@ def plot_bars(input_data, args):
     date_time = False
     print_data = False
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
-    jupyter_notebook = False
 
-    if "output_file" not in args.keys() or args["output_file"] is None:
+    if "output_file" not in args.keys():
         figure_output = "first_bar.html"
     else:
         figure_output = args["output_file"]
@@ -1630,11 +1625,6 @@ def plot_bars(input_data, args):
         yaxis_type = "log"
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
-
-    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-        jupyter_notebook = False
-    else:
-        jupyter_notebook = args["jupyter_notebook"]
 
     # Check the type of variable passed in and assign labels/Check for time indexing
     if isinstance(variable, list):
@@ -1786,22 +1776,21 @@ def plot_bars(input_data, args):
             ):
                 print(df_time_sort)
 
-        # Write the figure to html format and open in the browser
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False, auto_play=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False, auto_play=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
     else:
 
         # Create dataframe for use in the method
@@ -1857,21 +1846,23 @@ def plot_bars(input_data, args):
             ):
                 print(df_new_updated)
 
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def plot_scatter(input_data, args):
@@ -1906,11 +1897,9 @@ def plot_scatter(input_data, args):
     category_variable = None
     size = "Size"
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
-    jupyter_notebook = False
 
     # Checks if output_file has been passed in as a user argument
-    if "output_file" not in args.keys() or args["output_file"] is None:
+    if "output_file" not in args.keys():
         figure_output = "first_scatter_plot.html"
     else:
         figure_output = args["output_file"]
@@ -1960,11 +1949,6 @@ def plot_scatter(input_data, args):
             raise Exception(
                 'Invalid type for argument "group_by_category". Must be of type boolean, list variable or dictionary variable.'
             )
-
-    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-        jupyter_notebook = False
-    else:
-        jupyter_notebook = args["jupyter_notebook"]
 
     variable_x = input_data["pareto_var_x"]
     variable_y = input_data["pareto_var_y"]
@@ -2380,22 +2364,21 @@ def plot_scatter(input_data, args):
             ):
                 print(df_scatter)
 
-        # Writing figure to desired format
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False, auto_play=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False, auto_play=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
 
     else:
         # Creating dataframe based on the passed in variable and rounding the values
@@ -2601,22 +2584,23 @@ def plot_scatter(input_data, args):
             ):
                 print(df_scatter)
 
-        # Writing figure to desired format
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def is_binary_value(value, tol):
