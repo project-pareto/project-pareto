@@ -125,3 +125,8 @@ myst_heading_anchors = 2
 myst_footnote_transition = True
 myst_dmath_double_inline = True
 panels_add_bootstrap_css = False
+
+rst_epilog = """
+.. |support-email| replace:: the `support email list`_
+.. _support email list: mailto:pareto-support@lbl.gov
+"""
