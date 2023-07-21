@@ -56,19 +56,17 @@ def Bound_v_F_Piped(model):
             if (l_tilde, l) in model.s_LLA:
                 # set default value to flow capacity for a bi-directional pipeline
                 # Default is Initial capacity in either directions plus twice the maximum expansion capacity to account for bi-directional pipe installation
-                  return (
-                      model.p_sigma_Pipeline[l, l_tilde]
-                      + model.p_sigma_Pipeline[l_tilde, l]
-                      + 2 * max([value(model.p_delta_Pipeline[d]) for d in model.s_D])
-                  )
+                return (
+                    model.p_sigma_Pipeline[l, l_tilde]
+                    + model.p_sigma_Pipeline[l_tilde, l]
+                    + 2 * max([value(model.p_delta_Pipeline[d]) for d in model.s_D])
+                )
             else:
                 # set default value to flow capacity for uni-directional pipeline
                 # Default is Initial capacity in the direction plus the maximum expansion capacity
-                  return (
-                      model.p_sigma_Pipeline[l, l_tilde]
-                      + max([value(model.p_delta_Pipeline[d]) for d in model.s_D])
-                  )
-              
+                return model.p_sigma_Pipeline[l, l_tilde] + max(
+                    [value(model.p_delta_Pipeline[d]) for d in model.s_D]
+                )
 
     # Set up bounds in a parameter
     model.p_F_Piped_UB = Param(
