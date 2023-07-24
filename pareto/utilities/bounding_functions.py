@@ -70,8 +70,7 @@ def Bound_v_F_Piped(model):
 
     # Set up bounds in a parameter
     model.p_F_Piped_UB = Param(
-        model.s_L,
-        model.s_L,
+        model.s_LLA,
         default=None,
         mutable=True,
         within=Any,
