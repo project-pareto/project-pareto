@@ -81,8 +81,7 @@ def Bound_v_F_Piped(model):
     )
     # Assign upper bounds to variables; note that using a bounds rule would require redefining the variable
     for key in model.s_LLA:
-        for t in model.s_T:
-            model.v_F_Piped[key, t].setub(model.p_F_Piped_UB[key])
+        model.v_F_Piped[key, :].setub(model.p_F_Piped_UB[key])
     return model
 
 
@@ -161,8 +160,7 @@ def Bound_v_F_DiscretePiped(model):
 
     # Set up bounds in a parameter
     model.p_F_DiscretePiped_UB = Param(
-        model.s_L,
-        model.s_L,
+        model.s_LLA,
         default=None,
         mutable=True,
         within=Any,

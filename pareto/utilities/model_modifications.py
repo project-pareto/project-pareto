@@ -37,7 +37,6 @@ def free_variables(model, exception_list=None, time_period=None):
                 # unfix binary variables and unbound the continuous variables
                 if index_var.domain is Binary:
                     index_var.unfix()
-                    index_var.free()
                 else:
                     index_var.unfix()
                     index_var.setlb(0)
