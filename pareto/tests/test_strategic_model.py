@@ -489,6 +489,40 @@ def test_hydraulics_post_process_input(
     assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
 
 
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_hydraulics_post_process_reduced_strategic_model(
+    build_reduced_strategic_model,
+):
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.post_process,
+            "water_quality": WaterQuality.false,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 11789
+    # solutions obtained from running the reduced generic case study
+    assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(26.239, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
+    with nostdout():
+        assert is_feasible(m)
+
+
 @pytest.mark.unit
 def test_hydraulics_co_optimize_input(
     build_reduced_strategic_model,

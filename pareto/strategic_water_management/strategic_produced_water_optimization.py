@@ -3557,6 +3557,25 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"],
         doc="Maximum ALlowable Operating Pressure",
     )
+    mh.p_Initial_Pipeline_Diameter = Param(
+        model.s_L,
+        model.s_L,
+        default=pyunits.convert_value(
+            0,
+            from_units=model.user_units["diameter"],
+            to_units=model.model_units["diameter"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["diameter"],
+                to_units=model.model_units["diameter"],
+            )
+            for key, value in model.df_parameters["InitialPipelineDiameters"].items()
+        },
+        units=model.model_units["diameter"],
+        doc="Initial pipeline diameter [inch]",
+    )
     mh.p_WellPressure = Param(
         model.s_P,
         model.s_T,
@@ -3683,9 +3702,9 @@ def pipeline_hydraulics(model):
             doc="Hazen-Williams Frictional loss, m",
         )
         for key in model.s_LLA:
-            mh.p_effective_Pipeline_diameter[key] = model.df_parameters[
-                "InitialPipelineDiameters"
-            ][key] + value(
+            mh.p_effective_Pipeline_diameter[key] = mh.p_Initial_Pipeline_Diameter[
+                key
+            ] + value(
                 sum(
                     model.vb_y_Pipeline[key, d]
                     * model.df_parameters["PipelineDiameterValues"][d]
@@ -3794,7 +3813,7 @@ def pipeline_hydraulics(model):
         def EffectiveDiameterRule(b, l1, l2, t1):
             constraint = mh.v_effective_Pipeline_diameter[
                 l1, l2
-            ] == model.df_parameters["InitialPipelineDiameters"][l1, l2] + sum(
+            ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
                 model.vb_y_Pipeline[l1, l2, d]
                 * model.df_parameters["PipelineDiameterValues"][d]
                 for d in model.s_D
