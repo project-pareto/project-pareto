@@ -522,7 +522,9 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
     assert pytest.approx(26.067, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
-    assert pytest.approx(24, abs=1e-1) == pyo.value(sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA))
+    assert pytest.approx(24, abs=1e-1) == pyo.value(
+        sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA)
+    )
     # feasibility test is not working with Cbc so, disabling for now until a fix is found
     # with nostdout():
     #     assert is_feasible(m)
