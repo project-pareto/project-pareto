@@ -496,14 +496,14 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
 ):
     m = build_reduced_strategic_model(
         config_dict={
-        "objective": Objectives.cost,
-        "pipeline_cost": PipelineCost.distance_based,
-        "pipeline_capacity": PipelineCapacity.input,
-        "hydraulics": Hydraulics.post_process,
-        "node_capacity": True,
-        "water_quality": WaterQuality.false,
-        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-         }
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.post_process,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        }
     )
 
     options = {
