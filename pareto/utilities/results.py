@@ -646,7 +646,7 @@ def generate_report(
                             "Location",
                             "Location",
                             "Time",
-                            "Hazen Williams head loss",
+                            "Hazen-Williams head loss",
                         )
                     ],
                     "hydraulics.v_effective_Pipeline_diameter_dict": [
