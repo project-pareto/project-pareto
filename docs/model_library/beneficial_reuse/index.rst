@@ -62,7 +62,7 @@ Figure 1 presents a schematic of a typical produced water network featuring mult
     :width: 950
     :align: center
 
-    Figure 1. produced water beneficial reuse network schematic
+    Figure 1. Produced water beneficial reuse network schematic.
 
 .. _modeling_considerations:
 
