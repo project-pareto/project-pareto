@@ -212,7 +212,7 @@ Solution mining employs the technique of dissolving water-soluble minerals found
 Resource  recovery
 ------------------------------------
 
-Produced water (PW) is increasingly being recognized as a potential source of valuable resources and critical minerals. Studies have highlighted the potential economic feasibility of extracting elements such as lithium, magnesium, strontium, and ammonium from PW, with potential yearly revenues per well reaching up to $250,000 per well in the Permian basin. 
+Produced water is increasingly being recognized as a potential source of valuable resources and critical minerals. Studies have highlighted the potential economic feasibility of extracting resources such as lithium, magnesium, strontium, and ammonium from PW, with potential yearly revenues per well reaching up to $250,000 per well in the Permian basin. 
 
 Emerging technologies such as adsorption, ion exchange, membrane-based technologies, and electrodialysis are playing a crucial role in resource recovery. These technologies, when effectively implemented, can enhance the efficiency and selectivity of resource recovery, turning PW from a waste stream into a multi-faceted resource. 
 For instance, a recent study demonstrated the feasibility of simultaneously recovering NH\ :sub:`4`\ :sup:`+`, K\ :sup:`+` and Mg\ :sup:`2+` from PW by struvite precipitation after calcium pretreatment. The process resulted in NH\ :sub:`4`\ :sup:`+`, K\ :sup:`+` and Mg\ :sup:`2+` recovery efficiencies of 85.9%, 24.8% and 96.8%, respectively, providing an example of a recovery-centered approach.
