@@ -14,7 +14,7 @@ How to ...
 
 ... Get more help?
     Use the website to `register <https://pareto.org/register/>`_ for the PARETO support mailing list.
-    Then you can send questions to pareto-support@pareto.org. For more specific technical questions, we recommend
+    Then you can send questions to |support-email|. For more specific technical questions, we recommend
     our new `PARETO discussions board on Github <https://github.com/project-pareto/discussions>`_.
 
 Troubleshooting
