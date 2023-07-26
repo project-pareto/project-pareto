@@ -48,14 +48,21 @@ repo (even occasionally) - needs approval from PhD. Markus Drouven
             dependencies.  There are several good options including conda
             environments if you use Anaconda.
 
-
 .. _min_install_users:
 
 Users
 -----
 **Non-git tracked option**
 
-1. Install PARETO with pip by one of the following methods
+1. Create a Conda environment, named e.g. ``pareto-env``::
+
+    conda create --yes --name pareto-env python=3.10
+
+2. Activate the ``pareto-env`` Conda environment. This command must be run every time a new console/terminal window is opened::
+
+    conda activate pareto-env
+
+3. Install PARETO with pip by one of the following methods
 
   a. To get the latest release::
 
@@ -70,13 +77,19 @@ Users
      PARETO repo or a developer's fork and branch (this installs from GitHub
      but does not create a local git clone/workspace)::
 
-      pip install git+https://github.com/project-pareto/project-pareto.git
-      pip install git+https://github.com/ksbeattie/project-pareto@feature_1
+      pip install "git+https://github.com/project-pareto/project-pareto.git"
+      pip install "git+https://github.com/ksbeattie/project-pareto@feature_1"
+
+4. After installing PARETO, install the open-source solvers provided by the IDAES project::
+
+    idaes get-extensions --verbose
 
 .. _min_install_core-dev:
 
 Core-dev
 --------
+
+.. important:: For more developer resources, see the `PARETO Wiki on GitHub <https://github.com/project-pareto/project-pareto/wiki>`_.
 
 1. Fork the repo on GitHub (your copy of the main repo)
 
@@ -86,21 +99,40 @@ Core-dev
     git clone https://github.com/<githubid>/project-pareto
     git clone git@github.com:<githubid>/project-pareto
 
-3. In this new project-pareto directory, run the following command which
-   installs PARETO in editable mode so that developers can make changes and
-   push to their fork/branch::
+3. Create a dedicated Conda environment for development work::
 
-    pip install -e .
+    conda create --name pareto-dev python=3.10 --yes
+    conda activate pareto-dev
+
+4. Activate the ``pareto-dev`` Conda environment. This command must be run every time a new console/terminal window is opened::
+
+    conda activate pareto-dev
+
+4. Navigate into the new ``project-pareto`` directory, then run the following command to install 
+   PARETO in editable mode and the development-only dependencies::
+
+    pip install -r requirements-dev.txt
+
+5. After installing PARETO, install the open-source solvers provided by the IDAES project::
+
+    idaes get-extensions --verbose
+
+6. (Recommended) install the pre-commit checks that will run automatically whenever ``git commit`` is used, preventing the commit from being created if any of the checks fail::
+
+    pre-commit install
+
+   .. note:: ``pre-commit`` can cause commits to fail for reasons unrelated to the pre-commit checks. For more information, check the `related GitHub issue(s) <https://github.com/project-pareto/project-pareto/issues?q=is%3Aissue+is%3Aopen+label%3Apre-commit>`_.
 
 .. _min_install_hybrid:
 
 Hybrid
--------
+------
+
 **User that can edit the base code**
 
-1. Create environment::
+1. Create and activate environment::
 
-    conda create -n pareto-env python=3.8 pip --yes
+    conda create -n pareto-env python=3.10 pip --yes
     conda activate pareto-env
 
 2. Download zip files (project-pareto-main)
@@ -110,6 +142,10 @@ Hybrid
 4. Install pareto-project (non-git tracked repo)::
 
     pip install -r requirements-dev.txt
+
+5. After installing PARETO, install the open-source solvers provided by the IDAES project::
+
+    idaes get-extensions --verbose
 
 Building Documentation
 ----------------------
