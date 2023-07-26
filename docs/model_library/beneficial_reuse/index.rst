@@ -151,7 +151,7 @@ An additional benefit of treated produced water in agricultural applications is 
 Key parameters to monitor in crop cultivation include the Sodium Adsorption Ratio (SAR) and boron concentration. The SAR indicates potential sodium accumulation in the soil, while boron, though a necessary micronutrient, can be toxic to plants when present in high concentrations. Different crops exhibit different tolerance thresholds. For instance:
 
 - Cotton can tolerate SAR levels up to 10 and boron concentrations ranging from 0.2 to 1 ppm, with a Total Dissolved Solids (TDS) limit around 7,700 ppm.
-- Alfalfa can cope with SAR levels up to 10 and boron levels below 1 ppm, with a TDS limit approximately 2,000 ppm.
+- Alfalfa can tolerate SAR levels up to 10 and boron levels up to 1 ppm, with a TDS limit approximately 2,000 ppm.
 
 The water needs for crops change based on regional evapotranspiration rates and the crop’s growth stage. Evapotranspiration (ET) is the process of water loss through soil surface evaporation and plant transpiration. Water needs peak during the crop development phase. Factors considered for ET calculations include crop coefficients (Kc), which express the water consumption rate of the crop compared to reference evapotranspiration.
 Typical water requirements for cotton and alfalfa crops are:
