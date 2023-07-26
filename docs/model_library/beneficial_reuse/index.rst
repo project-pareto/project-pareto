@@ -171,7 +171,7 @@ Produced water can be a potential resource for fulfilling livestock water requir
 Sulfates are another significant factor to consider in livestock water. High sulfate levels can adversely affect livestock health, particularly in ruminants, and may reduce copper availability in their diet. The recommended sulfate levels are below 500 ppm for calves and below 1,000 ppm for adult cattle.
 
 While specific data for pollutants in produced water is scant, we have access to regulations related to wastewater provided by the Environmental Protection Agency (EPA). These regulations are diverse among states, determined by whether the wastewater is from dairy or non-dairy livestock operations. 
-The contaminants commonly monitored include: Biochemical Oxygen Demand (BOD), Total Suspended Solids (TSS), Fecal coliform, Total Residual Chlorine (TRC), Turbidity, Chlorine, Nitrogen, Phosphorus and pH
+The contaminants commonly monitored include: Biochemical Oxygen Demand (BOD), Total Suspended Solids (TSS), Fecal coliform, Total Residual Chlorine (TRC), Turbidity, Chlorine, Nitrogen, Phosphorus and pH.
 To delve deeper into the distinct water quality standards for utilizing wastewater in livestock watering across different states, the tool "ReuseXplorer - Regulations and End-Use Specifications Explorer" can be employed.
 
 Livestock water consumption varies by counties and plays, and according to the USGS 2015 database, it ranges from 2.4 x 10^9 liters in the Midland play to 30 x 10^9 liters  and 38 x 10^9 liters annually in the Eagle Ford and Haynesville plays, respectively. 
