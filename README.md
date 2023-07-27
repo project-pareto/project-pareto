@@ -24,7 +24,7 @@ The recommended way to install Pareto is to use a dedicated Conda environment.
 To install the latest stable release of PARETO, create and activate the Conda environment, then install PARETO using `pip`:
 
 ```sh
-conda create --yes -n pareto-env python=3.10
+conda create --yes -n pareto-env python=3.9
 conda activate pareto-env
 pip install project-pareto
 idaes get-extensions --verbose
