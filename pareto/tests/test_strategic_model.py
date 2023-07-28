@@ -525,9 +525,9 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
     assert pytest.approx(24, abs=1e-1) == pyo.value(
         sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA)
     )
-    # feasibility test is not working with Cbc so, disabling for now until a fix is found
-    # with nostdout():
-    #     assert is_feasible(m)
+
+    with nostdout():
+        assert is_feasible(m)
 
 
 @pytest.mark.unit

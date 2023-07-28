@@ -3499,6 +3499,7 @@ def pipeline_hydraulics(model):
         1) post-process method: only the hydraulics block is solved for pressures
         2) co-optimize method: the hydraulics block is solved along with the network
     """
+    cons_scaling_factor = 1e-3
 
     # Create a block to add all variables and constraints for hydraulics within the model
     model.hydraulics = Block()
@@ -3643,7 +3644,10 @@ def pipeline_hydraulics(model):
 
     # add all necessary constraints
     def MAOPressureRule(b, l1, t1):
-        constraint = b.v_Pressure[l1, t1] <= b.p_Max_AOP
+        constraint = (
+            b.v_Pressure[l1, t1] * cons_scaling_factor
+            <= b.p_Max_AOP * cons_scaling_factor
+        )
         return process_constraint(constraint)
 
     mh.MAOPressure = Constraint(
@@ -3656,8 +3660,9 @@ def pipeline_hydraulics(model):
     def PumpHeadeRule(b, l1, l2):
         constraint = (
             sum(b.v_PumpHead[l1, l2, t] for t in model.s_T)
-            <= model.p_M_Flow * mh.vb_Y_Pump[l1, l2]
-        )
+        ) * cons_scaling_factor <= (
+            model.p_M_Flow * mh.vb_Y_Pump[l1, l2]
+        ) * cons_scaling_factor
         return process_constraint(constraint)
 
     mh.PumpHeadCons = Constraint(
@@ -3667,8 +3672,9 @@ def pipeline_hydraulics(model):
     )
 
     def HydraulicsCostRule(b):
-        constraint = mh.v_Z_HydrualicsCost == sum(
-            (mh.v_PumpCost[key]) for key in model.s_LLA
+        constraint = (
+            mh.v_Z_HydrualicsCost * cons_scaling_factor
+            == (sum((mh.v_PumpCost[key]) for key in model.s_LLA)) * cons_scaling_factor
         )
         return process_constraint(constraint)
 
@@ -3736,12 +3742,13 @@ def pipeline_hydraulics(model):
             if value(model.v_F_Piped[l1, l2, t1]) > 0.01:
                 constraint = (
                     b.v_Pressure[l1, t1] + model.p_Elevation[l1] * mh.p_rhog
-                    == b.v_Pressure[l2, t1]
+                ) * cons_scaling_factor == (
+                    b.v_Pressure[l2, t1]
                     + model.p_Elevation[l2] * mh.p_rhog
                     + b.p_HW_loss[l1, l2, t1] * mh.p_rhog
                     - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
                     + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
-                )
+                ) * cons_scaling_factor
                 return process_constraint(constraint)
             else:
                 return Constraint.Skip
@@ -3754,20 +3761,25 @@ def pipeline_hydraulics(model):
         )
 
         def PumpCostRule(b, l1, l2):
-            constraint = b.v_PumpCost[l1, l2] == mh.p_PumpFixedCost * mh.vb_Y_Pump[
-                l1, l2
-            ] + (
-                (mh.p_ElectricityCost / 3.6e6)
-                * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
-                * sum(
-                    b.v_PumpHead[l1, l2, t]
-                    * pyunits.convert_value(
-                        value(model.v_F_Piped[l1, l2, t]),
-                        from_units=model.model_units["volume_time"],
-                        to_units=pyunits.meter**3 / pyunits.h,
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                == (
+                    mh.p_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + (
+                        (mh.p_ElectricityCost / 3.6e6)
+                        * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
+                        * sum(
+                            b.v_PumpHead[l1, l2, t]
+                            * pyunits.convert_value(
+                                value(model.v_F_Piped[l1, l2, t]),
+                                from_units=model.model_units["volume_time"],
+                                to_units=pyunits.meter**3 / pyunits.h,
+                            )
+                            for t in model.s_T
+                        )
                     )
-                    for t in model.s_T
                 )
+                * cons_scaling_factor
             )
             return process_constraint(constraint)
 
@@ -3828,22 +3840,28 @@ def pipeline_hydraulics(model):
         )
 
         def HazenWilliamsRule(b, l1, l2, t1):
-            constraint = b.v_HW_loss[l1, l2, t1] * (
-                pyunits.convert(
-                    mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
-                )
-                ** 4.87
-            ) == 10.704 * (
-                (
+            constraint = (
+                b.v_HW_loss[l1, l2, t1]
+                * (
                     pyunits.convert(
-                        model.v_F_Piped[l1, l2, t1], to_units=pyunits.m**3 / pyunits.s
+                        mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
                     )
-                    / mh.p_HW_material_factor_pipeline
+                    ** 4.87
                 )
-                ** 1.85
-            ) * (
-                pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m)
-            )
+            ) * cons_scaling_factor == (
+                10.704
+                * (
+                    (
+                        pyunits.convert(
+                            model.v_F_Piped[l1, l2, t1],
+                            to_units=pyunits.m**3 / pyunits.s,
+                        )
+                        / mh.p_HW_material_factor_pipeline
+                    )
+                    ** 1.85
+                )
+                * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
+            ) * cons_scaling_factor
             return process_constraint(constraint)
 
         mh.HW_loss_equaltion = Constraint(
@@ -3855,12 +3873,16 @@ def pipeline_hydraulics(model):
 
         def NodePressureRule(b, l1, l2, t1):
             constraint = (
-                b.v_Pressure[l1, t1] + model.p_Elevation[l1] * mh.p_rhog
-                == b.v_Pressure[l2, t1]
-                + model.p_Elevation[l2] * mh.p_rhog
-                + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
-                - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
-                + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                b.v_Pressure[l1, t1]
+                + model.p_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                == (
+                    b.v_Pressure[l2, t1]
+                    + model.p_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                )
+                * cons_scaling_factor
             )
             return process_constraint(constraint)
 
@@ -3872,19 +3894,24 @@ def pipeline_hydraulics(model):
         )
 
         def PumpCostRule(b, l1, l2):
-            constraint = b.v_PumpCost[l1, l2] == mh.p_PumpFixedCost * mh.vb_Y_Pump[
-                l1, l2
-            ] + (
-                (mh.p_ElectricityCost / 3.6e6)
-                * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
-                * sum(
-                    b.v_PumpHead[l1, l2, t]
-                    * pyunits.convert(
-                        (model.v_F_Piped[l1, l2, t]),
-                        to_units=pyunits.meter**3 / pyunits.h,
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                == (
+                    mh.p_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + (
+                        (mh.p_ElectricityCost / 3.6e6)
+                        * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
+                        * sum(
+                            b.v_PumpHead[l1, l2, t]
+                            * pyunits.convert(
+                                (model.v_F_Piped[l1, l2, t]),
+                                to_units=pyunits.meter**3 / pyunits.h,
+                            )
+                            for t in model.s_T
+                        )
                     )
-                    for t in model.s_T
                 )
+                * cons_scaling_factor
             )
             return process_constraint(constraint)
 
