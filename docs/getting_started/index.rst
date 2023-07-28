@@ -56,7 +56,7 @@ Users
 
 1. Create a Conda environment, named e.g. ``pareto-env``::
 
-    conda create --yes --name pareto-env python=3.10
+    conda create --yes --name pareto-env python=3.9
 
 2. Activate the ``pareto-env`` Conda environment. This command must be run every time a new console/terminal window is opened::
 
