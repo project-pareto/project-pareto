@@ -95,7 +95,7 @@ Total cost of pumping in the pipeline network.
 
 .. math::
 
-    \min \ \textcolor{red}{Z^{Hydraulics}} \eq \sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l}}^{Pump}}
+    \min \ \textcolor{red}{Z^{Hydraulics}} = \sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l}}^{Pump}}
 
 
 **Max allowable pressure rule:** :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{t \in T}`
@@ -113,50 +113,50 @@ Allows pumping only if a pump exists in a pipeline.
 
 .. math::
 
-    \textcolor{red}{H_{l,\tilde{l},t}^{Pump} \leq \textcolor{green}{M^{Flow}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
+    \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \leq \textcolor{green}{M^{Flow}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
 
 
 **Equations/constraints specific to the post_process method**
 
-    **Effective diameter calculation:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
+      **Effective diameter calculation:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
 
-    Aggregate diameters for all existing pipelines between any 2 locations.
+      Aggregate diameters for all existing pipelines between any 2 locations.
 
-    .. math::
+      .. math::
 
-        \textcolor{green}{D_{l,\tilde{l}}^{Effective}} \eq \textcolor{green}{D_{l,\tilde{l}}^{Existing}} + \sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}}
-
-
-    **Hazen-Williams based frictional head loss calculation:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
-
-    Calculate head loss using Hazen-Williams equation. Note that units for all terms in this equation are in SI units so, appropriate conversion factors must be added.
-
-    .. math::
-
-        \textcolor{green}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot (\textcolor{green}{D_{l,\tilde{l}}^{Effective}})^{4.87}
-        \eq 10.704 \cdot (\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} / \textcolor{green}{\iota^{CHW}})^{1.85} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}
-
-    **Node pressure rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
-
-    Pressure constraint based on Bernoulli's energy balance equation.
-
-    .. math::
-
-        \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
-         \eq \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
-         + \textcolor{green}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
-         + \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
-         - \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
+          \textcolor{green}{D_{l,\tilde{l}}^{Effective}} = \textcolor{green}{D_{l,\tilde{l}}^{Existing}} + \sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}}
 
 
-    **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}}`
+      **Hazen-Williams based frictional head loss calculation:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
 
-    Allows pumping only if a pump exists in a pipeline.
+      Calculate head loss using Hazen-Williams equation. Note that units for all terms in this equation are in SI units so, appropriate conversion factors must be added.
 
-    .. math::
+      .. math::
 
-        \textcolor{red}{C_{l,\tilde{l}}^{Pump}} \eq \textcolor{green}{\nu^{Pump}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
-        + \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g} \cdot \sum_{t \in T}\textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
+          \textcolor{green}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot (\textcolor{green}{D_{l,\tilde{l}}^{Effective}})^{4.87}
+          = 10.704 \cdot (\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} / \textcolor{green}{\iota^{CHW}})^{1.85} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}
+
+      **Node pressure rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
+
+      Pressure constraint based on Bernoulli's energy balance equation.
+
+      .. math::
+
+          \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
+          = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
+          + \textcolor{green}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
+          + \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
+          - \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
+
+
+      **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
+
+      Allows pumping only if a pump exists in a pipeline.
+
+      .. math::
+
+          \textcolor{red}{C_{l,\tilde{l}}^{Pump}} = \textcolor{green}{\nu^{Pump}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
+          + \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g} \cdot \sum_{t \in T}\textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
 
 
 **Equations/constraints specific to the co_optimize method**
@@ -167,7 +167,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
-        \textcolor{red}{D_{l,\tilde{l}}^{Effective}} \eq \textcolor{green}{D_{l,\tilde{l}}^{Existing}} + \sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}}
+        \textcolor{red}{D_{l,\tilde{l}}^{Effective}} = \textcolor{green}{D_{l,\tilde{l}}^{Existing}} + \sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}}
 
 
     **Hazen-Williams based frictional head loss calculation:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
@@ -177,7 +177,7 @@ Allows pumping only if a pump exists in a pipeline.
     .. math::
 
         \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot (\textcolor{red}{D_{l,\tilde{l}}^{Effective}})^{4.87}
-        \eq 10.704 \cdot (\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} / \textcolor{green}{\iota^{CHW}})^{1.85} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}
+        = 10.704 \cdot (\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} / \textcolor{green}{\iota^{CHW}})^{1.85} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}
 
     **Node pressure rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
 
@@ -186,19 +186,19 @@ Allows pumping only if a pump exists in a pipeline.
     .. math::
 
         \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
-         \eq \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
+         = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
          - \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
 
-    **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}}`
+    **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
 
     Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
-        \textcolor{red}{C_{l,\tilde{l}}^{Pump}} \eq \textcolor{green}{\nu^{Pump}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
+        \textcolor{red}{C_{l,\tilde{l}}^{Pump}} = \textcolor{green}{\nu^{Pump}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
         + \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g} \cdot \sum_{t \in T}\textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
 
 
