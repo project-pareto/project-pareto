@@ -1788,7 +1788,7 @@ def create_model(df_sets, df_parameters, default={}):
     _df_parameters = {}
     if model.config.hydraulics != Hydraulics.false:
         # Elevation parameter is only used in the hydraulics module and is not needed in the basic version
-        model.p_Elevation = Param(
+        model.p_zeta_Elevation = Param(
             model.s_L,
             default=100,
             domain=NonNegativeReals,
@@ -1813,8 +1813,8 @@ def create_model(df_sets, df_parameters, default={}):
         for k1 in model.s_L:
             for k2 in model.s_L:
                 if (k1, k2) in model.s_LLA:
-                    elevation_delta = value(model.p_Elevation[k1]) - value(
-                        model.p_Elevation[k2]
+                    elevation_delta = value(model.p_zeta_Elevation[k1]) - value(
+                        model.p_zeta_Elevation[k2]
                     )
                     _df_parameters[(k1, k2)] = max(
                         0,
@@ -3506,7 +3506,7 @@ def pipeline_hydraulics(model):
     mh = model.hydraulics
 
     # declaring variables and parameters required regardless of the hydraulics method
-    mh.p_HW_material_factor_pipeline = Param(
+    mh.p_iota_HW_material_factor_pipeline = Param(
         initialize=130,
         mutable=True,
         units=pyunits.dimensionless,
@@ -3517,28 +3517,28 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"] / pyunits.meter,
         doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
     )
-    mh.p_PumpFixedCost = Param(
+    mh.p_nu_PumpFixedCost = Param(
         initialize=1,
         mutable=True,
         units=model.model_units["currency"],
         doc="Fixed cost of adding a pump in kUSD",
     )
-    mh.p_ElectricityCost = Param(
+    mh.p_nu_ElectricityCost = Param(
         initialize=0.1e-3,
         mutable=True,
         doc="Cost of Electricity assumed in kUSD/kWh",
     )
-    mh.p_PumpEfficiency = Param(
+    mh.p_eta_PumpEfficiency = Param(
         initialize=0.9,
         mutable=True,
         doc="Pumps Efficiency",
     )
-    mh.p_MotorEfficiency = Param(
+    mh.p_eta_MotorEfficiency = Param(
         initialize=0.9,
         mutable=True,
         doc="Motor Efficiency of the Pump",
     )
-    mh.p_Min_AOP = Param(
+    mh.p_xi_Min_AOP = Param(
         initialize=pyunits.convert_value(
             model.df_parameters["Hydraulics"]["min_allowable_pressure"],
             from_units=model.user_units["pressure"],
@@ -3548,7 +3548,7 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"],
         doc="Minimum ALlowable Operating Pressure",
     )
-    mh.p_Max_AOP = Param(
+    mh.p_xi_Max_AOP = Param(
         initialize=pyunits.convert_value(
             model.df_parameters["Hydraulics"]["max_allowable_pressure"],
             from_units=model.user_units["pressure"],
@@ -3577,7 +3577,7 @@ def pipeline_hydraulics(model):
         units=model.model_units["diameter"],
         doc="Initial pipeline diameter [inch]",
     )
-    mh.p_WellPressure = Param(
+    mh.p_upsilon_WellPressure = Param(
         model.s_P,
         model.s_T,
         default=0,
@@ -3625,8 +3625,8 @@ def pipeline_hydraulics(model):
         model.s_L,
         model.s_T,
         within=NonNegativeReals,
-        initialize=mh.p_Min_AOP,
-        bounds=(mh.p_Min_AOP, None),
+        initialize=mh.p_xi_Min_AOP,
+        bounds=(mh.p_xi_Min_AOP, None),
         units=model.model_units["pressure"],
         doc="Pressure at location l at time t in Pa",
     )
@@ -3639,14 +3639,14 @@ def pipeline_hydraulics(model):
     # if the well pressure are known, i.e., for the production pads or the disposable wells, then fix them
     for p in model.s_P:
         for t in model.s_T:
-            if value(mh.p_WellPressure[p, t]) > 0:
-                mh.v_Pressure[p, t].fix(mh.p_WellPressure[p, t])
+            if value(mh.p_upsilon_WellPressure[p, t]) > 0:
+                mh.v_Pressure[p, t].fix(mh.p_upsilon_WellPressure[p, t])
 
     # add all necessary constraints
     def MAOPressureRule(b, l1, t1):
         constraint = (
             b.v_Pressure[l1, t1] * cons_scaling_factor
-            <= b.p_Max_AOP * cons_scaling_factor
+            <= b.p_xi_Max_AOP * cons_scaling_factor
         )
         return process_constraint(constraint)
 
@@ -3724,7 +3724,7 @@ def pipeline_hydraulics(model):
                 if value(model.v_F_Piped[key, t0]) > 0.01:
                     if value(mh.p_effective_Pipeline_diameter[key]) > 0.1:
                         mh.p_HW_loss[key, t0] = _hazen_williams_head(
-                            mh.p_HW_material_factor_pipeline,
+                            mh.p_iota_HW_material_factor_pipeline,
                             pyunits.convert(
                                 model.p_lambda_Pipeline[key], to_units=pyunits.meter
                             ),
@@ -3741,10 +3741,10 @@ def pipeline_hydraulics(model):
         def NodePressureRule(b, l1, l2, t1):
             if value(model.v_F_Piped[l1, l2, t1]) > 0.01:
                 constraint = (
-                    b.v_Pressure[l1, t1] + model.p_Elevation[l1] * mh.p_rhog
+                    b.v_Pressure[l1, t1] + model.p_zeta_Elevation[l1] * mh.p_rhog
                 ) * cons_scaling_factor == (
                     b.v_Pressure[l2, t1]
-                    + model.p_Elevation[l2] * mh.p_rhog
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
                     + b.p_HW_loss[l1, l2, t1] * mh.p_rhog
                     - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
                     + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
@@ -3764,9 +3764,9 @@ def pipeline_hydraulics(model):
             constraint = (
                 b.v_PumpCost[l1, l2] * cons_scaling_factor
                 == (
-                    mh.p_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
                     + (
-                        (mh.p_ElectricityCost / 3.6e6)
+                        (mh.p_nu_ElectricityCost / 3.6e6)
                         * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
                         * sum(
                             b.v_PumpHead[l1, l2, t]
@@ -3856,7 +3856,7 @@ def pipeline_hydraulics(model):
                             model.v_F_Piped[l1, l2, t1],
                             to_units=pyunits.m**3 / pyunits.s,
                         )
-                        / mh.p_HW_material_factor_pipeline
+                        / mh.p_iota_HW_material_factor_pipeline
                     )
                     ** 1.85
                 )
@@ -3874,10 +3874,10 @@ def pipeline_hydraulics(model):
         def NodePressureRule(b, l1, l2, t1):
             constraint = (
                 b.v_Pressure[l1, t1]
-                + model.p_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
                 == (
                     b.v_Pressure[l2, t1]
-                    + model.p_Elevation[l2] * mh.p_rhog
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
                     + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
                     - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
                     + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
@@ -3897,9 +3897,9 @@ def pipeline_hydraulics(model):
             constraint = (
                 b.v_PumpCost[l1, l2] * cons_scaling_factor
                 == (
-                    mh.p_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
                     + (
-                        (mh.p_ElectricityCost / 3.6e6)
+                        (mh.p_nu_ElectricityCost / 3.6e6)
                         * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
                         * sum(
                             b.v_PumpHead[l1, l2, t]
