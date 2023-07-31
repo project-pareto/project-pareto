@@ -265,7 +265,7 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.kg / pyunits.liter,
         "currency": pyunits.kUSD,
-        "pressure": pyunits.pascal,
+        "pressure": pyunits.kpascal,
         "elevation": pyunits.meter,
         "time": model.decision_period,
     }
@@ -3499,7 +3499,7 @@ def pipeline_hydraulics(model):
         1) post-process method: only the hydraulics block is solved for pressures
         2) co-optimize method: the hydraulics block is solved along with the network
     """
-    cons_scaling_factor = 1e-3
+    cons_scaling_factor = 1e0
 
     # Create a block to add all variables and constraints for hydraulics within the model
     model.hydraulics = Block()
@@ -3513,7 +3513,7 @@ def pipeline_hydraulics(model):
         doc="Pipeline material factor for Hazen-Williams equation",
     )
     mh.p_rhog = Param(
-        initialize=9.8 * 1000,
+        initialize=9.8 * 1,
         units=model.model_units["pressure"] / pyunits.meter,
         doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
     )
@@ -3767,7 +3767,7 @@ def pipeline_hydraulics(model):
                     mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
                     + (
                         (mh.p_nu_ElectricityCost / 3.6e6)
-                        * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
+                        * mh.p_rhog * 1e3 # convert the kUSD/kWh to kUSD/Ws
                         * sum(
                             b.v_PumpHead[l1, l2, t]
                             * pyunits.convert_value(
@@ -3900,7 +3900,7 @@ def pipeline_hydraulics(model):
                     mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
                     + (
                         (mh.p_nu_ElectricityCost / 3.6e6)
-                        * mh.p_rhog  # convert the kUSD/kWh to kUSD/Ws
+                        * mh.p_rhog * 1e3 # convert the kUSD/kWh to kUSD/Ws
                         * sum(
                             b.v_PumpHead[l1, l2, t]
                             * pyunits.convert(
