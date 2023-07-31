@@ -3767,7 +3767,8 @@ def pipeline_hydraulics(model):
                     mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
                     + (
                         (mh.p_nu_ElectricityCost / 3.6e6)
-                        * mh.p_rhog * 1e3 # convert the kUSD/kWh to kUSD/Ws
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
                         * sum(
                             b.v_PumpHead[l1, l2, t]
                             * pyunits.convert_value(
@@ -3900,7 +3901,8 @@ def pipeline_hydraulics(model):
                     mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
                     + (
                         (mh.p_nu_ElectricityCost / 3.6e6)
-                        * mh.p_rhog * 1e3 # convert the kUSD/kWh to kUSD/Ws
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
                         * sum(
                             b.v_PumpHead[l1, l2, t]
                             * pyunits.convert(
