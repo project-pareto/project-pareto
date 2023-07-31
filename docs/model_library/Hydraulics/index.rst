@@ -50,7 +50,7 @@ Similar to the strategic model, following color coding has been implemented in d
 
 :math:`\textcolor{green}{\xi^{Maximum}}` =                        Maximum allowable operating pressure in a pipeline (MAOP)
 
-:math:`\textcolor{green}{D_{l,\tilde{l}}^{Existing}}` =                        Diameter of an exisiting pipeline
+:math:`\textcolor{green}{D_{l,\tilde{l}}^{Existing}}` =                        Diameter of an existing pipeline
 
 :math:`\textcolor{green}{\upsilon_{p,t}^{Maximum}}` =                        Well pressure at production or completions pad
 
