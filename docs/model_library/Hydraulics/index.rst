@@ -32,7 +32,7 @@ Some subtle differences in model components such as in the definition of variabl
 Hydraulics Model Mathematical Notation
 -------------------------------------------
 
-Similar to the strategic model, following color coding has been implemented in describing the model notation. All \textcolor{green}{input parameters are in green} and \textcolor{red}{model variables are in red}.
+Similar to the strategic model, following color coding has been implemented in describing the model notation. All input :math:`\textcolor{green}{parameters}` are in :math:`\textcolor{green}{green}` and all model :math:`\textcolor{red}{variables}` are in :math:`\textcolor{red}{red}`.
 
 **Parameters**
 
