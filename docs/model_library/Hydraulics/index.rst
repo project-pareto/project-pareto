@@ -1,5 +1,5 @@
 Pipeline Hydraulics
-===============
+====================
 
 .. note::
    The hydraulics module presented below is currently only added as an extension to the strategic model.
@@ -8,9 +8,9 @@ Overview
 -----------
 
 Produced water (PW) network operations are highly affected by the pipeline designs and geographical terrain because of pressure losses due to friction and elevation changes. PARETO hydraulics module is an extension to the strategic model that allows the user to compute pressures at every node in the network enabling the user to add operational constraints such as maximum allowable operating pressures (MAOP) and minimum required pressure at injection facilities or at 3rd party offtake points. For this, the PARETO model explicitly considers pipeline details (i.e., length, diameter, material, etc.) and geographic elevations in the model to compute time varying pressures at each node. The hydraulics module is an extension to the PARETO strategic model and can be accessed through the following options in the config argument: 
-  a.	Hydraulics.false: This option allows the user to skip the hydraulics computations in the PARETO model.
-  b.	Hydraulics.post_process: In this method, the basic PARETO strategic model is solved as step 1, and then using the optimal flows and network design, the hydraulics block containing constraints for pressure balances and losses is solved as step 2. In this case, as only the hydraulics model block solved for the objective of minimizing cost, the optimal values for variables included in the main strategic model and obtained from step 1 remain unaffected.
-  c.	Hydraulics.co_optimize: In this method, the hydraulics model block is solved together with the strategic model. However, as the flow and diameter are variables in the strategic model, the addition of hydraulics block makes the model a mixed integer nonlinear programming (MINLP) model. In order to solve this MINLP model, the strategic model without the hydraulics constraints is solved as step 1 to determine a good initial state for all variables and constraints. 
+a.	Hydraulics.false: This option allows the user to skip the hydraulics computations in the PARETO model.
+b.	Hydraulics.post_process: In this method, the basic PARETO strategic model is solved as step 1, and then using the optimal flows and network design, the hydraulics block containing constraints for pressure balances and losses is solved as step 2. In this case, as only the hydraulics model block solved for the objective of minimizing cost, the optimal values for variables included in the main strategic model and obtained from step 1 remain unaffected.
+c.	Hydraulics.co_optimize: In this method, the hydraulics model block is solved together with the strategic model. However, as the flow and diameter are variables in the strategic model, the addition of hydraulics block makes the model a mixed integer nonlinear programming (MINLP) model. In order to solve this MINLP model, the strategic model without the hydraulics constraints is solved as step 1 to determine a good initial state for all variables and constraints. 
 Note: The MINLP as currently implemented requires the following MINLP solvers: SCIP and BARON. The model is first solved using BARON (if available) to determine a feasible solution and then using SCIP. 
 Some subtle differences in model components such as in the definition of variables and parameters have been made to avoid nonlinearities and allow the user to use the same solver for solving the post-process method as used for the strategic model. These differences will be shown in the description of mathematical notation and formulation below.
 
@@ -18,7 +18,7 @@ Some subtle differences in model components such as in the definition of variabl
 +--------------------------------------------------------+
 | Section                                                |
 +========================================================+
-| :ref:`hydraulics_model_mathematical_notation`                     |
+| :ref:`hydraulics_model_mathematical_notation`          |
 +--------------------------------------------------------+
 | :ref:`mathematical_model_formulation`                  |
 +--------------------------------------------------------+
