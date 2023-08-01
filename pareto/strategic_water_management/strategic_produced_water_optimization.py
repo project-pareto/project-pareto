@@ -397,33 +397,65 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_WT = Set(
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
-    model.df_parameters["LLA"] = {
-        **model.df_parameters["PNA"],
-        **model.df_parameters["CNA"],
-        **model.df_parameters["CCA"],
-        **model.df_parameters["NNA"],
-        **model.df_parameters["NCA"],
-        **model.df_parameters["NKA"],
-        **model.df_parameters["NSA"],
-        **model.df_parameters["NRA"],
-        **model.df_parameters["FCA"],
-        **model.df_parameters["RCA"],
-        **model.df_parameters["RNA"],
-        **model.df_parameters["SNA"],
-        **model.df_parameters["RSA"],
-        **model.df_parameters["SCA"],
-    }
+
+    piping_arc_types = [
+        "PCA",
+        "PNA",
+        "PPA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NSA",
+        "NRA",
+        "NOA",
+        "FCA",
+        "RNA",
+        "RCA",
+        "RKA",
+        "RSA",
+        "SNA",
+        "SCA",
+        "SKA",
+        "SRA",
+        "SOA",
+        "ROA",
+    ]
+
+    # Build dictionary of all specified piping arcs
+    model.df_parameters["LLA"] = {}
+    for arctype in piping_arc_types:
+        if arctype in model.df_parameters:
+            model.df_parameters["LLA"].update(model.df_parameters[arctype])
     model.s_LLA = Set(
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
-    model.df_parameters["LLT"] = {
-        **model.df_parameters["PCT"],
-        **model.df_parameters["FCT"],
-        **model.df_parameters["PKT"],
-        **model.df_parameters["CKT"],
-        **model.df_parameters["CST"],
-        **model.df_parameters["CCT"],
-    }
+
+    trucking_arc_types = [
+        "PCT",
+        "PKT",
+        "PST",
+        "PRT",
+        "POT",
+        "FCT",
+        "CKT",
+        "CST",
+        "CRT",
+        "CCT",
+        "SCT",
+        "SKT",
+        "SOT",
+        "RKT",
+        "RST",
+        "ROT",
+    ]
+
+    # Build dictionary of all specified trucking arcs
+    model.df_parameters["LLT"] = {}
+    for arctype in trucking_arc_types:
+        if arctype in model.df_parameters:
+            model.df_parameters["LLT"].update(model.df_parameters[arctype])
     model.s_LLT = Set(
         initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
     )
@@ -857,244 +889,277 @@ def create_model(df_sets, df_parameters, default={}):
     _preprocess_data(model)
 
     # Define set parameters #
+    def init_arc_param(arctype):
+        # If arctype is a key in the dictionary model.df_parameters, return the
+        # value of that entry from the dictionary. Otherwise, return an empty
+        # dictionary.
+        return model.df_parameters.get(arctype, {})
 
     model.p_PCA = Param(
         model.s_PP,
         model.s_CP,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PCA"),
         doc="Valid production-to-completions pipeline arcs [-]",
     )
     model.p_PNA = Param(
         model.s_PP,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["PNA"],
+        initialize=init_arc_param("PNA"),
         doc="Valid production-to-node pipeline arcs [-]",
     )
     model.p_PPA = Param(
         model.s_PP,
         model.s_PP,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PPA"),
         doc="Valid production-to-production pipeline arcs [-]",
     )
     model.p_CNA = Param(
         model.s_CP,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["CNA"],
+        initialize=init_arc_param("CNA"),
         doc="Valid completion-to-node pipeline arcs [-]",
     )
     model.p_CCA = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["CCA"],
+        initialize=init_arc_param("CCA"),
         doc="Valid completions-to-completions pipelin arcs [-]",
     )
     model.p_NNA = Param(
         model.s_N,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["NNA"],
+        initialize=init_arc_param("NNA"),
         doc="Valid node-to-node pipeline arcs [-]",
     )
     model.p_NCA = Param(
         model.s_N,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["NCA"],
+        initialize=init_arc_param("NCA"),
         doc="Valid node-to-completions pipeline arcs [-]",
     )
     model.p_NKA = Param(
         model.s_N,
         model.s_K,
         default=0,
-        initialize=model.df_parameters["NKA"],
+        initialize=init_arc_param("NKA"),
         doc="Valid node-to-disposal pipeline arcs [-]",
     )
     model.p_NSA = Param(
         model.s_N,
         model.s_S,
         default=0,
-        initialize=model.df_parameters["NSA"],
+        initialize=init_arc_param("NSA"),
         doc="Valid node-to-storage pipeline arcs [-]",
     )
     model.p_NRA = Param(
         model.s_N,
         model.s_R,
         default=0,
-        initialize=model.df_parameters["NRA"],
+        initialize=init_arc_param("NRA"),
         doc="Valid node-to-treatment pipeline arcs [-]",
     )
     model.p_NOA = Param(
         model.s_N,
         model.s_O,
         default=0,
-        initialize={},
+        initialize=init_arc_param("NOA"),
         doc="Valid node-to-reuse pipeline arcs [-]",
     )
     model.p_FCA = Param(
         model.s_F,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["FCA"],
+        initialize=init_arc_param("FCA"),
         doc="Valid freshwater-to-completions pipeline arcs [-]",
-    )
-    model.p_RCA = Param(
-        model.s_R,
-        model.s_CP,
-        default=0,
-        initialize=model.df_parameters["RCA"],
-        doc="Valid treatment-to-completions layflat arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["RNA"],
+        initialize=init_arc_param("RNA"),
         doc="Valid treatment-to-node pipeline arcs [-]",
+    )
+    model.p_RCA = Param(
+        model.s_R,
+        model.s_CP,
+        default=0,
+        initialize=init_arc_param("RCA"),
+        doc="Valid treatment-to-completions layflat arcs [-]",
     )
     model.p_RKA = Param(
         model.s_R,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("RKA"),
         doc="Valid treatment-to-disposal pipeline arcs [-]",
     )
     model.p_RSA = Param(
         model.s_R,
         model.s_S,
         default=0,
-        initialize=model.df_parameters["RSA"],
+        initialize=init_arc_param("RSA"),
         doc="Valid treatment-to-storage pipeline arcs [-]",
     )
     model.p_SNA = Param(
         model.s_S,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["SNA"],
+        initialize=init_arc_param("SNA"),
         doc="Valid storage-to-node pipeline arcs [-]",
     )
     model.p_SCA = Param(
         model.s_S,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["SCA"],
+        initialize=init_arc_param("SCA"),
         doc="Valid storage-to-completions pipeline arcs [-]",
     )
     model.p_SKA = Param(
         model.s_S,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SKA"),
         doc="Valid storage-to-disposal pipeline arcs [-]",
     )
     model.p_SRA = Param(
         model.s_S,
         model.s_R,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SRA"),
         doc="Valid storage-to-treatment pipeline arcs [-]",
     )
     model.p_SOA = Param(
         model.s_S,
         model.s_O,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SOA"),
         doc="Valid storage-to-reuse pipeline arcs [-]",
+    )
+    model.p_ROA = Param(
+        model.s_R,
+        model.s_O,
+        default=0,
+        initialize=init_arc_param("ROA"),
+        doc="Valid treatment-to-reuse pipeline arcs [-]",
     )
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["PCT"],
+        initialize=init_arc_param("PCT"),
         doc="Valid production-to-completions trucking arcs [-]",
-    )
-    model.p_FCT = Param(
-        model.s_F,
-        model.s_CP,
-        default=0,
-        initialize=model.df_parameters["FCT"],
-        doc="Valid freshwater-to-completions trucking arcs [-]",
     )
     model.p_PKT = Param(
         model.s_PP,
         model.s_K,
         default=0,
-        initialize=model.df_parameters["PKT"],
+        initialize=init_arc_param("PKT"),
         doc="Valid production-to-disposal trucking arcs [-]",
     )
     model.p_PST = Param(
         model.s_PP,
         model.s_S,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PST"),
         doc="Valid production-to-storage trucking arcs [-]",
     )
     model.p_PRT = Param(
         model.s_PP,
         model.s_R,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PRT"),
         doc="Valid production-to-treatment trucking arcs [-]",
     )
     model.p_POT = Param(
         model.s_PP,
         model.s_O,
         default=0,
-        initialize={},
+        initialize=init_arc_param("POT"),
         doc="Valid production-to-reuse trucking arcs [-]",
+    )
+    model.p_FCT = Param(
+        model.s_F,
+        model.s_CP,
+        default=0,
+        initialize=init_arc_param("FCT"),
+        doc="Valid freshwater-to-completions trucking arcs [-]",
     )
     model.p_CKT = Param(
         model.s_CP,
         model.s_K,
         default=0,
-        initialize=model.df_parameters["CKT"],
+        initialize=init_arc_param("CKT"),
         doc="Valid completions-to-disposal trucking arcs [-]",
     )
     model.p_CST = Param(
         model.s_CP,
         model.s_S,
         default=0,
-        initialize=model.df_parameters["CST"],
+        initialize=init_arc_param("CST"),
         doc="Valid completions-to-storage trucking arcs [-]",
     )
     model.p_CRT = Param(
         model.s_CP,
         model.s_R,
         default=0,
-        initialize={},
+        initialize=init_arc_param("CRT"),
         doc="Valid completions-to-treatment trucking arcs [-]",
     )
     model.p_CCT = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["CCT"],
+        initialize=init_arc_param("CCT"),
         doc="Valid completion-to-completion trucking arcs [-]",
     )
     model.p_SCT = Param(
         model.s_S,
         model.s_CP,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SCT"),
         doc="Valid storage-to-completions trucking arcs [-]",
     )
     model.p_SKT = Param(
         model.s_S,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SKT"),
         doc="Valid storage-to-disposal trucking arcs [-]",
+    )
+    model.p_SOT = Param(
+        model.s_S,
+        model.s_O,
+        default=0,
+        initialize=init_arc_param("SOT"),
+        doc="Valid storage-to-reuse trucking arcs [-]",
     )
     model.p_RKT = Param(
         model.s_R,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("RKT"),
         doc="Valid treatment-to-disposal trucking arcs [-]",
+    )
+    model.p_RST = Param(
+        model.s_R,
+        model.s_S,
+        default=0,
+        initialize=init_arc_param("RST"),
+        doc="Valid treatment-to-storage trucking arcs [-]",
+    )
+    model.p_ROT = Param(
+        model.s_R,
+        model.s_O,
+        default=0,
+        initialize=init_arc_param("ROT"),
+        doc="Valid treatment-to-reuse trucking arcs [-]",
     )
 
     # Define set parameters #
