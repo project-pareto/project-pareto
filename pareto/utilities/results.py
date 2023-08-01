@@ -1018,20 +1018,6 @@ def generate_report(
             to_unit = variable.get_units()
         else:
             to_unit = None
-        # if variable data is not none and indexed, update headers to display unit
-        if (
-            len(variable._data) > 1
-            and list(variable._data.keys())[0] is not None
-            and to_unit is not None
-        ):
-            header = list(headers[str(variable.name) + "_dict"][0])
-            header[-1] = (
-                headers[str(variable.name) + "_dict"][0][-1]
-                + " ["
-                + to_unit.to_string().replace("oil_bbl", "bbl")
-                + "]"
-            )
-            headers[str(variable.name) + "_dict"][0] = tuple(header)
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
