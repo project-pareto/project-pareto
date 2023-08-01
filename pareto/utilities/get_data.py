@@ -356,6 +356,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "CST": "",
         "CCT": "",
         "CKT": "",
+        "Elevation": user_units["elevation"],
         "CompletionsPadOutsideSystem": "",
         "DesalinationTechnologies": "",
         "DesalinationSites": "",
@@ -363,8 +364,10 @@ def get_display_units(input_sheet_name_list, user_units):
         "CompletionsDemand": user_units["volume"] + "/" + user_units["time"],
         "PadRates": user_units["volume"] + "/" + user_units["time"],
         "FlowbackRates": user_units["volume"] + "/" + user_units["time"],
+        "WellPressure": user_units["pressure"],
         "NodeCapacities": user_units["volume"] + "/" + user_units["time"],
         "InitialPipelineCapacity": user_units["volume"] + "/" + user_units["time"],
+        "InitialPipelineDiameters": user_units["diameter"],
         "InitialDisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
         "FreshwaterSourcingAvailability": user_units["volume"]
