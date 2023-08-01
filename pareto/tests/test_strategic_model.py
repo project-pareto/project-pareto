@@ -29,7 +29,9 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Objectives,
     scale_model,
     PipelineCost,
+    Hydraulics,
     PipelineCapacity,
+    pipeline_hydraulics,
     RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data, get_display_units
@@ -98,6 +100,7 @@ def build_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -105,8 +108,10 @@ def build_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -169,7 +174,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -192,7 +197,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -215,7 +220,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -238,7 +243,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29751
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -383,6 +388,7 @@ def build_reduced_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -390,8 +396,10 @@ def build_reduced_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -441,6 +449,131 @@ def build_reduced_strategic_model():
 
 
 @pytest.mark.unit
+def test_hydraulics_post_process_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.post_process,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    mh = pipeline_hydraulics(m)
+
+    assert isinstance(mh, pyo.ConcreteModel)
+    assert isinstance(mh.hydraulics, pyo.Block)
+    assert isinstance(mh.hydraulics.v_Pressure, pyo.Var)
+    assert isinstance(mh.hydraulics.v_PumpHead, pyo.Var)
+    assert isinstance(mh.hydraulics.vb_Y_Pump, pyo.Var)
+    assert isinstance(mh.hydraulics.v_ValveHead, pyo.Var)
+    assert isinstance(mh.hydraulics.v_PumpCost, pyo.Var)
+    assert isinstance(mh.hydraulics.p_iota_HW_material_factor_pipeline, pyo.Param)
+    assert isinstance(mh.hydraulics.p_rhog, pyo.Param)
+    assert isinstance(mh.hydraulics.p_nu_PumpFixedCost, pyo.Param)
+    assert isinstance(mh.hydraulics.p_nu_ElectricityCost, pyo.Param)
+    assert isinstance(mh.hydraulics.p_eta_PumpEfficiency, pyo.Param)
+    assert isinstance(mh.hydraulics.p_eta_MotorEfficiency, pyo.Param)
+    assert isinstance(mh.hydraulics.p_upsilon_WellPressure, pyo.Param)
+    assert isinstance(mh.hydraulics.p_effective_Pipeline_diameter, pyo.Param)
+    assert isinstance(mh.hydraulics.p_xi_Min_AOP, pyo.Param)
+    assert isinstance(mh.hydraulics.p_xi_Max_AOP, pyo.Param)
+    assert isinstance(mh.hydraulics.p_HW_loss, pyo.Param)
+    assert isinstance(mh.hydraulics.objective, pyo.Objective)
+    assert isinstance(mh.hydraulics.NodePressure, pyo.Constraint)
+    assert isinstance(mh.hydraulics.MAOPressure, pyo.Constraint)
+    assert isinstance(mh.hydraulics.PumpCostEq, pyo.Constraint)
+    assert isinstance(mh.hydraulics.HydraulicsCostEq, pyo.Constraint)
+    assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_hydraulics_post_process_reduced_strategic_model(
+    build_reduced_strategic_model,
+):
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.post_process,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 11789
+    # solutions obtained from running the reduced generic case study
+    assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(26.067, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
+    assert pytest.approx(24, abs=1e-1) == pyo.value(
+        sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA)
+    )
+
+    with nostdout():
+        assert is_feasible(m)
+
+
+@pytest.mark.unit
+def test_hydraulics_co_optimize_input(
+    build_reduced_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.co_optimize,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    mh = pipeline_hydraulics(m)
+
+    assert isinstance(mh, pyo.ConcreteModel)
+    assert isinstance(mh.hydraulics, pyo.Block)
+    assert isinstance(mh.hydraulics.v_Pressure, pyo.Var)
+    assert isinstance(mh.hydraulics.v_PumpHead, pyo.Var)
+    assert isinstance(mh.hydraulics.v_ValveHead, pyo.Var)
+    assert isinstance(mh.hydraulics.v_PumpCost, pyo.Var)
+    assert isinstance(mh.hydraulics.p_iota_HW_material_factor_pipeline, pyo.Param)
+    assert isinstance(mh.hydraulics.p_rhog, pyo.Param)
+    assert isinstance(mh.hydraulics.p_nu_PumpFixedCost, pyo.Param)
+    assert isinstance(mh.hydraulics.p_nu_ElectricityCost, pyo.Param)
+    assert isinstance(mh.hydraulics.p_eta_PumpEfficiency, pyo.Param)
+    assert isinstance(mh.hydraulics.p_eta_MotorEfficiency, pyo.Param)
+    assert isinstance(mh.hydraulics.p_upsilon_WellPressure, pyo.Param)
+    assert isinstance(mh.hydraulics.v_effective_Pipeline_diameter, pyo.Var)
+    assert isinstance(mh.hydraulics.p_xi_Min_AOP, pyo.Param)
+    assert isinstance(mh.hydraulics.p_xi_Max_AOP, pyo.Param)
+    assert isinstance(mh.hydraulics.v_HW_loss, pyo.Var)
+    assert isinstance(mh.objective, pyo.Objective)
+    assert isinstance(mh.hydraulics.HW_loss_equaltion, pyo.Constraint)
+    assert isinstance(mh.hydraulics.NodePressure, pyo.Constraint)
+    assert isinstance(mh.hydraulics.EffectiveDiameter, pyo.Constraint)
+    assert isinstance(mh.hydraulics.MAOPressure, pyo.Constraint)
+    assert isinstance(mh.hydraulics.PumpCostEq, pyo.Constraint)
+    assert isinstance(mh.hydraulics.HydraulicsCostEq, pyo.Constraint)
+    assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
+
+
+@pytest.mark.unit
 def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     build_reduced_strategic_model,
 ):
@@ -455,7 +588,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 13081
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -479,7 +612,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 13081
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -503,7 +636,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 13081
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -527,7 +660,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
     )
     assert degrees_of_freedom(m) == 104601
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -638,7 +771,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 11789
     # solutions obtained from running the reduced generic case study
-    assert pytest.approx(89201.666, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
 
@@ -943,6 +1076,7 @@ def test_strategic_model_UI_display_units():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -950,8 +1084,10 @@ def test_strategic_model_UI_display_units():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -1039,6 +1175,7 @@ def build_toy_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -1046,8 +1183,10 @@ def build_toy_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -1109,7 +1248,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 4907
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1190,6 +1329,7 @@ def build_permian_demo_strategic_model():
         "CST",
         "CCT",
         "CKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -1197,8 +1337,10 @@ def build_permian_demo_strategic_model():
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "FreshwaterSourcingAvailability",
@@ -1262,7 +1404,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
     )
     assert degrees_of_freedom(m) == 21111
     # Check unit config arguments
-    assert len(m.config) == 6
+    assert len(m.config) == 7
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
