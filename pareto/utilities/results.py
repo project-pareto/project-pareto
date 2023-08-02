@@ -21,6 +21,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
 )
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
+    Hydraulics,
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
@@ -558,6 +559,105 @@ def generate_report(
                         "--",
                     )
                 )
+        if model.config.hydraulics == Hydraulics.post_process:
+            headers.update(
+                {
+                    "hydraulics.v_PumpHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Pump Head",
+                        )
+                    ],
+                    "hydraulics.vb_Y_Pump_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Binary Pump Indicator",
+                        )
+                    ],
+                    "hydraulics.v_ValveHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Valve Head",
+                        )
+                    ],
+                    "hydraulics.v_PumpCost_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Pump Cost",
+                        )
+                    ],
+                    "hydraulics.v_Pressure_dict": [
+                        (
+                            "Location",
+                            "Time",
+                            "Pressure at a Location",
+                        )
+                    ],
+                }
+            )
+        elif model.config.hydraulics == Hydraulics.co_optimize:
+            headers.update(
+                {
+                    "hydraulics.v_PumpHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Pump Head",
+                        )
+                    ],
+                    "hydraulics.vb_Y_Pump_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Binary Pump Indicator",
+                        )
+                    ],
+                    "hydraulics.v_ValveHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Valve Head",
+                        )
+                    ],
+                    "hydraulics.v_PumpCost_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Pump Cost",
+                        )
+                    ],
+                    "hydraulics.v_Pressure_dict": [
+                        (
+                            "Location",
+                            "Time",
+                            "Pressure at a Location",
+                        )
+                    ],
+                    "hydraulics.v_HW_loss_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Hazen-Williams head loss",
+                        )
+                    ],
+                    "hydraulics.v_effective_Pipeline_diameter_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Effective Pipeline Diameter",
+                        )
+                    ],
+                }
+            )
 
     elif model.type == "operational":
         if is_print is None:
@@ -918,20 +1018,6 @@ def generate_report(
             to_unit = variable.get_units()
         else:
             to_unit = None
-        # if variable data is not none and indexed, update headers to display unit
-        if (
-            len(variable._data) > 1
-            and list(variable._data.keys())[0] is not None
-            and to_unit is not None
-        ):
-            header = list(headers[str(variable.name) + "_dict"][0])
-            header[-1] = (
-                headers[str(variable.name) + "_dict"][0][-1]
-                + " ["
-                + to_unit.to_string().replace("oil_bbl", "bbl")
-                + "]"
-            )
-            headers[str(variable.name) + "_dict"][0] = tuple(header)
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
