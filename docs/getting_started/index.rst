@@ -130,20 +130,28 @@ Hybrid
 
 **User that can edit the base code**
 
+.. important::
+    Unlike a local clone of the repository, ZIP archives of the repository are static snapshots that cannot be automatically updated, track changes, or publish (push) through Git, while still allowing to modify the PARETO codebase locally.
+
 1. Create and activate environment::
 
     conda create -n pareto-env python=3.9 pip --yes
     conda activate pareto-env
 
-2. Download zip files (project-pareto-main)
+2. Download a ZIP file containing a snapshot of the ``main`` branch of the repository by navigating to the following URL: ``https://github.com/project-pareto/project-pareto/archive/refs/heads/main.zip``
+
+   .. note::
+    The URL can be modified to create a ZIP file for other repositories, branches or commits. e.g. for the fork belonging to the user ``myuser`` and the branch ``mybranch``, the URL would be ``https://github.com/myuser/project-pareto/archive/refs/heads/mybranch.zip``.
 
 3. Unpack zip files (select directory)
 
-4. Install pareto-project (non-git tracked repo)::
+4. Navigate to the directory where the ZIP files were extracted
+
+5. Install pareto-project (non-git tracked repo)::
 
     pip install -r requirements-dev.txt
 
-5. After installing PARETO, install the open-source solvers provided by the IDAES project::
+6. After installing PARETO, install the open-source solvers provided by the IDAES project::
 
     idaes get-extensions --verbose
 
