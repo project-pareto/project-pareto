@@ -155,5 +155,3 @@ Hybrid
 
     idaes get-extensions --verbose
 
-Building Documentation
-----------------------
