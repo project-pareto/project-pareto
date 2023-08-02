@@ -108,16 +108,16 @@ Core-dev
 
     conda activate pareto-dev
 
-4. Navigate into the new ``project-pareto`` directory, then run the following command to install 
+5. Navigate into the new ``project-pareto`` directory, then run the following command to install 
    PARETO in editable mode and the development-only dependencies::
 
     pip install -r requirements-dev.txt
 
-5. After installing PARETO, install the open-source solvers provided by the IDAES project::
+6. After installing PARETO, install the open-source solvers provided by the IDAES project::
 
     idaes get-extensions --verbose
 
-6. (Recommended) install the pre-commit checks that will run automatically whenever ``git commit`` is used, preventing the commit from being created if any of the checks fail::
+7. (Recommended) install the pre-commit checks that will run automatically whenever ``git commit`` is used, preventing the commit from being created if any of the checks fail::
 
     pre-commit install
 

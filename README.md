@@ -15,9 +15,9 @@ An Optimization Framework for Produced Water Management and Beneficial Reuse
 
 ## Getting started
 
-For complete installation instructions, see the [Getting Started](https://pareto.readthedocs.io/en/latest/getting_started/index.html) page of the [PARETO online documentation](https://pareto.readthedocs.io).
+For complete installation instructions, including developer install instructions, see the [Getting Started](https://pareto.readthedocs.io/en/latest/getting_started/index.html) page of the [PARETO online documentation](https://pareto.readthedocs.io).
 
-### Quickstart
+### Quickstart (user install)
 
 The recommended way to install Pareto is to use a dedicated Conda environment.
 
