@@ -157,18 +157,3 @@ Hybrid
 
 Building Documentation
 ----------------------
-
-We use `Sphinx <https://www.sphinx-doc.org/>`_ for writing and building our on-line documentation.
-This is a tool that translates a set of plain text `.rst` (`reStructuredText
-<https://docutils.sourceforge.io/rst.html>`_) files into various output formats, such as HTML or PDF
-(via Latex).
-
-After installing as a :ref:`min_install_core-dev` or :ref:`min_install_users` (as described above)
-you can build the documentation locally on your system by running the `make` command in the `docs`
-folder, as follows::
-
-    $ cd project-pareto/docs/
-    $ make html
-
-Visit the `Sphinx Style Guide <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_ for information on
-syntax rules, tips, and FAQ.
