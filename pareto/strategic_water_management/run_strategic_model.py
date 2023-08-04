@@ -11,7 +11,17 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization import (
+# from pareto.strategic_water_management.strategic_produced_water_optimization import (
+#     WaterQuality,
+#     create_model,
+#     Objectives,
+#     solve_model,
+#     PipelineCost,
+#     PipelineCapacity,
+#     Hydraulics,
+#     RemovalEfficiencyMethod,
+# )
+from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate import (
     WaterQuality,
     create_model,
     Objectives,
@@ -30,7 +40,7 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
-
+import os 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
@@ -126,7 +136,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_small_case_study.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -145,7 +155,7 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost,
+        "objective": Objectives.cost_surrogate,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
@@ -164,6 +174,12 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+filename = os.path.join(os.path.dirname(__file__), 'model.lp')
+strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
+
+strategic_model.v_T_Capacity.pprint()
+# print(strategic_model.inlet_salinity['R01'].value,strategic_model.recovery['R01'].value,strategic_model.v_T_Capacity['R01'].value)
+# print(strategic_model.v_C_TreatmentCapEx_site['R01'].value,strategic_model.v_C_Treatment_site['R01'].value,strategic_model.treatment_energy['R01'].value)
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -178,13 +194,15 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
  is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
  output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
  """
-[model, results_dict] = generate_report(
-    strategic_model,
-    results_obj=results,
-    is_print=PrintValues.essential,
-    output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results.xlsx",
-)
+
+strategic_model.objective.display()
+# [model, results_dict] = generate_report(
+#     strategic_model,
+#     results_obj=results,
+#     is_print=PrintValues.essential,
+#     output_units=OutputUnits.user_units,
+#     fname="strategic_optimization_results.xlsx",
+# )
 
 # This shows how to read data from PARETO reports
 set_list = []

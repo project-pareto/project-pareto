@@ -49,11 +49,14 @@ from enum import Enum
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 
+from idaes.core.surrogate.surrogate_block import SurrogateBlock
+from idaes.core.surrogate.keras_surrogate import KerasSurrogate
 
 
 class Objectives(Enum):
     cost = 0
     reuse = 1
+    cost_surrogate = 2
 
 class PipelineCapacity(Enum):
     calculated = 0
@@ -466,6 +469,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_Z = Var(
         within=Reals,
         units=model.model_units["currency"],
+        bounds=(0,1e10),
         doc="Objective function variable [currency]",
     )
     model.v_F_Piped = Var(
@@ -628,6 +632,13 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_time"],
         doc="Cost of treating produced water at treatment site [currency/time]",
     )
+    model.v_C_Treatment_site = Var(
+        model.s_R,
+        initialize=0,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of treating produced water at treatment site [currency/time]",
+    )
     model.v_C_Reuse = Var(
         model.s_CP,
         model.s_T,
@@ -663,6 +674,11 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Total cost of injecting produced water [currency]",
     )
     model.v_C_TotalTreatment = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of treating produced water [currency]",
+    )
+    model.v_C_TotalTreatment_surrogate = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
         doc="Total cost of treating produced water [currency]",
@@ -788,6 +804,17 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
+    model.v_C_TreatmentCapEx_site = Var(
+        model.s_R,
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of constructing or expanding treatment capacity [currency]",
+    )
+    model.v_C_TreatmentCapEx_surrogate = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of constructing or expanding treatment capacity [currency]",
+    )
     model.v_S_FracDemand = Var(
         model.s_CP,
         model.s_T,
@@ -885,7 +912,26 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Directional flow between two locations",
     )
-    
+    model.inlet_salinity = Var(
+        model.s_R,
+        within=Reals,
+        initialize=10,
+        units=units.kg/units.litre,
+        doc="Inlet salinity in the feed"
+    )
+    model.recovery = Var(
+        model.s_R,
+        within=Reals,
+        bounds=(0,1),
+        doc="Recovery of water"
+    )
+    model.treatment_energy = Var(
+        model.s_R,
+        within=Reals,
+        initialize=0,
+        # units=units.W,
+        doc="Energy required for each site for desalination"
+    )
     # Pre-process Data #
     _preprocess_data(model)
 
@@ -2142,11 +2188,61 @@ def create_model(df_sets, df_parameters, default={}):
             rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
         )
 
+    elif model.config.objective == Objectives.cost_surrogate:
+
+        def CostSurrogateObjectiveFunctionRule(model):
+            return model.v_Z == (
+                model.v_C_TotalSourced
+                + model.v_C_TotalDisposal
+                + model.v_C_TotalTreatment_surrogate
+                + model.v_C_TotalReuse
+                + model.v_C_TotalPiping
+                + model.v_C_TotalStorage
+                + model.v_C_TotalTrucking
+                + model.p_alpha_AnnualizationRate
+                * (
+                    model.v_C_DisposalCapEx
+                    + model.v_C_StorageCapEx
+                    + model.v_C_TreatmentCapEx_surrogate
+                    + model.v_C_PipelineCapEx
+                )
+                + model.v_C_Slack
+                - model.v_R_TotalStorage
+            )
+
+        model.CostSurrogateObjectiveFunctionRule = Constraint(
+            rule=CostSurrogateObjectiveFunctionRule, doc="Cost objective function"
+        )
     else:
         raise Exception("objective not supported")
 
     # Define constraints #
-    
+    model.inlet_salinity.fix(200)
+    model.recovery.fix(0.2)
+    model.surrogate_costs_R01 = SurrogateBlock()
+    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_2_evap_corrected")
+    model.surrogate_costs_R01.build_model(
+        keras_surrogate,
+        formulation=KerasSurrogate.Formulation.RELU_BIGM,
+        input_vars=[model.inlet_salinity['R01'],model.recovery['R01'],model.v_T_Capacity['R01']],
+        output_vars=[model.v_C_TreatmentCapEx_site['R01'],model.v_C_Treatment_site['R01'],model.treatment_energy['R01']],
+    )
+    model.surrogate_costs_R02 = SurrogateBlock()
+    model.surrogate_costs_R02.build_model(
+        keras_surrogate,
+        formulation=KerasSurrogate.Formulation.RELU_BIGM,
+        input_vars=[model.inlet_salinity['R02'],model.recovery['R02'],model.v_T_Capacity['R02']],
+        output_vars=[model.v_C_TreatmentCapEx_site['R02'],model.v_C_Treatment_site['R02'],model.treatment_energy['R02']],
+    )
+    # model.surrogate_costs_R01.deactivate()
+    # model.surrogate_costs_R02.deactivate()
+    def treatmentSurrogate(model):
+        return model.v_C_TotalTreatment_surrogate==model.v_C_Treatment_site['R01']+model.v_C_Treatment_site['R02']
+    model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
+    def capExSurrogate(model):
+        return model.v_C_TreatmentCapEx_surrogate==model.v_C_TreatmentCapEx_site['R01']+model.v_C_TreatmentCapEx_site['R02']
+    model.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
+
     def CompletionsPadDemandBalanceRule(model, p, t):
         # If completions pad is outside the system, the completions demand is not required to be met
         if model.p_chi_OutsideCompletionsPad[p] == 1:
@@ -6513,6 +6609,7 @@ def solve_model(model, options=None):
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
     solver = ("gurobi_direct", "gurobi", "cbc")  # solvers to try and load in order
     gurobi_numeric_focus = 1
+    DualReductions = 0
 
     # raise an exception if options is neither None nor a user-provided dictionary
     if options is not None and not isinstance(options, dict):
@@ -6537,6 +6634,8 @@ def solve_model(model, options=None):
             solver = options["solver"]
         if "gurobi_numeric_focus" in options.keys():
             gurobi_numeric_focus = options["gurobi_numeric_focus"]
+        if "DualReductions" in options.keys():
+            DualReductions = options["DualReductions"]
 
     # load pyomo solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)

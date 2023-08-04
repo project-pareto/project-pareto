@@ -381,6 +381,15 @@ def generate_report(
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
+            "inlet_salinity_dict": [("Treatment site", "Inlet Salinity to Treatment Plant")],
+            "recovery_dict": [("Treatment site", "Recovery from the treatment plant")],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment site","CapEx for each site")],
+            "v_C_Treatment_site_dict": [("Treatment site","OPEx for each site")],
+            "treatment_energy_dict": [("Treatment site","Energy required for each site")],
+            "v_C_TotalTreatment_surrogate_dict": [("Treatment site","Total Operating Cost")],
+            "v_C_TreatmentCapEx_surrogate_dict": [("Treatment site","Total capital Cost")],
+            "surrogate_costs_R01.nn.inputs_dict": [("Treatment site","ML surrogate site R01")],
+            "surrogate_costs_R02.nn.inputs_dict": [("Treatment site","ML surrogate site R02")],
         }
 
         # Defining KPIs for strategic model
@@ -531,7 +540,9 @@ def generate_report(
             capacity_variable = model.p_delta_Pipeline
         pipeline_data = model.vb_y_Pipeline._data
         # get units
+        capacity_variable = model.p_mu_Pipeline
         from_unit_string = capacity_variable.get_units().to_string()
+        
         # the display units (to_unit) is defined by output_units from module parameter
         if output_units == OutputUnits.unscaled_model_units:
             to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
@@ -792,6 +803,17 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+
+            ### Additional variables for the ML Surrogate
+            "inlet_salinity_dict": [("Treatment site", "Inlet Salinity to Treatment Plant")],
+            "recovery_dict": [("Treatment site", "Recovery from the treatment plant")],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment site","CapEx for each site")],
+            "v_C_Treatment_site_dict": [("Treatment site","OPEx for each site")],
+            "treatment_energy_dict": [("Treatment site","Energy required for each site")],
+            "v_C_TotalTreatment_surrogate_dict": [("Treatment site","Total Operating Cost")],
+            "v_C_TreatmentCapEx_surrogate_dict": [("Treatment site","Total capital Cost")],
+            "surrogate_costs_R01.nn.inputs_dict": [("Treatment site","ML surrogate site R01")],
+            "surrogate_costs_R02.nn.inputs_dict": [("Treatment site","ML surrogate site R02")],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:

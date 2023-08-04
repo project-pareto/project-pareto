@@ -1,0 +1,39 @@
+\ Model objective_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ c_e_TreatmentCapacityExpansion(R01)_: v_T_Capacity(R01)
+   - 70 vb_y_Treatment(R01_CB_J1) - 140 vb_y_Treatment(R01_CB_J2)
+   - 350 vb_y_Treatment(R01_CB_J3) - 70 vb_y_Treatment(R01_CB_EV_J1)
+   - 140 vb_y_Treatment(R01_CB_EV_J2) - 350 vb_y_Treatment(R01_CB_EV_J3)
+   - 70 vb_y_Treatment(R01_MVC_J1) - 140 vb_y_Treatment(R01_MVC_J2)
+   - 350 vb_y_Treatment(R01_MVC_J3) - 70 vb_y_Treatment(R01_MD_J1)
+   - 140 vb_y_Treatment(R01_MD_J2) - 350 vb_y_Treatment(R01_MD_J3)
+   - 70 vb_y_Treatment(R01_OARO_J1) - 140 vb_y_Treatment(R01_OARO_J2)
+   - 350 vb_y_Treatment(R01_OARO_J3) = 0
+ c_e_LogicConstraintTreatmentAssignment(R01)_: vb_y_Treatment(R01_CB_J1)
+   + vb_y_Treatment(R01_CB_J2) + vb_y_Treatment(R01_CB_J3)
+   + vb_y_Treatment(R01_CB_EV_J1) + vb_y_Treatment(R01_CB_EV_J2)
+   + vb_y_Treatment(R01_CB_EV_J3) + vb_y_Treatment(R01_MVC_J1)
+   + vb_y_Treatment(R01_MVC_J2) + vb_y_Treatment(R01_MVC_J3)
+   + vb_y_Treatment(R01_MD_J1) + vb_y_Treatment(R01_MD_J2)
+   + vb_y_Treatment(R01_MD_J3) + vb_y_Treatment(R01_OARO_J1)
+   + vb_y_Treatment(R01_OARO_J2) + vb_y_Treatment(R01_OARO_J3)
+   + vb_y_Treatment(R01_CB_J0) + vb_y_Treatment(R01_CB_EV_J0)
+   + vb_y_Treatment(R01_MVC_J0) + vb_y_Treatment(R01_MD_J0)
+   + vb_y_Treatment(R01_OARO_J0) = 1
+Bounds
+ v_T_Capacity(R01) >= 1000
+Binaries
+ vb_y_Treatment(R01_CB_J1) vb_y_Treatment(R01_CB_J2)
+ vb_y_Treatment(R01_CB_J3) vb_y_Treatment(R01_CB_EV_J1)
+ vb_y_Treatment(R01_CB_EV_J2) vb_y_Treatment(R01_CB_EV_J3)
+ vb_y_Treatment(R01_MVC_J1) vb_y_Treatment(R01_MVC_J2)
+ vb_y_Treatment(R01_MVC_J3) vb_y_Treatment(R01_MD_J1)
+ vb_y_Treatment(R01_MD_J2) vb_y_Treatment(R01_MD_J3)
+ vb_y_Treatment(R01_OARO_J1) vb_y_Treatment(R01_OARO_J2)
+ vb_y_Treatment(R01_OARO_J3) vb_y_Treatment(R01_CB_J0)
+ vb_y_Treatment(R01_CB_EV_J0) vb_y_Treatment(R01_MVC_J0)
+ vb_y_Treatment(R01_MD_J0) vb_y_Treatment(R01_OARO_J0)
+End
