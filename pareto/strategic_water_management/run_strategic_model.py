@@ -18,6 +18,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
+    Hydraulics,
     RemovalEfficiencyMethod,
 )
 from pareto.utilities.get_data import get_data
@@ -75,6 +76,7 @@ parameter_list = [
     "RST",
     "ROT",
     "SOT",
+    "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
@@ -83,8 +85,10 @@ parameter_list = [
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "WellPressure",
     "NodeCapacities",
     "InitialPipelineCapacity",
+    "InitialPipelineDiameters",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
     "ReuseMinimum",
@@ -140,6 +144,7 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+ hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
@@ -152,6 +157,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
+        "hydraulics": Hydraulics.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
@@ -162,7 +168,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 100,
+    "running_time": 200,
     "gap": 0,
 }
 

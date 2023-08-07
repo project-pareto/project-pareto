@@ -24,14 +24,16 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "pareto/operational_water_management/operational_produced_water_optimization_model.py": 85,
     "pareto/strategic_water_management/run_strategic_model.py": 7,
     "pareto/strategic_water_management/run_strategic_model_water_quality.py": 7,
-    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 378,
+    "pareto/strategic_water_management/strategic_produced_water_optimization.py": 404,
     "pareto/tests/test_operational_model.py": 24,
+    "pareto/utilities/bounding_functions.py": 3,
     "pareto/utilities/get_data.py": 24,
     "pareto/utilities/results.py": 194,
-    "pareto/tests/test_strategic_model.py": 81,
+    "pareto/tests/test_strategic_model.py": 93,
     "pareto/tests/test_solvers.py": 31,
     "pareto/tests/test_plot_scatter.py": 20,
     "pareto/tests/test_plot_sankey.py": 3,
+    "pareto/tests/test_utilities.py": 6,
     "pareto/examples/strategic_model_treatment_module_demo/utilities.py": 35,
 }
 
