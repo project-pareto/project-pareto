@@ -2219,28 +2219,29 @@ def create_model(df_sets, df_parameters, default={}):
     # Define constraints #
     model.inlet_salinity.fix(200)
     model.recovery.fix(0.2)
-    model.surrogate_costs_R01 = SurrogateBlock()
+    model.surrogate_costs = SurrogateBlock(model.s_R)
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_2_evap_corrected")
-    model.surrogate_costs_R01.build_model(
-        keras_surrogate,
-        formulation=KerasSurrogate.Formulation.RELU_BIGM,
-        input_vars=[model.inlet_salinity['R01'],model.recovery['R01'],model.v_T_Capacity['R01']],
-        output_vars=[model.v_C_TreatmentCapEx_site['R01'],model.v_C_Treatment_site['R01'],model.treatment_energy['R01']],
-    )
-    model.surrogate_costs_R02 = SurrogateBlock()
-    model.surrogate_costs_R02.build_model(
-        keras_surrogate,
-        formulation=KerasSurrogate.Formulation.RELU_BIGM,
-        input_vars=[model.inlet_salinity['R02'],model.recovery['R02'],model.v_T_Capacity['R02']],
-        output_vars=[model.v_C_TreatmentCapEx_site['R02'],model.v_C_Treatment_site['R02'],model.treatment_energy['R02']],
-    )
+    for i in model.s_R:
+        model.surrogate_costs[i].build_model(
+            keras_surrogate,
+            formulation=KerasSurrogate.Formulation.RELU_BIGM,
+            input_vars=[model.inlet_salinity[i],model.recovery[i],model.v_T_Capacity[i]],
+            output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
+        )
+    # model.surrogate_costs_R02 = SurrogateBlock()
+    # model.surrogate_costs_R02.build_model(
+    #     keras_surrogate,
+    #     formulation=KerasSurrogate.Formulation.RELU_BIGM,
+    #     input_vars=[model.inlet_salinity['R02'],model.recovery['R02'],model.v_T_Capacity['R02']],
+    #     output_vars=[model.v_C_TreatmentCapEx_site['R02'],model.v_C_Treatment_site['R02'],model.treatment_energy['R02']],
+    # )
     # model.surrogate_costs_R01.deactivate()
     # model.surrogate_costs_R02.deactivate()
     def treatmentSurrogate(model):
-        return model.v_C_TotalTreatment_surrogate==model.v_C_Treatment_site['R01']+model.v_C_Treatment_site['R02']
+        return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i] for i in model.s_R)
     model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
     def capExSurrogate(model):
-        return model.v_C_TreatmentCapEx_surrogate==model.v_C_TreatmentCapEx_site['R01']+model.v_C_TreatmentCapEx_site['R02']
+        return model.v_C_TreatmentCapEx_surrogate==sum(model.v_C_TreatmentCapEx_site[i] for i in model.s_R)
     model.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
 
     def CompletionsPadDemandBalanceRule(model, p, t):
