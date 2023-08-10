@@ -907,6 +907,13 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Directional flow between two locations",
     )
+    model.vb_y_BeneficialReuse = Var(
+        model.s_O,
+        model.s_T,
+        within=Binary,
+        initialize=0,
+        doc="Beneficial reuse site selection",
+    )
 
     # Pre-process Data #
     _preprocess_data(model)
@@ -2819,12 +2826,14 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def BeneficialReuseMinimumRule(model, o, t):
-        constraint = (
-            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
-            )
-            >= model.p_sigma_ReuseMinimum[o, t]
+        constraint = sum(
+            model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+        ) + sum(
+            model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+        ) >= model.p_sigma_ReuseMinimum[
+            o, t
+        ] + 1e-4 - model.p_M_Flow * (
+            1 - model.vb_y_BeneficialReuse[o, t]
         )
         return process_constraint(constraint)
 
@@ -2833,6 +2842,22 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=BeneficialReuseMinimumRule,
         doc="Beneficial reuse minimum flow",
+    )
+
+    def BeneficialReuseFlowRule(model, o, t):
+        constraint = (
+            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+            )
+        ) <= model.p_M_Flow * model.vb_y_BeneficialReuse[o, t]
+        return process_constraint(constraint)
+
+    model.BeneficialReuseFlow = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseFlowRule,
+        doc="Beneficial reuse zero flow when site is not selected",
     )
 
     def BeneficialReuseCapacityRule(model, o, t):

@@ -108,7 +108,8 @@ def generate_report(
                     "vb_y_Disposal",
                     "vb_y_Storage",
                     "vb_y_Treatment",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
                     "v_S_Production",
@@ -135,6 +136,7 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
 
@@ -203,6 +205,7 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
+            "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
@@ -691,7 +694,7 @@ def generate_report(
                     "vb_y_Truck",
                     "v_F_Drain",
                     "v_B_Production",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
                     "v_F_Overview",
                     "v_L_PadStorage",
                     "v_C_Treatment",
