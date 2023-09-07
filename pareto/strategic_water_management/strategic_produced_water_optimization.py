@@ -785,7 +785,7 @@ def create_model(df_sets, df_parameters, default={}):
             missing_desal_sites.append(r)
     if missing_desal_sites:
         raise Exception(
-            "The parameter chi_DesalinationSites must be specified for every treatment site (missing: "
+            "The parameter chi_DesalinationSites (spreadsheet tab \"DesalinationSites\") must be specified for every treatment site (missing: "
             + ", ".join(missing_desal_sites)
             + ")"
         )
@@ -2772,19 +2772,33 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Residual water based on treatment efficiency",
     )
 
+    # Create a set of all treatment sites for which the treated stream should
+    # be modeled
+    treatment_sites_with_treated_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_R and value == TreatmentStreams.treated_stream
+    }
+
     def TreatedWaterBalanceRule(model, r, t):
-        constraint = model.v_F_TreatedWater[r, t] == sum(
-            model.v_F_Piped[r, l, t]
-            for l in model.s_L
-            if (r, l) in model.s_LLA
-            and model.df_parameters["LLA"][r, l] == TreatmentStreams.treated_stream
-        ) + sum(
-            model.v_F_Trucked[r, l, t]
-            for l in model.s_L
-            if (r, l) in model.s_LLT
-            and model.df_parameters["LLT"][r, l] == TreatmentStreams.treated_stream
-        )
-        return process_constraint(constraint)
+        # If treated stream from a treatment site should be modeled, then
+        # create constraint for the treated water. Otherwise, skip.
+        if r in treatment_sites_with_treated_stream_modeled:
+            constraint = model.v_F_TreatedWater[r, t] == sum(
+                model.v_F_Piped[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLA
+                and model.df_parameters["LLA"][r, l] == TreatmentStreams.treated_stream
+            ) + sum(
+                model.v_F_Trucked[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLT
+                and model.df_parameters["LLT"][r, l] == TreatmentStreams.treated_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
 
     model.TreatedWaterBalance = Constraint(
         model.s_R, model.s_T, rule=TreatedWaterBalanceRule, doc="Treated water balance"
@@ -2792,17 +2806,17 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Create a set of all treatment sites for which the residual stream should
     # be modeled
-    treatment_sites_with_modeled_residual = {
-        org
-        for ((org, dest), value) in list(model.df_parameters["LLA"].items())
+    treatment_sites_with_residual_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
         + list(model.df_parameters["LLT"].items())
-        if org in model.s_R and value == TreatmentStreams.residual_stream
+        if origin in model.s_R and value == TreatmentStreams.residual_stream
     }
 
     def ResidualWaterBalanceRule(model, r, t):
         # If residual stream from a treatment site should be modeled, then
         # create constraint for the residual water. Otherwise, skip.
-        if r in treatment_sites_with_modeled_residual:
+        if r in treatment_sites_with_residual_stream_modeled:
             constraint = model.v_F_ResidualWater[r, t] == sum(
                 model.v_F_Piped[r, l, t]
                 for l in model.s_L
