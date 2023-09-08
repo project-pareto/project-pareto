@@ -785,7 +785,7 @@ def create_model(df_sets, df_parameters, default={}):
             missing_desal_sites.append(r)
     if missing_desal_sites:
         raise Exception(
-            "The parameter chi_DesalinationSites (spreadsheet tab \"DesalinationSites\") must be specified for every treatment site (missing: "
+            'The parameter chi_DesalinationSites (spreadsheet tab "DesalinationSites") must be specified for every treatment site (missing: '
             + ", ".join(missing_desal_sites)
             + ")"
         )
