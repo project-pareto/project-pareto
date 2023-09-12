@@ -173,8 +173,6 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{p,t}^{PadStorageOut}}` =                  Water removed from completions pad storage
 
-:math:`\textcolor{red}{F_{r,t}^{DesalinatedWater}}` =               Water removed from system post desalination
-
 :math:`\textcolor{red}{F_{s,t}^{StorageEvaporationStream}}` =       Water at storage lost to evaporation
 
 :math:`\textcolor{red}{F_{r,t}^{TreatmentFeed}}` =       Flow of feed to a treatment site
@@ -187,11 +185,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{k,t}^{DisposalDestination}}` =            Water injected at disposal site
 
-:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse
+:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse option
 
 :math:`\textcolor{red}{F_{p,t}^{CompletionsDestination}}` =         All water delivered to completions pad
-
-:math:`\textcolor{red}{F_{p,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse site
 
 :math:`\textcolor{red}{L_{s,t}^{Storage}}` =                        Water level at storage site at the end of time period t
 
@@ -221,6 +217,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{R_{s,t}^{Storage}}` =                        Credit for retrieving stored produced water from storage site
 
+:math:`\textcolor{red}{R_{o,t}^{BeneficialReuse}}` =                Credit for sending water to beneficial reuse
+
 :math:`\textcolor{red}{C^{TotalSourced}}` =                         Total cost of sourcing freshwater
 
 :math:`\textcolor{red}{C^{TotalDisposal}}` =                        Total cost of injecting produced water
@@ -238,6 +236,8 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{red}{C^{Slack}}` =                                Total cost of slack variables
 
 :math:`\textcolor{red}{R^{TotalStorage}}` =                         Total credit for withdrawing produced water
+
+:math:`\textcolor{red}{R^{TotalBeneficialReuse}}` =                 Total credit for sending water to beneficial reuse
 
 :math:`\textcolor{red}{D_{k,[t]}^{Capacity}}` =                     Disposal capacity in a given time period at disposal site
 
@@ -284,6 +284,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{y_{l,\tilde{l},t}^{Flow}}` =         Directional flow between two locations
 
+:math:`\textcolor{red}{y_{o,t}^{BeneficialReuse}}` =         Beneficial reuse option selection
+
 ..
     :math:`\textcolor{red}{z_{l,\tilde{l},d,t}^{Pipeline}}` =   Timing of pipeline installation between one location and another location with specific diameter
 
@@ -314,7 +316,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{r,wt}^{Treatment}}` =             Initial treatment capacity at treatment site
 
-:math:`\textcolor{green}{\sigma_{o}^{BeneficialReuse}}` =       Initial reuse capacity at reuse site
+:math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}}` =     Minimum flow that must be sent to beneficial reuse option
+
+:math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuse}}` =     Capacity of beneficial reuse option
 
 :math:`\textcolor{green}{\sigma_{f,t}^{Freshwater}}` =          Freshwater sourcing capacity at freshwater source
 
@@ -404,6 +408,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\rho_{s}^{Storage}}` =                 Storage withdrawal operational credit
 
+:math:`\textcolor{green}{\rho_{o}^{BeneficialReuse}}` =                 Credit for sending water to beneficial reuse
+
 :math:`\textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}` =               Pipeline operational cost
 
 :math:`\textcolor{green}{\pi_{l}^{Trucking}}` =                 Trucking hourly cost (by source)
@@ -445,20 +451,20 @@ Two objective functions can be considered for the optimization of a produced wat
 
 .. math::
 
-    \min \ \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}
+    \min \ \textcolor{red}{C^{TotalSourced}} + \textcolor{red}{C^{TotalDisposal}} + \textcolor{red}{C^{TotalTreatment}}
 
-        + \textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}
+        + \textcolor{red}{C^{TotalCompletionsReuse}} + \textcolor{red}{C^{TotalPiping}} + \textcolor{red}{C^{TotalStorage}}
 
-        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{\alpha^{AnnualizationRate}} \cdot (\textcolor{red}{C^{DisposalCapEx}}
+        + \textcolor{red}{C^{TotalTrucking}} + \textcolor{green}{\alpha^{AnnualizationRate}} \cdot (\textcolor{red}{C^{DisposalCapEx}}
 
-        + \textcolor{red}{C^{StorageCapEx}}+\textcolor{red}{C^{TreatmentCapEx}}+\textcolor{red}{C^{PipelineCapEx}})
+        + \textcolor{red}{C^{StorageCapEx}} + \textcolor{red}{C^{TreatmentCapEx}} + \textcolor{red}{C^{PipelineCapEx}})
 
-        + \textcolor{red}{C^{Slack}}-\textcolor{red}{R^{TotalStorage}}
+        + \textcolor{red}{C^{Slack}} - \textcolor{red}{R^{TotalStorage}} - \textcolor{red}{R^{TotalBeneficialReuse}}
 
 
 .. math::
 
-    \max \ \textcolor{red}{F^{TotalCompletionsReuse}}/\textcolor{green}{\beta^{TotalProd}}
+    \max \ \textcolor{red}{F^{TotalCompletionsReuse}} / \textcolor{green}{\beta^{TotalProd}}
 
 
 **Annualization Rate Calculation:**
@@ -844,15 +850,41 @@ The efficiency of a treatment technology determines the amount of residual water
         \geq \textcolor{red}{F_{r,t}^{ResidualWater}}
 
 
-**Treated Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{wt \in WT}, \textcolor{blue}{t \in T}`
+**Treated and Residual Water Balances:**
 
-Treated water is either reused in the completion pads or stored in ponds or removed for beneficial reuse (if desalinated).
+For all piping or trucking arcs :math:`\textcolor{blue}{(r, l)}` immediately downstream of a treatment site :math:`\textcolor{blue}{r}`, the user must specify whether the arc carries treated water or residual water away from the treatment site. Moreover, 
+
+*Treated Water Balance*: :math:`\forall \textcolor{blue}{r \in R} \ |` there exists at least one arc :math:`\textcolor{blue}{(r,l)}` carrying treated water away from :math:`\textcolor{blue}{r}, \ \textcolor{blue}{t \in T}`
 
 .. math::
+        \textcolor{red}{F_{r,t}^{TreatedWater}} = \sum_{l \in L | (r, l) \in LLA \text{ and } (r,l) \text{ carries treated water}} \textcolor{red}{F_{r,l,t}^{Piped}}
+        + \sum_{l \in L | (r, l) \in LLT \text{ and } (r,l) \text{ carries treated water}} \textcolor{red}{F_{r,l,t}^{Trucked}}
 
-        \textcolor{red}{F_{r,t}^{TreatedWater}} =
-        \sum_{l \in L | (r, l) \in LLA}\textcolor{red}{F_{r,l,t}^{Piped}}
-        + \textcolor{red}{F_{r,t}^{DesalinatedWater}}
+*Residual Water Balance*: :math:`\forall \textcolor{blue}{r \in R} \ |` there exists at least one arc :math:`\textcolor{blue}{(r,l)}` carrying residual water away from :math:`\textcolor{blue}{r}, \ \textcolor{blue}{t \in T}`
+
+.. math::
+        \textcolor{red}{F_{r,t}^{ResidualWater}} = \sum_{l \in L | (r, l) \in LLA \text{ and } (r,l) \text{ carries residual water}} \textcolor{red}{F_{r,l,t}^{Piped}}
+        + \sum_{l \in L | (r, l) \in LLT \text{ and } (r,l) \text{ carries residual water}} \textcolor{red}{F_{r,l,t}^{Trucked}}
+
+.. note:: The user is not required to specify any arcs carrying away treated or residual water immedaitely downstream of a treatment site. In reality, water that enters a treatment site must eventually leave and go somewhere, but for the sake of modeling flexibility, it is not required to include such arcs. If the user chooses to omit downstream treated and/or residual water arcs for a treatment site, then the treatment site acts as a sink within the greater network model for the water which is not propagated downstream.
+
+**Beneficial Reuse Minimum:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+If a beneficial reuse option is selected, the flow to it must exceed the minimum required value.
+
+.. math::
+    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+    + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
+    \geq \textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}} + 10^{-4} - \textcolor{green}{M^{Flow}} \cdot (1 - \textcolor{red}{y_{o,t}^{BeneficialReuse}})
+
+**Beneficial Reuse Zero Flow:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+The flow to a beneficial reuse option must be zero if it is not selected.
+
+.. math::
+    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+    + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
+    \leq \textcolor{green}{M^{Flow}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
 
 **Beneficial Reuse Capacity:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
 
@@ -862,7 +894,7 @@ For each beneficial reuse site and for each time period, water sent to a site mu
 
     \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
         + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
-        \leq \textcolor{green}{\sigma_{o}^{BeneficialReuse}}
+        \leq \textcolor{green}{\sigma_{o,t}^{BeneficialReuse}}
         + \textcolor{red}{S_{o}^{BeneficialReuseCapacity}}
 
 
@@ -1002,16 +1034,28 @@ Cost of depositing into storage is equal to the total volume of water moved into
 
 **Storage Withdrawal Credit:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
 
-Credits from withdrawing from storage is equal to the total volume of water moved out from storage multiplied by the storage operation credit rate.
+Credit from withdrawing from storage is equal to the volume of water moved out from storage multiplied by the storage operation credit rate.
 
 .. math::
-
     \textcolor{red}{R_{s,t}^{Storage}}
         = (\sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
         + \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{s}^{Storage}}
 
 .. math::
     \textcolor{red}{R^{TotalStorage}} = \sum_{t \in T}\sum_{s \in S}\textcolor{red}{R_{s,t}^{Storage}}
+
+
+**Beneficial Reuse Credit:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+Credit for sending water to beneficial reuse is equal to the volume of water sent to beneficial reuse multiplied by the beneficial reuse credit rate.
+
+.. math::
+    \textcolor{red}{R_{o,t}^{BeneficialReuse}}
+        = (\sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{o}^{BeneficialReuse}}
+
+.. math::
+    \textcolor{red}{R^{TotalBeneficialReuse}} = \sum_{t \in T}\sum_{o \in O}\textcolor{red}{R_{o,t}^{BeneficialReuse}}
 
 ..
     **Pad Storage Cost:** :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}, \textcolor{blue}{t \in T}`
@@ -1143,33 +1187,6 @@ Alternatively, if it is desired to only consider sizes to build, the 0th case ca
 
 
 **Logic Constraints for Desalination:**
-
-Desalinated water is not reused for completions pad demand or stored in the storage
-
-:math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
-
-.. math::
-
-    \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
-        + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
-        \leq \textcolor{green}{M^{Flow}} \cdot (1 -
-        \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,wt,j}^{Treatment}})
-
-
-Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
-If desalination technology is not selected, then the amount of desalinated water is set to zero.
-
-
-:math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
-
-.. math::
-
-    \textcolor{red}{F_{r,t}^{DesalinatedWater}}
-        \leq \textcolor{green}{M^{Flow}} \cdot
-        \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,wt,j}^{Treatment}}
-
 
 Desalination technology is assigned to a pre-determined site.
 

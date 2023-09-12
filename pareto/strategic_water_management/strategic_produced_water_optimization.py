@@ -726,7 +726,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
-        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
+        doc="Total deliveries to Beneficial Reuse Option [volume/time]",
     )
     model.v_F_CompletionsDestination = Var(
         model.s_CP,
@@ -860,7 +860,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Slack variable to provide necessary treatment capacity [volume/time]",
     )
-    model.v_S_ReuseCapacity = Var(
+    model.v_S_BeneficialReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
@@ -912,7 +912,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=Binary,
         initialize=0,
-        doc="Beneficial reuse site selection",
+        doc="Beneficial reuse option selection",
     )
 
     # Pre-process Data #
@@ -1349,7 +1349,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Initial treatment capacity at treatment site [volume/time]",
     )
-    model.p_sigma_ReuseMinimum = Param(
+    model.p_sigma_BeneficialReuseMinimum = Param(
         model.s_O,
         model.s_T,
         default=0,
@@ -1362,9 +1362,9 @@ def create_model(df_sets, df_parameters, default={}):
             for key, value in model.df_parameters["ReuseMinimum"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Minimum flow that must be sent to reuse site [volume/time]",
+        doc="Minimum flow that must be sent to beneficial reuse option [volume/time]",
     )
-    model.p_sigma_Reuse = Param(
+    model.p_sigma_BeneficialReuse = Param(
         model.s_O,
         model.s_T,
         default=0,
@@ -1377,7 +1377,7 @@ def create_model(df_sets, df_parameters, default={}):
             for key, value in model.df_parameters["ReuseCapacity"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Reuse capacity at reuse site [volume/time]",
+        doc="Capacity of beneficial reuse option [volume/time]",
     )
     model.p_sigma_Freshwater = Param(
         model.s_F,
@@ -2844,7 +2844,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
         ) + sum(
             model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
-        ) >= model.p_sigma_ReuseMinimum[
+        ) >= model.p_sigma_BeneficialReuseMinimum[
             o, t
         ] + 1e-4 - model.p_M_Flow * (
             1 - model.vb_y_BeneficialReuse[o, t]
@@ -2871,7 +2871,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_O,
         model.s_T,
         rule=BeneficialReuseFlowRule,
-        doc="Beneficial reuse zero flow when site is not selected",
+        doc="Beneficial reuse zero flow when option is not selected",
     )
 
     def BeneficialReuseCapacityRule(model, o, t):
@@ -2880,7 +2880,8 @@ def create_model(df_sets, df_parameters, default={}):
             + sum(
                 model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
             )
-            <= model.p_sigma_Reuse[o, t] + model.v_S_ReuseCapacity[o]
+            <= model.p_sigma_BeneficialReuse[o, t]
+            + model.v_S_BeneficialReuseCapacity[o]
         )
         return process_constraint(constraint)
 
@@ -3489,7 +3490,7 @@ def create_model(df_sets, df_parameters, default={}):
                 for r in model.s_R
             )
             + sum(
-                model.v_S_ReuseCapacity[o] * model.p_psi_ReuseCapacity
+                model.v_S_BeneficialReuseCapacity[o] * model.p_psi_ReuseCapacity
                 for o in model.s_O
             )
         )
@@ -6290,7 +6291,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_S_FracDemand] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_PipelineCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Production] = 1000 / scaling_factor
-    model.scaling_factor[model.v_S_ReuseCapacity] = 1000 / scaling_factor
+    model.scaling_factor[model.v_S_BeneficialReuseCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_TreatmentCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_StorageCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
@@ -6720,7 +6721,7 @@ def solve_model(model, options=None):
         model.v_S_StorageCapacity.fix(0)
         model.v_S_DisposalCapacity.fix(0)
         model.v_S_TreatmentCapacity.fix(0)
-        model.v_S_ReuseCapacity.fix(0)
+        model.v_S_BeneficialReuseCapacity.fix(0)
 
     if use_scaling:
         # Step 1: scale model
