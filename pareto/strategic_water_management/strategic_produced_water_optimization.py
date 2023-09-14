@@ -6329,6 +6329,7 @@ def scale_model(model, scaling_factor=None):
 
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.BeneficialReuseFlow] = 1 / scaling_factor
     # This constraints contains only binary variables
     model.scaling_factor[model.BidirectionalFlow1] = 1
     model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
@@ -6395,7 +6396,8 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentFeedBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
-    model.scaling_factor[model.TreatedWater] = 1 / scaling_factor
+    model.scaling_factor[model.TreatedWaterBalance] = 1 / scaling_factor
+    model.scaling_factor[model.ResidualWaterBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCostLHS] = 1 / scaling_factor
@@ -6404,8 +6406,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.ResidualWaterRHS] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
-    model.scaling_factor[model.LogicConstraintDesalinationFlow] = 1 / scaling_factor
-    model.scaling_factor[model.LogicConstraintNoDesalinationFlow] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
 

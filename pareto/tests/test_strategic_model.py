@@ -64,7 +64,6 @@ def build_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
         "FreshwaterSources",
@@ -94,16 +93,23 @@ def build_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -114,6 +120,8 @@ def build_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -172,7 +180,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -195,7 +203,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -218,7 +226,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -241,7 +249,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -334,7 +342,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -352,7 +360,6 @@ def build_reduced_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
         "FreshwaterSources",
@@ -382,16 +389,23 @@ def build_reduced_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -402,6 +416,8 @@ def build_reduced_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -518,10 +534,10 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11789
+    assert degrees_of_freedom(m) == 11560
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
-    assert pytest.approx(26.067, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
+    assert pytest.approx(26.231, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
     assert pytest.approx(24, abs=1e-1) == pyo.value(
         sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA)
     )
@@ -586,7 +602,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 13081
+    assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -610,7 +626,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 13081
+    assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -634,7 +650,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 13081
+    assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -658,7 +674,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 104601
+    assert degrees_of_freedom(m) == 103331
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -769,7 +785,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11789
+    assert degrees_of_freedom(m) == 11560
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
@@ -839,7 +855,6 @@ def build_modified_reduced_strategic_model():
     # The modified excel sheet is located in the test folder
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
         "FreshwaterSources",
@@ -869,23 +884,35 @@ def build_modified_reduced_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -1016,7 +1043,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11789
+    assert degrees_of_freedom(m) == 11560
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1040,7 +1067,6 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 def test_strategic_model_UI_display_units():
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
         "FreshwaterSources",
@@ -1070,16 +1096,23 @@ def test_strategic_model_UI_display_units():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -1090,6 +1123,8 @@ def test_strategic_model_UI_display_units():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -1139,7 +1174,6 @@ def build_toy_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
         "FreshwaterSources",
@@ -1169,16 +1203,23 @@ def build_toy_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -1189,6 +1230,8 @@ def build_toy_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -1246,7 +1289,7 @@ def test_basic_toy_build(build_toy_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 4907
+    assert degrees_of_freedom(m) == 7237
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -1281,8 +1324,8 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 4558
-    assert pytest.approx(11122.325, abs=1e-1) == pyo.value(m.v_Z)
+    assert degrees_of_freedom(m) == 6875
+    assert pytest.approx(11103.742, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
 
@@ -1293,7 +1336,6 @@ def build_permian_demo_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
         "FreshwaterSources",
@@ -1323,16 +1365,23 @@ def build_permian_demo_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -1343,6 +1392,8 @@ def build_permian_demo_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
         "FreshwaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -1402,7 +1453,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 21111
+    assert degrees_of_freedom(m) == 20955
     # Check unit config arguments
     assert len(m.config) == 7
     assert m.config.objective
@@ -1426,7 +1477,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 21111
+    assert degrees_of_freedom(m) == 20955
 
     # Test report building
     [model, results_dict] = generate_report(
