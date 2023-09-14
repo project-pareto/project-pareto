@@ -118,7 +118,7 @@ def generate_report(
                     "v_S_StorageCapacity",
                     "v_S_DisposalCapacity",
                     "v_S_TreatmentCapacity",
-                    "v_S_ReuseCapacity",
+                    "v_S_BeneficialReuseCapacity",
                     "v_Q",
                 ]
 
@@ -389,7 +389,7 @@ def generate_report(
             "v_S_TreatmentCapacity_dict": [
                 ("Treatment site", "Slack Treatment Capacity")
             ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_S_BeneficialReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 

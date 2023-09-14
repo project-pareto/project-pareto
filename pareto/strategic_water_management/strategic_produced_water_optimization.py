@@ -2116,7 +2116,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
-    model.p_psi_ReuseCapacity = Param(
+    model.p_psi_BeneficialReuseCapacity = Param(
         default=pyunits.convert_value(
             99999,
             from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
@@ -3490,7 +3490,7 @@ def create_model(df_sets, df_parameters, default={}):
                 for r in model.s_R
             )
             + sum(
-                model.v_S_BeneficialReuseCapacity[o] * model.p_psi_ReuseCapacity
+                model.v_S_BeneficialReuseCapacity[o] * model.p_psi_BeneficialReuseCapacity
                 for o in model.s_O
             )
         )
