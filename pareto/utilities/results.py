@@ -389,7 +389,9 @@ def generate_report(
             "v_S_TreatmentCapacity_dict": [
                 ("Treatment site", "Slack Treatment Capacity")
             ],
-            "v_S_BeneficialReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_S_BeneficialReuseCapacity_dict": [
+                ("Reuse site", "Slack Reuse Capacity")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 

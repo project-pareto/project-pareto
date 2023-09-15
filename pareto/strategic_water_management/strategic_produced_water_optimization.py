@@ -3490,7 +3490,8 @@ def create_model(df_sets, df_parameters, default={}):
                 for r in model.s_R
             )
             + sum(
-                model.v_S_BeneficialReuseCapacity[o] * model.p_psi_BeneficialReuseCapacity
+                model.v_S_BeneficialReuseCapacity[o]
+                * model.p_psi_BeneficialReuseCapacity
                 for o in model.s_O
             )
         )
