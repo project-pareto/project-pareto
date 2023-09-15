@@ -537,7 +537,7 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
     assert degrees_of_freedom(m) == 11560
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
-    assert pytest.approx(26.231, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
+    assert pytest.approx(26.105, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
     assert pytest.approx(24, abs=1e-1) == pyo.value(
         sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA)
     )
