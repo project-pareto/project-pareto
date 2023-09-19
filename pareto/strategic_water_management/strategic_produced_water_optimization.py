@@ -80,6 +80,7 @@ class RemovalEfficiencyMethod(Enum):
     concentration_based = 1
 
 
+# Inherit from IntEnum so that these values can be used in comparisons
 class TreatmentStreams(IntEnum):
     treated_stream = 1
     residual_stream = 2
@@ -578,7 +579,12 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_F_TotalReused = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume of produced water reused [volume]",
+        doc="Total volume of produced water reused at completions [volume]",
+    )
+    model.v_F_TotalBeneficialReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume of water beneficially reused [volume]",
     )
     model.v_C_Piped = Var(
         model.s_L,
@@ -1367,7 +1373,8 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_sigma_BeneficialReuse = Param(
         model.s_O,
         model.s_T,
-        default=0,
+        # Use a negative number for default so later we can detect for which indexes the user did/did not provide a parameter value
+        default=-1,
         initialize={
             key: pyunits.convert_value(
                 value,
@@ -2805,7 +2812,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # Create a set of all treatment sites for which the residual stream should
-    # be modeled
+    # be modeled. Arcs originating from a treatment site may have a value of 0,
+    # 1, or 2 to denote no arc, treated stream, and residual stream,
+    # respectively.
     treatment_sites_with_residual_stream_modeled = {
         origin
         for ((origin, _), value) in list(model.df_parameters["LLA"].items())
@@ -2840,16 +2849,15 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def BeneficialReuseMinimumRule(model, o, t):
-        constraint = sum(
-            model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
-        ) + sum(
-            model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
-        ) >= model.p_sigma_BeneficialReuseMinimum[
-            o, t
-        ] + 1e-4 - model.p_M_Flow * (
-            1 - model.vb_y_BeneficialReuse[o, t]
-        )
-        return process_constraint(constraint)
+        if value(model.p_sigma_BeneficialReuseMinimum[o, t]) > 0:
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                >= model.p_sigma_BeneficialReuseMinimum[o, t]
+                * model.vb_y_BeneficialReuse[o, t]
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
 
     model.BeneficialReuseMinimum = Constraint(
         model.s_O,
@@ -2858,31 +2866,23 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Beneficial reuse minimum flow",
     )
 
-    def BeneficialReuseFlowRule(model, o, t):
-        constraint = (
-            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
-            )
-        ) <= model.p_M_Flow * model.vb_y_BeneficialReuse[o, t]
-        return process_constraint(constraint)
-
-    model.BeneficialReuseFlow = Constraint(
-        model.s_O,
-        model.s_T,
-        rule=BeneficialReuseFlowRule,
-        doc="Beneficial reuse zero flow when option is not selected",
-    )
-
     def BeneficialReuseCapacityRule(model, o, t):
-        constraint = (
-            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+        if value(model.p_sigma_BeneficialReuse[o, t]) < 0:
+            # Beneficial reuse capacity value has not been provided by user
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                <= model.p_M_Flow * model.vb_y_BeneficialReuse[o, t]
+                + model.v_S_BeneficialReuseCapacity[o]
             )
-            <= model.p_sigma_BeneficialReuse[o, t]
-            + model.v_S_BeneficialReuseCapacity[o]
-        )
+        else:
+            # Beneficial reuse capacity value has been provided by user
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                <= model.p_sigma_BeneficialReuse[o, t]
+                * model.vb_y_BeneficialReuse[o, t]
+                + model.v_S_BeneficialReuseCapacity[o]
+            )
+
         return process_constraint(constraint)
 
     model.BeneficialReuseCapacity = Constraint(
@@ -2893,6 +2893,19 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # TODO: Improve testing of Beneficial reuse capacity constraint
+
+    def TotalBeneficialReuseVolumeRule(model):
+        constraint = model.v_F_TotalBeneficialReuse == (
+            sum(
+                sum(model.v_F_BeneficialReuseDestination[o, t] for o in model.s_O)
+                for t in model.s_T
+            )
+        )
+        return process_constraint(constraint)
+
+    model.TotalBeneficialReuse = Constraint(
+        rule=TotalBeneficialReuseVolumeRule, doc="Total beneficial reuse volume"
+    )
 
     def FreshSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
@@ -3141,7 +3154,7 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.TotalReuseVolume = Constraint(
-        rule=TotalReuseVolumeRule, doc="Total reuse volume"
+        rule=TotalReuseVolumeRule, doc="Total volume reused at completions"
     )
 
     def PipingCostRule(model, l, l_tilde, t):
@@ -6330,7 +6343,7 @@ def scale_model(model, scaling_factor=None):
 
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.BeneficialReuseFlow] = 1 / scaling_factor
+    model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
     # This constraints contains only binary variables
     model.scaling_factor[model.BidirectionalFlow1] = 1
     model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
@@ -6785,6 +6798,22 @@ def solve_model(model, options=None):
                 however this is an indication that the input data should be revised. \
                 This can be done by selecting 'deactivate_slacks': False in the options"
         )
+
+    # For a given time t and beneficial reuse option o, if the beneficial reuse
+    # minimum flow parameter is zero (p_sigma_BeneficialReuseMinimum[o, t] = 0)
+    # and the optimal total flow to beneficial reuse is zero
+    # (v_F_BeneficialReuseDestination[o, t] = 0), then it is arbitrary whether
+    # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
+    # these cases it's preferred to report a value of 0 to the user, so change
+    # the value of vb_y_BeneficialReuse[o, t] as necessary.
+    for t in model.s_T:
+        for o in model.s_O:
+            if (
+                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+                and value(model.vb_y_BeneficialReuse[o, t] > 0)
+            ):
+                model.vb_y_BeneficialReuse[o, t].value = 0
 
     results.write()
 

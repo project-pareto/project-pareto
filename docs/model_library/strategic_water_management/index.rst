@@ -199,7 +199,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F^{TotalDisposed}}` =                        Total volume of produced water disposed
 
-:math:`\textcolor{red}{F^{TotalCompletionsReuse}}` =                Total volume of produced water reused
+:math:`\textcolor{red}{F^{TotalCompletionsReuse}}` =                Total volume of produced water reused at completions
+
+:math:`\textcolor{red}{F^{TotalBeneficialReuse}}` =                 Total volume of water beneficially reused
 
 :math:`\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}` =                        Cost of piping produced water from one location to another location
 
@@ -870,32 +872,37 @@ For all piping or trucking arcs :math:`\textcolor{blue}{(r, l)}` immediately dow
 
 **Beneficial Reuse Minimum:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
 
-If a beneficial reuse option is selected, the flow to it must exceed the minimum required value.
+If a beneficial reuse option is selected (:math:`\textcolor{red}{y_{o,t}^{BeneficialReuse}} = 1`), the flow to it must meet the minimum required value.
+
+If :math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}} \gt 0`:
 
 .. math::
-    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
-    + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
-    \geq \textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}} + 10^{-4} - \textcolor{green}{M^{Flow}} \cdot (1 - \textcolor{red}{y_{o,t}^{BeneficialReuse}})
-
-**Beneficial Reuse Zero Flow:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
-
-The flow to a beneficial reuse option must be zero if it is not selected.
-
-.. math::
-    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
-    + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
-    \leq \textcolor{green}{M^{Flow}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+    \geq \textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
 
 **Beneficial Reuse Capacity:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
 
-For each beneficial reuse site and for each time period, water sent to a site must be less than or equal to the capacity.
+If a beneficial reuse option is not selected (:math:`\textcolor{red}{y_{o,t}^{BeneficialReuse}} = 0`), the flow to it must be zero. Furthermore, the specified capacities of beneficial reuse options must be respected.
+
+It is optional to specify capacities (:math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuse}}`) for reuse options. If a capcity is provided for reuse option :math:`\textcolor{blue}{o}`:
 
 .. math::
-
-    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
-        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
-        \leq \textcolor{green}{\sigma_{o,t}^{BeneficialReuse}}
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+        \leq \textcolor{green}{\sigma_{o,t}^{BeneficialReuse}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
         + \textcolor{red}{S_{o}^{BeneficialReuseCapacity}}
+
+Otherwise:
+
+.. math::
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+        \leq \textcolor{green}{M^{Flow}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
+        + \textcolor{red}{S_{o}^{BeneficialReuseCapacity}}
+
+**Total Beneficial Reuse Volume:**
+
+.. math::
+    \textcolor{red}{F^{TotalBeneficialReuse}}
+    = \sum_{t \in T} \sum_{o \in O} \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
 
 
 **Fresh Sourcing Cost:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
