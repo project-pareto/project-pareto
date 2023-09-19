@@ -6291,6 +6291,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalDisposed] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalReused] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalSourced] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalTrucked] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Trucked] = 1 / scaling_factor
