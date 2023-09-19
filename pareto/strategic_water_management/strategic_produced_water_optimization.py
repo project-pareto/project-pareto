@@ -6637,7 +6637,12 @@ def solve_model(model, options=None):
             # In the post-process solve, only the hydraulics block is solved.
 
             mh = model_h.hydraulics
-            results_2 = opt.solve(mh, tee=True)
+            # Calculate hydraulics. The following conditional is used to avoid errors when
+            # using gurobi vs gurobi_direct solvers)
+            try:
+                results_2 = opt.solve(mh, tee=True, save_results=False)
+            except ValueError:
+                results_2 = opt.solve(mh, tee=True)
 
         elif model.config.hydraulics == Hydraulics.co_optimize:
             # Currently, this method is supported for only MINLP solvers accessed through GAMS.
