@@ -6637,11 +6637,11 @@ def solve_model(model, options=None):
             # In the post-process solve, only the hydraulics block is solved.
 
             mh = model_h.hydraulics
-            # Calculate hydraulics. The following conditional is used to avoid errors when
-            # using gurobi vs gurobi_direct solvers)
-            try:
+            # Calculate hydraulics. The following condition is used to avoid attribute error when
+            # using gurobi_direct on hydraulics sub-block
+            if opt.type in ("gurobi_direct"):
                 results_2 = opt.solve(mh, tee=True, save_results=False)
-            except ValueError:
+            else:
                 results_2 = opt.solve(mh, tee=True)
 
         elif model.config.hydraulics == Hydraulics.co_optimize:
