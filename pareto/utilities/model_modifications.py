@@ -54,5 +54,5 @@ def deactivate_slacks(model):
     model.v_S_StorageCapacity.fix(0)
     model.v_S_DisposalCapacity.fix(0)
     model.v_S_TreatmentCapacity.fix(0)
-    model.v_S_ReuseCapacity.fix(0)
+    model.v_S_BeneficialReuseCapacity.fix(0)
     return None

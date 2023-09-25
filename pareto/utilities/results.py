@@ -108,7 +108,8 @@ def generate_report(
                     "vb_y_Disposal",
                     "vb_y_Storage",
                     "vb_y_Treatment",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
                     "v_S_Production",
@@ -117,7 +118,7 @@ def generate_report(
                     "v_S_StorageCapacity",
                     "v_S_DisposalCapacity",
                     "v_S_TreatmentCapacity",
-                    "v_S_ReuseCapacity",
+                    "v_S_BeneficialReuseCapacity",
                     "v_Q",
                 ]
 
@@ -135,6 +136,7 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
 
@@ -178,6 +180,13 @@ def generate_report(
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_R_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Credit For Sending Water to Beneficial Reuse",
+                )
+            ],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [
@@ -196,6 +205,7 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
+            "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
@@ -379,7 +389,9 @@ def generate_report(
             "v_S_TreatmentCapacity_dict": [
                 ("Treatment site", "Slack Treatment Capacity")
             ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_S_BeneficialReuseCapacity_dict": [
+                ("Reuse site", "Slack Reuse Capacity")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
@@ -684,7 +696,7 @@ def generate_report(
                     "vb_y_Truck",
                     "v_F_Drain",
                     "v_B_Production",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
                     "v_F_Overview",
                     "v_L_PadStorage",
                     "v_C_Treatment",

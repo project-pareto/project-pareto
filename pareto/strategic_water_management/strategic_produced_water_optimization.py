@@ -14,7 +14,6 @@
 
 # Import
 from cmath import nan
-from unittest import result
 import numpy as np
 import os
 import pandas as pd
@@ -43,7 +42,7 @@ from pyomo.core.expr.current import identify_variables
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
-from enum import Enum
+from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
@@ -79,6 +78,12 @@ class Hydraulics(Enum):
 class RemovalEfficiencyMethod(Enum):
     load_based = 0
     concentration_based = 1
+
+
+# Inherit from IntEnum so that these values can be used in comparisons
+class TreatmentStreams(IntEnum):
+    treated_stream = 1
+    residual_stream = 2
 
 
 # create config dictionary
@@ -508,14 +513,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Water from completions pad storage used for fracturing [volume/time]",
     )
-    model.v_F_DesalinatedWater = Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Clean water post desalination [volume/time]",
-    )
     model.v_F_StorageEvaporationStream = Var(
         model.s_S,
         model.s_T,
@@ -582,7 +579,12 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_F_TotalReused = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume of produced water reused [volume]",
+        doc="Total volume of produced water reused at completions [volume]",
+    )
+    model.v_F_TotalBeneficialReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume of water beneficially reused [volume]",
     )
     model.v_C_Piped = Var(
         model.s_L,
@@ -651,6 +653,14 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_time"],
         doc="Credit for retrieving stored produced water from storage site [currency/time]",
     )
+    model.v_R_BeneficialReuse = Var(
+        model.s_O,
+        model.s_T,
+        initialize=0,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Credit for sending water to beneficial reuse [currency/time]",
+    )
     model.v_C_TotalSourced = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -696,6 +706,11 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Total credit for withdrawing produced water [currency]",
     )
+    model.v_R_TotalBeneficialReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total credit for sending water to beneficial reuse [currency]",
+    )
     model.v_F_ReuseDestination = Var(
         model.s_CP,
         model.s_T,
@@ -717,7 +732,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
-        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
+        doc="Total deliveries to Beneficial Reuse Option [volume/time]",
     )
     model.v_F_CompletionsDestination = Var(
         model.s_CP,
@@ -767,6 +782,20 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_parameters["DesalinationSites"],
         doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
+
+    # If p_chi_DesalinationSites was not specified for one or more r, raise an
+    # Exception
+    missing_desal_sites = []
+    for r in model.s_R:
+        if r not in model.p_chi_DesalinationSites:
+            missing_desal_sites.append(r)
+    if missing_desal_sites:
+        raise Exception(
+            'The parameter chi_DesalinationSites (spreadsheet tab "DesalinationSites") must be specified for every treatment site (missing: '
+            + ", ".join(missing_desal_sites)
+            + ")"
+        )
+
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -837,7 +866,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Slack variable to provide necessary treatment capacity [volume/time]",
     )
-    model.v_S_ReuseCapacity = Var(
+    model.v_S_BeneficialReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
@@ -883,6 +912,13 @@ def create_model(df_sets, df_parameters, default={}):
         within=Binary,
         initialize=0,
         doc="Directional flow between two locations",
+    )
+    model.vb_y_BeneficialReuse = Var(
+        model.s_O,
+        model.s_T,
+        within=Binary,
+        initialize=0,
+        doc="Beneficial reuse option selection",
     )
 
     # Pre-process Data #
@@ -1319,8 +1355,9 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Initial treatment capacity at treatment site [volume/time]",
     )
-    model.p_sigma_Reuse = Param(
+    model.p_sigma_BeneficialReuseMinimum = Param(
         model.s_O,
+        model.s_T,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -1328,10 +1365,26 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["volume_time"],
                 to_units=model.model_units["volume_time"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["ReuseMinimum"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Initial reuse capacity at reuse site [volume/time]",
+        doc="Minimum flow that must be sent to beneficial reuse option [volume/time]",
+    )
+    model.p_sigma_BeneficialReuse = Param(
+        model.s_O,
+        model.s_T,
+        # Use a negative number for default so later we can detect for which indexes the user did/did not provide a parameter value
+        default=-1,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["ReuseCapacity"].items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Capacity of beneficial reuse option [volume/time]",
     )
     model.p_sigma_Freshwater = Param(
         model.s_F,
@@ -1850,6 +1903,24 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",
     )
+    model.p_rho_BeneficialReuse = Param(
+        model.s_O,
+        default=pyunits.convert_value(
+            0.0,
+            from_units=pyunits.USD / pyunits.oil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency_volume"],
+                to_units=model.model_units["currency_volume"],
+            )
+            for key, value in model.df_parameters["BeneficialReuseCredit"].items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Credit for sending water to beneficial reuse [currency/volume]",
+    )
     _df_parameters = {}
     if model.config.hydraulics != Hydraulics.false:
         # Elevation parameter is only used in the hydraulics module and is not needed in the basic version
@@ -2052,7 +2123,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
-    model.p_psi_ReuseCapacity = Param(
+    model.p_psi_BeneficialReuseCapacity = Param(
         default=pyunits.convert_value(
             99999,
             from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
@@ -2105,6 +2176,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
+                - model.v_R_TotalBeneficialReuse
             )
 
         model.CostObjectiveFunction = Constraint(
@@ -2135,6 +2207,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
+                - model.v_R_TotalBeneficialReuse
             )
 
         model.ReuseObjectiveFunction = Constraint(
@@ -2706,27 +2779,109 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Residual water based on treatment efficiency",
     )
 
-    def TreatedWaterRule(model, r, t):
-        constraint = (
-            model.v_F_TreatedWater[r, t]
-            == sum(model.v_F_Piped[r, l, t] for l in model.s_L if (r, l) in model.s_LLA)
-            + model.v_F_DesalinatedWater[r, t]
-        )
-        return process_constraint(constraint)
+    # Create a set of all treatment sites for which the treated stream should
+    # be modeled
+    treatment_sites_with_treated_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_R and value == TreatmentStreams.treated_stream
+    }
 
-    model.TreatedWater = Constraint(
-        model.s_R, model.s_T, rule=TreatedWaterRule, doc="Treated water balance"
+    def TreatedWaterBalanceRule(model, r, t):
+        # If treated stream from a treatment site should be modeled, then
+        # create constraint for the treated water. Otherwise, skip.
+        if r in treatment_sites_with_treated_stream_modeled:
+            constraint = model.v_F_TreatedWater[r, t] == sum(
+                model.v_F_Piped[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLA
+                and model.df_parameters["LLA"][r, l] == TreatmentStreams.treated_stream
+            ) + sum(
+                model.v_F_Trucked[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLT
+                and model.df_parameters["LLT"][r, l] == TreatmentStreams.treated_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.TreatedWaterBalance = Constraint(
+        model.s_R, model.s_T, rule=TreatedWaterBalanceRule, doc="Treated water balance"
+    )
+
+    # Create a set of all treatment sites for which the residual stream should
+    # be modeled. Arcs originating from a treatment site may have a value of 0,
+    # 1, or 2 to denote no arc, treated stream, and residual stream,
+    # respectively.
+    treatment_sites_with_residual_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_R and value == TreatmentStreams.residual_stream
+    }
+
+    def ResidualWaterBalanceRule(model, r, t):
+        # If residual stream from a treatment site should be modeled, then
+        # create constraint for the residual water. Otherwise, skip.
+        if r in treatment_sites_with_residual_stream_modeled:
+            constraint = model.v_F_ResidualWater[r, t] == sum(
+                model.v_F_Piped[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLA
+                and model.df_parameters["LLA"][r, l] == TreatmentStreams.residual_stream
+            ) + sum(
+                model.v_F_Trucked[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLT
+                and model.df_parameters["LLT"][r, l] == TreatmentStreams.residual_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.ResidualWaterBalance = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=ResidualWaterBalanceRule,
+        doc="Residual water balance",
+    )
+
+    def BeneficialReuseMinimumRule(model, o, t):
+        if value(model.p_sigma_BeneficialReuseMinimum[o, t]) > 0:
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                >= model.p_sigma_BeneficialReuseMinimum[o, t]
+                * model.vb_y_BeneficialReuse[o, t]
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.BeneficialReuseMinimum = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseMinimumRule,
+        doc="Beneficial reuse minimum flow",
     )
 
     def BeneficialReuseCapacityRule(model, o, t):
-
-        constraint = (
-            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+        if value(model.p_sigma_BeneficialReuse[o, t]) < 0:
+            # Beneficial reuse capacity value has not been provided by user
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                <= model.p_M_Flow * model.vb_y_BeneficialReuse[o, t]
+                + model.v_S_BeneficialReuseCapacity[o]
             )
-            <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
-        )
+        else:
+            # Beneficial reuse capacity value has been provided by user
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                <= model.p_sigma_BeneficialReuse[o, t]
+                * model.vb_y_BeneficialReuse[o, t]
+                + model.v_S_BeneficialReuseCapacity[o]
+            )
 
         return process_constraint(constraint)
 
@@ -2738,6 +2893,19 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # TODO: Improve testing of Beneficial reuse capacity constraint
+
+    def TotalBeneficialReuseVolumeRule(model):
+        constraint = model.v_F_TotalBeneficialReuse == (
+            sum(
+                sum(model.v_F_BeneficialReuseDestination[o, t] for o in model.s_O)
+                for t in model.s_T
+            )
+        )
+        return process_constraint(constraint)
+
+    model.TotalBeneficialReuse = Constraint(
+        rule=TotalBeneficialReuseVolumeRule, doc="Total beneficial reuse volume"
+    )
 
     def FreshSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
@@ -2986,7 +3154,7 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.TotalReuseVolume = Constraint(
-        rule=TotalReuseVolumeRule, doc="Total reuse volume"
+        rule=TotalReuseVolumeRule, doc="Total volume reused at completions"
     )
 
     def PipingCostRule(model, l, l_tilde, t):
@@ -3097,6 +3265,40 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalStorageWithdrawalCredit = Constraint(
         rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
+    )
+
+    def BeneficialReuseCreditRule(model, o, t):
+        constraint = model.v_R_BeneficialReuse[o, t] == (
+            (
+                sum(
+                    model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, o, t]
+                    for l in model.s_L
+                    if (l, o) in model.s_LLT
+                )
+            )
+            * model.p_rho_BeneficialReuse[o]
+        )
+
+        return process_constraint(constraint)
+
+    model.BeneficialReuseCredit = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseCreditRule,
+        doc="Beneficial reuse credit",
+    )
+
+    def TotalBeneficialReuseCreditRule(model):
+        constraint = model.v_R_TotalBeneficialReuse == sum(
+            sum(model.v_R_BeneficialReuse[o, t] for o in model.s_O) for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalBeneficialReuseCredit = Constraint(
+        rule=TotalBeneficialReuseCreditRule, doc="Total beneficial reuse credit"
     )
 
     def TruckingCostRule(model, l, l_tilde, t):
@@ -3301,7 +3503,8 @@ def create_model(df_sets, df_parameters, default={}):
                 for r in model.s_R
             )
             + sum(
-                model.v_S_ReuseCapacity[o] * model.p_psi_ReuseCapacity
+                model.v_S_BeneficialReuseCapacity[o]
+                * model.p_psi_BeneficialReuseCapacity
                 for o in model.s_O
             )
         )
@@ -3339,42 +3542,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         rule=LogicConstraintTreatmentRule,
         doc="Treatment technology assignment",
-    )
-
-    def LogicConstraintTreatmentRule2(model, r, t):
-        constraint = (
-            sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-        ) <= model.p_M_Flow * (
-            1
-            - sum(
-                sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                for wt in model.s_WT
-                if model.p_chi_DesalinationTechnology[wt]
-            )
-        )
-        return process_constraint(constraint)
-
-    model.LogicConstraintDesalinationFlow = Constraint(
-        model.s_R,
-        model.s_T,
-        rule=LogicConstraintTreatmentRule2,
-        doc="Logic constraint for flow after desalination",
-    )
-
-    def LogicConstraintTreatmentRule3(model, r, t):
-        constraint = model.v_F_DesalinatedWater[r, t] <= model.p_M_Flow * sum(
-            sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-            for wt in model.s_WT
-            if model.p_chi_DesalinationTechnology[wt]
-        )
-        return process_constraint(constraint)
-
-    model.LogicConstraintNoDesalinationFlow = Constraint(
-        model.s_R,
-        model.s_T,
-        rule=LogicConstraintTreatmentRule3,
-        doc="Logic constraint for flow if not desalination",
     )
 
     def LogicConstraintDesalinationAssignmentRule(model, r):
@@ -4619,7 +4786,7 @@ def water_quality(model):
         model.s_QC,
         model.s_T,
         rule=BeneficialReuseWaterQuality,
-        doc="Beneficial reuse capacity",
+        doc="Beneficial reuse water quality",
     )
     # endregion
 
@@ -5874,7 +6041,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_QC,
         model.s_T,
         rule=BeneficialReuseWaterQuality,
-        doc="Beneficial reuse capacity",
+        doc="Beneficial reuse water quality",
     )
     # endregion
 
@@ -6115,7 +6282,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
-    model.scaling_factor[model.v_F_DesalinatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_StorageEvaporationStream] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TreatmentFeed] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ResidualWater] = 1 / scaling_factor
@@ -6125,19 +6291,22 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalDisposed] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalReused] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalSourced] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalTrucked] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Trucked] = 1 / scaling_factor
     model.scaling_factor[model.v_L_PadStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_L_Storage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_BeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_S_DisposalCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Flowback] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_FracDemand] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_PipelineCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Production] = 1000 / scaling_factor
-    model.scaling_factor[model.v_S_ReuseCapacity] = 1000 / scaling_factor
+    model.scaling_factor[model.v_S_BeneficialReuseCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_TreatmentCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_StorageCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
@@ -6173,7 +6342,9 @@ def scale_model(model, scaling_factor=None):
     elif model.config.objective == Objectives.reuse:
         model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
 
+    model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
     # This constraints contains only binary variables
     model.scaling_factor[model.BidirectionalFlow1] = 1
     model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
@@ -6222,6 +6393,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.StorageSiteProcessingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageSiteTruckOffloadingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.BeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TerminalCompletionsPadStorageLevel] = 1 / scaling_factor
     model.scaling_factor[model.TerminalStorageLevel] = 1 / scaling_factor
     model.scaling_factor[model.TotalCompletionsReuseCost] = 1 / scaling_factor
@@ -6233,12 +6405,14 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalReuseVolume] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TotalBeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentFeedBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
-    model.scaling_factor[model.TreatedWater] = 1 / scaling_factor
+    model.scaling_factor[model.TreatedWaterBalance] = 1 / scaling_factor
+    model.scaling_factor[model.ResidualWaterBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCostLHS] = 1 / scaling_factor
@@ -6247,8 +6421,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.ResidualWaterRHS] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
-    model.scaling_factor[model.LogicConstraintDesalinationFlow] = 1 / scaling_factor
-    model.scaling_factor[model.LogicConstraintNoDesalinationFlow] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
 
@@ -6564,7 +6736,7 @@ def solve_model(model, options=None):
         model.v_S_StorageCapacity.fix(0)
         model.v_S_DisposalCapacity.fix(0)
         model.v_S_TreatmentCapacity.fix(0)
-        model.v_S_ReuseCapacity.fix(0)
+        model.v_S_BeneficialReuseCapacity.fix(0)
 
     if use_scaling:
         # Step 1: scale model
@@ -6627,6 +6799,22 @@ def solve_model(model, options=None):
                 however this is an indication that the input data should be revised. \
                 This can be done by selecting 'deactivate_slacks': False in the options"
         )
+
+    # For a given time t and beneficial reuse option o, if the beneficial reuse
+    # minimum flow parameter is zero (p_sigma_BeneficialReuseMinimum[o, t] = 0)
+    # and the optimal total flow to beneficial reuse is zero
+    # (v_F_BeneficialReuseDestination[o, t] = 0), then it is arbitrary whether
+    # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
+    # these cases it's preferred to report a value of 0 to the user, so change
+    # the value of vb_y_BeneficialReuse[o, t] as necessary.
+    for t in model.s_T:
+        for o in model.s_O:
+            if (
+                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+                and value(model.vb_y_BeneficialReuse[o, t] > 0)
+            ):
+                model.vb_y_BeneficialReuse[o, t].value = 0
 
     results.write()
 
