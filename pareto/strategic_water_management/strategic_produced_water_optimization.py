@@ -13,6 +13,7 @@
 # Title: STRATEGIC Produced Water Optimization Model
 
 # Import
+import math
 from cmath import nan
 from unittest import result
 import numpy as np
@@ -80,6 +81,9 @@ class RemovalEfficiencyMethod(Enum):
     load_based = 0
     concentration_based = 1
 
+class InfrastructureTiming(Enum):
+    false = 0
+    true = 1
 
 # create config dictionary
 CONFIG = ConfigBlock()
@@ -184,6 +188,21 @@ CONFIG.declare(
         **Valid Values:** - {
         **RemovalEfficiencyMethod.load_based** - use contaminant load (flow times concentration) to calculate removal efficiency,
         **RemovalEfficiencyMethod.concentration_based** - use contaminant concentration to calculate removal efficiency
+        }""",
+    ),
+)
+
+CONFIG.declare(
+    "infrastructure_timing",
+    ConfigValue(
+        default=InfrastructureTiming.false,
+        domain=In(InfrastructureTiming),
+        description="Infrastructure timing",
+        doc="""Selection to include infrastructure timing.
+        ***default*** - InfrastructureTiming.false
+        **Valid Values:** - {
+        **InfrastructureTiming.false** - Exclude infrastructure timing from model,
+        **l.true** - Include infrastructure from model
         }""",
     ),
 )
@@ -1689,6 +1708,24 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["currency_volume_time"],
         doc="Treatment construction/expansion capital cost for selected increment [currency/(volume/time)]",
+    )
+
+    # NOTE: This is for post-optimization calculations ONLY; no need to convert units
+    model.p_tau_TreatmentExpansionLeadTime = Param(
+        model.s_R,
+        model.s_WT,
+        model.s_J,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["time"],
+                to_units=model.model_units["time"],
+            )
+            for key, value in model.df_parameters["TreatmentExpansionLeadTime"].items()
+        },
+        units=model.model_units["time"],
+        doc="Treatment construction/expansion lead time for selected site, treatment type, and size [time]",
     )
 
     model.p_omega_EvaporationRate = Param(
@@ -6414,6 +6451,56 @@ def _preprocess_data(model):
             1 - (1 + discount_rate) ** -life
         )
 
+def infrastucture_timing(model):
+    # Store the start build time to a dictionary
+    model.infrastructure_buildStart = {}
+    # Store the lead time for built facilities to a dictionary
+    model.infrastructure_leadTime = {}
+    # Store time period for first use to a dictionary
+    model.infrastructure_firstUse = {}
+    # Due to tolerances, binaries may not exactly equal 1
+    binary_epsilon = 0.005
+
+    # Iterate through our built sites
+    # Treatment - "vb_y_Treatment"
+    treatment_data = model.vb_y_Treatment._data
+    # Treatment Site - iterate through vb_y variables
+    for i in treatment_data:
+        # Get site name from data
+        treatment_site = i[0]
+
+        # add values to output dictionary
+        if (
+                treatment_data[i].value >= 1 - binary_epsilon
+                and treatment_data[i].value <= 1 + binary_epsilon
+                and model.p_delta_Treatment[(i[1], i[2])].value > 0 # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            for t in model.s_T:
+                if(
+                    sum(model.v_F_Piped[l, treatment_site, t].value for l in model.s_L if (l, treatment_site) in model.s_LLA)
+                    + sum(
+                        model.v_F_Trucked[l,treatment_site, t].value for l in model.s_L if (l, treatment_site) in model.s_LLT
+                    )
+                    > 0
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[treatment_site] = t
+                    # Get the lead time rounded up to the nearest full time period
+                    model.infrastructure_leadTime[treatment_site] = math.ceil(model.p_tau_TreatmentExpansionLeadTime[i].value)
+                    break
+
+    # Calculate start build for all infrastructure
+    # Convert the ordered set to a list for easier use
+    s_T_list = list(model.s_T)
+    for key, value in model.infrastructure_firstUse.items():
+        # Find the index of time period in the list
+        finish_index = s_T_list.index(value)
+        start_index = finish_index - model.infrastructure_leadTime[key]
+        if start_index >= 0:
+            model.infrastructure_buildStart[key] = model.s_T.at(start_index +1)
+        else:
+            model.infrastructure_buildStart[key] = str(abs(start_index)) + " " + model.decision_period.to_string() + "s prior to " + model.s_T.first()
 
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:
@@ -6627,6 +6714,10 @@ def solve_model(model, options=None):
                 however this is an indication that the input data should be revised. \
                 This can be done by selecting 'deactivate_slacks': False in the options"
         )
+
+    # post-process infrastructure buildout
+    if model.config.infrastructure_timing == InfrastructureTiming.true:
+        infrastucture_timing(model)
 
     results.write()
 

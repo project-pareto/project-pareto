@@ -157,6 +157,9 @@ def generate_report(
                     "Capacity",
                     "Unit",
                     "Technology",
+                    "First Use",
+                    "Build Start",
+                    "Build Lead Time [" + model.model_units["time"].to_string() + "s]"
                 )
             ],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
@@ -457,6 +460,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         i[1],
+                        model.infrastructure_firstUse[i[0]],
+                        model.infrastructure_buildStart[i[0]],
+                        model.infrastructure_leadTime[i[0]]
                     )
                 )
 
@@ -489,6 +495,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        "--",
+                        "--",
+                        "--"
                     )
                 )
 
@@ -520,6 +529,9 @@ def generate_report(
                         "--",
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                        "--",
+                        "--",
                         "--",
                     )
                 )
@@ -556,6 +568,9 @@ def generate_report(
                         i[1],
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
+                        "--",
+                        "--",
+                        "--",
                         "--",
                     )
                 )

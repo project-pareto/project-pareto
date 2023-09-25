@@ -20,6 +20,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     Hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -113,6 +114,7 @@ parameter_list = [
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
     "DisposalOperatingCapacity",
+    "TreatmentExpansionLeadTime",
 ]
 
 # user needs to provide the path to the case study data file
@@ -139,6 +141,7 @@ with resources.path(
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
+ infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
  """
 
 strategic_model = create_model(
@@ -152,6 +155,7 @@ strategic_model = create_model(
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        "infrastructure_timing": InfrastructureTiming.true,
     },
 )
 
