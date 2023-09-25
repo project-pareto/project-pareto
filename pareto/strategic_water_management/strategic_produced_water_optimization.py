@@ -81,9 +81,11 @@ class RemovalEfficiencyMethod(Enum):
     load_based = 0
     concentration_based = 1
 
+
 class InfrastructureTiming(Enum):
     false = 0
     true = 1
+
 
 # create config dictionary
 CONFIG = ConfigBlock()
@@ -6451,6 +6453,7 @@ def _preprocess_data(model):
             1 - (1 + discount_rate) ** -life
         )
 
+
 def infrastucture_timing(model):
     # Store the start build time to a dictionary
     model.infrastructure_buildStart = {}
@@ -6471,23 +6474,32 @@ def infrastucture_timing(model):
 
         # add values to output dictionary
         if (
-                treatment_data[i].value >= 1 - binary_epsilon
-                and treatment_data[i].value <= 1 + binary_epsilon
-                and model.p_delta_Treatment[(i[1], i[2])].value > 0 # selected capacity is nonzero
+            treatment_data[i].value >= 1 - binary_epsilon
+            and treatment_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Treatment[(i[1], i[2])].value
+            > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
             for t in model.s_T:
-                if(
-                    sum(model.v_F_Piped[l, treatment_site, t].value for l in model.s_L if (l, treatment_site) in model.s_LLA)
+                if (
+                    sum(
+                        model.v_F_Piped[l, treatment_site, t].value
+                        for l in model.s_L
+                        if (l, treatment_site) in model.s_LLA
+                    )
                     + sum(
-                        model.v_F_Trucked[l,treatment_site, t].value for l in model.s_L if (l, treatment_site) in model.s_LLT
+                        model.v_F_Trucked[l, treatment_site, t].value
+                        for l in model.s_L
+                        if (l, treatment_site) in model.s_LLT
                     )
                     > 0
                 ):
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[treatment_site] = t
                     # Get the lead time rounded up to the nearest full time period
-                    model.infrastructure_leadTime[treatment_site] = math.ceil(model.p_tau_TreatmentExpansionLeadTime[i].value)
+                    model.infrastructure_leadTime[treatment_site] = math.ceil(
+                        model.p_tau_TreatmentExpansionLeadTime[i].value
+                    )
                     break
 
     # Calculate start build for all infrastructure
@@ -6498,9 +6510,16 @@ def infrastucture_timing(model):
         finish_index = s_T_list.index(value)
         start_index = finish_index - model.infrastructure_leadTime[key]
         if start_index >= 0:
-            model.infrastructure_buildStart[key] = model.s_T.at(start_index +1)
+            model.infrastructure_buildStart[key] = model.s_T.at(start_index + 1)
         else:
-            model.infrastructure_buildStart[key] = str(abs(start_index)) + " " + model.decision_period.to_string() + "s prior to " + model.s_T.first()
+            model.infrastructure_buildStart[key] = (
+                str(abs(start_index))
+                + " "
+                + model.decision_period.to_string()
+                + "s prior to "
+                + model.s_T.first()
+            )
+
 
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:
