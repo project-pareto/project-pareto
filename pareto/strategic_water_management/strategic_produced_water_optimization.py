@@ -6239,9 +6239,9 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    try:
+    if opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
-    except ValueError:
+    else:
         opt.solve(water_quality_model.quality, tee=True)
 
     return water_quality_model
@@ -6825,7 +6825,12 @@ def solve_model(model, options=None):
             # In the post-process solve, only the hydraulics block is solved.
 
             mh = model_h.hydraulics
-            results_2 = opt.solve(mh, tee=True)
+            # Calculate hydraulics. The following condition is used to avoid attribute error when
+            # using gurobi_direct on hydraulics sub-block
+            if opt.type == "gurobi_direct":
+                results_2 = opt.solve(mh, tee=True, save_results=False)
+            else:
+                results_2 = opt.solve(mh, tee=True)
 
         elif model.config.hydraulics == Hydraulics.co_optimize:
             # Currently, this method is supported for only MINLP solvers accessed through GAMS.
