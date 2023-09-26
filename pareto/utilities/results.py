@@ -495,9 +495,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
-                        "--",
-                        "--",
-                        "--",
+                        model.infrastructure_firstUse[i[0]],
+                        model.infrastructure_buildStart[i[0]],
+                        model.infrastructure_leadTime[i[0]],
                     )
                 )
 
@@ -530,9 +530,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
-                        "--",
-                        "--",
-                        "--",
+                        model.infrastructure_firstUse[i[0]],
+                        model.infrastructure_buildStart[i[0]],
+                        model.infrastructure_leadTime[i[0]],
                     )
                 )
 
@@ -569,9 +569,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
-                        "--",
-                        "--",
-                        "--",
+                        model.infrastructure_firstUse[(i[0], i[1])],
+                        model.infrastructure_buildStart[(i[0], i[1])],
+                        model.infrastructure_leadTime[(i[0], i[1])],
                     )
                 )
         if model.config.hydraulics == Hydraulics.post_process:

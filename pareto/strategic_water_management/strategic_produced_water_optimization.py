@@ -1712,7 +1712,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment construction/expansion capital cost for selected increment [currency/(volume/time)]",
     )
 
-    # NOTE: This is for post-optimization calculations ONLY; no need to convert units
     model.p_tau_TreatmentExpansionLeadTime = Param(
         model.s_R,
         model.s_WT,
@@ -1730,6 +1729,70 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment construction/expansion lead time for selected site, treatment type, and size [time]",
     )
 
+    model.p_tau_DisposalExpansionLeadTime = Param(
+        model.s_K,
+        model.s_I,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["time"],
+                to_units=model.model_units["time"],
+            )
+            for key, value in model.df_parameters["DisposalExpansionLeadTime"].items()
+        },
+        units=model.model_units["time"],
+        doc="Disposal construction/expansion lead time for selected site and size [time]",
+    )
+
+    model.p_tau_StorageExpansionLeadTime = Param(
+        model.s_S,
+        model.s_C,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["time"],
+                to_units=model.model_units["time"],
+            )
+            for key, value in model.df_parameters["StorageExpansionLeadTime"].items()
+        },
+        units=model.model_units["time"],
+        doc="Storage construction/expansion lead time for selected site and size [time]",
+    )
+
+    if model.config.pipeline_cost == PipelineCost.distance_based:
+        model.p_tau_PipelineExpansionLeadTime = Param(
+            default=0,
+            initialize=pyunits.convert_value(
+                model.df_parameters["PipelineExpansionLeadTime_Dist"][
+                    "pipeline_expansion_lead_time"
+                ],
+                from_units=model.user_units["time"]/model.user_units["distance"],
+                to_units=model.model_units["time"]/model.model_units["distance"],
+            ),
+            units=model.model_units["time"],
+            doc="Pipeline construction/expansion lead time [time/distance]",
+        )
+    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        model.p_tau_PipelineExpansionLeadTime = Param(
+            model.s_L,
+            model.s_L,
+            model.s_D,
+            default=0,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=model.user_units["time"],
+                    to_units=model.model_units["time"],
+                )
+                for key, value in model.df_parameters[
+                    "PipelineExpansionLeadTime_Capac"
+                ].items()
+            },
+            units=model.model_units["time"],
+            doc="Pipeline construction/expansion lead time [time]",
+        )
     model.p_omega_EvaporationRate = Param(
         default=pyunits.convert_value(
             3000,
@@ -6454,7 +6517,7 @@ def _preprocess_data(model):
         )
 
 
-def infrastucture_timing(model):
+def infrastructure_timing(model):
     # Store the start build time to a dictionary
     model.infrastructure_buildStart = {}
     # Store the lead time for built facilities to a dictionary
@@ -6471,7 +6534,6 @@ def infrastucture_timing(model):
     for i in treatment_data:
         # Get site name from data
         treatment_site = i[0]
-
         # add values to output dictionary
         if (
             treatment_data[i].value >= 1 - binary_epsilon
@@ -6500,6 +6562,100 @@ def infrastucture_timing(model):
                     model.infrastructure_leadTime[treatment_site] = math.ceil(
                         model.p_tau_TreatmentExpansionLeadTime[i].value
                     )
+                    break
+                    
+    # Disposal - "vb_y_Treatment"
+    disposal_data = model.vb_y_Disposal._data
+    # Storage Site - iterate through vb_y variables
+    for i in disposal_data:
+        # Get site name from data
+        disposal_site = i[0]
+        # add values to output dictionary
+        if (
+            disposal_data[i].value >= 1 - binary_epsilon
+            and disposal_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Disposal[i[1]].value
+            > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            for t in model.s_T:
+                if (
+                    model.v_F_DisposalDestination[disposal_site, t].value > 0
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[disposal_site] = t
+                    # Get the lead time rounded up to the nearest full time period
+                    model.infrastructure_leadTime[disposal_site] = math.ceil(
+                        model.p_tau_DisposalExpansionLeadTime[i].value
+                    )
+                    break
+
+    # Storage - "vb_y_Storage"
+    storage_data = model.vb_y_Storage._data
+    # Storage Site - iterate through vb_y variables
+    for i in storage_data:
+        # Get site name from data
+        storage_site = i[0]
+        # add values to output dictionary
+        if (
+            storage_data[i].value >= 1 - binary_epsilon
+            and storage_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Storage[i[1]].value
+            > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            # storage site is first used when water is first sent to it
+            for t in model.s_T:
+                if (
+                        sum(
+                            model.v_F_Piped[l, storage_site, t].value for l in model.s_L if (l, storage_site) in model.s_LLA
+                        )
+                        + sum(
+                            model.v_F_Trucked[l, storage_site, t].value
+                            for l in model.s_L
+                            if (l, storage_site) in model.s_LLT
+                        ) > 0
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[storage_site] = t
+                    # Get the lead time rounded up to the nearest full time period
+                    model.infrastructure_leadTime[storage_site] = math.ceil(
+                        model.p_tau_StorageExpansionLeadTime[i].value
+                    )
+                    break
+
+    # Pipeline - iterate through vb_y_Pipeline variables
+    pipeline_data = model.vb_y_Pipeline._data
+    for i in pipeline_data:
+        # Get site name from data
+        pipeline = (i[0], i[1])
+        # add values to output dictionary
+        if (
+            pipeline_data[i].value >= 1 - binary_epsilon
+            and pipeline_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Pipeline[i[2]].value
+            > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            # pipeline is first used when water is sent in either direction of pipeline
+            for t in model.s_T:
+                if (
+                        model.v_F_Piped[pipeline, t].value > 0 or
+                        (pipeline[::-1] in model.s_LLA and model.v_F_Piped[pipeline[::-1], t].value > 0)
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[pipeline] = t
+                    # Get the lead time rounded up to the nearest full time period
+
+                    if model.config.pipeline_cost == PipelineCost.distance_based:
+                        model.infrastructure_leadTime[pipeline] = math.ceil(
+                            model.p_tau_PipelineExpansionLeadTime.value * model.p_lambda_Pipeline[pipeline].value
+                        )
+                    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+                        # Pipelines lead time may only be defined in one direction
+                        model.infrastructure_leadTime[pipeline] = math.ceil(max(
+                            model.p_tau_PipelineExpansionLeadTime[i].value
+                        , model.p_tau_PipelineExpansionLeadTime[pipeline[::-1], i[2]].value))
                     break
 
     # Calculate start build for all infrastructure
@@ -6736,7 +6892,7 @@ def solve_model(model, options=None):
 
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
-        infrastucture_timing(model)
+        infrastructure_timing(model)
 
     results.write()
 
