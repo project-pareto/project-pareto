@@ -118,7 +118,7 @@ parameter_list = [
     "DisposalExpansionLeadTime",
     "StorageExpansionLeadTime",
     "PipelineExpansionLeadTime_Dist",
-    "PipelineExpansionLeadTime_Capac"
+    "PipelineExpansionLeadTime_Capac",
 ]
 
 # user needs to provide the path to the case study data file
