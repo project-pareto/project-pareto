@@ -6542,6 +6542,7 @@ def infrastructure_timing(model):
             > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
+            # first use is time period where there is more volume to treatment than starting capacity
             for t in model.s_T:
                 if (
                     sum(
@@ -6554,7 +6555,7 @@ def infrastructure_timing(model):
                         for l in model.s_L
                         if (l, treatment_site) in model.s_LLT
                     )
-                    > 0
+                    > model.p_sigma_Treatment[treatment_site, i[1]].value
                 ):
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[treatment_site] = t
@@ -6564,7 +6565,7 @@ def infrastructure_timing(model):
                     )
                     break
 
-    # Disposal - "vb_y_Treatment"
+    # Disposal - "vb_y_Disposal"
     disposal_data = model.vb_y_Disposal._data
     # Storage Site - iterate through vb_y variables
     for i in disposal_data:
@@ -6577,8 +6578,9 @@ def infrastructure_timing(model):
             and model.p_delta_Disposal[i[1]].value > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
+            # First use is time period where more water is sent to disposal than initial capacity
             for t in model.s_T:
-                if model.v_F_DisposalDestination[disposal_site, t].value > 0:
+                if model.v_F_DisposalDestination[disposal_site, t].value > model.p_sigma_Disposal[disposal_site].value:
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[disposal_site] = t
                     # Get the lead time rounded up to the nearest full time period
@@ -6600,20 +6602,10 @@ def infrastructure_timing(model):
             and model.p_delta_Storage[i[1]].value > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
-            # storage site is first used when water is first sent to it
+            # a new storage site is first used when the water level is first above the initial water capacity
             for t in model.s_T:
                 if (
-                    sum(
-                        model.v_F_Piped[l, storage_site, t].value
-                        for l in model.s_L
-                        if (l, storage_site) in model.s_LLA
-                    )
-                    + sum(
-                        model.v_F_Trucked[l, storage_site, t].value
-                        for l in model.s_L
-                        if (l, storage_site) in model.s_LLT
-                    )
-                    > 0
+                    model.v_L_Storage[storage_site, t].value > model.p_sigma_Storage[storage_site].value
                 ):
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[storage_site] = t
@@ -6623,7 +6615,7 @@ def infrastructure_timing(model):
                     )
                     break
 
-    # Pipeline - iterate through vb_y_Pipeline variables
+    # Pipeline - "vb_y_Pipeline"
     pipeline_data = model.vb_y_Pipeline._data
     for i in pipeline_data:
         # Get site name from data
@@ -6637,10 +6629,13 @@ def infrastructure_timing(model):
             # determine first time period that site is used
             # pipeline is first used when water is sent in either direction of pipeline
             for t in model.s_T:
-                if model.v_F_Piped[pipeline, t].value > 0 or (
-                    pipeline[::-1] in model.s_LLA
-                    and model.v_F_Piped[pipeline[::-1], t].value > 0
-                ):
+                # if the pipeline is defined as bidirectional then the aggregated initial capacity is available in both directions
+                if pipeline[::-1] in model.s_LLA:
+                    initial_capacity = model.p_sigma_Pipeline[pipeline].value + model.p_sigma_Pipeline[pipeline[::-1]].value
+                else:
+                    initial_capacity = model.p_sigma_Pipeline[pipeline].value
+
+                if model.v_F_Piped[pipeline, t].value > initial_capacity:
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[pipeline] = t
                     # Get the lead time rounded up to the nearest full time period
