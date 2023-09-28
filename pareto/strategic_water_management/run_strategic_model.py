@@ -65,16 +65,23 @@ parameter_list = [
     "RSA",
     "SCA",
     "SNA",
+    "ROA",
+    "SOA",
+    "NOA",
     "PCT",
     "PKT",
     "FCT",
     "CST",
     "CCT",
     "CKT",
+    "RST",
+    "ROT",
+    "SOT",
     "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
@@ -85,6 +92,8 @@ parameter_list = [
     "InitialPipelineDiameters",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
+    "ReuseMinimum",
+    "ReuseCapacity",
     "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
@@ -132,7 +141,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_small_case_study.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
