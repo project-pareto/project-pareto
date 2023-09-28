@@ -6771,15 +6771,20 @@ def infrastructure_timing(model):
             and model.p_delta_Pipeline[i[2]].value > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
-            # pipeline is first used when water is sent in either direction of pipeline
+            # pipeline is first used when water is sent in either direction of pipeline at a volume above the initial capacity
             for t in model.s_T:
+                above_initial_capacity = False
                 # if the pipeline is defined as bidirectional then the aggregated initial capacity is available in both directions
-                if pipeline[::-1] in model.s_LLA:
+                if pipeline[::-1] in model.s_LLA :
                     initial_capacity = model.p_sigma_Pipeline[pipeline].value + model.p_sigma_Pipeline[pipeline[::-1]].value
+                    if model.v_F_Piped[pipeline, t].value > initial_capacity or model.v_F_Piped[pipeline[::-1], t].value > initial_capacity:
+                        above_initial_capacity = True
                 else:
                     initial_capacity = model.p_sigma_Pipeline[pipeline].value
+                    if model.v_F_Piped[pipeline, t].value > initial_capacity:
+                        above_initial_capacity = True
 
-                if model.v_F_Piped[pipeline, t].value > initial_capacity:
+                if above_initial_capacity:
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[pipeline] = t
                     # Get the lead time rounded up to the nearest full time period
