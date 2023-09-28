@@ -80,14 +80,17 @@ class RemovalEfficiencyMethod(Enum):
     load_based = 0
     concentration_based = 1
 
+
 # Inherit from IntEnum so that these values can be used in comparisons
 class TreatmentStreams(IntEnum):
     treated_stream = 1
     residual_stream = 2
 
+
 class InfrastructureTiming(Enum):
     false = 0
     true = 1
+
 
 # create config dictionary
 CONFIG = ConfigBlock()
@@ -1814,7 +1817,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_D,
             default=0,
             # input units are already model units (decision period), so do not need to be converted
-            initialize= model.df_parameters["PipelineExpansionLeadTime_Capac"],
+            initialize=model.df_parameters["PipelineExpansionLeadTime_Capac"],
             units=model.model_units["time"],
             doc="Pipeline construction/expansion lead time [time]",
         )
@@ -6724,7 +6727,10 @@ def infrastructure_timing(model):
             # determine first time period that site is used
             # First use is time period where more water is sent to disposal than initial capacity
             for t in model.s_T:
-                if model.v_F_DisposalDestination[disposal_site, t].value > model.p_sigma_Disposal[disposal_site].value:
+                if (
+                    model.v_F_DisposalDestination[disposal_site, t].value
+                    > model.p_sigma_Disposal[disposal_site].value
+                ):
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[disposal_site] = t
                     # Get the lead time rounded up to the nearest full time period
@@ -6749,7 +6755,8 @@ def infrastructure_timing(model):
             # a new storage site is first used when the water level is first above the initial water capacity
             for t in model.s_T:
                 if (
-                    model.v_L_Storage[storage_site, t].value > model.p_sigma_Storage[storage_site].value
+                    model.v_L_Storage[storage_site, t].value
+                    > model.p_sigma_Storage[storage_site].value
                 ):
                     # Add first use to a dictionary
                     model.infrastructure_firstUse[storage_site] = t
@@ -6775,9 +6782,15 @@ def infrastructure_timing(model):
             for t in model.s_T:
                 above_initial_capacity = False
                 # if the pipeline is defined as bidirectional then the aggregated initial capacity is available in both directions
-                if pipeline[::-1] in model.s_LLA :
-                    initial_capacity = model.p_sigma_Pipeline[pipeline].value + model.p_sigma_Pipeline[pipeline[::-1]].value
-                    if model.v_F_Piped[pipeline, t].value > initial_capacity or model.v_F_Piped[pipeline[::-1], t].value > initial_capacity:
+                if pipeline[::-1] in model.s_LLA:
+                    initial_capacity = (
+                        model.p_sigma_Pipeline[pipeline].value
+                        + model.p_sigma_Pipeline[pipeline[::-1]].value
+                    )
+                    if (
+                        model.v_F_Piped[pipeline, t].value > initial_capacity
+                        or model.v_F_Piped[pipeline[::-1], t].value > initial_capacity
+                    ):
                         above_initial_capacity = True
                 else:
                     initial_capacity = model.p_sigma_Pipeline[pipeline].value
@@ -7038,7 +7051,6 @@ def solve_model(model, options=None):
                 This can be done by selecting 'deactivate_slacks': False in the options"
         )
 
-
     # For a given time t and beneficial reuse option o, if the beneficial reuse
     # minimum flow parameter is zero (p_sigma_BeneficialReuseMinimum[o, t] = 0)
     # and the optimal total flow to beneficial reuse is zero
@@ -7054,7 +7066,6 @@ def solve_model(model, options=None):
                 and value(model.vb_y_BeneficialReuse[o, t] > 0)
             ):
                 model.vb_y_BeneficialReuse[o, t].value = 0
-
 
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
