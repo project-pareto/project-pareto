@@ -1336,7 +1336,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
-            "infrastructure_timing": InfrastructureTiming.true
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
