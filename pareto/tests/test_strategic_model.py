@@ -33,6 +33,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     pipeline_hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -151,6 +152,11 @@ def build_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -182,7 +188,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -205,7 +211,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -228,7 +234,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -251,7 +257,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -337,6 +343,7 @@ def test_run_strategic_model(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "infrastructure_timing": InfrastructureTiming.false,
         }
     )
     solver = get_solver("cbc")
@@ -447,6 +454,11 @@ def build_reduced_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -604,7 +616,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -628,7 +640,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -652,7 +664,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -676,7 +688,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
     )
     assert degrees_of_freedom(m) == 103331
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -942,6 +954,11 @@ def build_modified_reduced_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1154,6 +1171,11 @@ def test_strategic_model_UI_display_units():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1261,6 +1283,11 @@ def build_toy_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1291,7 +1318,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 7237
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1309,6 +1336,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
+            "infrastructure_timing": InfrastructureTiming.true
         }
     )
 
@@ -1423,6 +1451,11 @@ def build_permian_demo_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1455,7 +1488,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
     )
     assert degrees_of_freedom(m) == 20955
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)

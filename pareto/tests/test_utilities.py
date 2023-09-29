@@ -122,7 +122,12 @@ def fetch_strategic_model(config_dict):
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
-        "DisposalOperatingCapacity",
+        "DisposalOperatingCapacity"
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # user needs to provide the path to the case study data file

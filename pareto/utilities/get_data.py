@@ -439,6 +439,11 @@ def get_display_units(input_sheet_name_list, user_units):
         "PAL": "",
         "PadStorageCost": user_units["volume"],
         "ProductionRates": user_units["volume"] + "/" + user_units["time"],
+        "TreatmentExpansionLeadTime":user_units["decision period"],
+        "DisposalExpansionLeadTime":user_units["decision period"],
+        "StorageExpansionLeadTime":user_units["decision period"],
+        "PipelineExpansionLeadTime_Dist":user_units["decision period"] + "/" + user_units["distance"],
+        "PipelineExpansionLeadTime_Capac":user_units["decision period"],
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
