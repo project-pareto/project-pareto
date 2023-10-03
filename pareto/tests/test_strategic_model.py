@@ -33,7 +33,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     pipeline_hydraulics,
     RemovalEfficiencyMethod,
-    InfrastructureTiming, infrastructure_timing,
+    InfrastructureTiming,
+    infrastructure_timing,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -1520,6 +1521,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
         fname="test_strategic_print_results.xlsx",
     )
 
+
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_infrastructure_buildout(build_toy_strategic_model):
@@ -1527,7 +1529,7 @@ def test_infrastructure_buildout(build_toy_strategic_model):
     m_capacity_based = build_toy_strategic_model(
         config_dict={
             "objective": Objectives.cost,
-            "pipeline_cost": PipelineCost.capacity_based, #capacity_based
+            "pipeline_cost": PipelineCost.capacity_based,  # capacity_based
             "pipeline_capacity": PipelineCapacity.input,
             "infrastructure_timing": InfrastructureTiming.true,
         }
@@ -1537,13 +1539,13 @@ def test_infrastructure_buildout(build_toy_strategic_model):
     m_distance_based = build_toy_strategic_model(
         config_dict={
             "objective": Objectives.cost,
-            "pipeline_cost": PipelineCost.distance_based, #distance_based
+            "pipeline_cost": PipelineCost.distance_based,  # distance_based
             "pipeline_capacity": PipelineCapacity.calculated,
             "infrastructure_timing": InfrastructureTiming.false,
         }
     )
 
-    #Solve models
+    # Solve models
     solver = get_solver("cbc")
     solver.options["seconds"] = 60 * 5
     results_capacity_based = solver.solve(m_capacity_based, tee=False)
@@ -1551,14 +1553,18 @@ def test_infrastructure_buildout(build_toy_strategic_model):
 
     # Toy case study builds treatment, storage, pipeline.
     # For testing purposes, let's adjust results to also build disposal and use new disposal.
-    m_capacity_based.vb_y_Disposal['K01', 'I2'].fix(1)
-    m_capacity_based.v_F_DisposalDestination["K01", "T13"].fix(m_capacity_based.p_sigma_Disposal["K01"]*2)
-    m_distance_based.vb_y_Disposal[('K01', 'I2')].fix(1)
-    m_distance_based.v_F_DisposalDestination["K01", "T13"].fix(m_distance_based.p_sigma_Disposal["K01"]*2)
+    m_capacity_based.vb_y_Disposal["K01", "I2"].fix(1)
+    m_capacity_based.v_F_DisposalDestination["K01", "T13"].fix(
+        m_capacity_based.p_sigma_Disposal["K01"] * 2
+    )
+    m_distance_based.vb_y_Disposal[("K01", "I2")].fix(1)
+    m_distance_based.v_F_DisposalDestination["K01", "T13"].fix(
+        m_distance_based.p_sigma_Disposal["K01"] * 2
+    )
 
     # Call infrastructure buildout
     infrastructure_timing(m_capacity_based)
-    infrastructure_timing( m_distance_based)
+    infrastructure_timing(m_distance_based)
 
     # Test results report build with infrastructure buildout
     [model, results_dict] = generate_report(
