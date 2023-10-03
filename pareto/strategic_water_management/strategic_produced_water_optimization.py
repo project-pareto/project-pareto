@@ -6714,7 +6714,6 @@ def infrastructure_timing(model):
 
     # Disposal - "vb_y_Disposal"
     disposal_data = model.vb_y_Disposal._data
-    # Storage Site - iterate through vb_y variables
     for i in disposal_data:
         # Get site name from data
         disposal_site = i[0]

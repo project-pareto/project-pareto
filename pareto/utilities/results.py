@@ -599,9 +599,9 @@ def generate_report(
                     to_units=to_unit,
                 )
                 if model.config.infrastructure_timing == InfrastructureTiming.true:
-                    first_use = model.infrastructure_firstUse[i[0]]
-                    build_start = model.infrastructure_buildStart[i[0]]
-                    lead_time = model.infrastructure_leadTime[i[0]]
+                    first_use = model.infrastructure_firstUse[(i[0], i[1])]
+                    build_start = model.infrastructure_buildStart[(i[0], i[1])]
+                    lead_time = model.infrastructure_leadTime[(i[0], i[1])]
                 else:
                     first_use = "--"
                     build_start = "--"
