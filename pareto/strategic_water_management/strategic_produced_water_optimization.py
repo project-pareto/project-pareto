@@ -209,7 +209,7 @@ CONFIG.declare(
         ***default*** - InfrastructureTiming.false
         **Valid Values:** - {
         **InfrastructureTiming.false** - Exclude infrastructure timing from model,
-        **l.true** - Include infrastructure from model
+        **InfrastructureTiming.true** - Include infrastructure timing in model
         }""",
     ),
 )
@@ -6751,7 +6751,7 @@ def infrastructure_timing(model):
             and model.p_delta_Storage[i[1]].value > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
-            # a new storage site is first used when the water level is first above the initial water capacity
+            # First use is when the water level exceeds the initial storage capacity
             for t in model.s_T:
                 if (
                     model.v_L_Storage[storage_site, t].value
