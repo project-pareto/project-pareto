@@ -6825,10 +6825,10 @@ def infrastructure_timing(model):
         # Find the index of time period in the list
         finish_index = s_T_list.index(value)
         start_index = finish_index - model.infrastructure_leadTime[key]
-        #if start time is within time horizon, report time period
+        # if start time is within time horizon, report time period
         if start_index >= 0:
             model.infrastructure_buildStart[key] = model.s_T.at(start_index + 1)
-        #if start time is prior to time horizon, report # time period prior to start
+        # if start time is prior to time horizon, report # time period prior to start
         else:
             if abs(start_index) > 1:
                 plural = "s"
