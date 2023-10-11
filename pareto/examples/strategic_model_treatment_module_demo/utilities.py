@@ -16,7 +16,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 )
 from pareto.utilities.results import (
     generate_report,
-    PrintValues,
     OutputUnits,
 )
 from pareto.utilities.results import (
@@ -24,7 +23,7 @@ from pareto.utilities.results import (
     nostdout,
 )
 from pyomo.environ import units, value
-from ipywidgets import FloatText, Button, Layout, GridspecLayout, ToggleButtons
+from ipywidgets import FloatText, Button, Layout, GridspecLayout, ToggleButtons, Output
 from IPython.display import display
 import pandas as pd
 
@@ -45,6 +44,7 @@ def solve_and_check_feasibility(model, options=None):
             "gurobi_numeric_focus": 1,
         }
     results_obj = solve_model(model=model, options=options)
+    termination_message = results_obj.solver.termination_message
 
     # Check feasibility of the solved model
     with nostdout():
@@ -63,7 +63,7 @@ def solve_and_check_feasibility(model, options=None):
         fname=None,
     )
 
-    return results_dict
+    return results_dict, termination_message
 
 
 def get_R01_results(results_dict):
@@ -122,6 +122,9 @@ def create_widgets(model):
         description="RESET DEFAULT VALUES", layout=Layout(width="auto", height="auto")
     )
 
+    # Create output widget
+    out = Output(layout={'border': '1px solid black'})
+
     # Get units for CAPEX/OPEX unit conversions
     capex_model_units = units.get_units(model.p_kappa_Treatment)
     capex_user_units = units.USD / (units.oil_bbl / units.day)
@@ -174,37 +177,40 @@ def create_widgets(model):
 
     # Define callback function to excecute when optimize button is pressed
     def optimize(b=None):
+        # Clear existing text from the output widget
+        out.clear_output()
+
         # Apply input from widgets to Pyomo model
         table_data = apply()
 
-        print("---------------------------------------------")
-        print("Running optimization")
-        print(f"Desalination chosen for R01: {toggle.value}")
-        print("Treatment costing parameters:")
-        print("---------------------------------------------")
-        print(
-            pd.DataFrame(
-                table_data,
-                columns=["Technology", "OPEX [$/bbl]", "Capex [$/bbl]"],
-                index=["", "", ""],
+        with out:
+            print("---------------------------------------------")
+            print("Running optimization")
+            print("---------------------------------------------")
+            print(f"Desalination chosen for R01: {toggle.value}")
+            print("Treatment costing parameters:")
+            print(
+                pd.DataFrame(
+                    table_data,
+                    columns=["Technology", "OPEX [$/bbl]", "Capex [$/bbl]"],
+                    index=["", "", ""],
+                )
             )
-        )
-        print()
+            print()
 
         # Solve the model and check feasibility of solution
-        results_dict = solve_and_check_feasibility(model)
+        results_dict, termination_message = solve_and_check_feasibility(model)
 
         # Extract results for optimal treatment buildout at R01
         technology, capacity = get_R01_results(results_dict)
 
-        print()
-        print("-----------------------------------")
-        print("Optimization results - R01 buildout")
-        print("-----------------------------------")
-        print(f"Technology: {technology}")
-        print(f"Capacity: {capacity}")
-        print(f"Objective function value [k$]: {value(model.v_Z)}")
-        print()
+        with out:
+            print("---------------------------------------------")
+            print("Optimization results")
+            print("---------------------------------------------")
+            print(termination_message)
+            print(f"R01 buildout: {technology}, {capacity}")
+            print(f"Objective function value [k$]: {value(model.v_Z)}")
 
     # Link callback function to optimize button
     optimize_button.on_click(optimize)
@@ -249,3 +255,4 @@ def create_widgets(model):
     grid[6, :] = optimize_button
     grid[7, :] = reset_button
     display(grid)
+    display(out)
