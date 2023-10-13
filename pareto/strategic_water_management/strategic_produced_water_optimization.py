@@ -6672,7 +6672,7 @@ def infrastructure_timing(model):
     # Store time period for first use to a dictionary
     model.infrastructure_firstUse = {}
     # Due to tolerances, binaries may not exactly equal 1
-    binary_epsilon = 0.005
+    binary_epsilon = 0.1
 
     # Iterate through our built sites
     # Treatment - "vb_y_Treatment"
