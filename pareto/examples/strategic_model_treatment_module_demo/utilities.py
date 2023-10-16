@@ -123,7 +123,7 @@ def create_widgets(model):
     )
 
     # Create output widget
-    out = Output(layout={'border': '1px solid black'})
+    out = Output(layout={"border": "1px solid black"})
 
     # Get units for CAPEX/OPEX unit conversions
     capex_model_units = units.get_units(model.p_kappa_Treatment)
