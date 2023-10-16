@@ -443,7 +443,7 @@ def generate_report(
         # Infrastructure buildout table
 
         # Due to tolerances, binaries may not exactly equal 1
-        binary_epsilon = 0.005
+        binary_epsilon = 0.1
         # "vb_y_Treatment"
         treatment_data = model.vb_y_Treatment._data
         # get units
