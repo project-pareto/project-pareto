@@ -50,9 +50,12 @@ def solve_and_check_feasibility(model, options=None):
     with nostdout():
         feasibility_status = is_feasible(model)
     if not feasibility_status:
-        print("Model results are not feasible and should not be trusted")
+        feasibility_message = "Model results are not feasible and should not be trusted"
     else:
-        print("Model results validated and found to pass feasibility tests")
+        feasibility_message = (
+            "Model results validated and found to pass feasibility tests"
+        )
+    print(feasibility_message)
 
     # Generate dictionary of reports to return
     _, results_dict = generate_report(
@@ -63,7 +66,7 @@ def solve_and_check_feasibility(model, options=None):
         fname=None,
     )
 
-    return results_dict, termination_message
+    return results_dict, termination_message, feasibility_message
 
 
 def get_R01_results(results_dict):
@@ -199,7 +202,11 @@ def create_widgets(model):
             print()
 
         # Solve the model and check feasibility of solution
-        results_dict, termination_message = solve_and_check_feasibility(model)
+        (
+            results_dict,
+            termination_message,
+            feasibility_message,
+        ) = solve_and_check_feasibility(model)
 
         # Extract results for optimal treatment buildout at R01
         technology, capacity = get_R01_results(results_dict)
@@ -209,6 +216,7 @@ def create_widgets(model):
             print("Optimization results")
             print("---------------------------------------------")
             print(termination_message)
+            print(feasibility_message)
             print(f"R01 buildout: {technology}, {capacity}")
             print(f"Objective function value [k$]: {value(model.v_Z)}")
 
