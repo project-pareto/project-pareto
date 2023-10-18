@@ -2727,7 +2727,9 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
                 print("Variable took a  non-integer value", var, val)
                 return False
 
-    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+    for con in model.component_data_objects(
+        ctype=Constraint, active=True, descend_into=True
+    ):
         body_value = value(con.body, exception=False)
         if _check_infeasible(con, body_value, cons_tol):
             print(
