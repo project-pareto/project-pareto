@@ -1048,7 +1048,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         default=0,
         initialize=init_arc_param("RCA"),
-        doc="Valid treatment-to-completions layflat arcs [-]",
+        doc="Valid treatment-to-completions pipeline arcs [-]",
     )
     model.p_RKA = Param(
         model.s_R,
