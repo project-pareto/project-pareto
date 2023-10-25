@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 
 
 NAME = "project-pareto"
-VERSION = "0.9.0rc0"
+VERSION = "0.9.0rc1"
 
 
 setup(
