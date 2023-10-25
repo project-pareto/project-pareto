@@ -362,11 +362,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\delta^{Truck}}` =                     Truck capacity
 
-:math:`\textcolor{green}{\tau_{k}^{Disposal}}` =                Disposal construction or expansion lead time
+:math:`\textcolor{green}{\tau_{k, i}^{Disposal}}` =                Disposal construction or expansion lead time
 
-:math:`\textcolor{green}{\tau_{s}^{Storage}}` =                 Storage construction or expansion lead time
+:math:`\textcolor{green}{\tau_{s, c}^{Storage}}` =                 Storage construction or expansion lead time
 
-:math:`\textcolor{green}{\tau_{l,\tilde{l}}^{Pipeline}}` =              Pipeline construction or expansion lead time
+:math:`\textcolor{green}{\tau_{r, wt, j}^{Treatment}}` =                 Treatment construction or expansion lead time
 
 :math:`\textcolor{green}{\tau_{l,\tilde{l}}^{Trucking}}` =      Drive time between two locations
 
@@ -393,11 +393,15 @@ Strategic Model Mathematical Notation
 
     :math:`\textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}` =       Pipeline segment length [distance]
 
+    :math:`\textcolor{green}{\tau^{Pipeline}}` =              Pipeline construction or expansion lead time [time/distance]
+
 **Otherwise, if the pipeline cost configuration is capacity based:**
 
     :math:`\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}}` =      Pipeline construction or expansion capital cost for selected diameter capacity [currency/(volume/time)]
 
     :math:`\textcolor{green}{\delta_{d}^{Pipeline}}` =          Increments for installation/expansion of pipeline capacity [volume/time]
+
+    :math:`\textcolor{green}{\tau_{l,\tilde{l},d}^{Pipeline}}` =              Pipeline construction or expansion lead time [time]
 
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                 Disposal operational cost

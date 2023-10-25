@@ -33,6 +33,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     pipeline_hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
+    infrastructure_timing,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -151,6 +153,11 @@ def build_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -182,7 +189,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -205,7 +212,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -228,7 +235,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -251,7 +258,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -337,6 +344,7 @@ def test_run_strategic_model(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "infrastructure_timing": InfrastructureTiming.false,
         }
     )
     solver = get_solver("cbc")
@@ -447,6 +455,11 @@ def build_reduced_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -604,7 +617,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -628,7 +641,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -652,7 +665,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -676,7 +689,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
     )
     assert degrees_of_freedom(m) == 103331
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -942,6 +955,11 @@ def build_modified_reduced_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1154,6 +1172,11 @@ def test_strategic_model_UI_display_units():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1261,6 +1284,11 @@ def build_toy_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1291,7 +1319,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 7237
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1309,6 +1337,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
@@ -1325,7 +1354,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 6875
-    assert pytest.approx(11103.742, abs=1e-1) == pyo.value(m.v_Z)
+    assert pytest.approx(6122.5178, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
 
@@ -1423,6 +1452,11 @@ def build_permian_demo_strategic_model():
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
     # note the double backslashes '\\' in that path reference
@@ -1455,7 +1489,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
     )
     assert degrees_of_freedom(m) == 20955
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1482,6 +1516,66 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     # Test report building
     [model, results_dict] = generate_report(
         m,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_infrastructure_buildout(build_toy_strategic_model):
+    # Build model: Test with capacity based pipeline config option
+    m_capacity_based = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,  # capacity_based
+            "pipeline_capacity": PipelineCapacity.input,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    # Build Model: Test with distance based pipeline config option
+    m_distance_based = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,  # distance_based
+            "pipeline_capacity": PipelineCapacity.calculated,
+            "infrastructure_timing": InfrastructureTiming.false,
+        }
+    )
+
+    # Solve models
+    solver = get_solver("cbc")
+    solver.options["seconds"] = 60 * 5
+    results_capacity_based = solver.solve(m_capacity_based, tee=False)
+    results_distance_based = solver.solve(m_distance_based, tee=False)
+
+    # Toy case study builds treatment, storage, pipeline.
+    # For testing purposes, let's adjust results to also build disposal and use new disposal.
+    m_capacity_based.vb_y_Disposal["K01", "I2"].fix(1)
+    m_capacity_based.v_F_DisposalDestination["K01", "T13"].fix(
+        m_capacity_based.p_sigma_Disposal["K01"] * 2
+    )
+    m_distance_based.vb_y_Disposal[("K01", "I2")].fix(1)
+    m_distance_based.v_F_DisposalDestination["K01", "T13"].fix(
+        m_distance_based.p_sigma_Disposal["K01"] * 2
+    )
+
+    # Call infrastructure buildout
+    infrastructure_timing(m_capacity_based)
+    infrastructure_timing(m_distance_based)
+
+    # Test results report build with infrastructure buildout
+    [model, results_dict] = generate_report(
+        m_capacity_based,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+    [model, results_dict] = generate_report(
+        m_distance_based,
         is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
