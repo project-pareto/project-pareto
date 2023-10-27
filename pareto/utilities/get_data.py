@@ -18,12 +18,17 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
 from functools import singledispatch
+import logging
 from typing import Any
 from typing import Dict
+from typing import Iterable
 
 import pandas as pd
 import requests
 import numpy as np
+
+
+_logger = logging.getLogger(__name__)
 
 
 @singledispatch
@@ -36,25 +41,34 @@ def _(data: Dict[Any, pd.DataFrame]) -> Dict[Any, pd.Series]:
     return {key: _squeeze_columns(df) for key, df in data.items()}
 
 
-def _read_data(_fname, _set_list, _parameter_list):
+def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str]):
     """
     This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
+    _set_list = list(_set_list)
+    _parameter_list = list(_parameter_list)
+    _logger.debug("_set_list: %s", _set_list)
+    _logger.debug("_parameter_list: %s", _parameter_list)
+
+    _df_sets = {}
     _df_parameters = {}
+
     _temp_df_parameters = {}
     _data_column = ["value"]
     proprietary_data = False
-    _df_sets = pd.read_excel(
-        _fname,
-        sheet_name=_set_list,
-        header=0,
-        index_col=None,
-        usecols="A",
-        dtype="string",
-        keep_default_na=False,
-    )
+    # pd.read_excel() does not support empty lists in recent versions of pandas
+    if _set_list:
+        _df_sets = pd.read_excel(
+            _fname,
+            sheet_name=_set_list,
+            header=0,
+            index_col=None,
+            usecols="A",
+            dtype="string",
+            keep_default_na=False,
+        )
     _df_sets = _squeeze_columns(_df_sets)
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
@@ -65,14 +79,15 @@ def _read_data(_fname, _set_list, _parameter_list):
         _df_sets[df].replace("", np.nan, inplace=True)
         _df_sets[df].dropna(inplace=True)
 
-    _df_parameters = pd.read_excel(
-        _fname,
-        sheet_name=_parameter_list,
-        header=1,
-        index_col=None,
-        usecols=None,
-        keep_default_na=False,
-    )
+    if _parameter_list:
+        _df_parameters = pd.read_excel(
+            _fname,
+            sheet_name=_parameter_list,
+            header=1,
+            index_col=None,
+            usecols=None,
+            keep_default_na=False,
+        )
     _df_parameters = _squeeze_columns(_df_parameters)
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
