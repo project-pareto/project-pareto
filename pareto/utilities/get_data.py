@@ -17,9 +17,23 @@ format that Pyomo requires
 Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
+from functools import singledispatch
+from typing import Any
+from typing import Dict
+
 import pandas as pd
 import requests
 import numpy as np
+
+
+@singledispatch
+def _squeeze_columns(data: pd.DataFrame) -> pd.Series:
+    return data.squeeze("columns")
+
+
+@_squeeze_columns.register(dict)
+def _(data: Dict[Any, pd.DataFrame]) -> Dict[Any, pd.Series]:
+    return {key: _squeeze_columns(df) for key, df in data.items()}
 
 
 def _read_data(_fname, _set_list, _parameter_list):
@@ -38,10 +52,10 @@ def _read_data(_fname, _set_list, _parameter_list):
         header=0,
         index_col=None,
         usecols="A",
-        squeeze=True,
         dtype="string",
         keep_default_na=False,
     )
+    _df_sets = _squeeze_columns(_df_sets)
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -57,9 +71,9 @@ def _read_data(_fname, _set_list, _parameter_list):
         header=1,
         index_col=None,
         usecols=None,
-        squeeze=True,
         keep_default_na=False,
     )
+    _df_parameters = _squeeze_columns(_df_parameters)
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
