@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 
 
 NAME = "project-pareto"
-VERSION = "0.8.dev0"
+VERSION = "0.10.dev0"
 
 
 setup(
@@ -82,6 +82,7 @@ setup(
         "testing": [
             "pytest",
             "packaging",  # packaging is already a dependency of pytest, but we specify it here just in case
+            "pyyaml",
         ],
     },
     include_package_data=True,

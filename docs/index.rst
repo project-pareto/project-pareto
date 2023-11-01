@@ -50,7 +50,7 @@ website <https://www.project-pareto.org/>`_.  Framework development happens at o
 repo <https://github.com/project-pareto/project-pareto>`_ where you can `report issues/bugs
 <https://github.com/project-pareto/project-pareto/issues>`_ or `make contributions
 <https://github.com/project-pareto/project-pareto/pulls>`_.  For further enquiries, send an
-email to: <pareto-support@pareto.org>
+email to |support-email|.
 
 
 Contents

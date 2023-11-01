@@ -36,9 +36,9 @@ copyright = "2021-2023, PARETO"
 author = "The PARETO Project"
 
 # The full version, including alpha/beta/rc tags
-release = "0.8.dev0"
+release = "0.10.dev0"
 # The short X.Y version
-version = "0.8.dev0"
+version = "0.10.dev0"
 # -- General configuration ---------------------------------------------------
 
 
@@ -125,3 +125,8 @@ myst_heading_anchors = 2
 myst_footnote_transition = True
 myst_dmath_double_inline = True
 panels_add_bootstrap_css = False
+
+rst_epilog = """
+.. |support-email| replace:: the `support email list`_
+.. _support email list: mailto:pareto-support@lbl.gov
+"""

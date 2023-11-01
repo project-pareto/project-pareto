@@ -149,7 +149,7 @@ def _cleanup_data(_df_parameters):
     return _df_parameters
 
 
-def _df_to_param(data_frame, data_column):
+def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     """
     This module converts the data frame that contains Parameters into the adequate
     format that Pyomo expects for paramerters:
@@ -170,7 +170,12 @@ def _df_to_param(data_frame, data_column):
             i.lower() for i in data_column
         ]:
             data_column_key = data_frame[i].columns[0]
-            _temp_df_parameters[i] = data_frame[i].to_dict()
+            if sum_repeated_indexes and i != "proprietary_data":
+                _temp_df_parameters[i] = (
+                    data_frame[i].groupby(data_frame[i].index.names).sum().to_dict()
+                )
+            else:
+                _temp_df_parameters[i] = data_frame[i].to_dict()
             _df_parameters[i] = _temp_df_parameters[i][data_column_key]
 
         else:
@@ -179,7 +184,7 @@ def _df_to_param(data_frame, data_column):
     return _df_parameters
 
 
-def get_data(fname, set_list, parameter_list):
+def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -268,7 +273,7 @@ def get_data(fname, set_list, parameter_list):
         ].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
-    _df_parameters = _df_to_param(_df_parameters, data_column)
+    _df_parameters = _df_to_param(_df_parameters, data_column, sum_repeated_indexes)
 
     return [_df_sets, _df_parameters]
 
@@ -354,23 +359,35 @@ def get_display_units(input_sheet_name_list, user_units):
         "RSA": "",
         "SCA": "",
         "SNA": "",
+        "ROA": "",
+        "SOA": "",
+        "NOA": "",
         "PCT": "",
         "PKT": "",
         "FCT": "",
         "CST": "",
         "CCT": "",
         "CKT": "",
+        "RST": "",
+        "ROT": "",
+        "SOT": "",
+        "Elevation": user_units["elevation"],
         "CompletionsPadOutsideSystem": "",
         "DesalinationTechnologies": "",
         "DesalinationSites": "",
+        "BeneficialReuseCredit": user_units["currency"] + "/" + user_units["volume"],
         "TruckingTime": "hours",
         "CompletionsDemand": user_units["volume"] + "/" + user_units["time"],
         "PadRates": user_units["volume"] + "/" + user_units["time"],
         "FlowbackRates": user_units["volume"] + "/" + user_units["time"],
+        "WellPressure": user_units["pressure"],
         "NodeCapacities": user_units["volume"] + "/" + user_units["time"],
         "InitialPipelineCapacity": user_units["volume"] + "/" + user_units["time"],
+        "InitialPipelineDiameters": user_units["diameter"],
         "InitialDisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
+        "ReuseMinimum": user_units["volume"] + "/" + user_units["time"],
+        "ReuseCapacity": user_units["volume"] + "/" + user_units["time"],
         "FreshwaterSourcingAvailability": user_units["volume"]
         + "/"
         + user_units["time"],
@@ -431,6 +448,13 @@ def get_display_units(input_sheet_name_list, user_units):
         "PAL": "",
         "PadStorageCost": user_units["volume"],
         "ProductionRates": user_units["volume"] + "/" + user_units["time"],
+        "TreatmentExpansionLeadTime": user_units["decision period"],
+        "DisposalExpansionLeadTime": user_units["decision period"],
+        "StorageExpansionLeadTime": user_units["decision period"],
+        "PipelineExpansionLeadTime_Dist": user_units["decision period"]
+        + "/"
+        + user_units["distance"],
+        "PipelineExpansionLeadTime_Capac": user_units["decision period"],
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",

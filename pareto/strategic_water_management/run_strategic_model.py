@@ -18,7 +18,9 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
+    Hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -63,23 +65,35 @@ parameter_list = [
     "RSA",
     "SCA",
     "SNA",
+    "ROA",
+    "SOA",
+    "NOA",
     "PCT",
     "PKT",
     "FCT",
     "CST",
     "CCT",
     "CKT",
+    "RST",
+    "ROT",
+    "SOT",
+    "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
     "FlowbackRates",
+    "WellPressure",
     "NodeCapacities",
     "InitialPipelineCapacity",
+    "InitialPipelineDiameters",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
+    "ReuseMinimum",
+    "ReuseCapacity",
     "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
@@ -111,6 +125,11 @@ parameter_list = [
     "DisposalOperatingCapacity",
     "AirEmissionCoefficients",
     "TreatmentEmissionCoefficients",
+    "TreatmentExpansionLeadTime",
+    "DisposalExpansionLeadTime",
+    "StorageExpansionLeadTime",
+    "PipelineExpansionLeadTime_Dist",
+    "PipelineExpansionLeadTime_Capac",
 ]
 
 # user needs to provide the path to the case study data file
@@ -124,7 +143,8 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo.xlsx",
+    "strategic_permian_demo.xlsx"
+    #"strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -133,9 +153,11 @@ with resources.path(
  objective: [Objectives.cost, Objectives.reuse]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
+ hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
+ infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
  """
 
 strategic_model = create_model(
@@ -145,9 +167,11 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
+        "hydraulics": Hydraulics.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        "infrastructure_timing": InfrastructureTiming.true,
     },
 )
 
@@ -155,7 +179,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 100,
+    "running_time": 200,
     "gap": 0,
 }
 
@@ -179,7 +203,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_bigger.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports

@@ -21,13 +21,14 @@ from pareto.operational_water_management.operational_produced_water_optimization
 )
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
+    Hydraulics,
+    InfrastructureTiming,
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
-from plotly.offline import init_notebook_mode, iplot
 
 import contextlib
 import sys
@@ -108,7 +109,8 @@ def generate_report(
                     "vb_y_Disposal",
                     "vb_y_Storage",
                     "vb_y_Treatment",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
                     "v_S_Production",
@@ -117,7 +119,7 @@ def generate_report(
                     "v_S_StorageCapacity",
                     "v_S_DisposalCapacity",
                     "v_S_TreatmentCapacity",
-                    "v_S_ReuseCapacity",
+                    "v_S_BeneficialReuseCapacity",
                     "v_Q",
                     "v_E_TotalTruckingHours",
                     "v_E_TotalTruckingEmissions",
@@ -142,6 +144,7 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
 
@@ -164,6 +167,9 @@ def generate_report(
                     "Capacity",
                     "Unit",
                     "Technology",
+                    "First Use",
+                    "Build Start",
+                    "Build Lead Time [" + model.model_units["time"].to_string() + "s]",
                 )
             ],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
@@ -185,6 +191,13 @@ def generate_report(
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_R_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Credit For Sending Water to Beneficial Reuse",
+                )
+            ],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [
@@ -203,6 +216,8 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
+            "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
+            "vb_y_TruckingVolume_dict": [("Origin", "Destination", "Time", "Volume")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
@@ -405,6 +420,9 @@ def generate_report(
             "v_E_TotalTreatmentEmissions_dict": [
                 ("Air Quality Component", "Emissions (g)")
             ],
+            "v_S_BeneficialReuseCapacity_dict": [
+                ("Reuse site", "Slack Reuse Capacity")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
@@ -509,7 +527,7 @@ def generate_report(
         # Infrastructure buildout table
 
         # Due to tolerances, binaries may not exactly equal 1
-        binary_epsilon = 0.005
+        binary_epsilon = 0.1
         # "vb_y_Treatment"
         treatment_data = model.vb_y_Treatment._data
         # get units
@@ -531,6 +549,14 @@ def generate_report(
                     from_units=model.p_delta_Treatment.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Treatment Facility",
@@ -539,6 +565,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         i[1],
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -563,6 +592,14 @@ def generate_report(
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Disposal Facility",
@@ -571,6 +608,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -595,6 +635,14 @@ def generate_report(
                     from_units=model.p_delta_Storage.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Storage Facility",
@@ -603,6 +651,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -631,6 +682,14 @@ def generate_report(
                     from_units=capacity_variable.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[(i[0], i[1])]
+                    build_start = model.infrastructure_buildStart[(i[0], i[1])]
+                    lead_time = model.infrastructure_leadTime[(i[0], i[1])]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Pipeline Construction",
@@ -639,8 +698,110 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
+        if model.config.hydraulics == Hydraulics.post_process:
+            headers.update(
+                {
+                    "hydraulics.v_PumpHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Pump Head",
+                        )
+                    ],
+                    "hydraulics.vb_Y_Pump_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Binary Pump Indicator",
+                        )
+                    ],
+                    "hydraulics.v_ValveHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Valve Head",
+                        )
+                    ],
+                    "hydraulics.v_PumpCost_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Pump Cost",
+                        )
+                    ],
+                    "hydraulics.v_Pressure_dict": [
+                        (
+                            "Location",
+                            "Time",
+                            "Pressure at a Location",
+                        )
+                    ],
+                }
+            )
+        elif model.config.hydraulics == Hydraulics.co_optimize:
+            headers.update(
+                {
+                    "hydraulics.v_PumpHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Pump Head",
+                        )
+                    ],
+                    "hydraulics.vb_Y_Pump_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Binary Pump Indicator",
+                        )
+                    ],
+                    "hydraulics.v_ValveHead_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Valve Head",
+                        )
+                    ],
+                    "hydraulics.v_PumpCost_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Pump Cost",
+                        )
+                    ],
+                    "hydraulics.v_Pressure_dict": [
+                        (
+                            "Location",
+                            "Time",
+                            "Pressure at a Location",
+                        )
+                    ],
+                    "hydraulics.v_HW_loss_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Time",
+                            "Hazen-Williams head loss",
+                        )
+                    ],
+                    "hydraulics.v_effective_Pipeline_diameter_dict": [
+                        (
+                            "Location",
+                            "Location",
+                            "Effective Pipeline Diameter",
+                        )
+                    ],
+                }
+            )
 
     elif model.type == "operational":
         if is_print is None:
@@ -667,7 +828,7 @@ def generate_report(
                     "vb_y_Truck",
                     "v_F_Drain",
                     "v_B_Production",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
                     "v_F_Overview",
                     "v_L_PadStorage",
                     "v_C_Treatment",
@@ -1001,20 +1162,6 @@ def generate_report(
             to_unit = variable.get_units()
         else:
             to_unit = None
-        # if variable data is not none and indexed, update headers to display unit
-        if (
-            len(variable._data) > 1
-            and list(variable._data.keys())[0] is not None
-            and to_unit is not None
-        ):
-            header = list(headers[str(variable.name) + "_dict"][0])
-            header[-1] = (
-                headers[str(variable.name) + "_dict"][0][-1]
-                + " ["
-                + to_unit.to_string().replace("oil_bbl", "bbl")
-                + "]"
-            )
-            headers[str(variable.name) + "_dict"][0] = tuple(header)
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
@@ -1330,6 +1477,7 @@ def plot_sankey(input_data={}, args=None):
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
     if is_sections:
+        fig = []
         for key, val in input_data["sections"].items():
             for i, v in enumerate(val):
                 try:
@@ -1355,7 +1503,7 @@ def plot_sankey(input_data={}, args=None):
 
             args["section_name"] = key
 
-            generate_sankey(source, destination, value, updated_label, args)
+            fig.append(generate_sankey(source, destination, value, updated_label, args))
     else:
         source = df_updated["source"].to_list()
         destination = df_updated["destination"].to_list()
@@ -1363,7 +1511,9 @@ def plot_sankey(input_data={}, args=None):
 
         updated_label = outlet_flow(source, destination, label, value)
 
-        generate_sankey(source, destination, value, updated_label, args)
+        fig = generate_sankey(source, destination, value, updated_label, args)
+
+    return fig
 
 
 def handle_time(variable, input_data):
@@ -1479,14 +1629,12 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
     in a browser.
     """
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
 
     # Checking arguments and assigning appropriate values
     if args is None:
         font_size = 20
         plot_title = "Sankey Diagram"
         figure_output = "first_sankey.html"
-        jupyter_notebook = False
     else:
         if "font_size" not in args.keys() or args["font_size"] is None:
             font_size = 20
@@ -1504,21 +1652,16 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
             else:
                 plot_title = args["plot_title"]
 
-        if "output_file" not in args.keys() or args["output_file"] is None:
+        if "output_file" not in args.keys():
             if "section_name" in args:
                 figure_output = args["section_name"] + "_sankey.html"
             else:
                 figure_output = "first_sankey.html"
         else:
-            if "section_name" in args:
+            if "section_name" in args and args["output_file"] is not None:
                 figure_output = args["section_name"] + "_" + args["output_file"]
             else:
                 figure_output = args["output_file"]
-
-        if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-            jupyter_notebook = False
-        else:
-            jupyter_notebook = args["jupyter_notebook"]
 
     # Creating links and nodes based on the passed in lists to be used as the data for generating the sankey diagram
     link = dict(source=source, target=destination, value=value)
@@ -1536,21 +1679,23 @@ def generate_sankey(source=[], destination=[], value=[], label=[], args=None):
         font_size=font_size,
     )
 
-    if ".html" in figure_output:
-        fig.write_html(figure_output, auto_open=False)
-    elif any(x in figure_output for x in format_checklist):
-        fig.write_image(figure_output, height=850, width=1800)
-    else:
-        exception_string = ""
-        for x in format_checklist:
-            exception_string = exception_string + ", " + x
-        raise Exception(
-            "The file format provided is not supported. Please use either html{}.".format(
-                exception_string
+    # Save the figure if required
+    if figure_output is not None:
+        if ".html" in figure_output:
+            fig.write_html(figure_output, auto_open=False)
+        elif any(x in figure_output for x in format_checklist):
+            fig.write_image(figure_output, height=850, width=1800)
+        else:
+            exception_string = ""
+            for x in format_checklist:
+                exception_string = exception_string + ", " + x
+            raise Exception(
+                "The file format provided is not supported. Please use either html{}.".format(
+                    exception_string
+                )
             )
-        )
-    if jupyter_notebook:
-        iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def plot_bars(input_data, args):
@@ -1574,10 +1719,8 @@ def plot_bars(input_data, args):
     date_time = False
     print_data = False
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
-    jupyter_notebook = False
 
-    if "output_file" not in args.keys() or args["output_file"] is None:
+    if "output_file" not in args.keys():
         figure_output = "first_bar.html"
     else:
         figure_output = args["output_file"]
@@ -1612,11 +1755,6 @@ def plot_bars(input_data, args):
         yaxis_type = "log"
     else:
         raise Warning("Y axis type {} is not supported".format(args["y_axis"]))
-
-    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-        jupyter_notebook = False
-    else:
-        jupyter_notebook = args["jupyter_notebook"]
 
     # Check the type of variable passed in and assign labels/Check for time indexing
     if isinstance(variable, list):
@@ -1768,22 +1906,21 @@ def plot_bars(input_data, args):
             ):
                 print(df_time_sort)
 
-        # Write the figure to html format and open in the browser
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False, auto_play=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False, auto_play=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
     else:
 
         # Create dataframe for use in the method
@@ -1839,21 +1976,23 @@ def plot_bars(input_data, args):
             ):
                 print(df_new_updated)
 
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def plot_scatter(input_data, args):
@@ -1888,11 +2027,9 @@ def plot_scatter(input_data, args):
     category_variable = None
     size = "Size"
     format_checklist = ["jpg", "jpeg", "pdf", "png", "svg"]
-    figure_output = ""
-    jupyter_notebook = False
 
     # Checks if output_file has been passed in as a user argument
-    if "output_file" not in args.keys() or args["output_file"] is None:
+    if "output_file" not in args.keys():
         figure_output = "first_scatter_plot.html"
     else:
         figure_output = args["output_file"]
@@ -1942,11 +2079,6 @@ def plot_scatter(input_data, args):
             raise Exception(
                 'Invalid type for argument "group_by_category". Must be of type boolean, list variable or dictionary variable.'
             )
-
-    if "jupyter_notebook" not in args.keys() or args["jupyter_notebook"] is None:
-        jupyter_notebook = False
-    else:
-        jupyter_notebook = args["jupyter_notebook"]
 
     variable_x = input_data["pareto_var_x"]
     variable_y = input_data["pareto_var_y"]
@@ -2362,22 +2494,21 @@ def plot_scatter(input_data, args):
             ):
                 print(df_scatter)
 
-        # Writing figure to desired format
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False, auto_play=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False, auto_play=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout}, auto_play=False)
 
     else:
         # Creating dataframe based on the passed in variable and rounding the values
@@ -2583,22 +2714,23 @@ def plot_scatter(input_data, args):
             ):
                 print(df_scatter)
 
-        # Writing figure to desired format
-        if ".html" in figure_output:
-            fig.write_html(figure_output, auto_open=False)
-        elif any(x in figure_output for x in format_checklist):
-            fig.write_image(figure_output, height=850, width=1800)
-        else:
-            exception_string = ""
-            for x in format_checklist:
-                exception_string = exception_string + ", " + x
-            raise Exception(
-                "The file format provided is not supported. Please use either html{}.".format(
-                    exception_string
+        # Save the figure if required
+        if figure_output is not None:
+            if ".html" in figure_output:
+                fig.write_html(figure_output, auto_open=False)
+            elif any(x in figure_output for x in format_checklist):
+                fig.write_image(figure_output, height=850, width=1800)
+            else:
+                exception_string = ""
+                for x in format_checklist:
+                    exception_string = exception_string + ", " + x
+                raise Exception(
+                    "The file format provided is not supported. Please use either html{}.".format(
+                        exception_string
+                    )
                 )
-            )
-        if jupyter_notebook:
-            iplot({"data": fig, "layout": fig.layout})
+
+    return fig
 
 
 def is_binary_value(value, tol):
@@ -2679,7 +2811,9 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
                 print("Variable took a  non-integer value", var, val)
                 return False
 
-    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+    for con in model.component_data_objects(
+        ctype=Constraint, active=True, descend_into=True
+    ):
         body_value = value(con.body, exception=False)
         if _check_infeasible(con, body_value, cons_tol):
             print(

@@ -13,10 +13,11 @@
 # Title: STRATEGIC Produced Water Optimization Model
 
 # Import
+import math
 from cmath import nan
-from unittest import result
 import numpy as np
-
+import os
+import pandas as pd
 from pyomo.environ import (
     Var,
     Param,
@@ -34,6 +35,7 @@ from pyomo.environ import (
     Suffix,
     TransformationFactory,
     value,
+    SolverFactory,
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
@@ -41,7 +43,7 @@ from pyomo.core.expr.current import identify_variables
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
-from enum import Enum
+from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
@@ -68,9 +70,26 @@ class WaterQuality(Enum):
     discrete = 2
 
 
+class Hydraulics(Enum):
+    false = 0
+    post_process = 1
+    co_optimize = 2
+
+
 class RemovalEfficiencyMethod(Enum):
     load_based = 0
     concentration_based = 1
+
+
+# Inherit from IntEnum so that these values can be used in comparisons
+class TreatmentStreams(IntEnum):
+    treated_stream = 1
+    residual_stream = 2
+
+
+class InfrastructureTiming(Enum):
+    false = 0
+    true = 1
 
 
 # create config dictionary
@@ -95,6 +114,21 @@ CONFIG.declare(
         **Valid Values:** - {
         **PipelineCapacity.input** - use input for pipeline capacity,
         **PipelineCapacity.calculated** - calculate pipeline capacity from pipeline diameters
+        }""",
+    ),
+)
+CONFIG.declare(
+    "hydraulics",
+    ConfigValue(
+        default=Hydraulics.false,
+        domain=In(Hydraulics),
+        description="add hydraulics constraints",
+        doc="""option to include pipeline hydraulics in the model either during or post optimization
+        ***default*** - Hydraulics.false
+        **Valid Values:** - {
+        **Hydraulics.false** - does not add hydraulics feature
+        **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
+        **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
         }""",
     ),
 )
@@ -161,6 +195,21 @@ CONFIG.declare(
         **Valid Values:** - {
         **RemovalEfficiencyMethod.load_based** - use contaminant load (flow times concentration) to calculate removal efficiency,
         **RemovalEfficiencyMethod.concentration_based** - use contaminant concentration to calculate removal efficiency
+        }""",
+    ),
+)
+
+CONFIG.declare(
+    "infrastructure_timing",
+    ConfigValue(
+        default=InfrastructureTiming.false,
+        domain=In(InfrastructureTiming),
+        description="Infrastructure timing",
+        doc="""Selection to include infrastructure timing.
+        ***default*** - InfrastructureTiming.false
+        **Valid Values:** - {
+        **InfrastructureTiming.false** - Exclude infrastructure timing from model,
+        **InfrastructureTiming.true** - Include infrastructure timing in model
         }""",
     ),
 )
@@ -242,6 +291,8 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.kg / pyunits.liter,
         "currency": pyunits.kUSD,
+        "pressure": pyunits.kpascal,
+        "elevation": pyunits.meter,
         "time": model.decision_period,
     }
     model.model_units["volume_time"] = (
@@ -270,6 +321,8 @@ def create_model(df_sets, df_parameters, default={}):
         "diameter": pyunits.inch,
         "concentration": pyunits.mg / pyunits.liter,
         "currency": pyunits.USD,
+        "pressure": pyunits.pascal,
+        "elevation": pyunits.meter,
         "time": model.decision_period,
     }
 
@@ -374,33 +427,65 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_A = Set(
         initialize=model.df_sets["AirEmissionComponents"], doc="Air emission components"
     )
-    model.df_parameters["LLA"] = {
-        **model.df_parameters["PNA"],
-        **model.df_parameters["CNA"],
-        **model.df_parameters["CCA"],
-        **model.df_parameters["NNA"],
-        **model.df_parameters["NCA"],
-        **model.df_parameters["NKA"],
-        **model.df_parameters["NSA"],
-        **model.df_parameters["NRA"],
-        **model.df_parameters["FCA"],
-        **model.df_parameters["RCA"],
-        **model.df_parameters["RNA"],
-        **model.df_parameters["SNA"],
-        **model.df_parameters["RSA"],
-        **model.df_parameters["SCA"],
-    }
+
+    piping_arc_types = [
+        "PCA",
+        "PNA",
+        "PPA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NSA",
+        "NRA",
+        "NOA",
+        "FCA",
+        "RNA",
+        "RCA",
+        "RKA",
+        "RSA",
+        "SNA",
+        "SCA",
+        "SKA",
+        "SRA",
+        "SOA",
+        "ROA",
+    ]
+
+    # Build dictionary of all specified piping arcs
+    model.df_parameters["LLA"] = {}
+    for arctype in piping_arc_types:
+        if arctype in model.df_parameters:
+            model.df_parameters["LLA"].update(model.df_parameters[arctype])
     model.s_LLA = Set(
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
-    model.df_parameters["LLT"] = {
-        **model.df_parameters["PCT"],
-        **model.df_parameters["FCT"],
-        **model.df_parameters["PKT"],
-        **model.df_parameters["CKT"],
-        **model.df_parameters["CST"],
-        **model.df_parameters["CCT"],
-    }
+
+    trucking_arc_types = [
+        "PCT",
+        "PKT",
+        "PST",
+        "PRT",
+        "POT",
+        "FCT",
+        "CKT",
+        "CST",
+        "CRT",
+        "CCT",
+        "SCT",
+        "SKT",
+        "SOT",
+        "RKT",
+        "RST",
+        "ROT",
+    ]
+
+    # Build dictionary of all specified trucking arcs
+    model.df_parameters["LLT"] = {}
+    for arctype in trucking_arc_types:
+        if arctype in model.df_parameters:
+            model.df_parameters["LLT"].update(model.df_parameters[arctype])
     model.s_LLT = Set(
         initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
     )
@@ -452,14 +537,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         units=model.model_units["volume_time"],
         doc="Water from completions pad storage used for fracturing [volume/time]",
-    )
-    model.v_F_DesalinatedWater = Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Clean water post desalination [volume/time]",
     )
     model.v_F_StorageEvaporationStream = Var(
         model.s_S,
@@ -527,7 +604,12 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_F_TotalReused = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume of produced water reused [volume]",
+        doc="Total volume of produced water reused at completions [volume]",
+    )
+    model.v_F_TotalBeneficialReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["volume"],
+        doc="Total volume of water beneficially reused [volume]",
     )
     model.v_C_Piped = Var(
         model.s_L,
@@ -596,6 +678,14 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_time"],
         doc="Credit for retrieving stored produced water from storage site [currency/time]",
     )
+    model.v_R_BeneficialReuse = Var(
+        model.s_O,
+        model.s_T,
+        initialize=0,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Credit for sending water to beneficial reuse [currency/time]",
+    )
     model.v_C_TotalSourced = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -641,6 +731,11 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Total credit for withdrawing produced water [currency]",
     )
+    model.v_R_TotalBeneficialReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total credit for sending water to beneficial reuse [currency]",
+    )
     model.v_F_ReuseDestination = Var(
         model.s_CP,
         model.s_T,
@@ -662,7 +757,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
-        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
+        doc="Total deliveries to Beneficial Reuse Option [volume/time]",
     )
     model.v_F_CompletionsDestination = Var(
         model.s_CP,
@@ -712,6 +807,20 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_parameters["DesalinationSites"],
         doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
+
+    # If p_chi_DesalinationSites was not specified for one or more r, raise an
+    # Exception
+    missing_desal_sites = []
+    for r in model.s_R:
+        if r not in model.p_chi_DesalinationSites:
+            missing_desal_sites.append(r)
+    if missing_desal_sites:
+        raise Exception(
+            'The parameter chi_DesalinationSites (spreadsheet tab "DesalinationSites") must be specified for every treatment site (missing: '
+            + ", ".join(missing_desal_sites)
+            + ")"
+        )
+
     model.v_C_DisposalCapEx = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -823,7 +932,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Slack variable to provide necessary treatment capacity [volume/time]",
     )
-    model.v_S_ReuseCapacity = Var(
+    model.v_S_BeneficialReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
@@ -870,7 +979,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Directional flow between two locations",
     )
-    # #TODO - this should really be a post-processed variable
+    #TODO - this should really be a post-processed variable
     model.vb_y_TruckingVolume = Var(
         model.s_L,
         model.s_L,
@@ -879,249 +988,290 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Indicates if there in nonzero trucking flow",
     )
+    model.vb_y_BeneficialReuse = Var(
+        model.s_O,
+        model.s_T,
+        within=Binary,
+        initialize=0,
+        doc="Beneficial reuse option selection",
+
+    )
 
     # Pre-process Data #
     _preprocess_data(model)
 
     # Define set parameters #
+    def init_arc_param(arctype):
+        # If arctype is a key in the dictionary model.df_parameters, return the
+        # value of that entry from the dictionary. Otherwise, return an empty
+        # dictionary.
+        return model.df_parameters.get(arctype, {})
 
     model.p_PCA = Param(
         model.s_PP,
         model.s_CP,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PCA"),
         doc="Valid production-to-completions pipeline arcs [-]",
     )
     model.p_PNA = Param(
         model.s_PP,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["PNA"],
+        initialize=init_arc_param("PNA"),
         doc="Valid production-to-node pipeline arcs [-]",
     )
     model.p_PPA = Param(
         model.s_PP,
         model.s_PP,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PPA"),
         doc="Valid production-to-production pipeline arcs [-]",
     )
     model.p_CNA = Param(
         model.s_CP,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["CNA"],
+        initialize=init_arc_param("CNA"),
         doc="Valid completion-to-node pipeline arcs [-]",
     )
     model.p_CCA = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["CCA"],
+        initialize=init_arc_param("CCA"),
         doc="Valid completions-to-completions pipelin arcs [-]",
     )
     model.p_NNA = Param(
         model.s_N,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["NNA"],
+        initialize=init_arc_param("NNA"),
         doc="Valid node-to-node pipeline arcs [-]",
     )
     model.p_NCA = Param(
         model.s_N,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["NCA"],
+        initialize=init_arc_param("NCA"),
         doc="Valid node-to-completions pipeline arcs [-]",
     )
     model.p_NKA = Param(
         model.s_N,
         model.s_K,
         default=0,
-        initialize=model.df_parameters["NKA"],
+        initialize=init_arc_param("NKA"),
         doc="Valid node-to-disposal pipeline arcs [-]",
     )
     model.p_NSA = Param(
         model.s_N,
         model.s_S,
         default=0,
-        initialize=model.df_parameters["NSA"],
+        initialize=init_arc_param("NSA"),
         doc="Valid node-to-storage pipeline arcs [-]",
     )
     model.p_NRA = Param(
         model.s_N,
         model.s_R,
         default=0,
-        initialize=model.df_parameters["NRA"],
+        initialize=init_arc_param("NRA"),
         doc="Valid node-to-treatment pipeline arcs [-]",
     )
     model.p_NOA = Param(
         model.s_N,
         model.s_O,
         default=0,
-        initialize={},
+        initialize=init_arc_param("NOA"),
         doc="Valid node-to-reuse pipeline arcs [-]",
     )
     model.p_FCA = Param(
         model.s_F,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["FCA"],
+        initialize=init_arc_param("FCA"),
         doc="Valid freshwater-to-completions pipeline arcs [-]",
-    )
-    model.p_RCA = Param(
-        model.s_R,
-        model.s_CP,
-        default=0,
-        initialize=model.df_parameters["RCA"],
-        doc="Valid treatment-to-completions layflat arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["RNA"],
+        initialize=init_arc_param("RNA"),
         doc="Valid treatment-to-node pipeline arcs [-]",
+    )
+    model.p_RCA = Param(
+        model.s_R,
+        model.s_CP,
+        default=0,
+        initialize=init_arc_param("RCA"),
+        doc="Valid treatment-to-completions layflat arcs [-]",
     )
     model.p_RKA = Param(
         model.s_R,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("RKA"),
         doc="Valid treatment-to-disposal pipeline arcs [-]",
     )
     model.p_RSA = Param(
         model.s_R,
         model.s_S,
         default=0,
-        initialize=model.df_parameters["RSA"],
+        initialize=init_arc_param("RSA"),
         doc="Valid treatment-to-storage pipeline arcs [-]",
     )
     model.p_SNA = Param(
         model.s_S,
         model.s_N,
         default=0,
-        initialize=model.df_parameters["SNA"],
+        initialize=init_arc_param("SNA"),
         doc="Valid storage-to-node pipeline arcs [-]",
     )
     model.p_SCA = Param(
         model.s_S,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["SCA"],
+        initialize=init_arc_param("SCA"),
         doc="Valid storage-to-completions pipeline arcs [-]",
     )
     model.p_SKA = Param(
         model.s_S,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SKA"),
         doc="Valid storage-to-disposal pipeline arcs [-]",
     )
     model.p_SRA = Param(
         model.s_S,
         model.s_R,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SRA"),
         doc="Valid storage-to-treatment pipeline arcs [-]",
     )
     model.p_SOA = Param(
         model.s_S,
         model.s_O,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SOA"),
         doc="Valid storage-to-reuse pipeline arcs [-]",
+    )
+    model.p_ROA = Param(
+        model.s_R,
+        model.s_O,
+        default=0,
+        initialize=init_arc_param("ROA"),
+        doc="Valid treatment-to-reuse pipeline arcs [-]",
     )
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["PCT"],
+        initialize=init_arc_param("PCT"),
         doc="Valid production-to-completions trucking arcs [-]",
-    )
-    model.p_FCT = Param(
-        model.s_F,
-        model.s_CP,
-        default=0,
-        initialize=model.df_parameters["FCT"],
-        doc="Valid freshwater-to-completions trucking arcs [-]",
     )
     model.p_PKT = Param(
         model.s_PP,
         model.s_K,
         default=0,
-        initialize=model.df_parameters["PKT"],
+        initialize=init_arc_param("PKT"),
         doc="Valid production-to-disposal trucking arcs [-]",
     )
     model.p_PST = Param(
         model.s_PP,
         model.s_S,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PST"),
         doc="Valid production-to-storage trucking arcs [-]",
     )
     model.p_PRT = Param(
         model.s_PP,
         model.s_R,
         default=0,
-        initialize={},
+        initialize=init_arc_param("PRT"),
         doc="Valid production-to-treatment trucking arcs [-]",
     )
     model.p_POT = Param(
         model.s_PP,
         model.s_O,
         default=0,
-        initialize={},
+        initialize=init_arc_param("POT"),
         doc="Valid production-to-reuse trucking arcs [-]",
+    )
+    model.p_FCT = Param(
+        model.s_F,
+        model.s_CP,
+        default=0,
+        initialize=init_arc_param("FCT"),
+        doc="Valid freshwater-to-completions trucking arcs [-]",
     )
     model.p_CKT = Param(
         model.s_CP,
         model.s_K,
         default=0,
-        initialize=model.df_parameters["CKT"],
+        initialize=init_arc_param("CKT"),
         doc="Valid completions-to-disposal trucking arcs [-]",
     )
     model.p_CST = Param(
         model.s_CP,
         model.s_S,
         default=0,
-        initialize=model.df_parameters["CST"],
+        initialize=init_arc_param("CST"),
         doc="Valid completions-to-storage trucking arcs [-]",
     )
     model.p_CRT = Param(
         model.s_CP,
         model.s_R,
         default=0,
-        initialize={},
+        initialize=init_arc_param("CRT"),
         doc="Valid completions-to-treatment trucking arcs [-]",
     )
     model.p_CCT = Param(
         model.s_CP,
         model.s_CP,
         default=0,
-        initialize=model.df_parameters["CCT"],
+        initialize=init_arc_param("CCT"),
         doc="Valid completion-to-completion trucking arcs [-]",
     )
     model.p_SCT = Param(
         model.s_S,
         model.s_CP,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SCT"),
         doc="Valid storage-to-completions trucking arcs [-]",
     )
     model.p_SKT = Param(
         model.s_S,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("SKT"),
         doc="Valid storage-to-disposal trucking arcs [-]",
+    )
+    model.p_SOT = Param(
+        model.s_S,
+        model.s_O,
+        default=0,
+        initialize=init_arc_param("SOT"),
+        doc="Valid storage-to-reuse trucking arcs [-]",
     )
     model.p_RKT = Param(
         model.s_R,
         model.s_K,
         default=0,
-        initialize={},
+        initialize=init_arc_param("RKT"),
         doc="Valid treatment-to-disposal trucking arcs [-]",
+    )
+    model.p_RST = Param(
+        model.s_R,
+        model.s_S,
+        default=0,
+        initialize=init_arc_param("RST"),
+        doc="Valid treatment-to-storage trucking arcs [-]",
+    )
+    model.p_ROT = Param(
+        model.s_R,
+        model.s_O,
+        default=0,
+        initialize=init_arc_param("ROT"),
+        doc="Valid treatment-to-reuse trucking arcs [-]",
     )
 
     # Define set parameters #
@@ -1281,8 +1431,9 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Initial treatment capacity at treatment site [volume/time]",
     )
-    model.p_sigma_Reuse = Param(
+    model.p_sigma_BeneficialReuseMinimum = Param(
         model.s_O,
+        model.s_T,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -1290,10 +1441,26 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["volume_time"],
                 to_units=model.model_units["volume_time"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["ReuseMinimum"].items()
         },
         units=model.model_units["volume_time"],
-        doc="Initial reuse capacity at reuse site [volume/time]",
+        doc="Minimum flow that must be sent to beneficial reuse option [volume/time]",
+    )
+    model.p_sigma_BeneficialReuse = Param(
+        model.s_O,
+        model.s_T,
+        # Use a negative number for default so later we can detect for which indexes the user did/did not provide a parameter value
+        default=-1,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["ReuseCapacity"].items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Capacity of beneficial reuse option [volume/time]",
     )
     model.p_sigma_Freshwater = Param(
         model.s_F,
@@ -1653,6 +1820,62 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment construction/expansion capital cost for selected increment [currency/(volume/time)]",
     )
 
+    model.p_tau_TreatmentExpansionLeadTime = Param(
+        model.s_R,
+        model.s_WT,
+        model.s_J,
+        default=0,
+        # input units are already model units (decision period), so do not need to be converted
+        initialize=model.df_parameters["TreatmentExpansionLeadTime"],
+        units=model.model_units["time"],
+        doc="Treatment construction/expansion lead time for selected site, treatment type, and size [time]",
+    )
+
+    model.p_tau_DisposalExpansionLeadTime = Param(
+        model.s_K,
+        model.s_I,
+        default=0,
+        # input units are already model units (decision period), so do not need to be converted
+        initialize=model.df_parameters["DisposalExpansionLeadTime"],
+        units=model.model_units["time"],
+        doc="Disposal construction/expansion lead time for selected site and size [time]",
+    )
+
+    model.p_tau_StorageExpansionLeadTime = Param(
+        model.s_S,
+        model.s_C,
+        default=0,
+        # input units are already model units (decision period), so do not need to be converted
+        initialize=model.df_parameters["StorageExpansionLeadTime"],
+        units=model.model_units["time"],
+        doc="Storage construction/expansion lead time for selected site and size [time]",
+    )
+
+    if model.config.pipeline_cost == PipelineCost.distance_based:
+        model.p_tau_PipelineExpansionLeadTime = Param(
+            default=0,
+            # distance units need to be converted
+            initialize=pyunits.convert_value(
+                model.df_parameters["PipelineExpansionLeadTime_Dist"][
+                    "pipeline_expansion_lead_time"
+                ],
+                from_units=model.model_units["time"] / model.user_units["distance"],
+                to_units=model.model_units["time"] / model.model_units["distance"],
+            ),
+            units=model.model_units["time"] / model.model_units["distance"],
+            doc="Pipeline construction/expansion lead time [time/distance]",
+        )
+    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        model.p_tau_PipelineExpansionLeadTime = Param(
+            model.s_L,
+            model.s_L,
+            model.s_D,
+            default=0,
+            # input units are already model units (decision period), so do not need to be converted
+            initialize=model.df_parameters["PipelineExpansionLeadTime_Capac"],
+            units=model.model_units["time"],
+            doc="Pipeline construction/expansion lead time [time]",
+        )
     model.p_omega_EvaporationRate = Param(
         default=pyunits.convert_value(
             3000,
@@ -1717,6 +1940,7 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["pipe_cost_capacity"],
             doc="Pipeline construction/expansion capital cost for selected increment [currency/volume/time]",
         )
+
     DisposalOperationalCost_convert_to_model = {
         key: pyunits.convert_value(
             value,
@@ -1725,6 +1949,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
         for key, value in model.df_parameters["DisposalOperationalCost"].items()
     }
+
     model.p_pi_Disposal = Param(
         model.s_K,
         default=max(DisposalOperationalCost_convert_to_model.values()) * 100
@@ -1810,6 +2035,77 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",
     )
+    model.p_rho_BeneficialReuse = Param(
+        model.s_O,
+        default=pyunits.convert_value(
+            0.0,
+            from_units=pyunits.USD / pyunits.oil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency_volume"],
+                to_units=model.model_units["currency_volume"],
+            )
+            for key, value in model.df_parameters["BeneficialReuseCredit"].items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Credit for sending water to beneficial reuse [currency/volume]",
+    )
+    _df_parameters = {}
+    if model.config.hydraulics != Hydraulics.false:
+        # Elevation parameter is only used in the hydraulics module and is not needed in the basic version
+        model.p_zeta_Elevation = Param(
+            model.s_L,
+            default=100,
+            domain=NonNegativeReals,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=model.user_units["elevation"],
+                    to_units=model.model_units["elevation"],
+                )
+                for key, value in model.df_parameters["Elevation"].items()
+            },
+            units=pyunits.meter,
+            doc="Elevation of each node in the network",
+        )
+    if model.config.hydraulics == Hydraulics.post_process:
+        # In the post-process based hydraulics model an economics-based penalty is added
+        # to moderate flow through pipelines based on the elevation change.
+        max_elevation = max([val for val in model.df_parameters["Elevation"].values()])
+        min_elevation = min([val for val in model.df_parameters["Elevation"].values()])
+        max_elevation_change = max_elevation - min_elevation
+        # Set economic penalties for pipeline operational Cost based on the elevation changes
+        for k1 in model.s_L:
+            for k2 in model.s_L:
+                if (k1, k2) in model.s_LLA:
+                    elevation_delta = value(model.p_zeta_Elevation[k1]) - value(
+                        model.p_zeta_Elevation[k2]
+                    )
+                    _df_parameters[(k1, k2)] = max(
+                        0,
+                        (
+                            model.df_parameters["PipelineOperationalCost"][(k1, k2)]
+                            - (
+                                0.01
+                                * max(
+                                    [
+                                        val
+                                        for val in model.df_parameters[
+                                            "PipelineOperationalCost"
+                                        ].values()
+                                    ]
+                                )
+                                * elevation_delta
+                                / max_elevation_change
+                            )
+                        ),
+                    )
+    else:
+        _df_parameters = model.df_parameters["PipelineOperationalCost"]
+
     model.p_pi_Pipeline = Param(
         model.s_L,
         model.s_L,
@@ -1824,7 +2120,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in model.df_parameters["PipelineOperationalCost"].items()
+            for key, value in _df_parameters.items()
         },
         units=model.model_units["currency_volume"],
         doc="Pipeline operational cost [currency/volume]",
@@ -1959,7 +2255,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/volume/time]",
     )
-    model.p_psi_ReuseCapacity = Param(
+    model.p_psi_BeneficialReuseCapacity = Param(
         default=pyunits.convert_value(
             99999,
             from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
@@ -2085,6 +2381,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
+                - model.v_R_TotalBeneficialReuse
             )
 
         model.CostObjectiveFunction = Constraint(
@@ -2115,6 +2412,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
+                - model.v_R_TotalBeneficialReuse
             )
 
         model.ReuseObjectiveFunction = Constraint(
@@ -2741,16 +3039,91 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Residual water based on treatment efficiency",
     )
 
-    def TreatedWaterRule(model, r, t):
-        constraint = (
-            model.v_F_TreatedWater[r, t]
-            == sum(model.v_F_Piped[r, l, t] for l in model.s_L if (r, l) in model.s_LLA)
-            + model.v_F_DesalinatedWater[r, t]
-        )
-        return process_constraint(constraint)
+    # Create a set of all treatment sites for which the treated stream should
+    # be modeled
+    treatment_sites_with_treated_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_R and value == TreatmentStreams.treated_stream
+    }
 
-    model.TreatedWater = Constraint(
-        model.s_R, model.s_T, rule=TreatedWaterRule, doc="Treated water balance"
+    def TreatedWaterBalanceRule(model, r, t):
+        # If treated stream from a treatment site should be modeled, then
+        # create constraint for the treated water. Otherwise, skip.
+        if r in treatment_sites_with_treated_stream_modeled:
+            constraint = model.v_F_TreatedWater[r, t] == sum(
+                model.v_F_Piped[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLA
+                and model.df_parameters["LLA"][r, l] == TreatmentStreams.treated_stream
+            ) + sum(
+                model.v_F_Trucked[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLT
+                and model.df_parameters["LLT"][r, l] == TreatmentStreams.treated_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.TreatedWaterBalance = Constraint(
+        model.s_R, model.s_T, rule=TreatedWaterBalanceRule, doc="Treated water balance"
+    )
+
+    # Create a set of all treatment sites for which the residual stream should
+    # be modeled. Arcs originating from a treatment site may have a value of 0,
+    # 1, or 2 to denote no arc, treated stream, and residual stream,
+    # respectively.
+    treatment_sites_with_residual_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_R and value == TreatmentStreams.residual_stream
+    }
+
+    def ResidualWaterBalanceRule(model, r, t):
+        # If residual stream from a treatment site should be modeled, then
+        # create constraint for the residual water. Otherwise, skip.
+        if r in treatment_sites_with_residual_stream_modeled:
+            constraint = model.v_F_ResidualWater[r, t] == sum(
+                model.v_F_Piped[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLA
+                and model.df_parameters["LLA"][r, l] == TreatmentStreams.residual_stream
+            ) + sum(
+                model.v_F_Trucked[r, l, t]
+                for l in model.s_L
+                if (r, l) in model.s_LLT
+                and model.df_parameters["LLT"][r, l] == TreatmentStreams.residual_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.ResidualWaterBalance = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=ResidualWaterBalanceRule,
+        doc="Residual water balance",
+    )
+
+    def BeneficialReuseMinimumRule(model, o, t):
+        if value(model.p_sigma_BeneficialReuseMinimum[o, t]) > 0:
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                >= model.p_sigma_BeneficialReuseMinimum[o, t]
+                * model.vb_y_BeneficialReuse[o, t]
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.BeneficialReuseMinimum = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseMinimumRule,
+        doc="Beneficial reuse minimum flow",
     )
 
     def TotalTreatmentEmissionsRule(model, a):
@@ -2777,14 +3150,21 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def BeneficialReuseCapacityRule(model, o, t):
-
-        constraint = (
-            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+        if value(model.p_sigma_BeneficialReuse[o, t]) < 0:
+            # Beneficial reuse capacity value has not been provided by user
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                <= model.p_M_Flow * model.vb_y_BeneficialReuse[o, t]
+                + model.v_S_BeneficialReuseCapacity[o]
             )
-            <= model.p_sigma_Reuse[o] + model.v_S_ReuseCapacity[o]
-        )
+        else:
+            # Beneficial reuse capacity value has been provided by user
+            constraint = (
+                model.v_F_BeneficialReuseDestination[o, t]
+                <= model.p_sigma_BeneficialReuse[o, t]
+                * model.vb_y_BeneficialReuse[o, t]
+                + model.v_S_BeneficialReuseCapacity[o]
+            )
 
         return process_constraint(constraint)
 
@@ -2796,6 +3176,19 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # TODO: Improve testing of Beneficial reuse capacity constraint
+
+    def TotalBeneficialReuseVolumeRule(model):
+        constraint = model.v_F_TotalBeneficialReuse == (
+            sum(
+                sum(model.v_F_BeneficialReuseDestination[o, t] for o in model.s_O)
+                for t in model.s_T
+            )
+        )
+        return process_constraint(constraint)
+
+    model.TotalBeneficialReuse = Constraint(
+        rule=TotalBeneficialReuseVolumeRule, doc="Total beneficial reuse volume"
+    )
 
     def FreshSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
@@ -3054,7 +3447,7 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.TotalReuseVolume = Constraint(
-        rule=TotalReuseVolumeRule, doc="Total reuse volume"
+        rule=TotalReuseVolumeRule, doc="Total volume reused at completions"
     )
 
     def PipingCostRule(model, l, l_tilde, t):
@@ -3165,6 +3558,40 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalStorageWithdrawalCredit = Constraint(
         rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
+    )
+
+    def BeneficialReuseCreditRule(model, o, t):
+        constraint = model.v_R_BeneficialReuse[o, t] == (
+            (
+                sum(
+                    model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, o, t]
+                    for l in model.s_L
+                    if (l, o) in model.s_LLT
+                )
+            )
+            * model.p_rho_BeneficialReuse[o]
+        )
+
+        return process_constraint(constraint)
+
+    model.BeneficialReuseCredit = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseCreditRule,
+        doc="Beneficial reuse credit",
+    )
+
+    def TotalBeneficialReuseCreditRule(model):
+        constraint = model.v_R_TotalBeneficialReuse == sum(
+            sum(model.v_R_BeneficialReuse[o, t] for o in model.s_O) for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalBeneficialReuseCredit = Constraint(
+        rule=TotalBeneficialReuseCreditRule, doc="Total beneficial reuse credit"
     )
 
     def TruckingCostRule(model, l, l_tilde, t):
@@ -3446,7 +3873,8 @@ def create_model(df_sets, df_parameters, default={}):
                 for r in model.s_R
             )
             + sum(
-                model.v_S_ReuseCapacity[o] * model.p_psi_ReuseCapacity
+                model.v_S_BeneficialReuseCapacity[o]
+                * model.p_psi_BeneficialReuseCapacity
                 for o in model.s_O
             )
         )
@@ -3484,42 +3912,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         rule=LogicConstraintTreatmentRule,
         doc="Treatment technology assignment",
-    )
-
-    def LogicConstraintTreatmentRule2(model, r, t):
-        constraint = (
-            sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
-            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
-        ) <= model.p_M_Flow * (
-            1
-            - sum(
-                sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                for wt in model.s_WT
-                if model.p_chi_DesalinationTechnology[wt]
-            )
-        )
-        return process_constraint(constraint)
-
-    model.LogicConstraintDesalinationFlow = Constraint(
-        model.s_R,
-        model.s_T,
-        rule=LogicConstraintTreatmentRule2,
-        doc="Logic constraint for flow after desalination",
-    )
-
-    def LogicConstraintTreatmentRule3(model, r, t):
-        constraint = model.v_F_DesalinatedWater[r, t] <= model.p_M_Flow * sum(
-            sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-            for wt in model.s_WT
-            if model.p_chi_DesalinationTechnology[wt]
-        )
-        return process_constraint(constraint)
-
-    model.LogicConstraintNoDesalinationFlow = Constraint(
-        model.s_R,
-        model.s_T,
-        rule=LogicConstraintTreatmentRule3,
-        doc="Logic constraint for flow if not desalination",
     )
 
     def LogicConstraintDesalinationAssignmentRule(model, r):
@@ -3695,6 +4087,474 @@ def create_model(df_sets, df_parameters, default={}):
         model = water_quality_discrete(model, df_parameters, df_sets)
 
     return model
+
+
+def pipeline_hydraulics(model):
+    """
+    The hydraulics module asssists in computing pressures at each node
+    in the network accounting for pressure drop due to friction using
+    Hazen-Williams equation and due to elevation change in the topology. This model
+    consists of a pressure balance equation for each pipeline and bounds for
+    pressure. The objective is to minimize the total cost of installing and operating pumps.
+    This method adds a block for hydraulics with all necessary variables and constriants.
+    Currently, there are two methods to solve the hydraulics block:
+        1) post-process method: only the hydraulics block is solved for pressures
+        2) co-optimize method: the hydraulics block is solved along with the network
+    """
+    cons_scaling_factor = 1e0
+
+    # Create a block to add all variables and constraints for hydraulics within the model
+    model.hydraulics = Block()
+    mh = model.hydraulics
+
+    # declaring variables and parameters required regardless of the hydraulics method
+    mh.p_iota_HW_material_factor_pipeline = Param(
+        initialize=130,
+        mutable=True,
+        units=pyunits.dimensionless,
+        doc="Pipeline material factor for Hazen-Williams equation",
+    )
+    mh.p_rhog = Param(
+        initialize=9.8 * 1,
+        units=model.model_units["pressure"] / pyunits.meter,
+        doc="g (m/s2) * density of PW (assumed to be 1000 kg/m3)",
+    )
+    mh.p_nu_PumpFixedCost = Param(
+        initialize=1,
+        mutable=True,
+        units=model.model_units["currency"],
+        doc="Fixed cost of adding a pump in kUSD",
+    )
+    mh.p_nu_ElectricityCost = Param(
+        initialize=0.1e-3,
+        mutable=True,
+        doc="Cost of Electricity assumed in kUSD/kWh",
+    )
+    mh.p_eta_PumpEfficiency = Param(
+        initialize=0.9,
+        mutable=True,
+        doc="Pumps Efficiency",
+    )
+    mh.p_eta_MotorEfficiency = Param(
+        initialize=0.9,
+        mutable=True,
+        doc="Motor Efficiency of the Pump",
+    )
+    mh.p_xi_Min_AOP = Param(
+        initialize=pyunits.convert_value(
+            model.df_parameters["Hydraulics"]["min_allowable_pressure"],
+            from_units=model.user_units["pressure"],
+            to_units=model.model_units["pressure"],
+        ),
+        mutable=True,
+        units=model.model_units["pressure"],
+        doc="Minimum ALlowable Operating Pressure",
+    )
+    mh.p_xi_Max_AOP = Param(
+        initialize=pyunits.convert_value(
+            model.df_parameters["Hydraulics"]["max_allowable_pressure"],
+            from_units=model.user_units["pressure"],
+            to_units=model.model_units["pressure"],
+        ),
+        mutable=True,
+        units=model.model_units["pressure"],
+        doc="Maximum ALlowable Operating Pressure",
+    )
+    mh.p_Initial_Pipeline_Diameter = Param(
+        model.s_L,
+        model.s_L,
+        default=pyunits.convert_value(
+            0,
+            from_units=model.user_units["diameter"],
+            to_units=model.model_units["diameter"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["diameter"],
+                to_units=model.model_units["diameter"],
+            )
+            for key, value in model.df_parameters["InitialPipelineDiameters"].items()
+        },
+        units=model.model_units["diameter"],
+        doc="Initial pipeline diameter [inch]",
+    )
+    mh.p_upsilon_WellPressure = Param(
+        model.s_P,
+        model.s_T,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["pressure"],
+                to_units=model.model_units["pressure"],
+            )
+            for key, value in model.df_parameters["WellPressure"].items()
+        },
+        units=model.model_units["pressure"],
+        doc="Well pressure at production or completions pad [pressure]",
+    )
+    mh.vb_Y_Pump = Var(
+        model.s_LLA,
+        within=Binary,
+        initialize=0,
+        doc="Binary variable for fixed cost of Pump",
+    )
+    mh.v_PumpHead = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=pyunits.meter,
+        doc="Pump Head added in the direction of flow, m",
+    )
+    mh.v_ValveHead = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=pyunits.meter,
+        doc="Valve Head removed in the direction of flow, m",
+    )
+    mh.v_PumpCost = Var(
+        model.s_LLA,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["currency"],
+        doc="Pump cost",
+    )
+    mh.v_Pressure = Var(
+        model.s_L,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=mh.p_xi_Min_AOP,
+        bounds=(mh.p_xi_Min_AOP, None),
+        units=model.model_units["pressure"],
+        doc="Pressure at location l at time t in Pa",
+    )
+    mh.v_Z_HydrualicsCost = Var(
+        within=Reals,
+        units=model.model_units["currency"],
+        doc="Total cost for Pumps and Valves [currency]",
+    )
+
+    # if the well pressure are known, i.e., for the production pads or the disposable wells, then fix them
+    for p in model.s_P:
+        for t in model.s_T:
+            if value(mh.p_upsilon_WellPressure[p, t]) > 0:
+                mh.v_Pressure[p, t].fix(mh.p_upsilon_WellPressure[p, t])
+
+    # add all necessary constraints
+    def MAOPressureRule(b, l1, t1):
+        constraint = (
+            b.v_Pressure[l1, t1] * cons_scaling_factor
+            <= b.p_xi_Max_AOP * cons_scaling_factor
+        )
+        return process_constraint(constraint)
+
+    mh.MAOPressure = Constraint(
+        model.s_L - model.s_P,
+        model.s_T,
+        rule=MAOPressureRule,
+        doc="Max allowable pressure rule",
+    )
+
+    def PumpHeadeRule(b, l1, l2):
+        constraint = (
+            sum(b.v_PumpHead[l1, l2, t] for t in model.s_T)
+        ) * cons_scaling_factor <= (
+            model.p_M_Flow * mh.vb_Y_Pump[l1, l2]
+        ) * cons_scaling_factor
+        return process_constraint(constraint)
+
+    mh.PumpHeadCons = Constraint(
+        model.s_LLA,
+        rule=PumpHeadeRule,
+        doc="Pump Head Constraint",
+    )
+
+    def HydraulicsCostRule(b):
+        constraint = (
+            mh.v_Z_HydrualicsCost * cons_scaling_factor
+            == (sum((mh.v_PumpCost[key]) for key in model.s_LLA)) * cons_scaling_factor
+        )
+        return process_constraint(constraint)
+
+    mh.HydraulicsCostEq = Constraint(
+        rule=HydraulicsCostRule,
+        doc="Total cost for pumps and valves rule",
+    )
+
+    if model.config.hydraulics == Hydraulics.post_process:
+        """
+        For the post process method, the pressure is computed using the
+        Hazen-Williams equation in a separate stand alone method "_hazen_williams_head". In this method,
+        the hydraulics block is solved alone for the objective of minimizing total cost of pumps.
+        """
+        mh.p_effective_Pipeline_diameter = Param(
+            model.s_LLA,
+            default=0,
+            initialize=0,
+            mutable=True,
+            units=model.model_units["diameter"],
+            doc="Effective pipeline diameter when two or more pipelines exist between two locations [inch]",
+        )
+        mh.p_HW_loss = Param(
+            model.s_LLA,
+            model.s_T,
+            default=0,
+            initialize=0,
+            within=NonNegativeReals,
+            mutable=True,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+        for key in model.s_LLA:
+            mh.p_effective_Pipeline_diameter[key] = mh.p_Initial_Pipeline_Diameter[
+                key
+            ] + value(
+                sum(
+                    model.vb_y_Pipeline[key, d]
+                    * model.df_parameters["PipelineDiameterValues"][d]
+                    for d in model.s_D
+                )
+            )
+
+        # Compute Hazen-Williams head
+        for t0 in model.s_T:
+            for key in model.s_LLA:
+                if value(model.v_F_Piped[key, t0]) > 0.01:
+                    if value(mh.p_effective_Pipeline_diameter[key]) > 0.1:
+                        mh.p_HW_loss[key, t0] = _hazen_williams_head(
+                            mh.p_iota_HW_material_factor_pipeline,
+                            pyunits.convert(
+                                model.p_lambda_Pipeline[key], to_units=pyunits.meter
+                            ),
+                            pyunits.convert(
+                                mh.p_effective_Pipeline_diameter[key],
+                                to_units=pyunits.meter,
+                            ),
+                            pyunits.convert(
+                                model.v_F_Piped[key, t0],
+                                to_units=pyunits.m**3 / pyunits.s,
+                            ),
+                        )
+
+        def NodePressureRule(b, l1, l2, t1):
+            if value(model.v_F_Piped[l1, l2, t1]) > 0.01:
+                constraint = (
+                    b.v_Pressure[l1, t1] + model.p_zeta_Elevation[l1] * mh.p_rhog
+                ) * cons_scaling_factor == (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.p_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                ) * cons_scaling_factor
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
+
+        mh.NodePressure = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressureRule,
+            doc="Pressure at Node L",
+        )
+
+        def PumpCostRule(b, l1, l2):
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                == (
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + (
+                        (mh.p_nu_ElectricityCost / 3.6e6)
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
+                        * sum(
+                            b.v_PumpHead[l1, l2, t]
+                            * pyunits.convert_value(
+                                value(model.v_F_Piped[l1, l2, t]),
+                                from_units=model.model_units["volume_time"],
+                                to_units=pyunits.meter**3 / pyunits.h,
+                            )
+                            for t in model.s_T
+                        )
+                    )
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        mh.objective = Objective(
+            expr=(mh.v_Z_HydrualicsCost),
+            sense=minimize,
+            doc="Objective function for Hydraulics block",
+        )
+
+    elif model.config.hydraulics == Hydraulics.co_optimize:
+        """
+        For the co-optimize method, the hydraulics block is solved along with
+        the network model to optimize the network in the presence of
+        hydraulics constraints. The objective is to minimize total cost including
+        the cost of pumps.
+        """
+        # In the co_optimize method the objective should include the cost of pumps. So,
+        # delete the original objective to add a modified objective in this method.
+        del model.objective
+
+        # add necessary variables and constraints
+        mh.v_HW_loss = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+        mh.v_effective_Pipeline_diameter = Var(
+            model.s_LLA,
+            initialize=0,
+            units=model.model_units["diameter"],
+            doc="Diameter of pipeline between two locations [inch]",
+        )
+
+        def EffectiveDiameterRule(b, l1, l2, t1):
+            constraint = mh.v_effective_Pipeline_diameter[
+                l1, l2
+            ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
+                model.vb_y_Pipeline[l1, l2, d]
+                * model.df_parameters["PipelineDiameterValues"][d]
+                for d in model.s_D
+            )
+            return process_constraint(constraint)
+
+        mh.EffectiveDiameter = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=EffectiveDiameterRule,
+            doc="Pressure at Node L",
+        )
+
+        def HazenWilliamsRule(b, l1, l2, t1):
+            constraint = (
+                b.v_HW_loss[l1, l2, t1]
+                * (
+                    pyunits.convert(
+                        mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
+                    )
+                    ** 4.87
+                )
+            ) * cons_scaling_factor == (
+                10.704
+                * (
+                    (
+                        pyunits.convert(
+                            model.v_F_Piped[l1, l2, t1],
+                            to_units=pyunits.m**3 / pyunits.s,
+                        )
+                        / mh.p_iota_HW_material_factor_pipeline
+                    )
+                    ** 1.85
+                )
+                * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
+            ) * cons_scaling_factor
+            return process_constraint(constraint)
+
+        mh.HW_loss_equaltion = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=HazenWilliamsRule,
+            doc="Pressure at Node L",
+        )
+
+        def NodePressureRule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1]
+                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                == (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.NodePressure = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressureRule,
+            doc="Pressure at Node L",
+        )
+
+        def PumpCostRule(b, l1, l2):
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                == (
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + (
+                        (mh.p_nu_ElectricityCost / 3.6e6)
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
+                        * sum(
+                            b.v_PumpHead[l1, l2, t]
+                            * pyunits.convert(
+                                (model.v_F_Piped[l1, l2, t]),
+                                to_units=pyunits.meter**3 / pyunits.h,
+                            )
+                            for t in model.s_T
+                        )
+                    )
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        model.objective = Objective(
+            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
+            sense=minimize,
+            doc="Objective function",
+        )
+
+    return model
+
+
+def _hazen_williams_head(mat_factor, length, diameter, flow):
+    """
+    Computes Hazen-Williams (HW) head in a pipeline
+
+    Input Args
+    ----------
+    mat_factor: pipeline material factor for HW equation
+    length : length of pipeline segment in m.
+    diameter : diameter of pipeline segment in m.
+    flow : water flow through the pipeline segment in m3/s.
+
+    Returns
+    -------
+    hw_friction_head : frictional head loss based on Hazen-Williams rule in m.
+
+    """
+
+    temp_1 = length / (diameter**4.87)
+    temp_2 = (flow / mat_factor) ** 1.85
+    hw_friction_head = 10.704 * temp_2 * temp_1
+    return hw_friction_head
 
 
 def water_quality(model):
@@ -4296,7 +5156,7 @@ def water_quality(model):
         model.s_QC,
         model.s_T,
         rule=BeneficialReuseWaterQuality,
-        doc="Beneficial reuse capacity",
+        doc="Beneficial reuse water quality",
     )
     # endregion
 
@@ -4487,7 +5347,7 @@ def get_max_value_for_parameter(parameter):
 
 
 def water_quality_discrete(model, df_parameters, df_sets):
-    # region Add sets, parameters and constraints
+    # Add sets, parameters and constraints
 
     # Crate a set for Completions Pad storage by appending "-storage" to each item in the CompletionsPads Set
     storage_label = "-storage"
@@ -5551,7 +6411,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_QC,
         model.s_T,
         rule=BeneficialReuseWaterQuality,
-        doc="Beneficial reuse capacity",
+        doc="Beneficial reuse water quality",
     )
     # endregion
 
@@ -5749,9 +6609,9 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    try:
+    if opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
-    except ValueError:
+    else:
         opt.solve(water_quality_model.quality, tee=True)
 
     return water_quality_model
@@ -5792,7 +6652,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_PadStorageOut] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Piped] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
-    model.scaling_factor[model.v_F_DesalinatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_StorageEvaporationStream] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TreatmentFeed] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ResidualWater] = 1 / scaling_factor
@@ -5802,19 +6661,22 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_F_Sourced] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalDisposed] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalReused] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalSourced] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TotalTrucked] = 1 / scaling_factor
     model.scaling_factor[model.v_F_Trucked] = 1 / scaling_factor
     model.scaling_factor[model.v_L_PadStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_L_Storage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_BeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_S_DisposalCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Flowback] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_FracDemand] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_PipelineCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Production] = 1000 / scaling_factor
-    model.scaling_factor[model.v_S_ReuseCapacity] = 1000 / scaling_factor
+    model.scaling_factor[model.v_S_BeneficialReuseCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_TreatmentCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_StorageCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_T_Capacity] = 1 / scaling_factor
@@ -5850,7 +6712,9 @@ def scale_model(model, scaling_factor=None):
     elif model.config.objective == Objectives.reuse:
         model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
 
+    model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
     # This constraints contains only binary variables
     model.scaling_factor[model.BidirectionalFlow1] = 1
     model.scaling_factor[model.BidirectionalFlow2] = 1 / scaling_factor
@@ -5899,6 +6763,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.StorageSiteProcessingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageSiteTruckOffloadingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.BeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TerminalCompletionsPadStorageLevel] = 1 / scaling_factor
     model.scaling_factor[model.TerminalStorageLevel] = 1 / scaling_factor
     model.scaling_factor[model.TotalCompletionsReuseCost] = 1 / scaling_factor
@@ -5910,12 +6775,14 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalReuseVolume] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TotalBeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentFeedBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
-    model.scaling_factor[model.TreatedWater] = 1 / scaling_factor
+    model.scaling_factor[model.TreatedWaterBalance] = 1 / scaling_factor
+    model.scaling_factor[model.ResidualWaterBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCapacityExpansion] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentCostLHS] = 1 / scaling_factor
@@ -5924,8 +6791,6 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.ResidualWaterRHS] = 1 / scaling_factor
     model.scaling_factor[model.TruckingCost] = 1 / (scaling_factor * 100)
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
-    model.scaling_factor[model.LogicConstraintDesalinationFlow] = 1 / scaling_factor
-    model.scaling_factor[model.LogicConstraintNoDesalinationFlow] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
 
@@ -6092,6 +6957,187 @@ def _preprocess_data(model):
         )
 
 
+def infrastructure_timing(model):
+    # Store the start build time to a dictionary
+    model.infrastructure_buildStart = {}
+    # Store the lead time for built facilities to a dictionary
+    model.infrastructure_leadTime = {}
+    # Store time period for first use to a dictionary
+    model.infrastructure_firstUse = {}
+    # Due to tolerances, binaries may not exactly equal 1
+    binary_epsilon = 0.1
+
+    # Iterate through our built sites
+    # Treatment - "vb_y_Treatment"
+    treatment_data = model.vb_y_Treatment._data
+    # Treatment Site - iterate through vb_y variables
+    for i in treatment_data:
+        # Get site name from data
+        treatment_site = i[0]
+        # add values to output dictionary
+        if (
+            treatment_data[i].value >= 1 - binary_epsilon
+            and treatment_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Treatment[(i[1], i[2])].value
+            > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            # first use is time period where there is more volume to treatment than starting capacity
+            for t in model.s_T:
+                if (
+                    sum(
+                        model.v_F_Piped[l, treatment_site, t].value
+                        for l in model.s_L
+                        if (l, treatment_site) in model.s_LLA
+                    )
+                    + sum(
+                        model.v_F_Trucked[l, treatment_site, t].value
+                        for l in model.s_L
+                        if (l, treatment_site) in model.s_LLT
+                    )
+                    > model.p_sigma_Treatment[treatment_site, i[1]].value
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[treatment_site] = t
+                    # Get the lead time rounded up to the nearest full time period
+                    model.infrastructure_leadTime[treatment_site] = math.ceil(
+                        model.p_tau_TreatmentExpansionLeadTime[i].value
+                    )
+                    break
+
+    # Disposal - "vb_y_Disposal"
+    disposal_data = model.vb_y_Disposal._data
+    for i in disposal_data:
+        # Get site name from data
+        disposal_site = i[0]
+        # add values to output dictionary
+        if (
+            disposal_data[i].value >= 1 - binary_epsilon
+            and disposal_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Disposal[i[1]].value > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            # First use is time period where more water is sent to disposal than initial capacity
+            for t in model.s_T:
+                if (
+                    model.v_F_DisposalDestination[disposal_site, t].value
+                    > model.p_sigma_Disposal[disposal_site].value
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[disposal_site] = t
+                    # Get the lead time rounded up to the nearest full time period
+                    model.infrastructure_leadTime[disposal_site] = math.ceil(
+                        model.p_tau_DisposalExpansionLeadTime[i].value
+                    )
+                    break
+
+    # Storage - "vb_y_Storage"
+    storage_data = model.vb_y_Storage._data
+    # Storage Site - iterate through vb_y variables
+    for i in storage_data:
+        # Get site name from data
+        storage_site = i[0]
+        # add values to output dictionary
+        if (
+            storage_data[i].value >= 1 - binary_epsilon
+            and storage_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Storage[i[1]].value > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            # First use is when the water level exceeds the initial storage capacity
+            for t in model.s_T:
+                if (
+                    model.v_L_Storage[storage_site, t].value
+                    > model.p_sigma_Storage[storage_site].value
+                ):
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[storage_site] = t
+                    # Get the lead time rounded up to the nearest full time period
+                    model.infrastructure_leadTime[storage_site] = math.ceil(
+                        model.p_tau_StorageExpansionLeadTime[i].value
+                    )
+                    break
+
+    # Pipeline - "vb_y_Pipeline"
+    pipeline_data = model.vb_y_Pipeline._data
+    for i in pipeline_data:
+        # Get site name from data
+        pipeline = (i[0], i[1])
+        # add values to output dictionary
+        if (
+            pipeline_data[i].value >= 1 - binary_epsilon
+            and pipeline_data[i].value <= 1 + binary_epsilon
+            and model.p_delta_Pipeline[i[2]].value > 0  # selected capacity is nonzero
+        ):
+            # determine first time period that site is used
+            # pipeline is first used when water is sent in either direction of pipeline at a volume above the initial capacity
+            for t in model.s_T:
+                above_initial_capacity = False
+                # if the pipeline is defined as bidirectional then the aggregated initial capacity is available in both directions
+                if pipeline[::-1] in model.s_LLA:
+                    initial_capacity = (
+                        model.p_sigma_Pipeline[pipeline].value
+                        + model.p_sigma_Pipeline[pipeline[::-1]].value
+                    )
+                    if (
+                        model.v_F_Piped[pipeline, t].value > initial_capacity
+                        or model.v_F_Piped[pipeline[::-1], t].value > initial_capacity
+                    ):
+                        above_initial_capacity = True
+                else:
+                    initial_capacity = model.p_sigma_Pipeline[pipeline].value
+                    if model.v_F_Piped[pipeline, t].value > initial_capacity:
+                        above_initial_capacity = True
+
+                if above_initial_capacity:
+                    # Add first use to a dictionary
+                    model.infrastructure_firstUse[pipeline] = t
+                    # Get the lead time rounded up to the nearest full time period
+
+                    if model.config.pipeline_cost == PipelineCost.distance_based:
+                        model.infrastructure_leadTime[pipeline] = math.ceil(
+                            model.p_tau_PipelineExpansionLeadTime.value
+                            * model.p_lambda_Pipeline[pipeline].value
+                        )
+                    elif model.config.pipeline_cost == PipelineCost.capacity_based:
+                        # Pipelines lead time may only be defined in one direction
+                        model.infrastructure_leadTime[pipeline] = math.ceil(
+                            max(
+                                model.p_tau_PipelineExpansionLeadTime[i].value,
+                                model.p_tau_PipelineExpansionLeadTime[
+                                    pipeline[::-1], i[2]
+                                ].value,
+                            )
+                        )
+                    break
+
+    # Calculate start build for all infrastructure
+    # Convert the ordered set to a list for easier use
+    s_T_list = list(model.s_T)
+    for key, value in model.infrastructure_firstUse.items():
+        # Find the index of time period in the list
+        finish_index = s_T_list.index(value)
+        start_index = finish_index - model.infrastructure_leadTime[key]
+        # if start time is within time horizon, report time period
+        if start_index >= 0:
+            model.infrastructure_buildStart[key] = model.s_T.at(start_index + 1)
+        # if start time is prior to time horizon, report # time period prior to start
+        else:
+            if abs(start_index) > 1:
+                plural = "s"
+            else:
+                plural = ""
+
+            model.infrastructure_buildStart[key] = (
+                str(abs(start_index))
+                + " "
+                + model.decision_period.to_string()
+                + plural
+                + " prior to "
+                + model.s_T.first()
+            )
+
+
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:
     # Step 1 - generate a feasible initial solution
@@ -6241,7 +7287,7 @@ def solve_model(model, options=None):
         model.v_S_StorageCapacity.fix(0)
         model.v_S_DisposalCapacity.fix(0)
         model.v_S_TreatmentCapacity.fix(0)
-        model.v_S_ReuseCapacity.fix(0)
+        model.v_S_BeneficialReuseCapacity.fix(0)
 
     if use_scaling:
         # Step 1: scale model
@@ -6305,5 +7351,101 @@ def solve_model(model, options=None):
                 This can be done by selecting 'deactivate_slacks': False in the options"
         )
 
+    # For a given time t and beneficial reuse option o, if the beneficial reuse
+    # minimum flow parameter is zero (p_sigma_BeneficialReuseMinimum[o, t] = 0)
+    # and the optimal total flow to beneficial reuse is zero
+    # (v_F_BeneficialReuseDestination[o, t] = 0), then it is arbitrary whether
+    # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
+    # these cases it's preferred to report a value of 0 to the user, so change
+    # the value of vb_y_BeneficialReuse[o, t] as necessary.
+    for t in model.s_T:
+        for o in model.s_O:
+            if (
+                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+                and value(model.vb_y_BeneficialReuse[o, t] > 0)
+            ):
+                model.vb_y_BeneficialReuse[o, t].value = 0
+
+    # post-process infrastructure buildout
+    if model.config.infrastructure_timing == InfrastructureTiming.true:
+        infrastructure_timing(model)
+
     results.write()
+
+    if model.config.hydraulics != Hydraulics.false:
+        model_h = pipeline_hydraulics(model)
+
+        if model.config.hydraulics == Hydraulics.post_process:
+            # In the post-process solve, only the hydraulics block is solved.
+
+            mh = model_h.hydraulics
+            # Calculate hydraulics. The following condition is used to avoid attribute error when
+            # using gurobi_direct on hydraulics sub-block
+            if opt.type == "gurobi_direct":
+                results_2 = opt.solve(mh, tee=True, save_results=False)
+            else:
+                results_2 = opt.solve(mh, tee=True)
+
+        elif model.config.hydraulics == Hydraulics.co_optimize:
+            # Currently, this method is supported for only MINLP solvers accessed through GAMS.
+            # The default solver is Baron and is set to find the first feasible solution.
+            # If the user has SCIP, then the feasible solution from BARON is passed to SCIP, which is then solved to a gap of 0.3.
+            # If the user do not have these solvers installed then it limits the use of co_optimize method at this time.
+            # Ongoing work is geared to address this limitation and will soon be updated here.
+
+            # Adding temporary variable bounds until the bounding method is implemented for the following Vars
+            model_h.v_F_Piped.setub(1050)
+            model_h.hydraulics.v_Pressure.setub(3.5e6)
+
+            try:
+                solver = SolverFactory("gams")
+                mathoptsolver = "baron"
+            except:
+                print(
+                    "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
+                      please continue to use the post-process method for hydraulics at this time"
+                )
+            else:
+                solver_options = {
+                    "firstfeas": 1,
+                }
+
+                if not os.path.exists("temp"):
+                    os.makedirs("temp")
+
+                with open("temp/" + mathoptsolver + ".opt", "w") as f:
+                    for k, v in solver_options.items():
+                        f.write(str(k) + " " + str(v) + "\n")
+
+                results_baron = solver.solve(
+                    model_h,
+                    tee=True,
+                    keepfiles=True,
+                    solver=mathoptsolver,
+                    tmpdir="temp",
+                    add_options=["gams_model.optfile=1;"],
+                )
+                try:
+                    # second solve with SCIP
+                    solver2 = SolverFactory("scip", solver_io="nl")
+                    print("  ")
+                    print(
+                        "WARNING: A default relative optimality gap of 30%/ is set to obtain good solutions at this time"
+                    )
+                    print("  ")
+                except:
+                    print(
+                        "A second solve with SCIP cannot be executed as SCIP was not found. Please add it to Path. \
+                          If you do not haev SCIP, proceed with caution when using solution obtain from first solve using BARON"
+                    )
+                else:
+                    results_2 = solver2.solve(
+                        model_h, options={"limits/gap": 0.3}, tee=True
+                    )
+
+        # Once the hydraulics block is solved, it is deactivated to retain the original MILP
+        model_h.hydraulics.deactivate()
+
+        results_2.write()
     return results
