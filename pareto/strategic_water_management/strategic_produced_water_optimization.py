@@ -161,6 +161,7 @@ CONFIG.declare(
     ),
 )
 
+
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -979,7 +980,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Directional flow between two locations",
     )
-    #TODO - this should really be a post-processed variable
+    # TODO - this should really be a post-processed variable
     model.vb_y_TruckingVolume = Var(
         model.s_L,
         model.s_L,
@@ -994,7 +995,6 @@ def create_model(df_sets, df_parameters, default={}):
         within=Binary,
         initialize=0,
         doc="Beneficial reuse option selection",
-
     )
 
     # Pre-process Data #
@@ -2542,7 +2542,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -5576,7 +5575,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5613,7 +5611,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6618,7 +6615,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
