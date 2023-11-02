@@ -189,7 +189,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29595
+    assert degrees_of_freedom(m) == 34431
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -212,7 +212,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29595
+    assert degrees_of_freedom(m) == 34431
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -235,7 +235,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29595
+    assert degrees_of_freedom(m) == 34431
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -258,7 +258,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29595
+    assert degrees_of_freedom(m) == 34431
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -352,7 +352,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 29595
+    assert degrees_of_freedom(m) == 34431
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -619,7 +619,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 12851
+    assert degrees_of_freedom(m) == 16231
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -643,7 +643,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 12851
+    assert degrees_of_freedom(m) == 16231
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -667,7 +667,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 12851
+    assert degrees_of_freedom(m) == 16231
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -691,7 +691,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 103331
+    assert degrees_of_freedom(m) == 106711
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective
@@ -1327,7 +1327,7 @@ def test_basic_toy_build(build_toy_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 7237
+    assert degrees_of_freedom(m) == 8433
     # Check unit config arguments
     assert len(m.config) == 8
     assert m.config.objective

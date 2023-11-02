@@ -123,6 +123,8 @@ def fetch_strategic_model(config_dict):
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "AirEmissionCoefficients",
+        "TreatmentEmissionCoefficients",
         "TreatmentExpansionLeadTime",
         "DisposalExpansionLeadTime",
         "StorageExpansionLeadTime",

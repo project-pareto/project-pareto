@@ -3130,8 +3130,7 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(
                     sum(
-                        model.vb_y_Treatment[r, wt, j]
-                        * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
+                        model.p_eta_TreatmentEmissionsCoefficient[wt, a]
                         * model.v_F_TreatmentFeed[r, t]
                         for wt in model.s_WT
                     )
@@ -6667,6 +6666,13 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_R_BeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalTruckingHours] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalTruckingEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalPipeOperationEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalPipeInstallEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalDisposalEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalStorageEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalTreatmentEmissions] = 1 / scaling_factor
     model.scaling_factor[model.v_S_DisposalCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Flowback] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_FracDemand] = 1000 / scaling_factor
@@ -6789,6 +6795,15 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
+    model.scaling_factor[model.TotalStorageEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalPipelineOperationsEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalPipelineInstallationsEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTreatmentEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalDisposalEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.NonZeroTruckingLB] = 1 / scaling_factor
+    model.scaling_factor[model.NonZeroTruckingUB] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingHours] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingEmissions] = 1 / scaling_factor
 
     if model.config.node_capacity == True:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor

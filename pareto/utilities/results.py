@@ -390,18 +390,6 @@ def generate_report(
                     "Total deliveries to beneficial reuse",
                 )
             ],
-            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
-            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
-            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
-            "v_S_PipelineCapacity_dict": [
-                ("Origin", "Destination", "Slack Pipeline Capacity")
-            ],
-            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
-            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
-            "v_S_TreatmentCapacity_dict": [
-                ("Treatment site", "Slack Treatment Capacity")
-            ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_E_TotalTruckingEmissions_dict": [
                 ("Air Quality Component", "Emissions (g)")
             ],
@@ -420,6 +408,18 @@ def generate_report(
             "v_E_TotalTreatmentEmissions_dict": [
                 ("Air Quality Component", "Emissions (g)")
             ],
+            "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
+            "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
+            "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
+            "v_S_PipelineCapacity_dict": [
+                ("Origin", "Destination", "Slack Pipeline Capacity")
+            ],
+            "v_S_StorageCapacity_dict": [("Storage site", "Slack Storage Capacity")],
+            "v_S_DisposalCapacity_dict": [("Storage site", "Slack Disposal Capacity")],
+            "v_S_TreatmentCapacity_dict": [
+                ("Treatment site", "Slack Treatment Capacity")
+            ],
+            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_S_BeneficialReuseCapacity_dict": [
                 ("Reuse site", "Slack Reuse Capacity")
             ],
