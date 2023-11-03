@@ -368,6 +368,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "CompletionsPadOutsideSystem": "",
         "DesalinationTechnologies": "",
         "DesalinationSites": "",
+        "BeneficialReuseCost": user_units["currency"] + "/" + user_units["volume"],
         "BeneficialReuseCredit": user_units["currency"] + "/" + user_units["volume"],
         "TruckingTime": "hours",
         "CompletionsDemand": user_units["volume"] + "/" + user_units["time"],

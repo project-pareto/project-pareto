@@ -83,6 +83,7 @@ parameter_list = [
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCost",
     "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
