@@ -3394,7 +3394,7 @@ def create_model(df_sets, df_parameters, default={}):
 
         return process_constraint(constraint)
 
-    model.BeneficialReuseCcost = Constraint(
+    model.BeneficialReuseCost = Constraint(
         model.s_O,
         model.s_T,
         rule=BeneficialReuseCostRule,
