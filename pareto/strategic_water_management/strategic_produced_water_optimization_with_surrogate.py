@@ -632,6 +632,14 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_time"],
         doc="Cost of treating produced water at treatment site [currency/time]",
     )
+    # model.v_C_Treatment_site = Var(
+    #     model.s_R,
+    #     model.s_T,
+    #     initialize=0,
+    #     within=NonNegativeReals,
+    #     units=model.model_units["currency_time"],
+    #     doc="Cost of treating produced water at treatment site [currency/time]",
+    # )
     model.v_C_Treatment_site = Var(
         model.s_R,
         initialize=0,
@@ -2228,6 +2236,16 @@ def create_model(df_sets, df_parameters, default={}):
             input_vars=[model.inlet_salinity[i],model.recovery[i],model.v_T_Capacity[i]],
             output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
         )
+    # model.surrogate_costs = SurrogateBlock(model.s_R,model.s_T)
+    # keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_2_evap_corrected")
+    # for i in model.s_R:
+    #     for t in model.s_T:
+    #         model.surrogate_costs[i,t].build_model(
+    #             keras_surrogate,
+    #             formulation=KerasSurrogate.Formulation.RELU_BIGM,
+    #             input_vars=[model.inlet_salinity[i],model.recovery[i],model.v_T_Capacity[i]],
+    #             output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i,t],model.treatment_energy[i]],
+    #         )
     # model.surrogate_costs_R02 = SurrogateBlock()
     # model.surrogate_costs_R02.build_model(
     #     keras_surrogate,
@@ -2237,8 +2255,11 @@ def create_model(df_sets, df_parameters, default={}):
     # )
     # model.surrogate_costs_R01.deactivate()
     # model.surrogate_costs_R02.deactivate()
+    # def treatmentSurrogate(model):
+    #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t] for i in model.s_R for t in model.s_T)
+    # model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
     def treatmentSurrogate(model):
-        return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i] for i in model.s_R)
+        return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i] for i in model.s_R for t in model.s_T)
     model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
     def capExSurrogate(model):
         return model.v_C_TreatmentCapEx_surrogate==sum(model.v_C_TreatmentCapEx_site[i] for i in model.s_R)
