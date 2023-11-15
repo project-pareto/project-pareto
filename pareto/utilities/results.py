@@ -128,6 +128,7 @@ def generate_report(
                     "v_E_TotalDisposalEmissions",
                     "v_E_TotalStorageEmissions",
                     "v_E_TotalTreatmentEmissions",
+                    "v_E_TotalEmissionsByComponent",
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -408,6 +409,9 @@ def generate_report(
             "v_E_TotalTreatmentEmissions_dict": [
                 ("Air Quality Component", "Emissions (g)")
             ],
+            "v_E_TotalEmissionsByComponent_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
             "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
             "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
             "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
@@ -516,13 +520,6 @@ def generate_report(
             for t in model.s_T
         )
         model.totalEvaporatedKPI.value = totalEvaporated_value
-
-        # Facility utilization buildout table
-
-        # headers["utilization"]
-        # # capacity data
-        # #
-        # # utilization rate
 
         # Infrastructure buildout table
 
@@ -1133,8 +1130,34 @@ def generate_report(
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
+    # Convert Objective to display units
+    # get display unit:  the display units (to_unit) is defined by output_units from module parameter
+    from_unit_string = model.v_Z.get_units().to_string()
+    if output_units == OutputUnits.unscaled_model_units:
+        to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+    elif output_units == OutputUnits.user_units:
+        to_unit = model.model_to_user_units[from_unit_string]
+
+    var_value = pyunits.convert_value(
+        model.v_Z.value,
+        from_units=model.v_Z.get_units(),
+        to_units=to_unit,
+    )
+    # Add objective to v_F_Overview_dict
+    headers["v_F_Overview_dict"].append(
+        (
+            model.v_Z.name,
+            model.v_Z.doc,
+            to_unit.to_string().replace("oil_bbl", "bbl"),
+            var_value,
+        )
+    )
+
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
+        # Objective variable already added to report. We can skip it here.
+        if variable.name == "v_Z":
+            continue
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
         units_true = variable.get_units() is not None
         # If units are used, determine what the display units should be based off user input
