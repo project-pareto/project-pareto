@@ -423,7 +423,9 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["InjectionCapacities"],
         doc="Injection (i.e. disposal) capacities",
     )
-
+    model.s_WT_MVC = Set(
+        initialize=['CB','CB-EV','MVC','MD','OARO'],doc="Treatment without MVC"
+    )
     model.s_WT = Set(
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
@@ -877,6 +879,11 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_TreatmentCapEx_site_time = Var(
         model.s_R,
         model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of constructing or expanding treatment capacity [currency]",
+    )
+    model.totalCapex = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
@@ -2383,6 +2390,7 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_C_DisposalCapEx
                     + model.v_C_StorageCapEx
                     + model.v_C_PipelineCapEx
+                    + model.v_C_TreatmentCapEx
                 )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
@@ -2430,14 +2438,19 @@ def create_model(df_sets, df_parameters, default={}):
     # def treatmentSurrogate(model):
     #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
     # model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
-    def treatmentCapexSurrogate(model,):
-        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t]
+    def treatmentCapexSurrogate(model,i,t):
+        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t] - 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
     model.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
-    
+    def treatmentCapexBigM(model,i,t):
+        return model.v_C_TreatmentCapEx_site[i]<=model.v_C_TreatmentCapEx_site_time[i,t] + 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
+    model.capBigM = Constraint(model.s_R,model.s_T,rule=treatmentCapexBigM,doc='Max treated vol as capex')
     def capExSurrogate(model):
         return model.v_C_TreatmentCapEx_surrogate==sum(model.v_C_TreatmentCapEx_site[i] for i in model.s_R)
     model.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
-
+    
+    def capexTotal(model):
+        return model.totalCapex==model.v_C_TreatmentCapEx+model.v_C_TreatmentCapEx_surrogate
+    model.capextot = Constraint(rule=capexTotal,doc='Total Capex')
     def CompletionsPadDemandBalanceRule(model, p, t):
         # If completions pad is outside the system, the completions demand is not required to be met
         if model.p_chi_OutsideCompletionsPad[p] == 1:
@@ -3267,7 +3280,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TreatmentCostLHS = Constraint(
         model.s_R,
-        model.s_WT,
+        model.s_WT_MVC,
         model.s_T,
         rule=TreatmentCostLHSRule,
         doc="Treatment cost",
@@ -3294,7 +3307,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TreatmentCostRHS = Constraint(
         model.s_R,
-        model.s_WT,
+        model.s_WT_MVC,
         model.s_T,
         rule=TreatmentCostRHSRule,
         doc="Treatment cost",
@@ -3624,7 +3637,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 for j in model.s_J
             )
-            for wt in model.s_WT
+            for wt in model.s_WT_MVC
         )
         return process_constraint(constraint)
 
