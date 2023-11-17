@@ -1577,6 +1577,7 @@ def create_model(df_sets, df_parameters, default={}):
             doc="Pipeline capacity installation/expansion increments [volume/time]",
         )
     model.p_delta_Disposal = Param(
+        model.s_K,
         model.s_I,
         default=pyunits.convert_value(
             10,
@@ -2763,7 +2764,8 @@ def create_model(df_sets, df_parameters, default={}):
             model.v_D_Capacity[k]
             == model.p_sigma_Disposal[k]
             + sum(
-                model.p_delta_Disposal[i] * model.vb_y_Disposal[k, i] for i in model.s_I
+                model.p_delta_Disposal[k, i] * model.vb_y_Disposal[k, i]
+                for i in model.s_I
             )
             * model.p_chi_DisposalExpansionAllowed[k]
             + model.v_S_DisposalCapacity[k]
@@ -3508,7 +3510,7 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 model.vb_y_Disposal[k, i]
                 * model.p_kappa_Disposal[k, i]
-                * model.p_delta_Disposal[i]
+                * model.p_delta_Disposal[k, i]
                 for i in model.s_I
             )
             for k in model.s_K
@@ -6786,13 +6788,15 @@ def infrastructure_timing(model):
     # Disposal - "vb_y_Disposal"
     disposal_data = model.vb_y_Disposal._data
     for i in disposal_data:
-        # Get site name from data
+        # Get site name and selected capacity from data
         disposal_site = i[0]
+        disposal_capacity = i[1]
         # add values to output dictionary
         if (
             disposal_data[i].value >= 1 - binary_epsilon
             and disposal_data[i].value <= 1 + binary_epsilon
-            and model.p_delta_Disposal[i[1]].value > 0  # selected capacity is nonzero
+            and model.p_delta_Disposal[disposal_site, disposal_capacity].value
+            > 0  # selected capacity is nonzero
         ):
             # determine first time period that site is used
             # First use is time period where more water is sent to disposal than initial capacity

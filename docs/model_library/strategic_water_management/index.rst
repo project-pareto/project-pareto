@@ -358,7 +358,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\omega^{EvaporationRate}}` = Evaporation rate per week
 
-:math:`\textcolor{green}{\delta_{i}^{Disposal}}` =              Increments for installation/expansion of disposal capacity
+:math:`\textcolor{green}{\delta_{k,i}^{Disposal}}` =              Increments for installation/expansion of disposal capacity
 
 :math:`\textcolor{green}{\delta_{c}^{Storage}}` =               Increments for installation/expansion of storage capacity
 
@@ -786,7 +786,7 @@ The set :math:`\textcolor{blue}{I}` should also include the 0th case (e.g. 0 bbl
 
 .. math::
 
-    \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\sum_{i \in I}\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
+    \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\sum_{i \in I}\textcolor{green}{\delta_{k,i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
 
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
 
@@ -1120,7 +1120,7 @@ Cost related to expanding or constructing new disposal capacity. Takes into cons
 
 .. math::
 
-    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
+    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{k,i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
 
 
 **Storage Construction or Capacity Expansion Cost:**
