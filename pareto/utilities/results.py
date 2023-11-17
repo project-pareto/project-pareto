@@ -22,6 +22,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
     Hydraulics,
+    InfrastructureTiming,
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
@@ -108,7 +109,8 @@ def generate_report(
                     "vb_y_Disposal",
                     "vb_y_Storage",
                     "vb_y_Treatment",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
                     "v_S_Production",
@@ -117,7 +119,7 @@ def generate_report(
                     "v_S_StorageCapacity",
                     "v_S_DisposalCapacity",
                     "v_S_TreatmentCapacity",
-                    "v_S_ReuseCapacity",
+                    "v_S_BeneficialReuseCapacity",
                     "v_Q",
                 ]
 
@@ -135,6 +137,7 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
 
@@ -157,6 +160,9 @@ def generate_report(
                     "Capacity",
                     "Unit",
                     "Technology",
+                    "First Use",
+                    "Build Start",
+                    "Build Lead Time [" + model.model_units["time"].to_string() + "s]",
                 )
             ],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
@@ -178,6 +184,13 @@ def generate_report(
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
             ],
+            "v_R_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Credit For Sending Water to Beneficial Reuse",
+                )
+            ],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
             "vb_y_Pipeline_dict": [
@@ -196,6 +209,7 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
+            "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
@@ -379,17 +393,10 @@ def generate_report(
             "v_S_TreatmentCapacity_dict": [
                 ("Treatment site", "Slack Treatment Capacity")
             ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_S_BeneficialReuseCapacity_dict": [
+                ("Reuse site", "Slack Reuse Capacity")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
-            "inlet_salinity_dict": [("Treatment site", "Inlet Salinity to Treatment Plant")],
-            "recovery_dict": [("Treatment site", "Recovery from the treatment plant")],
-            "v_C_TreatmentCapEx_site_dict": [("Treatment site","CapEx for each site")],
-            "v_C_Treatment_site_dict": [("Treatment site","OPEx for each site")],
-            "treatment_energy_dict": [("Treatment site","Energy required for each site")],
-            "v_C_TotalTreatment_surrogate_dict": [("Treatment site","Total Operating Cost")],
-            "v_C_TreatmentCapEx_surrogate_dict": [("Treatment site","Total capital Cost")],
-            "surrogate_costs_R01.nn.inputs_dict": [("Treatment site","ML surrogate site R01")],
-            "surrogate_costs_R02.nn.inputs_dict": [("Treatment site","ML surrogate site R02")],
         }
 
         # Defining KPIs for strategic model
@@ -436,7 +443,7 @@ def generate_report(
         # Infrastructure buildout table
 
         # Due to tolerances, binaries may not exactly equal 1
-        binary_epsilon = 0.005
+        binary_epsilon = 0.1
         # "vb_y_Treatment"
         treatment_data = model.vb_y_Treatment._data
         # get units
@@ -458,6 +465,14 @@ def generate_report(
                     from_units=model.p_delta_Treatment.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Treatment Facility",
@@ -466,6 +481,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         i[1],
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -490,6 +508,14 @@ def generate_report(
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Disposal Facility",
@@ -498,6 +524,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -522,6 +551,14 @@ def generate_report(
                     from_units=model.p_delta_Storage.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Storage Facility",
@@ -530,19 +567,21 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
         # vb_y_Pipeline
-        if model.config.pipeline_cost == PipelineCost.distance_based:
-            capacity_variable = model.p_mu_Pipeline
-        elif model.config.pipeline_cost == PipelineCost.capacity_based:
-            capacity_variable = model.p_delta_Pipeline
+        # if model.config.pipeline_cost == PipelineCost.distance_based:
+        #     capacity_variable = model.p_mu_Pipeline
+        # elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        #     capacity_variable = model.p_delta_Pipeline
+        capacity_variable = model.p_mu_Pipeline
         pipeline_data = model.vb_y_Pipeline._data
         # get units
-        capacity_variable = model.p_mu_Pipeline
         from_unit_string = capacity_variable.get_units().to_string()
-        
         # the display units (to_unit) is defined by output_units from module parameter
         if output_units == OutputUnits.unscaled_model_units:
             to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
@@ -560,6 +599,14 @@ def generate_report(
                     from_units=capacity_variable.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[(i[0], i[1])]
+                    build_start = model.infrastructure_buildStart[(i[0], i[1])]
+                    lead_time = model.infrastructure_leadTime[(i[0], i[1])]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Pipeline Construction",
@@ -568,6 +615,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
         if model.config.hydraulics == Hydraulics.post_process:
@@ -695,7 +745,7 @@ def generate_report(
                     "vb_y_Truck",
                     "v_F_Drain",
                     "v_B_Production",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
                     "v_F_Overview",
                     "v_L_PadStorage",
                     "v_C_Treatment",
@@ -803,17 +853,13 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
-
-            ### Additional variables for the ML Surrogate
-            "inlet_salinity_dict": [("Treatment site", "Inlet Salinity to Treatment Plant")],
-            "recovery_dict": [("Treatment site", "Recovery from the treatment plant")],
-            "v_C_TreatmentCapEx_site_dict": [("Treatment site","CapEx for each site")],
-            "v_C_Treatment_site_dict": [("Treatment site","OPEx for each site")],
-            "treatment_energy_dict": [("Treatment site","Energy required for each site")],
-            "v_C_TotalTreatment_surrogate_dict": [("Treatment site","Total Operating Cost")],
-            "v_C_TreatmentCapEx_surrogate_dict": [("Treatment site","Total capital Cost")],
-            "surrogate_costs_R01.nn.inputs_dict": [("Treatment site","ML surrogate site R01")],
-            "surrogate_costs_R02.nn.inputs_dict": [("Treatment site","ML surrogate site R02")],
+            
+            "inlet_salinity_dict": [("Treatment Site", "Inlet salinity in the feed")],
+            "recovery_dict": [("Treatment Site","Recovery of water")],
+            "treatment_energy_dict": [("Treatment Site","Energy required for each site for desalination")],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment Site","Capital cost for each site")],
+            "v_C_Treatment_site_dict": [("Treatment Site", "Time", "Treatment cost for each site at each time")],
+            
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
@@ -1008,6 +1054,28 @@ def generate_report(
                     ],
                 }
             )
+        # if model.config.objective == Objectives.cost_surrogate:
+        #     print('Updating Headers')
+        #     headers.update(
+        #         {
+        #             "inlet_salinity_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Inlet salinity in the feed")
+        #             ],
+        #             "recovery_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Recovery of water")
+        #             ],
+        #             "treatment_energy_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Energy required for each site for desalination")
+        #             ],
+        #             "v_C_TreatmentCapEx_site_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Capital cost for each site")
+        #             ],
+        #             "v_C_Treatment_site_dict": [
+        #                 ("Treatment Site", "Time","Water Component", "Time", "Surrogate Costing","Treatment cost for each site at each time")
+        #             ],
+        #         }
+        #     )
+            
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
@@ -1027,14 +1095,16 @@ def generate_report(
                 print("ERROR: Report output units selected by user is not valid")
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
-                header = list(headers[str(variable.name) + "_dict"][0])
-                header[-1] = (
-                    headers[str(variable.name) + "_dict"][0][-1]
-                    + " ["
-                    + to_unit.to_string().replace("oil_bbl", "bbl")
-                    + "]"
-                )
-                headers[str(variable.name) + "_dict"][0] = tuple(header)
+                if variable.name!='v_C_Treatment_site' and variable.name!='inlet_salinity' and variable.name!='v_C_TreatmentCapEx_site'\
+                    and variable.name!='recovery' and variable.name!='treatment_energy' and variable.name!='v_C_TreatmentCapEx_site_time':
+                    header = list(headers[str(variable.name) + "_dict"][0])
+                    header[-1] = (
+                        headers[str(variable.name) + "_dict"][0][-1]
+                        + " ["
+                        + to_unit.to_string().replace("oil_bbl", "bbl")
+                        + "]"
+                    )
+                    headers[str(variable.name) + "_dict"][0] = tuple(header)
 
         elif variable.get_units() is not None:
             to_unit = variable.get_units()
@@ -1078,7 +1148,13 @@ def generate_report(
                 if str(variable.name) == "v_DQ" and var_value > 0:
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
-                    headers[str(variable.name) + "_dict"].append((*i, var_value))
+                    if variable.name!='v_C_Treatment_site' and variable.name!='inlet_salinity' and variable.name!='v_C_TreatmentCapEx_site'\
+                    and variable.name!='recovery' and variable.name!='treatment_energy' and variable.name!='v_C_TreatmentCapEx_site_time':
+                        if len(str(variable.name))>=15:
+                            if str(variable.name)[:15]!='surrogate_costs':
+                                headers[str(variable.name) + "_dict"].append((*i, var_value))
+                        else:
+                            headers[str(variable.name) + "_dict"].append((*i, var_value))
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
@@ -2689,7 +2765,9 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
                 print("Variable took a  non-integer value", var, val)
                 return False
 
-    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+    for con in model.component_data_objects(
+        ctype=Constraint, active=True, descend_into=True
+    ):
         body_value = value(con.body, exception=False)
         if _check_infeasible(con, body_value, cons_tol):
             print(
