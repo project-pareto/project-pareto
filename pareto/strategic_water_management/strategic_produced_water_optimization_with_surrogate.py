@@ -883,11 +883,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
-    model.totalCapex = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding treatment capacity [currency]",
-    )
     model.v_C_TreatmentCapEx_surrogate = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -2448,9 +2443,9 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_TreatmentCapEx_surrogate==sum(model.v_C_TreatmentCapEx_site[i] for i in model.s_R)
     model.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
     
-    def capexTotal(model):
-        return model.totalCapex==model.v_C_TreatmentCapEx+model.v_C_TreatmentCapEx_surrogate
-    model.capextot = Constraint(rule=capexTotal,doc='Total Capex')
+    # def capexTotal(model):
+    #     return model.totalCapex==model.v_C_TreatmentCapEx+model.v_C_TreatmentCapEx_surrogate
+    # model.capextot = Constraint(rule=capexTotal,doc='Total Capex')
     def CompletionsPadDemandBalanceRule(model, p, t):
         # If completions pad is outside the system, the completions demand is not required to be met
         if model.p_chi_OutsideCompletionsPad[p] == 1:
