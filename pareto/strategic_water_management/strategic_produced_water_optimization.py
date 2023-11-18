@@ -2314,7 +2314,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={
             y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
             for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if x == "Trucking (g/hour)"
+            if "Trucking" in x
         },
         units=model.model_units["mass"], # Note: Hours are not modeled as a separate unit (see p_pi_Trucking)
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
@@ -2327,7 +2327,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={
             y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
             for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if x == "Pipeline Operations (g/bbl-mile)"
+            if "Pipeline Operations" in x
         },
         units=model.model_units["mass"]/(model.model_units["volume"]/model.model_units["distance"]),
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
@@ -2340,7 +2340,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={
             y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
             for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if x == "Pipeline Installation (g/mile)"
+            if "Pipeline Installation" in x
         },
         units=model.model_units["mass"]/model.model_units["distance"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
@@ -2353,7 +2353,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={
             y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
             for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if x == "Disposal (g/bbl)"
+            if "Disposal" in x
         },
         units=model.model_units["mass"]/model.model_units["volume"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
@@ -2366,7 +2366,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={
             y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
             for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if x == "Storage (g/bbl-week)"
+            if "Storage" in x
         },
         units=model.model_units["mass"]/model.model_units["volume_time"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
@@ -3664,6 +3664,30 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalCost = Constraint(
         rule=TotalCostRule, doc="Total cost"
+    )
+
+    # TODO: Emissions case study
+    def TotalCostLimitRule(model):
+         constraint = (model.v_C_TotalCost <= 18603.244*1.1*pyunits.USD)
+         return process_constraint(constraint)
+
+    model.TotalCostLimit = Constraint(
+        rule=TotalCostLimitRule, doc="Total cost"
+    )
+
+    # TODO: Emissions case study
+    def MaxSourcingRule(model):
+        constraint = ( sum(sum(sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p]) for f in model.s_F) for t in model.s_T)
+            + sum(sum(sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])for f in model.s_F) for t in model.s_T)
+
+            <= 515*pyunits.kbbl
+        )
+
+        return process_constraint(constraint)
+
+    model.MaxSourcing = Constraint(
+        rule=MaxSourcingRule,
+        doc="Max Sourcing Rule",
     )
 
     def TotalTruckingVolumeRule(model):
