@@ -121,6 +121,14 @@ def generate_report(
                     "v_S_TreatmentCapacity",
                     "v_S_BeneficialReuseCapacity",
                     "v_Q",
+                    "v_E_TotalTruckingHours",
+                    "v_E_TotalTruckingEmissions",
+                    "v_E_TotalPipeOperationEmissions",
+                    "v_E_TotalPipeInstallEmissions",
+                    "v_E_TotalDisposalEmissions",
+                    "v_E_TotalStorageEmissions",
+                    "v_E_TotalTreatmentEmissions",
+                    "v_E_TotalEmissionsByComponent",
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -210,6 +218,7 @@ def generate_report(
                 )
             ],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
+            "vb_y_TruckingVolume_dict": [("Origin", "Destination", "Time", "Volume")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
@@ -382,6 +391,27 @@ def generate_report(
                     "Total deliveries to beneficial reuse",
                 )
             ],
+            "v_E_TotalTruckingEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalPipeOperationEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalPipeInstallEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalDisposalEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalStorageEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalTreatmentEmissions_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
+            "v_E_TotalEmissionsByComponent_dict": [
+                ("Air Quality Component", "Emissions (g)")
+            ],
             "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
             "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
             "v_S_Flowback_dict": [("Completion pad", "Time", "Slack Flowback")],
@@ -393,6 +423,7 @@ def generate_report(
             "v_S_TreatmentCapacity_dict": [
                 ("Treatment site", "Slack Treatment Capacity")
             ],
+            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             "v_S_BeneficialReuseCapacity_dict": [
                 ("Reuse site", "Slack Reuse Capacity")
             ],
@@ -439,6 +470,56 @@ def generate_report(
         else:
             reuseDemand_value = 0
         model.reuse_CompletionsDemandKPI.value = reuseDemand_value
+
+        # Total Residual Water
+        model.totalResidualKPI = Var(
+            doc="Total Residual Water [volume]", units=model.model_units["volume"]
+        )
+        totalResidual_value = sum(
+            sum(value(model.v_F_ResidualWater[r, t]) for r in model.s_R)
+            for t in model.s_T
+        )
+        model.totalResidualKPI.value = totalResidual_value
+
+        # Total Water Reused Outside of System
+        model.totalReusedOutsideSystemKPI = Var(
+            doc="Total Water Reused Outside System [volume]",
+            units=model.model_units["volume"],
+        )
+        totalReusedOutsideSystem_value = sum(
+            sum(
+                value(model.v_F_ReuseDestination[p, t])
+                for p in model.s_CP
+                if model.p_chi_OutsideCompletionsPad[p] == 1
+            )
+            for t in model.s_T
+        )
+        model.totalReusedOutsideSystemKPI.value = totalReusedOutsideSystem_value
+
+        # Total Water Reused Inside of System
+        model.totalReusedInsideSystemKPI = Var(
+            doc="Total Water Reused Inside System [volume]",
+            units=model.model_units["volume"],
+        )
+        totalReusedInsideSystem_value = sum(
+            sum(
+                value(model.v_F_ReuseDestination[p, t])
+                for p in model.s_CP
+                if model.p_chi_OutsideCompletionsPad[p] == 0
+            )
+            for t in model.s_T
+        )
+        model.totalReusedInsideSystemKPI.value = totalReusedInsideSystem_value
+
+        # Total Water Evaporated
+        model.totalEvaporatedKPI = Var(
+            doc="Total Water Evaporated [volume]", units=model.model_units["volume"]
+        )
+        totalEvaporated_value = sum(
+            sum(value(model.v_F_StorageEvaporationStream[s, t]) for s in model.s_S)
+            for t in model.s_T
+        )
+        model.totalEvaporatedKPI.value = totalEvaporated_value
 
         # Infrastructure buildout table
 
@@ -1049,8 +1130,34 @@ def generate_report(
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
+    # Convert Objective to display units
+    # get display unit:  the display units (to_unit) is defined by output_units from module parameter
+    from_unit_string = model.v_Z.get_units().to_string()
+    if output_units == OutputUnits.unscaled_model_units:
+        to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
+    elif output_units == OutputUnits.user_units:
+        to_unit = model.model_to_user_units[from_unit_string]
+
+    var_value = pyunits.convert_value(
+        model.v_Z.value,
+        from_units=model.v_Z.get_units(),
+        to_units=to_unit,
+    )
+    # Add objective to v_F_Overview_dict
+    headers["v_F_Overview_dict"].append(
+        (
+            model.v_Z.name,
+            model.v_Z.doc,
+            to_unit.to_string().replace("oil_bbl", "bbl"),
+            var_value,
+        )
+    )
+
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
+        # Objective variable already added to report. We can skip it here.
+        if variable.name == "v_Z":
+            continue
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
         units_true = variable.get_units() is not None
         # If units are used, determine what the display units should be based off user input

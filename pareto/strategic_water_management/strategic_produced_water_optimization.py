@@ -52,6 +52,7 @@ from pyomo.opt import TerminationCondition
 class Objectives(Enum):
     cost = 0
     reuse = 1
+    environmental = 2
 
 
 class PipelineCapacity(Enum):
@@ -100,7 +101,7 @@ CONFIG.declare(
         default=Objectives.cost,
         domain=In(Objectives),
         description="alternate objectives selection",
-        doc="Alternate objective functions (i.e., minimize cost, maximize reuse)",
+        doc="Alternate objective functions (i.e., minimize cost, maximize reuse, minimize environmental impact)",
     ),
 )
 CONFIG.declare(
@@ -160,6 +161,7 @@ CONFIG.declare(
         }""",
     ),
 )
+
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
@@ -293,6 +295,7 @@ def create_model(df_sets, df_parameters, default={}):
         "currency": pyunits.kUSD,
         "pressure": pyunits.kpascal,
         "elevation": pyunits.meter,
+        "mass": pyunits.kg,
         "time": model.decision_period,
     }
     model.model_units["volume_time"] = (
@@ -323,6 +326,7 @@ def create_model(df_sets, df_parameters, default={}):
         "currency": pyunits.USD,
         "pressure": pyunits.pascal,
         "elevation": pyunits.meter,
+        "mass": pyunits.g,
         "time": model.decision_period,
     }
 
@@ -424,6 +428,10 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
 
+    model.s_A = Set(
+        initialize=model.df_sets["AirEmissionComponents"], doc="Air emission components"
+    )
+
     piping_arc_types = [
         "PCA",
         "PNA",
@@ -488,11 +496,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Define continuous variables #
 
-    model.v_Z = Var(
-        within=Reals,
-        units=model.model_units["currency"],
-        doc="Objective function variable [currency]",
-    )
     model.v_F_Piped = Var(
         model.s_LLA,
         model.s_T,
@@ -717,6 +720,11 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Total cost of trucking produced water [currency]",
     )
+    model.v_C_TotalCost = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost [currency]",
+    )
     model.v_C_Slack = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
@@ -837,6 +845,66 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
+    model.v_E_TotalTruckingHours = Var(
+        within=NonNegativeReals,
+        initialize=0,
+        doc="Total trucking Hours (with nonzero water volume only) [hours]",
+    )
+    model.v_E_TotalTruckingEmissions = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total trucking emissions [mass]",
+    )
+    model.v_E_TotalPipeOperationEmissions = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total pipeline operations emissions [mass]",
+    )
+    model.v_E_TotalPipeInstallEmissions = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total pipeline installation emissions [mass]",
+    )
+    model.v_E_TotalDisposalEmissions = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total Disposal emissions [mass]",
+    )
+    model.v_E_TotalStorageEmissions = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total storage emissions [mass]",
+    )
+    model.v_E_TotalTreatmentEmissions = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total treatment emissions [mass]",
+    )
+    model.v_E_TotalEmissionsByComponent = Var(
+        model.s_A,
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total emissions [mass]",
+    )
+    model.v_E_TotalEmissions = Var(
+        within=NonNegativeReals,
+        units=model.model_units["mass"],
+        initialize=0,
+        doc="Total emissions [mass]",
+    )
     model.v_S_FracDemand = Var(
         model.s_CP,
         model.s_T,
@@ -933,6 +1001,15 @@ def create_model(df_sets, df_parameters, default={}):
         within=Binary,
         initialize=0,
         doc="Directional flow between two locations",
+    )
+    # TODO - this should really be a post-processed variable
+    model.vb_y_TruckingVolume = Var(
+        model.s_L,
+        model.s_L,
+        model.s_T,
+        within=Binary,
+        initialize=0,
+        doc="Indicates if there in nonzero trucking flow",
     )
     model.vb_y_BeneficialReuse = Var(
         model.s_O,
@@ -2231,61 +2308,122 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Operating capacity of disposal site [%]",
     )
 
+    model.p_eta_TruckingEmissionsCoefficient = Param(
+        model.s_A,
+        default=0,
+        initialize={
+            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
+            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
+            if "Trucking" in x
+        },
+        units=model.model_units["mass"], # Note: Hours are not modeled as a separate unit (see p_pi_Trucking)
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Air emissions trucking coefficients [mass/driving hour]",
+    )
+
+    model.p_eta_PipelineOperationsEmissionsCoefficient = Param(
+        model.s_A,
+        default=0,
+        initialize={
+            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
+            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
+            if "Pipeline Operations" in x
+        },
+        units=model.model_units["mass"]/(model.model_units["volume"]/model.model_units["distance"]),
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Air emissions pipeline operations coefficients [mass/volume_distance]",
+    )
+
+    model.p_eta_PipelineInstallationEmissionsCoefficient = Param(
+        model.s_A,
+        default=0,
+        initialize={
+            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
+            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
+            if "Pipeline Installation" in x
+        },
+        units=model.model_units["mass"]/model.model_units["distance"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Air emissions pipeline installation coefficients [mass/distance]",
+    )
+
+    model.p_eta_DisposalEmissionsCoefficient = Param(
+        model.s_A,
+        default=0,
+        initialize={
+            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
+            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
+            if "Disposal" in x
+        },
+        units=model.model_units["mass"]/model.model_units["volume"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Air emissions disposal coefficients [mass/volume]",
+    )
+
+    model.p_eta_StorageEmissionsCoefficient = Param(
+        model.s_A,
+        default=0,
+        initialize={
+            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
+            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
+            if "Storage" in x
+        },
+        units=model.model_units["mass"]/model.model_units["volume_time"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Air emissions storage coefficients [mass/volume-time]",
+    )
+    model.p_eta_TreatmentEmissionsCoefficient = Param(
+        model.s_WT,
+        model.s_A,
+        default=0,
+        initialize=model.df_parameters["TreatmentEmissionCoefficients"],
+        units=model.model_units["mass"]/model.model_units["volume_time"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Air emissions treatment technology coefficients [mass/volume-time]",
+    )
     # Define cost objective function #
 
     if model.config.objective == Objectives.cost:
+        model.v_Z = Var(
+            within=Reals,
+            units=model.model_units["currency"],
+            doc="Cost objective function variable [currency]",
+        )
 
         def CostObjectiveFunctionRule(model):
-            return model.v_Z == (
-                model.v_C_TotalSourced
-                + model.v_C_TotalDisposal
-                + model.v_C_TotalTreatment
-                + model.v_C_TotalReuse
-                + model.v_C_TotalPiping
-                + model.v_C_TotalStorage
-                + model.v_C_TotalTrucking
-                + model.p_alpha_AnnualizationRate
-                * (
-                    model.v_C_DisposalCapEx
-                    + model.v_C_StorageCapEx
-                    + model.v_C_TreatmentCapEx
-                    + model.v_C_PipelineCapEx
-                )
-                + model.v_C_Slack
-                - model.v_R_TotalStorage
-                - model.v_R_TotalBeneficialReuse
-            )
+            return model.v_Z == model.v_C_TotalCost
 
         model.CostObjectiveFunction = Constraint(
             rule=CostObjectiveFunctionRule, doc="Cost objective function"
         )
 
-    # Define reuse objective function #
+    # Define emissions objective function #
+
+    elif model.config.objective == Objectives.environmental:
+        model.v_Z = Var(
+            within=Reals,
+            units=model.model_units["mass"],
+            doc="Emissions objective function variable [mass]",
+        )
+        def EnvironmentalObjectiveFunctionRule(model):
+            return model.v_Z == (
+                model.v_E_TotalEmissions
+            ) + 1 / 38446652 * model.v_C_TotalCost
+
+        model.EnvironmentalObjectiveFunction = Constraint(
+            rule=EnvironmentalObjectiveFunctionRule, doc="Environmental objective function"
+        )
 
     elif model.config.objective == Objectives.reuse:
-
+        model.v_Z = Var(
+            within=Reals,
+            units=model.model_units["volume"],
+            doc="Reuse objective function variable [volume]",
+        )
         def ReuseObjectiveFunctionRule(model):
             return model.v_Z == -(
                 model.v_F_TotalReused / model.p_beta_TotalProd
-            ) + 1 / 38446652 * (
-                model.v_C_TotalSourced
-                + model.v_C_TotalDisposal
-                + model.v_C_TotalTreatment
-                + model.v_C_TotalReuse
-                + model.v_C_TotalPiping
-                + model.v_C_TotalStorage
-                + model.v_C_TotalTrucking
-                + model.p_alpha_AnnualizationRate
-                * (
-                    model.v_C_DisposalCapEx
-                    + model.v_C_StorageCapEx
-                    + model.v_C_TreatmentCapEx
-                    + model.v_C_PipelineCapEx
-                )
-                + model.v_C_Slack
-                - model.v_R_TotalStorage
-                - model.v_R_TotalBeneficialReuse
-            )
+            ) + 1 / 38446652 * model.v_C_TotalCost
 
         model.ReuseObjectiveFunction = Constraint(
             rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
@@ -2414,7 +2552,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -2613,6 +2750,20 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Terminal storage site level",
     )
 
+    def TotalStorageEmissionsRule(model, a):
+        constraint = model.v_E_TotalStorageEmissions[a] == sum(
+            sum(
+                model.v_L_Storage[s, t] * model.p_eta_StorageEmissionsCoefficient[a]
+                for s in model.s_S
+            )
+            for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalStorageEmissions = Constraint(
+        model.s_A, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
+    )
+
     def PipelineCapacityExpansionRule(model, l, l_tilde):
         if (l, l_tilde) in model.s_LLA:
             if (l_tilde, l) in model.s_LLA:
@@ -2670,6 +2821,47 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=PipelineCapacityRule,
         doc="Pipeline capacity",
+    )
+
+    def TotalPipelineOperationsEmissionsRule(model, a):
+        constraint = model.v_E_TotalPipeOperationEmissions[a] == sum(
+            sum(
+                sum(
+                    model.v_F_Piped[l, l_tilde, t]
+                    * model.p_lambda_Pipeline[l, l_tilde]
+                    * model.p_eta_PipelineOperationsEmissionsCoefficient[a]
+                    for l in model.s_L
+                    if (l, l_tilde) in model.s_LLA
+                )
+                for l_tilde in model.s_L
+            )
+            for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalPipelineOperationsEmissions = Constraint(
+        model.s_A,
+        rule=TotalPipelineOperationsEmissionsRule,
+        doc="Total pipeline operations emissions",
+    )
+
+    def TotalPipelineInstallationEmissionsRule(model, a):
+        constraint = model.v_E_TotalPipeInstallEmissions[a] == sum(
+            sum(
+                model.p_lambda_Pipeline[l, l_tilde]
+                * model.p_eta_PipelineInstallationEmissionsCoefficient[a]
+                for l in model.s_L
+                if (l, l_tilde) in model.s_LLA
+            )
+            for l_tilde in model.s_L
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalPipelineInstallationsEmissions = Constraint(
+        model.s_A,
+        rule=TotalPipelineInstallationEmissionsRule,
+        doc="Total pipeline installation emissions",
     )
 
     # only include network node capacity constraint if config is set to true
@@ -2943,6 +3135,28 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Beneficial reuse minimum flow",
     )
 
+    def TotalTreatmentEmissionsRule(model, a):
+        constraint = model.v_E_TotalTreatmentEmissions[a] == sum(
+            sum(
+                sum(
+                    sum(
+                        model.p_eta_TreatmentEmissionsCoefficient[wt, a]
+                        * model.v_F_TreatmentFeed[r, t]
+                        for wt in model.s_WT
+                    )
+                    for j in model.s_J
+                )
+                for r in model.s_R
+            )
+            for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalTreatmentEmissions = Constraint(
+        model.s_A, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
+    )
+
     def BeneficialReuseCapacityRule(model, o, t):
         if value(model.p_sigma_BeneficialReuse[o, t]) < 0:
             # Beneficial reuse capacity value has not been provided by user
@@ -3101,6 +3315,16 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalDisposalVolume = Constraint(
         rule=TotalDisposalVolumeRule, doc="Total disposal volume"
+    )
+
+    def TotalDisposalEmissionsRule(model, a):
+        constraint = model.v_E_TotalDisposalEmissions[a] == (
+            model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
+        )
+        return process_constraint(constraint)
+
+    model.TotalDisposalEmissions = Constraint(
+        model.s_A, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
     )
 
     def TreatmentCostLHSRule(model, r, wt, t):
@@ -3416,6 +3640,56 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalTruckingCostRule, doc="Total trucking cost"
     )
 
+    def TotalCostRule(model):
+         constraint = model.v_C_TotalCost == (
+            model.v_C_TotalSourced
+            + model.v_C_TotalDisposal
+            + model.v_C_TotalTreatment
+            + model.v_C_TotalReuse
+            + model.v_C_TotalPiping
+            + model.v_C_TotalStorage
+            + model.v_C_TotalTrucking
+            + model.p_alpha_AnnualizationRate
+            * (
+                    model.v_C_DisposalCapEx
+                    + model.v_C_StorageCapEx
+                    + model.v_C_TreatmentCapEx
+                    + model.v_C_PipelineCapEx
+            )
+            + model.v_C_Slack
+            - model.v_R_TotalStorage
+            - model.v_R_TotalBeneficialReuse
+         )
+         return process_constraint(constraint)
+
+    model.TotalCost = Constraint(
+        rule=TotalCostRule, doc="Total cost"
+    )
+
+    # TODO: Emissions case study
+    def TotalCostLimitRule(model):
+         constraint = (model.v_C_TotalCost <= 18603.244*1.1*pyunits.USD)
+         return process_constraint(constraint)
+
+    model.TotalCostLimit = Constraint(
+        rule=TotalCostLimitRule, doc="Total cost"
+    )
+
+    # TODO: Emissions case study
+    def MaxSourcingRule(model):
+        constraint = ( sum(sum(sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p]) for f in model.s_F) for t in model.s_T)
+            + sum(sum(sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])for f in model.s_F) for t in model.s_T)
+
+            <= 515*pyunits.kbbl
+        )
+
+        return process_constraint(constraint)
+
+    model.MaxSourcing = Constraint(
+        rule=MaxSourcingRule,
+        doc="Max Sourcing Rule",
+    )
+
     def TotalTruckingVolumeRule(model):
         constraint = model.v_F_TotalTrucked == (
             sum(
@@ -3434,6 +3708,103 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalTruckingVolume = Constraint(
         rule=TotalTruckingVolumeRule, doc="Total trucking volume"
+    )
+
+    def NonZeroTruckingLBRule(model, l, l_tilde, t):
+        if (l, l_tilde) in model.s_LLT:
+            constraint = (
+                model.vb_y_TruckingVolume[l, l_tilde, t]
+                <= model.v_F_Trucked[l, l_tilde, t]
+            )
+        else:
+            return Constraint.Skip
+        return process_constraint(constraint)
+
+    model.NonZeroTruckingLB = Constraint(
+        model.s_L,
+        model.s_L,
+        model.s_T,
+        rule=NonZeroTruckingLBRule,
+        doc="Nonzero Trucking Volume",
+    )
+
+    def NonZeroTruckingUBRule(model, l, l_tilde, t):
+        if (l, l_tilde) in model.s_LLT:
+            constraint = (
+                model.v_F_Trucked[l, l_tilde, t]
+                <= model.vb_y_TruckingVolume[l, l_tilde, t] * model.p_M_Flow
+            )
+        else:
+            return Constraint.Skip
+        return process_constraint(constraint)
+
+    model.NonZeroTruckingUB = Constraint(
+        model.s_L,
+        model.s_L,
+        model.s_T,
+        rule=NonZeroTruckingUBRule,
+        doc="Nonzero Trucking Volume",
+    )
+
+    def TotalTruckingHoursRule(model):
+        constraint = model.v_E_TotalTruckingHours == (
+            sum(
+                sum(
+                    sum(
+                        model.p_tau_Trucking[l, l_tilde]
+                        * model.vb_y_TruckingVolume[l, l_tilde, t]
+                        for l in model.s_L
+                        if (l, l_tilde) in model.s_LLT
+                    )
+                    for l_tilde in model.s_L
+                )
+                for t in model.s_T
+            )
+        )
+        return process_constraint(constraint)
+
+    model.TotalTruckingHours = Constraint(
+        rule=TotalTruckingHoursRule, doc="Total trucking hours"
+    )
+
+    def TotalTruckingEmissionsRule(model, a):
+        constraint = model.v_E_TotalTruckingEmissions[a] == sum(
+            sum(
+                sum(
+                    model.p_tau_Trucking[l, l_tilde]
+                    * model.v_F_Trucked[l, l_tilde, t]
+                    * model.p_eta_TruckingEmissionsCoefficient[a]
+                    for l in model.s_L
+                    if (l, l_tilde) in model.s_LLT
+                )
+                for l_tilde in model.s_L
+            )
+            for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalTruckingEmissions = Constraint(
+        model.s_A, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
+    )
+
+    def TotalEmissionsByComponentRule(model, a):
+        constraint = model.v_E_TotalEmissionsByComponent[a] == model.v_E_TotalTruckingEmissions[a] + model.v_E_TotalPipeOperationEmissions[a] + model.v_E_TotalPipeInstallEmissions[a]
+        + model.v_E_TotalDisposalEmissions[a] + model.v_E_TotalStorageEmissions[a] + model.v_E_TotalTreatmentEmissions[a]
+        return process_constraint(constraint)
+
+    model.TotalEmissionsByComponent = Constraint(
+         model.s_A, rule=TotalEmissionsByComponentRule, doc="Total emissions by component"
+    )
+
+    def TotalEmissionsRule(model):
+        constraint = model.v_E_TotalEmissions == sum(
+            model.v_E_TotalEmissionsByComponent[a]
+            for a in model.s_A
+        )
+        return process_constraint(constraint)
+
+    model.TotalEmissions = Constraint(
+         rule=TotalEmissionsRule, doc="Total emissions"
     )
 
     def DisposalExpansionCapExRule(model):
@@ -4233,7 +4604,7 @@ def pipeline_hydraulics(model):
         )
 
         model.objective = Objective(
-            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
+            expr=(model.v_C_TotalCost + mh.v_Z_HydrualicsCost),
             sense=minimize,
             doc="Objective function",
         )
@@ -5283,7 +5654,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5320,7 +5690,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6325,7 +6694,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
@@ -6349,6 +6717,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_C_TotalSourced] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalTreatment] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalTrucking] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalCost] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Treatment] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TreatmentCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Trucked] = 1 / scaling_factor
@@ -6378,6 +6747,15 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_R_BeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalTruckingHours] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalTruckingEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalPipeOperationEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalPipeInstallEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalDisposalEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalStorageEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalTreatmentEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.v_E_TotalEmissionsByComponent] = 1 / scaling_factor
     model.scaling_factor[model.v_S_DisposalCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Flowback] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_FracDemand] = 1000 / scaling_factor
@@ -6485,6 +6863,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalBeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentFeedBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
@@ -6500,6 +6879,17 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
+    model.scaling_factor[model.TotalStorageEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalPipelineOperationsEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalPipelineInstallationsEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTreatmentEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalDisposalEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.NonZeroTruckingLB] = 1 / scaling_factor
+    model.scaling_factor[model.NonZeroTruckingUB] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingHours] = 1 / scaling_factor
+    model.scaling_factor[model.TotalTruckingEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalEmissions] = 1 / scaling_factor
+    model.scaling_factor[model.TotalEmissionsByComponent] = 1 / scaling_factor
 
     if model.config.node_capacity == True:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
