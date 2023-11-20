@@ -2410,7 +2410,7 @@ def create_model(df_sets, df_parameters, default={}):
     #         output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
     #     )
     model.surrogate_costs = SurrogateBlock(model.s_R,model.s_T)
-    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_2_evap_corrected")
+    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
     for i in model.s_R:
         for t in model.s_T:
             cap=sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)\

@@ -23,7 +23,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization_min
 )
 
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import (
+from pareto.utilities.results_minlp import (
     generate_report,
     PrintValues,
     OutputUnits,
@@ -72,7 +72,7 @@ parameter_list = [
 # Load data from Excel input file into Python
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_modified.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -95,11 +95,211 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000000,
-    "running_time": 300,
+    "running_time": 1000,
     "gap": 0,
     "gurobi_numeric_focus": 2,
 }
 results_obj = solve_model(model=strategic_model, options=options)
+from pyomo.environ import Var, Binary
+def free_variables(model, exception_list, time_period=None):
+    for var in model.component_objects(Var):
+        if var.name in exception_list:
+            continue
+        else:
+            for index in var:
+                is_in_time_period = True
+                if index is not None and time_period is not None:
+                    for i in index:
+                        if i in model.s_T and i not in time_period:
+                            is_in_time_period = False
+                            break
+                if not is_in_time_period:
+                    continue
+                index_var = var if index is None else var[index]
+                # unfix binary variables and unbound the continuous variables
+                if index_var.domain is Binary:
+                    # index_var.free()
+                    # index_var.unfix()
+                    pass
+                else:
+                    index_var.unfix()
+                    index_var.setlb(0)
+                    index_var.setub(None)
+
+
+def deactivate_slacks(model):
+    model.v_C_Slack.fix(0)
+    model.v_S_FracDemand.fix(0)
+    model.v_S_Production.fix(0)
+    model.v_S_Flowback.fix(0)
+    model.v_S_PipelineCapacity.fix(0)
+    model.v_S_StorageCapacity.fix(0)
+    model.v_S_DisposalCapacity.fix(0)
+    model.v_S_TreatmentCapacity.fix(0)
+    model.v_S_ReuseCapacity.fix(0)
+                    
+# Step 2.1: unfix variables (MILP model)
+discrete_variables_names = {"v_X"}  # "v_Q", "v_X", "v_Z", "v_ObjectiveWithQuality"}
+free_variables(strategic_model, discrete_variables_names)
+deactivate_slacks(strategic_model)
+strategic_model.quality.objective.deactivate()
+strategic_model.CostObjectiveFunction.deactivate()
+
+from pyomo.environ import Constraint, Objective, minimize, SolverFactory, Param
+strategic_model.penalty = Param(initialize=1,mutable=True)
+from pareto.utilities.solvers import get_solver, set_timeout
+def CostObjectiveFunctionRule2(model):
+            return model.v_Z == (
+                model.v_C_TotalSourced
+                + model.v_C_TotalDisposal
+                + model.v_C_TotalTreatment
+                + model.v_C_TotalReuse
+                + model.v_C_TotalPiping
+                + model.v_C_TotalStorage
+                + model.v_C_TotalTrucking
+                + model.p_alpha_AnnualizationRate
+                * (
+                    model.v_C_DisposalCapEx
+                    + model.v_C_StorageCapEx
+                    + model.v_C_TreatmentCapEx
+                    + model.v_C_PipelineCapEx
+                )
+                + model.v_C_Slack
+                - model.v_R_TotalStorage
+                + model.penalty*sum(model.quality.v_Q[sites, w, t] for sites in desal_sites for w in model.s_QC for t in model.s_T)
+            )
+
+strategic_model.ObjectiveFunction = Constraint(
+            rule=CostObjectiveFunctionRule2, doc="MINLP objective function"
+        )
+
+wall_time=[]
+time=[]
+solver_status=[]
+objs=[]
+penalty_value=[]
+
+# You should change the below array to desired penalty, 
+# this was done just to get a feel for the magnitude of 
+# the penalty term
+
+
+minlp_solver_source = 'gurobi'
+if minlp_solver_source == "gams":
+    mathoptsolver = "dicopt"
+    solver_options = {
+        "tol": 1e-3,
+        "max_iter": 1000,
+        "constr_viol_tol": 0.009,
+        "acceptable_constr_viol_tol": 0.01,
+        "acceptable_tol": 1e-6,
+        "mu_strategy": "adaptive",
+        "mu_init": 1e-10,
+        "mu_max": 1e-1,
+        "print_user_options": "yes",
+        "warm_start_init_point": "yes",
+        "warm_start_mult_bound_push": 1e-60,
+        "warm_start_bound_push": 1e-60,
+        #   'linear_solver': 'ma27',
+        #   'ma57_pivot_order': 4
+    }
+    import os
+
+    if not os.path.exists("temp"):
+        os.makedirs("temp")
+
+    with open("temp/" + mathoptsolver + ".opt", "w") as f:
+        for k, v in solver_options.items():
+            f.write(str(k) + " " + str(v) + "\n")
+
+    strategic_model.penalty=10
+    print(i)
+    try:
+        results = SolverFactory(minlp_solver_source).solve(
+            strategic_model,
+            tee=True,
+            keepfiles=True,
+            solver=mathoptsolver,
+            tmpdir="temp",
+            add_options=["gams_model.optfile=1;"],
+        )
+        res=list(results.values())
+        solver_status.append(res[1][0]['Termination condition'].value)
+        wall_time.append(res[1][0]['Wall time'])
+        time.append(res[1][0]['Time'])
+        objs.append(strategic_model.objective())
+        penalty_value.append(i)
+    except:
+        solver_status.append('TimeoutError')
+        wall_time.append(1500)
+        time.append(1500)
+        objs.append(None)
+        penalty_value.append(i)
+
+elif minlp_solver_source == "gurobi":
+    print("solving with GUROBI")
+    mathoptsolver = 'gurobi'
+    solver = SolverFactory(mathoptsolver)
+    solver.options["timeLimit"] = 1500
+    solver.options["NonConvex"] = 2
+    solver.options["MIPGap"] = 0.5
+
+    strategic_model.penalty=0.001
+    try:
+        results = solver.solve(strategic_model, tee=False, warmstart=True)
+        res=list(results.values())
+        solver_status.append(res[1][0]['Termination condition'].value)
+        wall_time.append(res[1][0]['Wall time'])
+        time.append(res[1][0]['Time'])
+        objs.append(strategic_model.objective())
+        penalty_value.append(0.001)
+    except:
+        solver_status.append('TimeoutError')
+        wall_time.append(1500)
+        time.append(1500)
+        objs.append(None)
+        penalty_value.append(0.001)
+
+elif minlp_solver_source == "baron":
+    solver = SolverFactory("baron")
+    for i in penalties:
+        strategic_model.penalty=i
+        print(i)
+        try:
+            results = solver.solve(strategic_model, tee=False)
+            res=list(results.values())
+            solver_status.append(res[1][0]['Termination condition'].value)
+            wall_time.append(res[1][0]['Wall time'])
+            time.append(res[1][0]['Time'])
+            objs.append(strategic_model.objective())
+            penalty_value.append(i)
+        except:
+            solver_status.append('TimeoutError')
+            wall_time.append(1500)
+            time.append(1500)
+            objs.append(None)
+            penalty_value.append(i)
+
+elif minlp_solver_source == 'ipopt':
+    solver = get_solver('ipopt')
+    solver.options['maxiter'] = 100
+    for i in penalties:
+        strategic_model.penalty=i
+        print(i)
+        try:
+            results = solver.solve(strategic_model, tee=False)
+            res=list(results.values())
+            solver_status.append(res[1][0]['Termination condition'].value)
+            wall_time.append(res[1][0]['Wall time'])
+            time.append(res[1][0]['Time'])
+            objs.append(strategic_model.objective())
+            penalty_value.append(i)
+        except:
+            solver_status.append('TimeoutError')
+            wall_time.append(1500)
+            time.append(1500)
+            objs.append(None)
+            penalty_value.append(i)
 
 # Check feasibility of the solved model
 def check_feasibility(model):

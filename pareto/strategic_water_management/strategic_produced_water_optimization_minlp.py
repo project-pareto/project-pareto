@@ -49,6 +49,9 @@ from enum import Enum
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 
+from idaes.core.surrogate.surrogate_block import SurrogateBlock
+from idaes.core.surrogate.keras_surrogate import KerasSurrogate
+
 
 
 class Objectives(Enum):
@@ -369,6 +372,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["WaterQualityComponents"],
         doc="Water Quality Components",
     )
+    model.s_QC.display()
     model.s_L = Set(
         initialize=(
             model.s_P
@@ -4413,6 +4417,25 @@ def water_quality(model):
         rule=TreatmentWaterQualityRule,
         doc="Treatment water quality",
     )
+
+    # model.surrogate_costs = SurrogateBlock(model.s_R,model.s_T)
+    # keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_2_evap_corrected")
+    # for i in model.s_R:
+    #     for t in model.s_T:
+    #         model.surrogate_costs[i,t].build_model(
+    #             keras_surrogate,
+    #             formulation=KerasSurrogate.Formulation.RELU_BIGM,
+    #             input_vars=[model.quality.TreatmentFeedWaterQuality[i,'TDS',t],model.recovery[i,t],model.v_F_TreatmentFeed[i,t]],
+    #             output_vars=[model.v_C_TreatmentCapEx_site_time[i,t],model.v_C_Treatment_site[i,t],model.treatment_energy[i]],
+    #         )
+    # def RecoveryConstraint(model,r,t):
+    #     return model.recovery[r,t]==(300-model.quality.TreatmentFeedWaterQuality[i,'TDS',t])/300
+    # model.quality.Recoevry = Constraint(
+    #     model.s_R,
+    #     model.s_T,
+    #     rule=RecoveryConstraint,
+    #     doc="Recovery",
+    # )
 
     def TreatedWaterQualityConcentrationBasedLHSRule(b, r, wt, qc, t):
         constraint = (
