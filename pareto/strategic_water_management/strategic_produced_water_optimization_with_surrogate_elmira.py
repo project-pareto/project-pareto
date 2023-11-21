@@ -505,6 +505,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Produced water quantity piped from location l to location l [volume/time]",
     )
+    model.v_F_Piped.display()
     model.v_F_Trucked = Var(
         model.s_LLT,
         model.s_T,
@@ -513,6 +514,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Produced water quantity trucked from location l to location l [volume/time]",
     )
+    model.v_F_Piped.display()
     model.v_F_Sourced = Var(
         model.s_F,
         model.s_CP,
@@ -871,19 +873,21 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_TreatmentCapEx_site = Var(
         model.s_R,
         within=NonNegativeReals,
-        units=model.model_units["currency"],
+        units=pyunits.kUSD,#model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
     model.v_C_TreatmentCapEx_site_time = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
-        units=model.model_units["currency"],
+        units=pyunits.kUSD,
+        # units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
     model.v_C_TreatmentCapEx_surrogate = Var(
         within=NonNegativeReals,
-        units=model.model_units["currency"],
+        units=pyunits.kUSD,
+        # units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
     model.v_S_FracDemand = Var(
@@ -2419,7 +2423,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     def scalingTreatment(model,r,t):
         # return model.v_T_Treatment_scaled[r,t]==0.00184*model.v_F_TreatmentFeed[r,t]
-        return model.v_T_Treatment_scaled[r,t]==0.00184/7*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
+        return model.v_T_Treatment_scaled[r,t]==0.00184*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
                         model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
                     )
     model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)

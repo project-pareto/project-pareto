@@ -1096,7 +1096,7 @@ def generate_report(
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
                 if variable.name!='v_C_Treatment_site' and variable.name!='inlet_salinity' and variable.name!='v_C_TreatmentCapEx_site'\
-                    and variable.name!='recovery' and variable.name!='treatment_energy' and variable.name!='v_C_TreatmentCapEx_site_time':
+                    and variable.name!='recovery' and variable.name!='treatment_energy' and variable.name!='v_C_TreatmentCapEx_site_time' and variable.name!='totalCapex' and variable.name!='v_T_Treatment_scaled':
                     header = list(headers[str(variable.name) + "_dict"][0])
                     header[-1] = (
                         headers[str(variable.name) + "_dict"][0][-1]
@@ -1149,7 +1149,7 @@ def generate_report(
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
                     if variable.name!='v_C_Treatment_site' and variable.name!='inlet_salinity' and variable.name!='v_C_TreatmentCapEx_site'\
-                    and variable.name!='recovery' and variable.name!='treatment_energy' and variable.name!='v_C_TreatmentCapEx_site_time':
+                    and variable.name!='recovery' and variable.name!='treatment_energy' and variable.name!='v_C_TreatmentCapEx_site_time'and variable.name!='totalCapex' and variable.name!='v_T_Treatment_scaled':
                         if len(str(variable.name))>=15:
                             if str(variable.name)[:15]!='surrogate_costs':
                                 headers[str(variable.name) + "_dict"].append((*i, var_value))
