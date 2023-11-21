@@ -134,7 +134,7 @@ parameter_list = [
     "SWDDeep",
     "SWDAveragePressure",
     "SWDProxOrphanWell",
-    "SWDProxInacWell",
+    "SWDProxInactiveWell",
     "SWDProxEQ",
     "SWDProxFault",
     "SWDProxHpOrLpWell",
