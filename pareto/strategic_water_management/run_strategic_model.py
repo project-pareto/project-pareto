@@ -131,6 +131,11 @@ parameter_list = [
     "StorageExpansionLeadTime",
     "PipelineExpansionLeadTime_Dist",
     "PipelineExpansionLeadTime_Capac",
+    "SWDProxAbandWell",
+    "SWDProxInacWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
 ]
 
 # user needs to provide the path to the case study data file
