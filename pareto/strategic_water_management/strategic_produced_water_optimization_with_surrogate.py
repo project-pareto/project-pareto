@@ -996,7 +996,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         within=Reals,
         initialize=10,
-        units=pyunits.kg/pyunits.litre,
+        units=pyunits.g/pyunits.kg,
         doc="Inlet salinity in the feed"
     )
     model.recovery = Var(
@@ -2410,22 +2410,35 @@ def create_model(df_sets, df_parameters, default={}):
     #         output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
     #     )
     model.surrogate_costs = SurrogateBlock(model.s_R,model.s_T)
+    # model.cap = Var(
+    #     model.s_R,
+    #     within=Reals,
+    #     initialize=10,
+    #     units=pyunits.kg/pyunits.s,
+    #     doc="Volume being treated"
+    # )
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
-    for i in model.s_R:
+    model.v_T_Treatment_scaled=Var(
+        model.s_R,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0
+    )
+    def scalingTreatment(model,r,t):
+        return model.v_T_Treatment_scaled[r,t]==0.00184*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
+                        model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+                    )
+                    )
+    model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
+    for r in model.s_R:
         for t in model.s_T:
-            cap=sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)\
-                + sum(
-                    model.v_F_Trucked[l, r, t]
-                    for l in model.s_L
-                    if (l, r) in model.s_LLT
-                )
-            model.surrogate_costs[i,t].build_model(
+            model.surrogate_costs[r,t].build_model(
                 keras_surrogate,
                 formulation=KerasSurrogate.Formulation.RELU_BIGM,
-                input_vars=[model.inlet_salinity[i],model.recovery[i],cap],
-                output_vars=[model.v_C_TreatmentCapEx_site_time[i,t],model.v_C_Treatment_site[i,t],model.treatment_energy[i]],
+                input_vars=[model.inlet_salinity[r],model.recovery[r],model.v_T_Treatment_scaled[r,t]],
+                output_vars=[model.v_C_TreatmentCapEx_site_time[r,t],model.v_C_Treatment_site[r,t],model.treatment_energy[r]],
             )
-    
+
     def treatmentSiteBigM(model,r,t):
         return model.v_C_Treatment_site[r,t]<=model.p_M_Flow*sum(model.vb_y_Treatment[r, 'MVC', j] for j in model.s_J)
     model.treatmentMVC = Constraint(model.s_R,model.s_T,rule=treatmentSiteBigM,doc='Treatment surrogate for MVC')

@@ -11,7 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate import (
+from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira import (
     WaterQuality,
     create_model,
     Objectives,
@@ -35,7 +35,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization_wit
 #     InfrastructureTiming,
 # )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results import (
+from pareto.utilities.results_better import (
     generate_report,
     PrintValues,
     OutputUnits,
@@ -43,6 +43,7 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
+import os
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -195,6 +196,8 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+filename = os.path.join(os.path.dirname(__file__), 'model.lp')
+strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
