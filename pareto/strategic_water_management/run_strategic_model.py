@@ -191,14 +191,13 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 1000,
+    "running_time": 5000,
     "gap": 0,
 }
 
 results = solve_model(model=strategic_model, options=options)
 
-strategic_model.vb_y_MVCselected.display()
-strategic_model.v_T_Treatment_scaled.display()
+# strategic_model.vb_y_MVCselected.display()
 filename = os.path.join(os.path.dirname(__file__), 'model.lp')
 strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
 with nostdout():

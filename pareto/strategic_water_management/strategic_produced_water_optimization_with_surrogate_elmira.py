@@ -505,7 +505,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Produced water quantity piped from location l to location l [volume/time]",
     )
-    model.v_F_Piped.display()
     model.v_F_Trucked = Var(
         model.s_LLT,
         model.s_T,
@@ -514,7 +513,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Produced water quantity trucked from location l to location l [volume/time]",
     )
-    model.v_F_Piped.display()
     model.v_F_Sourced = Var(
         model.s_F,
         model.s_CP,
@@ -661,7 +659,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
-        units=model.model_units["currency_time"],
+        units=model.model_units["currency"],
         doc="Cost of treating produced water at treatment site [currency]",
     )
     # model.unit_cost_surr = Var(
@@ -873,21 +871,19 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_TreatmentCapEx_site = Var(
         model.s_R,
         within=NonNegativeReals,
-        units=pyunits.kUSD,#model.model_units["currency"],
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
     model.v_C_TreatmentCapEx_site_time = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
-        units=pyunits.kUSD,
-        # units=model.model_units["currency"],
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
     model.v_C_TreatmentCapEx_surrogate = Var(
         within=NonNegativeReals,
-        units=pyunits.kUSD,
-        # units=model.model_units["currency"],
+        units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
     model.v_S_FracDemand = Var(
@@ -2384,7 +2380,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                + 1000*model.v_C_TreatmentCapEx_surrogate
+                + model.v_C_TreatmentCapEx_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -2415,31 +2411,31 @@ def create_model(df_sets, df_parameters, default={}):
     #         output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
     #     )
     model.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
-    model.v_T_Treatment_scaled=Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0
-    )
-    def scalingTreatment(model,r,t):
-        # return model.v_T_Treatment_scaled[r,t]==0.00184*model.v_F_TreatmentFeed[r,t]
-        return model.v_T_Treatment_scaled[r,t]==0.00184*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
-                        model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
-                    )
-    model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
-    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
+    # model.v_T_Treatment_scaled=Var(
+    #     model.s_R,
+    #     model.s_T,
+    #     within=NonNegativeReals,
+    #     initialize=0
+    # )
+    # def scalingTreatment(model,r,t):
+    #     # return model.v_T_Treatment_scaled[r,t]==0.00184*model.v_F_TreatmentFeed[r,t]
+    #     return model.v_T_Treatment_scaled[r,t]==0.00184*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
+    #                     model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
+    #                 )
+    # model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
+    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_bbl_week")
     for i in model.s_R:
         if model.p_chi_DesalinationSites[i]:  # Check if site i is a desalination plant
             for t in model.s_T:
-                # cap = sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
-                #     model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
-                # )
+                cap = sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
+                    model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+                )
                 
                     # Build the model with non-zero outputs
                 model.surrogate_costs[i, t].build_model(
                     keras_surrogate,
                     formulation=KerasSurrogate.Formulation.RELU_BIGM,
-                    input_vars=[model.inlet_salinity[i], model.recovery[i], model.v_T_Treatment_scaled[i,t]],
+                    input_vars=[model.inlet_salinity[i], model.recovery[i], cap],
                     output_vars=[model.v_C_TreatmentCapEx_site_time[i, t], model.v_C_Treatment_site[i, t], model.treatment_energy[i]],
                     )
                
@@ -3339,7 +3335,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalTreatmentCostRule(model):
         constraint = model.v_C_TotalTreatment == sum(
-            sum(model.v_C_Treatment[r, t] + 1000*model.v_C_Treatment_site[r,t]/52 for r in model.s_R) for t in model.s_T
+            sum(model.v_C_Treatment[r, t] + model.v_C_Treatment_site[r,t]/52 for r in model.s_R) for t in model.s_T
         )
 
         return process_constraint(constraint)
