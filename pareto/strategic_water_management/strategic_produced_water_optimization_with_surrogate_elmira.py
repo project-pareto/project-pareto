@@ -2380,7 +2380,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                + model.v_C_TreatmentCapEx_surrogate
+                + 1000*model.v_C_TreatmentCapEx_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -2418,9 +2418,9 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0
     )
     def scalingTreatment(model,r,t):
+        # return model.v_T_Treatment_scaled[r,t]==0.00184*model.v_F_TreatmentFeed[r,t]
         return model.v_T_Treatment_scaled[r,t]==0.00184/7*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
-                        model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
-                    )
+                        model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
                     )
     model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
@@ -3335,7 +3335,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalTreatmentCostRule(model):
         constraint = model.v_C_TotalTreatment == sum(
-            sum(model.v_C_Treatment[r, t] + model.v_C_Treatment_site[r,t]/52 for r in model.s_R) for t in model.s_T
+            sum(model.v_C_Treatment[r, t] + 1000*model.v_C_Treatment_site[r,t]/52 for r in model.s_R) for t in model.s_T
         )
 
         return process_constraint(constraint)

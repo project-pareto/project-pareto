@@ -196,6 +196,9 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+
+strategic_model.vb_y_MVCselected.display()
+strategic_model.v_T_Treatment_scaled.display()
 filename = os.path.join(os.path.dirname(__file__), 'model.lp')
 strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
 with nostdout():
@@ -217,7 +220,7 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_unit_cost.xlsx",
+    fname="strategic_optimization_results_MILP.xlsx",
 )
 
 # This shows how to read data from PARETO reports
