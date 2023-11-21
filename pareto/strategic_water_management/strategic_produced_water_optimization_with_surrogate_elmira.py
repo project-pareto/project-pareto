@@ -2423,7 +2423,7 @@ def create_model(df_sets, df_parameters, default={}):
     #                     model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
     #                 )
     # model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
-    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_bbl_week")
+    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_bbl_day")
     for i in model.s_R:
         if model.p_chi_DesalinationSites[i]:  # Check if site i is a desalination plant
             for t in model.s_T:
@@ -2944,7 +2944,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
             )
             for wt in model.s_WT
-        ) + 20 * 7
+        ) + 20 * 7*model.vb_y_MVCselected[r]
 
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
