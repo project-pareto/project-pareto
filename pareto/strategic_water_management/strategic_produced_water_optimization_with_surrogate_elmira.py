@@ -2948,7 +2948,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
             )
             for wt in model.s_WT
-        ) + pyunits.convert_value(3000,
+        ) + pyunits.convert_value(20000,
         from_units=pyunits.oil_bbl/pyunits.day,
         to_units=model.model_units["volume_time"])*model.vb_y_MVCselected[r]
 

@@ -191,7 +191,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 30000,
+    "running_time": 10000,
     "gap": 0,
 }
 
@@ -219,11 +219,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_kg_s_only_MVC.xlsx",
+    fname="strategic_optimization_results_kg_s_only_MVC_20k.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results_kg_s_only_MVC.xlsx"
+fname = "strategic_optimization_results_kg_s_only_MVC_20k.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

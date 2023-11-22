@@ -659,7 +659,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
-        units=model.model_units["currency"],
+        units=model.model_units["currency_time"],
         doc="Cost of treating produced water at treatment site [currency]",
     )
     # model.unit_cost_surr = Var(
@@ -1902,7 +1902,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
     model.p_omega_EvaporationRate = Param(
         default=pyunits.convert_value(
-            20000,
+            3000,
             from_units=pyunits.oil_bbl / pyunits.day,
             to_units=model.model_units["volume_time"],
         ),
@@ -2948,7 +2948,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for wt in model.s_WT
         ) + pyunits.convert_value(
-            1000,
+            3000,
             from_units=pyunits.oil_bbl / pyunits.day,
             to_units=model.model_units["volume_time"],
         ) * model.vb_y_MVCselected[r]
