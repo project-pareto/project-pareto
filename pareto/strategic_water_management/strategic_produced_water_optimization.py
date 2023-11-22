@@ -215,6 +215,9 @@ CONFIG.declare(
 )
 
 
+# This is the basic length of refinement of the grid. Adjust to 1000 for 10 times more refinement
+discretization_unit = 10000
+
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
 
@@ -485,6 +488,10 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_LLT = Set(
         initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
     )
+
+    model.s_lamset = Set(initialize= list(range(1+int(70000/discretization_unit))))
+    model.s_lamset2 = Set(initialize= list(range(int(70000/discretization_unit) )))
+    model.s_zset = Set(initialize= list(range(math.ceil(math.log(8, 2)))) )
 
     # Define continuous variables #
 
@@ -3901,6 +3908,44 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"],
         doc="Well pressure at production or completions pad [pressure]",
     )
+
+
+
+    # The folllowing decision variables are intermediate variables that allow linearization of Hazen-William Equations
+
+    mh.v_term = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Produced water quantity piped from location l to location l [volume/time]",
+    )
+
+    mh.v_term2 = Var(model.s_D,
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        doc="H_flow[l1,l2,t]*y_pipeline[d]",
+    )
+
+    mh.v_lambdas = Var(model.s_LLA,
+            model.s_T,
+        model.s_lamset,
+        within=NonNegativeReals,
+        initialize=0,
+        doc="Convex combination multipliers",
+    )
+    mh.vb_z = Var(model.s_LLA, model.s_T,\
+        model.s_zset,
+        within=Binary,
+        doc="Convex combination binaries",
+    )
+    #---------------
+
+
+
     mh.vb_Y_Pump = Var(
         model.s_LLA,
         within=Binary,
@@ -4125,50 +4170,95 @@ def pipeline_hydraulics(model):
             units=pyunits.meter,
             doc="Hazen-Williams Frictional loss, m",
         )
-        mh.v_effective_Pipeline_diameter = Var(
-            model.s_LLA,
-            initialize=0,
-            units=model.model_units["diameter"],
-            doc="Diameter of pipeline between two locations [inch]",
-        )
 
-        def EffectiveDiameterRule(b, l1, l2, t1):
-            constraint = mh.v_effective_Pipeline_diameter[
-                l1, l2
-            ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
-                model.vb_y_Pipeline[l1, l2, d]
-                * model.df_parameters["PipelineDiameterValues"][d]
-                for d in model.s_D
-            )
+        # -----------------Removing effective diameter rule. We will put the expression of binaries where needed
+        # mh.v_effective_Pipeline_diameter = Var(
+        #     model.s_LLA,
+        #     initialize=0,
+        #     units=model.model_units["diameter"],
+        #     doc="Diameter of pipeline between two locations [inch]",
+        # )
+
+        # def EffectiveDiameterRule(b, l1, l2, t1):
+        #     constraint = mh.v_effective_Pipeline_diameter[
+        #         l1, l2
+        #     ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
+        #         model.vb_y_Pipeline[l1, l2, d]
+        #         * model.df_parameters["PipelineDiameterValues"][d]
+        #         for d in model.s_D
+        #     )
+        #     return process_constraint(constraint)
+
+        # mh.EffectiveDiameter = Constraint(
+        #     model.s_LLA,
+        #     model.s_T,
+        #     rule=EffectiveDiameterRule,
+        #     doc="Pressure at Node L",
+        # )
+
+        # Add the constraints, starting with the constraints that linearize (piecewise) 
+        # non-linear flow term in Hazen-William Equation 
+
+        def FlowEquationConvRule(b, l1, l2, t1):
+            constraint = model.v_F_Piped[l1, l2, t1]* cons_scaling_factor\
+            == sum(mh.v_lambdas[l1, l2, t1, k]*discretization_unit*k for k in model.s_lamset)* cons_scaling_factor
             return process_constraint(constraint)
 
-        mh.EffectiveDiameter = Constraint(
-            model.s_LLA,
-            model.s_T,
-            rule=EffectiveDiameterRule,
-            doc="Pressure at Node L",
-        )
+        mh.FlowEquationConv = Constraint(
+                model.s_LLA,
+                model.s_T,
+                rule=FlowEquationConvRule,
+                doc="Flow at an arc at a time",
+            )
+        
+        
+        def termEquationConvRule(b, l1, l2, t1):
+            constraint =\
+                mh.v_term[l1, l2, t1]\
+            == sum(mh.v_lambdas[l1, l2, t1, k]*(k*discretization_unit*1.84*10**(-6))**1.85 for k in model.s_lamset)
+            return process_constraint(constraint)
 
+        mh.termEquationConv = Constraint(
+                model.s_LLA,
+                model.s_T,
+                rule=termEquationConvRule,
+                doc="Value of flow to the power 1.85 at the selected flow",
+            )
+
+        def EnforceZeroRule(b, i, l1, l2, t1):
+            binary_string = bin(i)[2:].zfill(len(model.s_zset))
+            binary_list = [int(bit) for bit in binary_string]
+            constraint = sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset if j!=i and j!=i+1)\
+            <= sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset if binary_list[j]==0) +\
+            sum( (1 - mh.vb_z[l1, l2, t1, j]) for j in model.s_zset if binary_list[j]==1)
+            return process_constraint(constraint)
+        
+        def SumOneRule(b,  l1, l2, t1):
+            constraint = sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset)* cons_scaling_factor\
+            == 1* cons_scaling_factor
+            return process_constraint(constraint)
+
+        mh.SumOne = Constraint(
+                model.s_LLA,
+                model.s_T,
+                rule=SumOneRule,
+                doc="Lambdas add up to 1",
+            )
+
+
+        # Now define the Hazen William equation in terms of the intermediate variables. 
+        # v_term2(defined below) gives the product friction pressure drop with binary variable selecting pipe dia
+    
+
+         
         def HazenWilliamsRule(b, l1, l2, t1):
             constraint = (
-                b.v_HW_loss[l1, l2, t1]
-                * (
-                    pyunits.convert(
-                        mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
-                    )
-                    ** 4.87
-                )
+                sum(((mh.p_Initial_Pipeline_Diameter[l1, l2]+model.df_parameters["PipelineDiameterValues"][d])*0.0254)**4.87*mh.v_term2[d, l1, l2, t1] for d in model.s_D)
             ) * cons_scaling_factor == (
                 10.704
                 * (
-                    (
-                        pyunits.convert(
-                            model.v_F_Piped[l1, l2, t1],
-                            to_units=pyunits.m**3 / pyunits.s,
-                        )
-                        / mh.p_iota_HW_material_factor_pipeline
-                    )
-                    ** 1.85
+                        mh.v_term[l1, l2, t1]
+                        / (mh.p_iota_HW_material_factor_pipeline)**1.85
                 )
                 * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
             ) * cons_scaling_factor
@@ -4180,6 +4270,49 @@ def pipeline_hydraulics(model):
             rule=HazenWilliamsRule,
             doc="Pressure at Node L",
         )
+
+
+        def V_term2_1Rule(b, l1, l2, t1, d):
+            constraint = ( 
+            mh.v_term2[d, l1, l2, t1] * cons_scaling_factor <= b.v_HW_loss[l1, l2, t1] * cons_scaling_factor)
+            return process_constraint(constraint)
+
+        mh.V_term2_1= Constraint(
+            model.s_LLA,
+            model.s_T,
+            model.s_D,
+            rule=V_term2_1Rule,
+            doc="McCormick 1",
+        )
+
+        M_ = 10**9
+
+        def V_term2_2Rule(b, l1, l2, t1, d):
+            constraint = (
+                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor <= M_* model.vb_y_Pipeline[l1, l2, d]* cons_scaling_factor)
+            return process_constraint(constraint)
+
+        mh.V_term2_2= Constraint(
+            model.s_LLA,
+            model.s_T,
+            model.s_D,
+            rule=V_term2_2Rule,
+            doc="McCormick 2",
+        )
+
+        def V_term2_3Rule(b, l1, l2, t1, d):
+            constraint = (
+                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor >= (b.v_HW_loss[l1, l2, t1] - M_*(1 - model.vb_y_Pipeline[l1, l2, d]) )* cons_scaling_factor)
+            return process_constraint(constraint)
+
+        mh.V_term2_3= Constraint(
+            model.s_LLA,
+            model.s_T,
+            model.s_D,
+            rule=V_term2_3Rule,
+            doc="McCormick 3",
+        )
+
 
         def NodePressureRule(b, l1, l2, t1):
             constraint = (
