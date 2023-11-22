@@ -11,7 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira import (
+from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_revised import (
     WaterQuality,
     create_model,
     Objectives,
@@ -154,7 +154,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_modified.xlsx",
+    "strategic_treatment_demo_modified_only_MVC.xlsx",
     # "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
@@ -191,7 +191,7 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 5000,
+    "running_time": 30000,
     "gap": 0,
 }
 
@@ -219,11 +219,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_day.xlsx",
+    fname="strategic_optimization_results_kg_s_only_MVC.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results_day.xlsx"
+fname = "strategic_optimization_results_kg_s_only_MVC.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

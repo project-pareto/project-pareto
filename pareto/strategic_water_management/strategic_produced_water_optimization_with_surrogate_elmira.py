@@ -659,7 +659,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         initialize=0,
         within=NonNegativeReals,
-        units=model.model_units["currency"],
+        units=model.model_units["currency_time"],
         doc="Cost of treating produced water at treatment site [currency]",
     )
     # model.unit_cost_surr = Var(
@@ -1902,7 +1902,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
     model.p_omega_EvaporationRate = Param(
         default=pyunits.convert_value(
-            3000,
+            20000,
             from_units=pyunits.oil_bbl / pyunits.day,
             to_units=model.model_units["volume_time"],
         ),
@@ -2380,6 +2380,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
+                + model.v_C_TotalTreatment_surrogate
                 + model.v_C_TreatmentCapEx_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
@@ -2411,25 +2412,27 @@ def create_model(df_sets, df_parameters, default={}):
     #         output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
     #     )
     model.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
-    # model.v_T_Treatment_scaled=Var(
-    #     model.s_R,
-    #     model.s_T,
-    #     within=NonNegativeReals,
-    #     initialize=0
-    # )
-    # def scalingTreatment(model,r,t):
-    #     # return model.v_T_Treatment_scaled[r,t]==0.00184*model.v_F_TreatmentFeed[r,t]
-    #     return model.v_T_Treatment_scaled[r,t]==0.00184*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
-    #                     model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
-    #                 )
-    # model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
-    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_bbl_day")
+    model.model_units["bbl_per_week"] = pyunits.oil_bbl / pyunits.week
+    conversion_factor = pyunits.convert_value(1, from_units=model.model_units["volume_time"], to_units=model.model_units["bbl_per_week"])
+    
+    model.v_T_Treatment_scaled=Var(
+         model.s_R,
+         model.s_T,
+         within=NonNegativeReals,
+         initialize=0
+    )
+    def scalingTreatment(model,r,t):
+        # return model.v_T_Treatment_scaled[r,t]==0.00184*model.v_F_TreatmentFeed[r,t]
+         return model.v_T_Treatment_scaled[r,t]==conversion_factor*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
+                        model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
+                    )
+    model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
+    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_bbl_week")
     for i in model.s_R:
         if model.p_chi_DesalinationSites[i]:  # Check if site i is a desalination plant
             for t in model.s_T:
-                cap = sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
-                    model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
-                )
+                
+                cap = model.v_T_Treatment_scaled[r,t]
                 
                     # Build the model with non-zero outputs
                 model.surrogate_costs[i, t].build_model(
@@ -2449,16 +2452,17 @@ def create_model(df_sets, df_parameters, default={}):
     #model.treatmentsurrogatecost = Constraint(model.s_R,model.s_T,rule=TreatmentSurrogateMaxCapacity,doc='Max treated vol as capex')
 
 
-    # def treatmentSurrogate(model):
-    #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
-    # model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
+    def treatmentSurrogate(model):
+        return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
+    model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
     def treatmentCapexSurrogate(model,i,t):
-        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t] - model.p_M_Flow*(1-model.vb_y_MVCselected[i])
+        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t] - 1e10*(1-model.vb_y_MVCselected[i])
     model.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
+ 
 
-    def treatmentOperationSurrogate(model,i,t):
-        return model.v_C_Treatment_site[i, t]>= - model.p_M_Flow*(1-model.vb_y_MVCselected[i])
-    model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
+    # def treatmentOperationSurrogate(model,i,t):
+    #     return model.v_C_Treatment_site[i, t]>= - 1e10*(1-model.vb_y_MVCselected[i])
+    # model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
     
 
     #def treatmentCapexBigM(model,i,t):
@@ -2944,7 +2948,9 @@ def create_model(df_sets, df_parameters, default={}):
                 )
             )
             for wt in model.s_WT
-        ) + 20 * 7*model.vb_y_MVCselected[r]
+        ) + pyunits.convert_value(3000,
+        from_units=pyunits.oil_bbl/pyunits.day,
+        to_units=model.model_units["volume_time"])*model.vb_y_MVCselected[r]
 
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
@@ -3335,7 +3341,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalTreatmentCostRule(model):
         constraint = model.v_C_TotalTreatment == sum(
-            sum(model.v_C_Treatment[r, t] + model.v_C_Treatment_site[r,t]/52 for r in model.s_R) for t in model.s_T
+            sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
         )
 
         return process_constraint(constraint)
