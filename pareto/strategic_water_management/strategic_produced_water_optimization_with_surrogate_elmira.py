@@ -2456,13 +2456,13 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
     model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
     def treatmentCapexSurrogate(model,i,t):
-        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t] - 1e10*(1-model.vb_y_MVCselected[i])
+        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t] - 1e6*(1-model.vb_y_MVCselected[i])
     model.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
  
 
-    # def treatmentOperationSurrogate(model,i,t):
-    #     return model.v_C_Treatment_site[i, t]>= - 1e10*(1-model.vb_y_MVCselected[i])
-    # model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
+    def treatmentOperationSurrogate(model,i,t):
+        return model.v_C_Treatment_site[i, t]>= - 1e6*(1-model.vb_y_MVCselected[i])
+    model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
     
 
     #def treatmentCapexBigM(model,i,t):
