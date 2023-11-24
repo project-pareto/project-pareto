@@ -18,6 +18,8 @@ The following functions are used to conveniently display and analyze data.
 +----------------------+---------------------------------------+
 | plot_scatter         | :ref:`results_plot_scatter`           |
 +----------------------+---------------------------------------+
+| is_feasible          | :ref:`results_is_feasible`            |
++----------------------+---------------------------------------+
 
 
 
@@ -27,7 +29,7 @@ Generate Report
 ---------------
 
 
-**Method Description:**
+**Method Description**
 
 This method identifies the type of model: [strategic, operational], creates a printing list based on is_print,
 and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
@@ -56,13 +58,13 @@ The output of this method prints out each variable’s information in the termin
 
 
 
-**How to Use:**
+**How to Use**
 
 This method requires two parameters:
 
-1.) The model that is being returned from the create_model() method after a solution is found
+1. The model that is being returned from the create_model() method after a solution is found
 
-2.) An array of an “enum” class value specifying which variables to print which are chosen by the user. These values are:
+2. An array of an “enum” class value specifying which variables to print which are chosen by the user. These values are:
 
     *"PrintValues.Essential"* – Specifies that the overview information will be printed
 
@@ -84,7 +86,7 @@ Example of how this method is used::
 Generate Sankey
 ---------------
 
-**Method Description:**
+**Method Description**
 
 Sankey diagrams are a graphic tool used to easily visualize supply-sink flows across a given infrastructure (source/destination).
 The relative width of each "flow" is proportional to the amount of water that is being transported between locations.
@@ -112,7 +114,7 @@ plot titles. The user can save the Sankey diagram in the following formats: jpg,
 Plot Sankey
 -----------
 
-**Method Description:**
+**Method Description**
 
 This method receives data in the form of 3 seperate lists (origin, destination, value lists), generate_report dictionary
 output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
@@ -127,11 +129,11 @@ sankey diagram.
 
     Figure 3. Example of Sankey Diagram Showing Water Production Flows
 
-**How to Use:**
+**How to Use**
 
 This method requires two parameters:
 
-1.) An input data dictionary that includes the time periods requested as well as said data. The data is passed in as ‘pareto_var’ and can be in get_data() format, which requires labels, generate_report() format, or 3 separate lists:
+1. An input data dictionary that includes the time periods requested as well as said data. The data is passed in as ‘pareto_var’ and can be in get_data() format, which requires labels, generate_report() format, or 3 separate lists:
 
     *"pareto_var"* – This parameter can be variable data returned from the get_data() or generate_report() format
 
@@ -140,7 +142,7 @@ This method requires two parameters:
     *"labels"* – This is only required if the data being passed in is in get_data() format. The labels are used to distinguish between the columns.
 
 
-2.) A dictionary of arguments that include formatting options like font size, title of the plot and output file:
+2. A dictionary of arguments that include formatting options like font size, title of the plot and output file:
 
     *output_file* – This parameter is used for creating the file that contains the Sankey Diagram created by this method
 
@@ -161,7 +163,7 @@ Example of how this method is used::
 Plot Bars
 ---------
 
-**Method Description:**
+**Method Description**
 
 This method generates a bar chart based on the variable data that the user passes in. It automatically creates either an animated bar chart (if the variable is indexed by time) or a static bar chart.
 
@@ -176,7 +178,7 @@ This method generates a bar chart based on the variable data that the user passe
 
 This method requires two parameters:
 
-1.) A dictionary including the data and labels that are being used, either in get_data() output format or generate_report() output format. (Labels only required for get_data() format).
+1. A dictionary including the data and labels that are being used, either in get_data() output format or generate_report() output format. (Labels only required for get_data() format).
 
     *"pareto_var"*– This parameter contains the data that the user wants to use
 
@@ -184,7 +186,7 @@ This method requires two parameters:
 
 
 
-2.) A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
+2. A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
 
     *"group_by"* - This specifies what field will be used as the x axis in the plot
 
@@ -211,7 +213,7 @@ Example of how this method is used::
 Plot Scatter
 ------------
 
-**Method Description:**
+**Method Description**
 
 This method creates the scatter plot that is generated from the variable data that the user passes in. It creates either an animated scatter plot(if the variable is indexed by time) or a static scatter plot.
 
@@ -226,7 +228,7 @@ This method creates the scatter plot that is generated from the variable data th
 
 This method requires two parameters:
 
-1.) An input data dictionary that include the variables for x and y axis, a size parameter, and labels parameters that provides a tuple of labels (only required for get_data() format) for x, y, and size variables.
+1. An input data dictionary that include the variables for x and y axis, a size parameter, and labels parameters that provides a tuple of labels (only required for get_data() format) for x, y, and size variables.
 
     *"pareto_var"*– This parameter contains the data that the user wants to use.
 
@@ -244,7 +246,7 @@ This method requires two parameters:
 
     Figure 6. Options for specifying the bubbles size.
 
-2.) A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
+2. A dictionary of arguments that include the title of the plot, a group by parameter, and an output file. Here is an example of the arguments:
 
     *"group_by"* - This specifies what field will be used as the x axis in the plot. The column name should be used to indicate how to group the data.
     If "group_by" is not specified, then first column is used.
@@ -299,3 +301,36 @@ Example of how this method can be used::
                 }
 
   plot_scatter(input_data, args)
+
+
+.. _results_is_feasible:
+
+Is Feasible
+------------
+
+**Method Description**
+
+Verifies the solution contained in a Pyomo model object is feasible. This requires iterating through all variables and constraints and ensuring that the constraint and variable bounds are satisfied at the solution present in the model.
+
+**How to Use**
+
+The method requres that a Pyomo model be passed as the first argument. Two other keyword arguments are optional:
+
+1. *"bound_tol"* - Violation tolerance for bounds. Default value is 1e-3.
+
+2. *"cons_tol"* - Violation tolerance for constraints. Default value is 1e-3.
+
+
+Example of how this method can be used::
+
+  from pareto.utilities.results import is_feasible, nostdout
+
+  # Assume model is any Pyomo model that has already been created and solved
+
+  with nostdout():
+      feasibility_status = is_feasible(model)
+
+  if not feasibility_status:
+      print("\nModel results are not feasible and should not be trusted\n" + "-" * 60)
+  else:
+      print("\nModel results validated and found to pass feasibility tests\n" + "-" * 60)
