@@ -72,6 +72,7 @@ parameter_list = [
 # Load data from Excel input file into Python
 with resources.path(
     "pareto.case_studies",
+    # "strategic_treatment_demo_modified_only_MVC.xlsx",
     "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
@@ -100,6 +101,55 @@ options = {
     "gurobi_numeric_focus": 2,
 }
 results_obj = solve_model(model=strategic_model, options=options)
+
+# Check feasibility of the solved model
+def check_feasibility(model):
+    with nostdout():
+        feasibility_status = is_feasible(model)
+    if not feasibility_status:
+        print("Model results are not feasible and should not be trusted")
+    else:
+        print("Model results validated and found to pass feasibility tests")
+
+check_feasibility(strategic_model)
+
+[model, results_dict] = generate_report(
+    strategic_model,
+    # is_print=[PrintValues.essential],
+    output_units=OutputUnits.user_units,
+    fname="strategic_optimization_small_case_results_SRA_post_process.xlsx",
+)
+
+# Function to extract R01 buildout results
+def get_desal_results(results_dict):
+    desal_sites={}
+    for datapt in results_dict['vb_y_Treatment_dict'][:]:
+        site, technology, capacity, built = datapt
+        if (technology == 'FF' or  technology == 'MVC' or technology == 'HDH') and built == 1:
+            desal_sites[f'{site}'] = {}
+            desal_sites[f'{site}']['technology'] = technology
+            desal_sites[f'{site}']['capacity'] = capacity
+    
+    return desal_sites
+
+# Extract R01 buildout results for default solved model
+desal_sites = get_desal_results(results_dict)
+# print('For this case, PARETO recommends installing a desalination plant in R01 location')
+
+for i in desal_sites:
+    print(f'Site: {i}')
+    print(f"Technology: {desal_sites[i]['technology']}")
+    print(f"Capacity: {desal_sites[i]['capacity']}")
+    print('---------------------------------')
+# print(f"Site: {desal_sites['site']}")
+# print(f"Technology: {desal_sites['technology']}")
+# print(f"Capacity: {desal_sites['capacity']}")
+print(f"Objective function value: {value(strategic_model.v_Z)}")
+print('--------------------')
+
+# Check what capacity J1 corresponds to (in bbl/day) 
+for i in desal_sites:
+    print(f"Desalination plant {i} capacity bbl/day = {df_parameters['TreatmentCapacityIncrements'][(desal_sites[i]['technology'], desal_sites[i]['capacity'])]}")
 from pyomo.environ import Var, Binary
 def free_variables(model, exception_list, time_period=None):
     for var in model.component_objects(Var):
@@ -157,6 +207,8 @@ def CostObjectiveFunctionRule2(model):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
+                + model.v_C_TotalTreatment_surrogate
+                + model.v_C_TreatmentCapex_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -242,7 +294,7 @@ elif minlp_solver_source == "gurobi":
     solver = SolverFactory(mathoptsolver)
     solver.options["timeLimit"] = 1500
     solver.options["NonConvex"] = 2
-    solver.options["MIPGap"] = 0.5
+    solver.options["MIPGap"] = 0.05
 
     strategic_model.penalty=0.001
     try:

@@ -11,7 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_revised import (
+from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_re_revised import (
     WaterQuality,
     create_model,
     Objectives,
@@ -219,11 +219,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_kg_s_only_MVC_20k.xlsx",
+    fname="strategic_optimization_results_revised.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results_kg_s_only_MVC_20k.xlsx"
+fname = "strategic_optimization_results_revised.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
