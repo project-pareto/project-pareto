@@ -3005,7 +3005,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for wt in model.s_WT
         ) + pyunits.convert_value(
-            3000,
+            10000,
             from_units=pyunits.oil_bbl / pyunits.day,
             to_units=model.model_units["volume_time"],
         ) * model.vb_y_MVCselected[r]
@@ -4766,7 +4766,7 @@ def water_quality(model):
         units=pyunits.g/pyunits.L,
     )
     
-    cap_lower_bound, cap_upper_bound = 0 * 7 *  conversion_factor, 3 * 7 *  conversion_factor  
+    cap_lower_bound, cap_upper_bound = 0 * 7 *  conversion_factor, 10 * 7 *  conversion_factor  
     opex_lower_bound, opex_upper_bound = 0 , 2000
     capex_lower_bound, capex_upper_bound = 0, 500
     energy_lower_bound, energy_upper_bound = 0, 1500
@@ -4801,14 +4801,16 @@ def water_quality(model):
         else:
             return Constraint.Skip
     conversion_factor_salinity = pyunits.convert_value(1, from_units=model.model_units["concentration"], to_units=model.model_units["g_per_L"])
-    def scalingQuality(b, r, t):
-        if model.p_chi_DesalinationSites[r]:
-            return b.v_Q_scaled[r,'TDS',t] == conversion_factor_salinity * (b.v_Q[r,'TDS',t])
-        else:
-            return Constraint.Skip
-    model.quality.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingQuality)
+    # def scalingQuality(b, r, t):
+    #     if model.p_chi_DesalinationSites[r]:
+    #         return b.v_Q_scaled[r,'TDS',t] == conversion_factor_salinity * (b.v_Q[r,'TDS',t])
+    #     else:
+    #         return Constraint.Skip
+    # model.quality.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingQuality)
+    model.quality.v_Q_scaled.fix(120)
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
     # alamo_surrogate = AlamoSurrogate.load_from_file("alamo_surrogate.json")
+    model.quality.recovery.fix(0.1)
     for i in model.s_R:
         for t in model.s_T:
             if model.p_chi_DesalinationSites[i]:
