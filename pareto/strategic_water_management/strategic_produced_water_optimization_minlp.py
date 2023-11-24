@@ -52,6 +52,8 @@ from pyomo.opt import TerminationCondition
 from idaes.core.surrogate.surrogate_block import SurrogateBlock
 from idaes.core.surrogate.keras_surrogate import KerasSurrogate
 
+from idaes.core.surrogate.alamopy import AlamoSurrogate
+
 
 
 class Objectives(Enum):
@@ -4314,7 +4316,7 @@ def water_quality(model):
             return Constraint.Skip
     model.quality.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingQuality)
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
-
+    # alamo_surrogate = AlamoSurrogate.load_from_file("alamo_surrogate.json")
     for i in model.s_R:
         for t in model.s_T:
             if model.p_chi_DesalinationSites[i]:
@@ -4322,6 +4324,7 @@ def water_quality(model):
                 cap = model.quality.v_T_Treatment_scaled[i, t]
                 model.quality.surrogate_costs[i, t].build_model(
                     keras_surrogate,
+                    # alamo_surrogate,
                     formulation=KerasSurrogate.Formulation.RELU_BIGM,
                     input_vars=[model.quality.v_Q_scaled[i,'TDS',t], model.quality.recovery[i], cap],
                     output_vars=[model.quality.v_C_TreatmentCapEx_site_time[i, t], model.quality.v_C_Treatment_site[i, t], model.quality.treatment_energy[i]],
@@ -6726,7 +6729,7 @@ def solve_model(model, options=None):
     use_scaling = False  # yes/no to scale the model
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
     solver = ("gurobi_direct", "gurobi", "cbc")  # solvers to try and load in order
-    gurobi_numeric_focus = 1
+    gurobi_numeric_focus = 2
 
     # raise an exception if options is neither None nor a user-provided dictionary
     if options is not None and not isinstance(options, dict):
@@ -6755,19 +6758,21 @@ def solve_model(model, options=None):
     # load pyomo solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
 
-    # set maximum running time for solver
-    set_timeout(opt, timeout_s=running_time)
+    if solver!='gams:baron':
+        # set maximum running time for solver
+        set_timeout(opt, timeout_s=running_time)
 
-    # set solver gap
-    if opt.type in ("gurobi_direct", "gurobi"):
-        # Apply Gurobi specific options
-        opt.options["mipgap"] = gap
-        opt.options["NumericFocus"] = gurobi_numeric_focus
-    elif opt.type in ("cbc"):
-        # Apply CBC specific option
-        opt.options["ratioGap"] = gap
-    else:
-        print("\nNot implemented passing gap for solver :%s\n" % opt.type)
+        # set solver gap
+        if opt.type in ("gurobi_direct", "gurobi"):
+            # Apply Gurobi specific options
+            opt.options["mipgap"] = gap
+            opt.options["NumericFocus"] = gurobi_numeric_focus
+        elif opt.type in ("cbc"):
+            # Apply CBC specific option
+            opt.options["ratioGap"] = gap
+        else:
+            opt.options['maxtime']=running_time
+            print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
     # deactivate slack variables if necessary
     if deactivate_slacks:

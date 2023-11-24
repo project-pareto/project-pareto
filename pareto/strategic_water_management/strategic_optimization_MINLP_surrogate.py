@@ -2472,30 +2472,6 @@ def create_model(df_sets, df_parameters, default={}):
         else:
             return Constraint.Skip
     model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
-    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
-
-    
-
-    for i in model.s_R:
-        for t in model.s_T:
-            
-
-            if model.p_chi_DesalinationSites[i]:
-                # Build the model with non-zero outputs
-                cap = model.v_T_Treatment_scaled[i, t]
-                model.surrogate_costs[i, t].build_model(
-                    keras_surrogate,
-                    formulation=KerasSurrogate.Formulation.RELU_BIGM,
-                    input_vars=[model.inlet_salinity[i], model.recovery[i], cap],
-                    output_vars=[model.v_C_TreatmentCapEx_site_time[i, t], model.v_C_Treatment_site[i, t], model.treatment_energy[i]],
-                )
-            else:
-                # If not a desalination site is zero, fix the outputs to zero
-                model.v_T_Treatment_scaled[i, t].fix(0)
-                model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
-                model.v_C_Treatment_site[i, t].fix(0)
-                model.treatment_energy[i].fix(0)
-                model.v_C_TreatmentCapEx_site[i].fix(0)
 
                    
     #def treatmentSiteBigM(model,r,t):
@@ -4664,6 +4640,26 @@ def water_quality(model):
     # endregion
 
     # region Disposal
+    # Surrogate
+    keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
+    for i in model.s_R:
+        for t in model.s_T:
+            if model.p_chi_DesalinationSites[i]:
+                # Build the model with non-zero outputs
+                cap = model.v_T_Treatment_scaled[i, t]
+                model.surrogate_costs[i, t].build_model(
+                    keras_surrogate,
+                    formulation=KerasSurrogate.Formulation.RELU_BIGM,
+                    input_vars=[model.quality.v_Q_scaled[i,'TDS',t], model.recovery[i], cap],
+                    output_vars=[model.v_C_TreatmentCapEx_site_time[i, t], model.v_C_Treatment_site[i, t], model.treatment_energy[i]],
+                )
+            else:
+                # If not a desalination site is zero, fix the outputs to zero
+                model.v_T_Treatment_scaled[i, t].fix(0)
+                model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
+                model.v_C_Treatment_site[i, t].fix(0)
+                model.treatment_energy[i].fix(0)
+                model.v_C_TreatmentCapEx_site[i].fix(0)
     # Material Balance
     def DisposalWaterQualityRule(b, k, qc, t):
         constraint = (
