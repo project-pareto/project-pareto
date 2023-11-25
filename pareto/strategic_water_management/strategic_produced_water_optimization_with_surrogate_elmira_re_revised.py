@@ -3005,7 +3005,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             for wt in model.s_WT
         ) + pyunits.convert_value(
-            10000,
+            3000,
             from_units=pyunits.oil_bbl / pyunits.day,
             to_units=model.model_units["volume_time"],
         ) * model.vb_y_MVCselected[r]
@@ -4668,7 +4668,8 @@ def water_quality(model):
         model.s_QC,
         model.s_T,
         within=NonNegativeReals,
-        initialize=0,
+        initialize=0.035,
+        bounds=(0.035,0.3),
         units=model.model_units["concentration"],
         doc="Water quality at location [concentration]",
     )
@@ -4762,11 +4763,13 @@ def water_quality(model):
         model.s_QC,
         model.s_T,
         within=NonNegativeReals,
+        initialize=35,
+        bounds=(35,300),
         #bounds=v_T_Treatment_scaled_bounds,  
         units=pyunits.g/pyunits.L,
     )
     
-    cap_lower_bound, cap_upper_bound = 0 * 7 *  conversion_factor, 10 * 7 *  conversion_factor  
+    cap_lower_bound, cap_upper_bound = 0 * 7 *  conversion_factor, 3 * 7 *  conversion_factor  
     opex_lower_bound, opex_upper_bound = 0 , 2000
     capex_lower_bound, capex_upper_bound = 0, 500
     energy_lower_bound, energy_upper_bound = 0, 1500
@@ -4807,10 +4810,10 @@ def water_quality(model):
     #     else:
     #         return Constraint.Skip
     # model.quality.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingQuality)
-    model.quality.v_Q_scaled.fix(120)
+    # model.quality.v_Q_scaled.fix(120)
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
     # alamo_surrogate = AlamoSurrogate.load_from_file("alamo_surrogate.json")
-    model.quality.recovery.fix(0.1)
+    model.quality.recovery.fix(0.05)
     for i in model.s_R:
         for t in model.s_T:
             if model.p_chi_DesalinationSites[i]:
@@ -5450,7 +5453,7 @@ def water_quality(model):
     def ObjectiveFunctionRule(b):
         return b.v_X == sum(
             sum(
-                sum(b.v_Q[p, qc, t] for p in b.parent_block().s_P)
+                sum(b.v_Q[p, qc, t] for p in b.s_WQL)
                 for qc in b.parent_block().s_QC
             )
             for t in b.parent_block().s_T

@@ -12,6 +12,8 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_re_revised import (
+
+# from pareto.strategic_water_management.strategic_produced_water_optimization_minlp import (
     WaterQuality,
     create_model,
     Objectives,
@@ -158,7 +160,7 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": True,
-        "water_quality": WaterQuality.false,
+        "water_quality": WaterQuality.post_process,
     },
 )
 
@@ -189,13 +191,13 @@ check_feasibility(strategic_model)
     strategic_model,
     # is_print=[PrintValues.essential],
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_initialize_gurobi.xlsx",
+    fname="MINLP.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_initialize_gurobi.xlsx"
+fname = "MINLP.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
 # # Function to extract R01 buildout results
 def get_desal_results(results_dict):
