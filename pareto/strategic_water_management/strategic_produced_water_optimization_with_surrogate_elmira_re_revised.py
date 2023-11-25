@@ -37,7 +37,7 @@ from pyomo.environ import (
     TransformationFactory,
     value,
     SolverFactory,
-    ConstraintList
+    ConstraintList,
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
@@ -52,6 +52,7 @@ from pyomo.opt import TerminationCondition
 
 from idaes.core.surrogate.surrogate_block import SurrogateBlock
 from idaes.core.surrogate.keras_surrogate import KerasSurrogate
+
 
 class Objectives(Enum):
     cost = 0
@@ -289,7 +290,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.user_units["currency_volume_time"] = (
         model.user_units["currency"] / model.user_units["volume_time"]
     )
-
+    model.user_units["g_per_L"] = (
+        pyunits.g / pyunits.liter
+    )
     model.model_units = {
         "volume": pyunits.koil_bbl,
         "distance": pyunits.mile,
@@ -995,7 +998,12 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Beneficial reuse option selection",
     )
 
-    model.vb_y_MVCselected = Var(model.s_R, within=Binary, initialize=0, doc="MVC selection for each desalination site")
+    model.vb_y_MVCselected = Var(
+        model.s_R,
+        within=Binary,
+        initialize=0,
+        doc="MVC selection for each desalination site",
+    )
 
     # model.inlet_salinity = Var(
     #     model.s_R,
@@ -2384,7 +2392,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                + model.v_C_TreatmentCapEx_surrogate
+                # + model.v_C_TreatmentCapEx_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -2417,51 +2425,46 @@ def create_model(df_sets, df_parameters, default={}):
     # model.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
     # model.model_units["L_per_s"] = pyunits.L / pyunits.s
     # conversion_factor = pyunits.convert_value(1, from_units=model.model_units["volume_time"], to_units=model.model_units["L_per_s"])
-    
-    #def v_T_Treatment_scaled_bounds(model, r, t):
-     #   if model.p_chi_DesalinationSites[r]:
-      #      return (2 * 7 * conversion_factor, None)  
-       # else:
-        #    return (0, None)  
+
+    # def v_T_Treatment_scaled_bounds(model, r, t):
+    #   if model.p_chi_DesalinationSites[r]:
+    #      return (2 * 7 * conversion_factor, None)
+    # else:
+    #    return (0, None)
 
     # model.v_T_Treatment_scaled = Var(
     #     model.s_R,
     #     model.s_T,
     #     within=NonNegativeReals,
-    #     #bounds=v_T_Treatment_scaled_bounds,  
+    #     #bounds=v_T_Treatment_scaled_bounds,
     #     initialize=2 * 7 *  conversion_factor
     # )
-    
-    # cap_lower_bound, cap_upper_bound = 2 * 7 *  conversion_factor, 4 * 7 *  conversion_factor  
+
+    # cap_lower_bound, cap_upper_bound = 2 * 7 *  conversion_factor, 4 * 7 *  conversion_factor
     # opex_lower_bound, opex_upper_bound = 0 , 861.7375
     # capex_lower_bound, capex_upper_bound = 0, 335.6977
     # energy_lower_bound, energy_upper_bound = 0, 1326.662
-    
+
     # for i in model.s_R:
     #     for t in model.s_T:
     #         if model.p_chi_DesalinationSites[i]:
     #             model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
     #             model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
-                
+
     #         else:
-            
+
     #             model.v_T_Treatment_scaled[i, t].fix(0)
-                
-                
-    
+
     # for i in model.s_R:
     #     for t in model.s_T:
     #         if model.p_chi_DesalinationSites[i]:
-                
+
     #             model.v_C_Treatment_site[i, t].setlb(opex_lower_bound)
     #             model.v_C_Treatment_site[i, t].setub(opex_upper_bound)
     #             model.v_C_TreatmentCapEx_site_time[i, t].setlb(capex_lower_bound)
     #             model.v_C_TreatmentCapEx_site_time[i, t].setub(capex_upper_bound)
     #             model.treatment_energy[i].setlb(energy_lower_bound)
     #             model.treatment_energy[i].setub(energy_upper_bound)
-
-    
-
 
     # def scalingTreatment(model, r, t):
     #     if model.p_chi_DesalinationSites[r]:
@@ -2474,11 +2477,8 @@ def create_model(df_sets, df_parameters, default={}):
     # model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
     # keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
 
-    
-
     # for i in model.s_R:
     #     for t in model.s_T:
-            
 
     #         if model.p_chi_DesalinationSites[i]:
     #             # Build the model with non-zero outputs
@@ -2497,15 +2497,13 @@ def create_model(df_sets, df_parameters, default={}):
     #             model.treatment_energy[i].fix(0)
     #             model.v_C_TreatmentCapEx_site[i].fix(0)
 
-                   
     # #def treatmentSiteBigM(model,r,t):
     #  #   return model.v_C_Treatment_site[r,t]<=model.p_M_Flow*sum(model.vb_y_Treatment[r, 'MVC', j] for j in model.s_J)
     # #model.treatmentMVC = Constraint(model.s_R,model.s_T,rule=treatmentSiteBigM,doc='Treatment surrogate for MVC')
 
     # #def TreatmentSurrogateMaxCapacity(model,i,t):
-    #  #   return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[i, t] 
+    #  #   return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[i, t]
     # #model.treatmentsurrogatecost = Constraint(model.s_R,model.s_T,rule=TreatmentSurrogateMaxCapacity,doc='Max treated vol as capex')
-
 
     # # def treatmentSurrogate(model):
     # #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
@@ -2514,12 +2512,10 @@ def create_model(df_sets, df_parameters, default={}):
     #     return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t]
     # #- 1e6*(1-model.vb_y_MVCselected[i])
     # model.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
- 
 
     # # def treatmentOperationSurrogate(model,i,t):
     # #     return model.v_C_Treatment_site[i, t]>= - 1e10*(1-model.vb_y_MVCselected[i])
     # # model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
-    
 
     # #def treatmentCapexBigM(model,i,t):
     # #    return model.v_C_TreatmentCapEx_site[i]<=model.v_C_TreatmentCapEx_site_time[i,t] + 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
@@ -2527,7 +2523,7 @@ def create_model(df_sets, df_parameters, default={}):
     # def capExSurrogate(model):
     #     return model.v_C_TreatmentCapEx_surrogate==sum(model.v_C_TreatmentCapEx_site[i] for i in model.s_R)
     # model.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
-    
+
     # def capexTotal(model):
     #     return model.totalCapex==model.v_C_TreatmentCapEx+model.v_C_TreatmentCapEx_surrogate
     # model.capextot = Constraint(rule=capexTotal,doc='Total Capex')
@@ -2994,21 +2990,26 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TreatmentCapacityExpansionRule(model, r):
-        return model.v_T_Capacity[r] == sum(
-            (
-                model.p_sigma_Treatment[r, wt]
-                * sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                + sum(
-                    model.p_delta_Treatment[wt, j] * model.vb_y_Treatment[r, wt, j]
-                    for j in model.s_J
+        return (
+            model.v_T_Capacity[r]
+            == sum(
+                (
+                    model.p_sigma_Treatment[r, wt]
+                    * sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    + sum(
+                        model.p_delta_Treatment[wt, j] * model.vb_y_Treatment[r, wt, j]
+                        for j in model.s_J
+                    )
                 )
+                for wt in model.s_WT
             )
-            for wt in model.s_WT
-        ) + pyunits.convert_value(
-            3000,
-            from_units=pyunits.oil_bbl / pyunits.day,
-            to_units=model.model_units["volume_time"],
-        ) * model.vb_y_MVCselected[r]
+            + pyunits.convert_value(
+                3000,
+                from_units=pyunits.oil_bbl / pyunits.day,
+                to_units=model.model_units["volume_time"],
+            )
+            * model.vb_y_MVCselected[r]
+        )
 
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
@@ -3084,7 +3085,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Residual water based on treatment efficiency",
     )
 
-
     def ResidualWaterRHSRule(model, r, wt, t):
         if model.p_chi_DesalinationSites[r]:
             epsilon_treatment = 0.5733
@@ -3100,7 +3100,6 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
         return process_constraint(constraint)
-
 
     model.ResidualWaterRHS = Constraint(
         model.s_R,
@@ -3372,8 +3371,7 @@ def create_model(df_sets, df_parameters, default={}):
                 - model.p_M_Flow
                 * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             )
-            * model.p_pi_Treatment[r,wt]
-
+            * model.p_pi_Treatment[r, wt]
         )
         return process_constraint(constraint)
 
@@ -3400,7 +3398,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.p_M_Flow
                 * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             )
-            * model.p_pi_Treatment[r,wt]
+            * model.p_pi_Treatment[r, wt]
         )
         return process_constraint(constraint)
 
@@ -3865,7 +3863,8 @@ def create_model(df_sets, df_parameters, default={}):
             sum(
                 sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
                 for wt in model.s_WT
-            ) + model.vb_y_MVCselected[r]
+            )
+            + model.vb_y_MVCselected[r]
             == 1
         )
         return process_constraint(constraint)
@@ -3883,7 +3882,8 @@ def create_model(df_sets, df_parameters, default={}):
                     sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
                     for wt in model.s_WT
                     if model.p_chi_DesalinationTechnology[wt]
-                ) + model.vb_y_MVCselected[r]
+                )
+                + model.vb_y_MVCselected[r]
                 == 1
             )
             return process_constraint(constraint)
@@ -4157,7 +4157,6 @@ def pipeline_hydraulics(model):
         doc="Well pressure at production or completions pad [pressure]",
     )
 
-    
     mh.vb_Y_Pump = Var(
         model.s_LLA,
         within=Binary,
@@ -4527,7 +4526,7 @@ def water_quality(model):
         for index in var:
             # Check if the variable is indexed
             if index is None:
-                if var.value==None:
+                if var.value == None:
                     print(var)
                 # Check if the value can reasonably be assumed to be non-zero
                 if abs(var.value) > 0.0000001:
@@ -4669,7 +4668,7 @@ def water_quality(model):
         model.s_T,
         within=NonNegativeReals,
         initialize=0.035,
-        bounds=(0.035,0.3),
+        bounds=(0.035, 0.3),
         units=model.model_units["concentration"],
         doc="Water quality at location [concentration]",
     )
@@ -4682,17 +4681,14 @@ def water_quality(model):
     # endregion
     # Surrogates
     model.quality.recovery = Var(
-        model.s_R,
-        within=Reals,
-        bounds=(0,1),
-        doc="Recovery of water"
+        model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
     )
     model.quality.treatment_energy = Var(
         model.s_R,
         within=Reals,
         initialize=0,
         # units=units.W,
-        doc="Energy required for each site for desalination"
+        doc="Energy required for each site for desalination",
     )
     model.quality.cap = Var(
         model.s_R,
@@ -4700,7 +4696,7 @@ def water_quality(model):
         within=Reals,
         initialize=0,
         # units=units.W,
-        doc="input flowrate into MVC plant/surrogate"
+        doc="input flowrate into MVC plant/surrogate",
     )
     model.quality.v_C_TreatmentCapEx_site = Var(
         model.s_R,
@@ -4744,19 +4740,23 @@ def water_quality(model):
     model.quality.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
     model.model_units["L_per_s"] = pyunits.L / pyunits.s
     model.model_units["g_per_L"] = pyunits.g / pyunits.L
-    conversion_factor = pyunits.convert_value(1, from_units=model.model_units["volume_time"], to_units=model.model_units["L_per_s"])
-    #def v_T_Treatment_scaled_bounds(model, r, t):
-     #   if model.p_chi_DesalinationSites[r]:
-      #      return (2 * 7 * conversion_factor, None)  
-       # else:
-        #    return (0, None)  
+    conversion_factor = pyunits.convert_value(
+        1,
+        from_units=model.model_units["volume_time"],
+        to_units=model.model_units["L_per_s"],
+    )
+    # def v_T_Treatment_scaled_bounds(model, r, t):
+    #   if model.p_chi_DesalinationSites[r]:
+    #      return (2 * 7 * conversion_factor, None)
+    # else:
+    #    return (0, None)
 
     model.quality.v_T_Treatment_scaled = Var(
         model.s_R,
         model.s_T,
         within=NonNegativeReals,
-        #bounds=v_T_Treatment_scaled_bounds,  
-        initialize=2 * 7 *  conversion_factor
+        # bounds=v_T_Treatment_scaled_bounds,
+        initialize=2 * 7 * conversion_factor,
     )
     model.quality.v_Q_scaled = Var(
         model.quality.s_WQL,
@@ -4764,46 +4764,66 @@ def water_quality(model):
         model.s_T,
         within=NonNegativeReals,
         initialize=35,
-        bounds=(35,300),
-        #bounds=v_T_Treatment_scaled_bounds,  
-        units=pyunits.g/pyunits.L,
+        bounds=(35, 300),
+        # bounds=v_T_Treatment_scaled_bounds,
+        units=pyunits.g / pyunits.L,
     )
-    
-    cap_lower_bound, cap_upper_bound = 0 * 7 *  conversion_factor, 3 * 7 *  conversion_factor  
-    opex_lower_bound, opex_upper_bound = 0 , 2000
+
+    cap_lower_bound, cap_upper_bound = (
+        0 * 7 * conversion_factor,
+        3 * 7 * conversion_factor,
+    )
+    opex_lower_bound, opex_upper_bound = 0, 2000
     capex_lower_bound, capex_upper_bound = 0, 500
     energy_lower_bound, energy_upper_bound = 0, 1500
-    
+
     for i in model.s_R:
         for t in model.s_T:
             if model.p_chi_DesalinationSites[i]:
                 model.quality.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
                 model.quality.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
-                
+
             else:
-            
+
                 model.quality.v_T_Treatment_scaled[i, t].fix(0)
 
     for i in model.s_R:
         for t in model.s_T:
             if model.p_chi_DesalinationSites[i]:
-                
+
                 model.quality.v_C_Treatment_site[i, t].setlb(opex_lower_bound)
                 model.quality.v_C_Treatment_site[i, t].setub(opex_upper_bound)
-                model.quality.v_C_TreatmentCapEx_site_time[i, t].setlb(capex_lower_bound)
-                model.quality.v_C_TreatmentCapEx_site_time[i, t].setub(capex_upper_bound)
+                model.quality.v_C_TreatmentCapEx_site_time[i, t].setlb(
+                    capex_lower_bound
+                )
+                model.quality.v_C_TreatmentCapEx_site_time[i, t].setub(
+                    capex_upper_bound
+                )
                 model.quality.treatment_energy[i].setlb(energy_lower_bound)
                 model.quality.treatment_energy[i].setub(energy_upper_bound)
 
     def scalingTreatment(b, r, t):
         if model.p_chi_DesalinationSites[r]:
             return b.v_T_Treatment_scaled[r, t] == conversion_factor * (
-                sum(b.parent_block().v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) +
-                sum(b.parent_block().v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
+                sum(
+                    b.parent_block().v_F_Piped[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLA
+                )
+                + sum(
+                    b.parent_block().v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
+                )
             )
         else:
             return Constraint.Skip
-    conversion_factor_salinity = pyunits.convert_value(1, from_units=model.model_units["concentration"], to_units=model.model_units["g_per_L"])
+
+    conversion_factor_salinity = pyunits.convert_value(
+        1,
+        from_units=model.model_units["concentration"],
+        to_units=model.model_units["g_per_L"],
+    )
     # def scalingQuality(b, r, t):
     #     if model.p_chi_DesalinationSites[r]:
     #         return b.v_Q_scaled[r,'TDS',t] == conversion_factor_salinity * (b.v_Q[r,'TDS',t])
@@ -4823,8 +4843,16 @@ def water_quality(model):
                     keras_surrogate,
                     # alamo_surrogate,
                     formulation=KerasSurrogate.Formulation.RELU_BIGM,
-                    input_vars=[model.quality.v_Q_scaled[i,'TDS',t], model.quality.recovery[i], cap],
-                    output_vars=[model.quality.v_C_TreatmentCapEx_site_time[i, t], model.quality.v_C_Treatment_site[i, t], model.quality.treatment_energy[i]],
+                    input_vars=[
+                        model.quality.v_Q_scaled[i, "TDS", t],
+                        model.quality.recovery[i],
+                        cap,
+                    ],
+                    output_vars=[
+                        model.quality.v_C_TreatmentCapEx_site_time[i, t],
+                        model.quality.v_C_Treatment_site[i, t],
+                        model.quality.treatment_energy[i],
+                    ],
                 )
             else:
                 # If not a desalination site is zero, fix the outputs to zero
@@ -4837,45 +4865,55 @@ def water_quality(model):
     # def recoveryLimitRule(b,r,t):
     #     return b.recovery[r]==(300-b.v_Q_scaled[r,'TDS',t])/300
     # model.quality.recoveryLimit=Constraint(model.s_R,model.s_T,rule=recoveryLimitRule)
-    #def treatmentSiteBigM(model,r,t):
-     #   return model.v_C_Treatment_site[r,t]<=model.p_M_Flow*sum(model.vb_y_Treatment[r, 'MVC', j] for j in model.s_J)
-    #model.treatmentMVC = Constraint(model.s_R,model.s_T,rule=treatmentSiteBigM,doc='Treatment surrogate for MVC')
+    # def treatmentSiteBigM(model,r,t):
+    #   return model.v_C_Treatment_site[r,t]<=model.p_M_Flow*sum(model.vb_y_Treatment[r, 'MVC', j] for j in model.s_J)
+    # model.treatmentMVC = Constraint(model.s_R,model.s_T,rule=treatmentSiteBigM,doc='Treatment surrogate for MVC')
 
-    #def TreatmentSurrogateMaxCapacity(model,i,t):
-     #   return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[i, t] 
-    #model.treatmentsurrogatecost = Constraint(model.s_R,model.s_T,rule=TreatmentSurrogateMaxCapacity,doc='Max treated vol as capex')
-
+    # def TreatmentSurrogateMaxCapacity(model,i,t):
+    #   return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[i, t]
+    # model.treatmentsurrogatecost = Constraint(model.s_R,model.s_T,rule=TreatmentSurrogateMaxCapacity,doc='Max treated vol as capex')
 
     # def treatmentSurrogate(model):
     #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
     # model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
-    def treatmentCapexSurrogate(b,i,t):
+    def treatmentCapexSurrogate(b, i, t):
         constraint = (
-            b.v_C_TreatmentCapEx_site[i]>=b.v_C_TreatmentCapEx_site_time[i,t]
+            b.v_C_TreatmentCapEx_site[i] >= b.v_C_TreatmentCapEx_site_time[i, t]
         )
         return process_constraint(constraint)
-    #- 1e6*(1-model.vb_y_MVCselected[i])
-    model.quality.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
-    
+
+    # - 1e6*(1-model.vb_y_MVCselected[i])
+    model.quality.max_cap = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=treatmentCapexSurrogate,
+        doc="Max treated vol as capex",
+    )
+
     def treatmentSurrogate(b):
-        constraint = (
-        b.v_C_TotalTreatment_surrogate==sum(b.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
+        constraint = b.v_C_TotalTreatment_surrogate == sum(
+            b.v_C_Treatment_site[i, t] / 52 for i in model.s_R for t in model.s_T
         )
         return process_constraint(constraint)
-    model.quality.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
+
+    model.quality.TotalTreatment_cost = Constraint(
+        rule=treatmentSurrogate, doc="Treatment costs"
+    )
 
     # def treatmentOperationSurrogate(model,i,t):
     #     return model.v_C_Treatment_site[i, t]>= - 1e10*(1-model.vb_y_MVCselected[i])
     # model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
-    
 
-    #def treatmentCapexBigM(model,i,t):
+    # def treatmentCapexBigM(model,i,t):
     #    return model.v_C_TreatmentCapEx_site[i]<=model.v_C_TreatmentCapEx_site_time[i,t] + 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
-    #model.capBigM = Constraint(model.s_R,model.s_T,rule=treatmentCapexBigM,doc='Max treated vol as capex')
+    # model.capBigM = Constraint(model.s_R,model.s_T,rule=treatmentCapexBigM,doc='Max treated vol as capex')
     def capExSurrogate(b):
-        return b.v_C_TreatmentCapEx_surrogate==sum(b.v_C_TreatmentCapEx_site[i] for i in model.s_R)
-    model.quality.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
-    
+        return b.v_C_TreatmentCapEx_surrogate == sum(
+            b.v_C_TreatmentCapEx_site[i] for i in model.s_R
+        )
+
+    model.quality.CapEx_cost = Constraint(rule=capExSurrogate, doc="Treatment costs")
+
     # region Disposal
     # Material Balance
     def DisposalWaterQualityRule(b, k, qc, t):
@@ -5118,7 +5156,9 @@ def water_quality(model):
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
-            treatment_selection = sum(b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J)
+            treatment_selection = sum(
+                b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
+            )
 
         constraint = (
             b.v_Q[r, qc, t] * (1 - epsilon_value)
@@ -5128,14 +5168,15 @@ def water_quality(model):
 
         return process_constraint(constraint)
 
-
     def TreatedWaterQualityConcentrationBasedRHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
-            treatment_selection = sum(b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J)
+            treatment_selection = sum(
+                b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
+            )
 
         constraint = (
             b.v_Q[r, qc, t] * (1 - epsilon_value)
@@ -5145,14 +5186,15 @@ def water_quality(model):
 
         return process_constraint(constraint)
 
-
     def TreatedWaterQualityLoadBasedLHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
-            treatment_selection = sum(b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J)
+            treatment_selection = sum(
+                b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
+            )
 
         constraint = (
             b.v_Q[r, qc, t]
@@ -5165,14 +5207,15 @@ def water_quality(model):
 
         return process_constraint(constraint)
 
-
     def TreatedWaterQualityLoadBasedRHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
-            treatment_selection = sum(b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J)
+            treatment_selection = sum(
+                b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
+            )
 
         constraint = (
             b.v_Q[r, qc, t]
@@ -5184,7 +5227,6 @@ def water_quality(model):
         )
 
         return process_constraint(constraint)
-
 
     if (
         model.config.removal_efficiency_method
@@ -5452,10 +5494,7 @@ def water_quality(model):
     # Define Objective
     def ObjectiveFunctionRule(b):
         return b.v_X == sum(
-            sum(
-                sum(b.v_Q[p, qc, t] for p in b.s_WQL)
-                for qc in b.parent_block().s_QC
-            )
+            sum(sum(b.v_Q[p, qc, t] for p in b.s_WQL) for qc in b.parent_block().s_QC)
             for t in b.parent_block().s_T
         )
 
