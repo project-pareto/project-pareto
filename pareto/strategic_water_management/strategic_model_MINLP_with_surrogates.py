@@ -36,7 +36,7 @@ from pyomo.environ import (
     TransformationFactory,
     value,
     SolverFactory,
-    units
+    units,
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
@@ -55,10 +55,10 @@ from idaes.core.surrogate.keras_surrogate import KerasSurrogate
 from idaes.core.surrogate.alamopy import AlamoSurrogate
 
 
-
 class Objectives(Enum):
     cost = 0
     reuse = 1
+
 
 class PipelineCapacity(Enum):
     calculated = 0
@@ -891,7 +891,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Directional flow between two locations",
     )
-    
+
     # Pre-process Data #
     _preprocess_data(model)
 
@@ -2152,7 +2152,7 @@ def create_model(df_sets, df_parameters, default={}):
         raise Exception("objective not supported")
 
     # Define constraints #
-    
+
     def CompletionsPadDemandBalanceRule(model, p, t):
         # If completions pad is outside the system, the completions demand is not required to be met
         if model.p_chi_OutsideCompletionsPad[p] == 1:
@@ -4254,15 +4254,15 @@ def water_quality(model):
     # conversion_factor = pyunits.convert_value(1, from_units=model.model_units["volume_time"], to_units=model.model_units["L_per_s"])
     # #def v_T_Treatment_scaled_bounds(model, r, t):
     #  #   if model.p_chi_DesalinationSites[r]:
-    #   #      return (2 * 7 * conversion_factor, None)  
+    #   #      return (2 * 7 * conversion_factor, None)
     #    # else:
-    #     #    return (0, None)  
+    #     #    return (0, None)
 
     # model.quality.v_T_Treatment_scaled = Var(
     #     model.s_R,
     #     model.s_T,
     #     within=NonNegativeReals,
-    #     #bounds=v_T_Treatment_scaled_bounds,  
+    #     #bounds=v_T_Treatment_scaled_bounds,
     #     initialize=2 * 7 *  conversion_factor
     # )
     # model.quality.v_Q_scaled = Var(
@@ -4270,29 +4270,29 @@ def water_quality(model):
     #     model.s_QC,
     #     model.s_T,
     #     within=NonNegativeReals,
-    #     #bounds=v_T_Treatment_scaled_bounds,  
+    #     #bounds=v_T_Treatment_scaled_bounds,
     #     initialize=2 * 7 *  conversion_factor
     # )
-    
-    # cap_lower_bound, cap_upper_bound = 2 * 7 *  conversion_factor, 4 * 7 *  conversion_factor  
+
+    # cap_lower_bound, cap_upper_bound = 2 * 7 *  conversion_factor, 4 * 7 *  conversion_factor
     # opex_lower_bound, opex_upper_bound = 0 , 861.7375
     # capex_lower_bound, capex_upper_bound = 0, 335.6977
     # energy_lower_bound, energy_upper_bound = 0, 1326.662
-    
+
     # for i in model.s_R:
     #     for t in model.s_T:
     #         if model.p_chi_DesalinationSites[i]:
     #             model.quality.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
     #             model.quality.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
-                
+
     #         else:
-            
+
     #             model.quality.v_T_Treatment_scaled[i, t].fix(0)
 
     # for i in model.s_R:
     #     for t in model.s_T:
     #         if model.p_chi_DesalinationSites[i]:
-                
+
     #             model.quality.v_C_Treatment_site[i, t].setlb(opex_lower_bound)
     #             model.quality.v_C_Treatment_site[i, t].setub(opex_upper_bound)
     #             model.quality.v_C_TreatmentCapEx_site_time[i, t].setlb(capex_lower_bound)
@@ -4337,15 +4337,13 @@ def water_quality(model):
     #             model.quality.treatment_energy[i].fix(0)
     #             model.quality.v_C_TreatmentCapEx_site[i].fix(0)
 
-                   
     # #def treatmentSiteBigM(model,r,t):
     #  #   return model.v_C_Treatment_site[r,t]<=model.p_M_Flow*sum(model.vb_y_Treatment[r, 'MVC', j] for j in model.s_J)
     # #model.treatmentMVC = Constraint(model.s_R,model.s_T,rule=treatmentSiteBigM,doc='Treatment surrogate for MVC')
 
     # #def TreatmentSurrogateMaxCapacity(model,i,t):
-    #  #   return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[i, t] 
+    #  #   return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[i, t]
     # #model.treatmentsurrogatecost = Constraint(model.s_R,model.s_T,rule=TreatmentSurrogateMaxCapacity,doc='Max treated vol as capex')
-
 
     # # def treatmentSurrogate(model):
     # #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
@@ -4357,7 +4355,7 @@ def water_quality(model):
     #     return process_constraint(constraint)
     # #- 1e6*(1-model.vb_y_MVCselected[i])
     # model.quality.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
-    
+
     # def treatmentSurrogate(b):
     #     constraint = (
     #     b.v_C_TotalTreatment_surrogate==sum(b.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
@@ -4368,7 +4366,6 @@ def water_quality(model):
     # # def treatmentOperationSurrogate(model,i,t):
     # #     return model.v_C_Treatment_site[i, t]>= - 1e10*(1-model.vb_y_MVCselected[i])
     # # model.max_operating = Constraint(model.s_R,model.s_T,rule=treatmentOperationSurrogate,doc='Opex')
-    
 
     # #def treatmentCapexBigM(model,i,t):
     # #    return model.v_C_TreatmentCapEx_site[i]<=model.v_C_TreatmentCapEx_site_time[i,t] + 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
@@ -4376,7 +4373,7 @@ def water_quality(model):
     # def capExSurrogate(b):
     #     return b.v_C_TreatmentCapEx_surrogate==sum(b.v_C_TreatmentCapEx_site[i] for i in model.s_R)
     # model.quality.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
-    
+
     # Material Balance
     def DisposalWaterQualityRule(b, k, qc, t):
         constraint = (
@@ -6758,7 +6755,7 @@ def solve_model(model, options=None):
     # load pyomo solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
 
-    if solver!='gams:baron':
+    if solver != "gams:baron":
         # set maximum running time for solver
         set_timeout(opt, timeout_s=running_time)
 
@@ -6771,7 +6768,7 @@ def solve_model(model, options=None):
             # Apply CBC specific option
             opt.options["ratioGap"] = gap
         else:
-            opt.options['maxtime']=running_time
+            opt.options["maxtime"] = running_time
             print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
     # deactivate slack variables if necessary

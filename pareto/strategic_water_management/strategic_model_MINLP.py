@@ -12,8 +12,7 @@
 #####################################################################################################
 
 from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_re_revised import (
-
-# from pareto.strategic_water_management.strategic_produced_water_optimization_minlp import (
+    # from pareto.strategic_water_management.strategic_produced_water_optimization_minlp import (
     WaterQuality,
     create_model,
     Objectives,
@@ -42,6 +41,7 @@ from ipywidgets import FloatText, Button, Layout, GridspecLayout, ToggleButtons
 from IPython.display import display
 
 from os import remove
+import os
 
 # from tabulate import tabulate
 
@@ -175,7 +175,8 @@ options = {
     "gurobi_numeric_focus": 1,
 }
 results_obj = solve_model(model=strategic_model, options=options)
-
+# filename = os.path.join(os.path.dirname(__file__), 'model.lp')
+# strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
 # Check feasibility of the solved model
 def check_feasibility(model):
     with nostdout():
@@ -185,51 +186,59 @@ def check_feasibility(model):
     else:
         print("Model results validated and found to pass feasibility tests")
 
+
 # check_feasibility(strategic_model)
 
-[model, results_dict] = generate_report(
-    strategic_model,
-    # is_print=[PrintValues.essential],
-    output_units=OutputUnits.user_units,
-    fname="MINLP.xlsx",
-)
+# [model, results_dict] = generate_report(
+#     strategic_model,
+#     # is_print=[PrintValues.essential],
+#     output_units=OutputUnits.user_units,
+#     fname="MINLP.xlsx",
+# )
 
-# This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "MINLP.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
-# # Function to extract R01 buildout results
-def get_desal_results(results_dict):
-    desal_sites={}
-    for datapt in results_dict['vb_y_Treatment_dict'][:]:
-        site, technology, capacity, built = datapt
-        if (technology == 'FF' or  technology == 'MVC' or technology == 'HDH') and built == 1:
-            desal_sites[f'{site}'] = {}
-            desal_sites[f'{site}']['technology'] = technology
-            desal_sites[f'{site}']['capacity'] = capacity
-    
-    return desal_sites
+# # This shows how to read data from PARETO reports
+# set_list = []
+# parameter_list = ["v_F_Trucked", "v_C_Trucked"]
+# fname = "MINLP.xlsx"
+# [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
+# # # Function to extract R01 buildout results
+# def get_desal_results(results_dict):
+#     desal_sites = {}
+#     for datapt in results_dict["vb_y_Treatment_dict"][:]:
+#         site, technology, capacity, built = datapt
+#         if (
+#             technology == "FF" or technology == "MVC" or technology == "HDH"
+#         ) and built == 1:
+#             desal_sites[f"{site}"] = {}
+#             desal_sites[f"{site}"]["technology"] = technology
+#             desal_sites[f"{site}"]["capacity"] = capacity
 
-# Extract R01 buildout results for default solved model
-desal_sites = get_desal_results(results_dict)
-# print('For this case, PARETO recommends installing a desalination plant in R01 location')
+#     return desal_sites
 
-for i in desal_sites:
-    print(f'Site: {i}')
-    print(f"Technology: {desal_sites[i]['technology']}")
-    print(f"Capacity: {desal_sites[i]['capacity']}")
-    print('---------------------------------')
-# print(f"Site: {desal_sites['site']}")
-# print(f"Technology: {desal_sites['technology']}")
-# print(f"Capacity: {desal_sites['capacity']}")
-print(f"Objective function value: {value(strategic_model.v_Z)}")
-print('--------------------')
 
-# Check what capacity J1 corresponds to (in bbl/day) 
-for i in desal_sites:
-    print(f"Desalination plant {i} capacity bbl/day = {df_parameters['TreatmentCapacityIncrements'][(desal_sites[i]['technology'], desal_sites[i]['capacity'])]}")
+# # Extract R01 buildout results for default solved model
+# desal_sites = get_desal_results(results_dict)
+# # print('For this case, PARETO recommends installing a desalination plant in R01 location')
+
+# for i in desal_sites:
+#     print(f"Site: {i}")
+#     print(f"Technology: {desal_sites[i]['technology']}")
+#     print(f"Capacity: {desal_sites[i]['capacity']}")
+#     print("---------------------------------")
+# # print(f"Site: {desal_sites['site']}")
+# # print(f"Technology: {desal_sites['technology']}")
+# # print(f"Capacity: {desal_sites['capacity']}")
+# print(f"Objective function value: {value(strategic_model.v_Z)}")
+# print("--------------------")
+
+# # Check what capacity J1 corresponds to (in bbl/day)
+# for i in desal_sites:
+#     print(
+#         f"Desalination plant {i} capacity bbl/day = {df_parameters['TreatmentCapacityIncrements'][(desal_sites[i]['technology'], desal_sites[i]['capacity'])]}"
+#     )
 from pyomo.environ import Var, Binary
+
+
 def free_variables(model, exception_list, time_period=None):
     for var in model.component_objects(Var):
         if var.name in exception_list:
@@ -265,8 +274,9 @@ def deactivate_slacks(model):
     model.v_S_StorageCapacity.fix(0)
     model.v_S_DisposalCapacity.fix(0)
     model.v_S_TreatmentCapacity.fix(0)
-    model.v_S_ReuseCapacity.fix(0)
-                    
+    # model.v_S_ReuseCapacity.fix(0)
+
+
 # Step 2.1: unfix variables (MILP model)
 discrete_variables_names = {"v_X"}  # "v_Q", "v_X", "v_Z", "v_ObjectiveWithQuality"}
 free_variables(strategic_model, discrete_variables_names)
@@ -275,47 +285,57 @@ strategic_model.quality.objective.deactivate()
 strategic_model.CostObjectiveFunction.deactivate()
 
 from pyomo.environ import Constraint, Objective, minimize, SolverFactory, Param
-strategic_model.penalty = Param(initialize=1,mutable=True)
+
+strategic_model.penalty = Param(initialize=1, mutable=True)
 from pareto.utilities.solvers import get_solver, set_timeout
+
+
 def CostObjectiveFunctionRule2(model):
-            return model.v_Z == (
-                model.v_C_TotalSourced
-                + model.v_C_TotalDisposal
-                + model.v_C_TotalTreatment
-                + model.v_C_TotalReuse
-                + model.v_C_TotalPiping
-                + model.v_C_TotalStorage
-                + model.v_C_TotalTrucking
-                + model.quality.v_C_TotalTreatment_surrogate
-                + model.quality.v_C_TreatmentCapex_surrogate
-                + model.p_alpha_AnnualizationRate
-                * (
-                    model.v_C_DisposalCapEx
-                    + model.v_C_StorageCapEx
-                    + model.v_C_TreatmentCapEx
-                    + model.v_C_PipelineCapEx
-                )
-                + model.v_C_Slack
-                - model.v_R_TotalStorage
-                + model.penalty*sum(model.quality.v_Q[sites, w, t] for sites in desal_sites for w in model.s_QC for t in model.s_T)
-            )
+    return model.v_Z == (
+        model.v_C_TotalSourced
+        + model.v_C_TotalDisposal
+        + model.v_C_TotalTreatment
+        + model.v_C_TotalReuse
+        + model.v_C_TotalPiping
+        + model.v_C_TotalStorage
+        + model.v_C_TotalTrucking
+        + model.quality.v_C_TotalTreatment_surrogate
+        + model.quality.v_C_TreatmentCapex_surrogate
+        + model.p_alpha_AnnualizationRate
+        * (
+            model.v_C_DisposalCapEx
+            + model.v_C_StorageCapEx
+            + model.v_C_TreatmentCapEx
+            + model.v_C_PipelineCapEx
+        )
+        + model.v_C_Slack
+        - model.v_R_TotalStorage
+        + model.penalty
+        * sum(
+            model.quality.v_Q[sites, w, t]
+            for sites in model.s_R
+            for w in model.s_QC
+            for t in model.s_T
+        )
+    )
+
 
 strategic_model.ObjectiveFunction = Constraint(
-            rule=CostObjectiveFunctionRule2, doc="MINLP objective function"
-        )
+    rule=CostObjectiveFunctionRule2, doc="MINLP objective function"
+)
 
-wall_time=[]
-time=[]
-solver_status=[]
-objs=[]
-penalty_value=[]
+wall_time = []
+time = []
+solver_status = []
+objs = []
+penalty_value = []
 
-# You should change the below array to desired penalty, 
-# this was done just to get a feel for the magnitude of 
+# You should change the below array to desired penalty,
+# this was done just to get a feel for the magnitude of
 # the penalty term
 
 
-minlp_solver_source = 'gurobi'
+minlp_solver_source = "gurobi"
 if minlp_solver_source == "gams":
     mathoptsolver = "dicopt"
     solver_options = {
@@ -343,7 +363,7 @@ if minlp_solver_source == "gams":
         for k, v in solver_options.items():
             f.write(str(k) + " " + str(v) + "\n")
 
-    strategic_model.penalty=10
+    strategic_model.penalty = 10
     print(i)
     try:
         results = SolverFactory(minlp_solver_source).solve(
@@ -354,14 +374,14 @@ if minlp_solver_source == "gams":
             tmpdir="temp",
             add_options=["gams_model.optfile=1;"],
         )
-        res=list(results.values())
-        solver_status.append(res[1][0]['Termination condition'].value)
-        wall_time.append(res[1][0]['Wall time'])
-        time.append(res[1][0]['Time'])
+        res = list(results.values())
+        solver_status.append(res[1][0]["Termination condition"].value)
+        wall_time.append(res[1][0]["Wall time"])
+        time.append(res[1][0]["Time"])
         objs.append(strategic_model.objective())
         penalty_value.append(i)
     except:
-        solver_status.append('TimeoutError')
+        solver_status.append("TimeoutError")
         wall_time.append(1500)
         time.append(1500)
         objs.append(None)
@@ -369,23 +389,23 @@ if minlp_solver_source == "gams":
 
 elif minlp_solver_source == "gurobi":
     print("solving with GUROBI")
-    mathoptsolver = 'gurobi'
+    mathoptsolver = "gurobi"
     solver = SolverFactory(mathoptsolver)
     solver.options["timeLimit"] = 1500
     solver.options["NonConvex"] = 2
     solver.options["MIPGap"] = 0.05
 
-    strategic_model.penalty=0.001
+    strategic_model.penalty = 0.001
     try:
         results = solver.solve(strategic_model, tee=False, warmstart=True)
-        res=list(results.values())
-        solver_status.append(res[1][0]['Termination condition'].value)
-        wall_time.append(res[1][0]['Wall time'])
-        time.append(res[1][0]['Time'])
+        res = list(results.values())
+        solver_status.append(res[1][0]["Termination condition"].value)
+        wall_time.append(res[1][0]["Wall time"])
+        time.append(res[1][0]["Time"])
         objs.append(strategic_model.objective())
         penalty_value.append(0.001)
     except:
-        solver_status.append('TimeoutError')
+        solver_status.append("TimeoutError")
         wall_time.append(1500)
         time.append(1500)
         objs.append(None)
@@ -394,39 +414,39 @@ elif minlp_solver_source == "gurobi":
 elif minlp_solver_source == "baron":
     solver = SolverFactory("baron")
     for i in penalties:
-        strategic_model.penalty=i
+        strategic_model.penalty = i
         print(i)
         try:
             results = solver.solve(strategic_model, tee=False)
-            res=list(results.values())
-            solver_status.append(res[1][0]['Termination condition'].value)
-            wall_time.append(res[1][0]['Wall time'])
-            time.append(res[1][0]['Time'])
+            res = list(results.values())
+            solver_status.append(res[1][0]["Termination condition"].value)
+            wall_time.append(res[1][0]["Wall time"])
+            time.append(res[1][0]["Time"])
             objs.append(strategic_model.objective())
             penalty_value.append(i)
         except:
-            solver_status.append('TimeoutError')
+            solver_status.append("TimeoutError")
             wall_time.append(1500)
             time.append(1500)
             objs.append(None)
             penalty_value.append(i)
 
-elif minlp_solver_source == 'ipopt':
-    solver = get_solver('ipopt')
-    solver.options['maxiter'] = 100
+elif minlp_solver_source == "ipopt":
+    solver = get_solver("ipopt")
+    solver.options["maxiter"] = 100
     for i in penalties:
-        strategic_model.penalty=i
+        strategic_model.penalty = i
         print(i)
         try:
             results = solver.solve(strategic_model, tee=False)
-            res=list(results.values())
-            solver_status.append(res[1][0]['Termination condition'].value)
-            wall_time.append(res[1][0]['Wall time'])
-            time.append(res[1][0]['Time'])
+            res = list(results.values())
+            solver_status.append(res[1][0]["Termination condition"].value)
+            wall_time.append(res[1][0]["Wall time"])
+            time.append(res[1][0]["Time"])
             objs.append(strategic_model.objective())
             penalty_value.append(i)
         except:
-            solver_status.append('TimeoutError')
+            solver_status.append("TimeoutError")
             wall_time.append(1500)
             time.append(1500)
             objs.append(None)
@@ -440,6 +460,7 @@ def check_feasibility(model):
         print("Model results are not feasible and should not be trusted")
     else:
         print("Model results validated and found to pass feasibility tests")
+
 
 check_feasibility(strategic_model)
 

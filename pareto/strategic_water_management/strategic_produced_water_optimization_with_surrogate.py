@@ -36,7 +36,7 @@ from pyomo.environ import (
     TransformationFactory,
     value,
     SolverFactory,
-    ConstraintList
+    ConstraintList,
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
@@ -51,6 +51,7 @@ from pyomo.opt import TerminationCondition
 
 from idaes.core.surrogate.surrogate_block import SurrogateBlock
 from idaes.core.surrogate.keras_surrogate import KerasSurrogate
+
 
 class Objectives(Enum):
     cost = 0
@@ -424,7 +425,7 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Injection (i.e. disposal) capacities",
     )
     model.s_WT_MVC = Set(
-        initialize=['CB','CB-EV','MVC','MD','OARO'],doc="Treatment without MVC"
+        initialize=["CB", "CB-EV", "MVC", "MD", "OARO"], doc="Treatment without MVC"
     )
     model.s_WT = Set(
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
@@ -996,21 +997,18 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         within=Reals,
         initialize=10,
-        units=pyunits.g/pyunits.kg,
-        doc="Inlet salinity in the feed"
+        units=pyunits.g / pyunits.kg,
+        doc="Inlet salinity in the feed",
     )
     model.recovery = Var(
-        model.s_R,
-        within=Reals,
-        bounds=(0,1),
-        doc="Recovery of water"
+        model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
     )
     model.treatment_energy = Var(
         model.s_R,
         within=Reals,
         initialize=0,
         # units=units.W,
-        doc="Energy required for each site for desalination"
+        doc="Energy required for each site for desalination",
     )
     model.cap = Var(
         model.s_R,
@@ -1018,7 +1016,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=Reals,
         initialize=0,
         # units=units.W,
-        doc="Energy required for each site for desalination"
+        doc="Energy required for each site for desalination",
     )
     # Pre-process Data #
     _preprocess_data(model)
@@ -2409,7 +2407,7 @@ def create_model(df_sets, df_parameters, default={}):
     #         input_vars=[model.inlet_salinity[i],model.recovery[i],model.v_T_Capacity[i]],
     #         output_vars=[model.v_C_TreatmentCapEx_site[i],model.v_C_Treatment_site[i],model.treatment_energy[i]],
     #     )
-    model.surrogate_costs = SurrogateBlock(model.s_R,model.s_T)
+    model.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
     # model.cap = Var(
     #     model.s_R,
     #     within=Reals,
@@ -2418,44 +2416,76 @@ def create_model(df_sets, df_parameters, default={}):
     #     doc="Volume being treated"
     # )
     keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_modified")
-    model.v_T_Treatment_scaled=Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0
+    model.v_T_Treatment_scaled = Var(
+        model.s_R, model.s_T, within=NonNegativeReals, initialize=0
     )
-    def scalingTreatment(model,r,t):
-        return model.v_T_Treatment_scaled[r,t]==0.00184*(sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA) + sum(
-                        model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
-                    )
-                    )
-    model.treatment_vol=Constraint(model.s_R,model.s_T,rule=scalingTreatment)
+
+    def scalingTreatment(model, r, t):
+        return model.v_T_Treatment_scaled[r, t] == 0.00184 * (
+            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
+            )
+        )
+
+    model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
     for r in model.s_R:
         for t in model.s_T:
-            model.surrogate_costs[r,t].build_model(
+            model.surrogate_costs[r, t].build_model(
                 keras_surrogate,
                 formulation=KerasSurrogate.Formulation.RELU_BIGM,
-                input_vars=[model.inlet_salinity[r],model.recovery[r],model.v_T_Treatment_scaled[r,t]],
-                output_vars=[model.v_C_TreatmentCapEx_site_time[r,t],model.v_C_Treatment_site[r,t],model.treatment_energy[r]],
+                input_vars=[
+                    model.inlet_salinity[r],
+                    model.recovery[r],
+                    model.v_T_Treatment_scaled[r, t],
+                ],
+                output_vars=[
+                    model.v_C_TreatmentCapEx_site_time[r, t],
+                    model.v_C_Treatment_site[r, t],
+                    model.treatment_energy[r],
+                ],
             )
 
-    def treatmentSiteBigM(model,r,t):
-        return model.v_C_Treatment_site[r,t]<=model.p_M_Flow*sum(model.vb_y_Treatment[r, 'MVC', j] for j in model.s_J)
-    model.treatmentMVC = Constraint(model.s_R,model.s_T,rule=treatmentSiteBigM,doc='Treatment surrogate for MVC')
+    def treatmentSiteBigM(model, r, t):
+        return model.v_C_Treatment_site[r, t] <= model.p_M_Flow * sum(
+            model.vb_y_Treatment[r, "MVC", j] for j in model.s_J
+        )
+
+    model.treatmentMVC = Constraint(
+        model.s_R, model.s_T, rule=treatmentSiteBigM, doc="Treatment surrogate for MVC"
+    )
 
     # def treatmentSurrogate(model):
     #     return model.v_C_TotalTreatment_surrogate==sum(model.v_C_Treatment_site[i,t]/52 for i in model.s_R for t in model.s_T)
     # model.TotalTreatment_cost = Constraint(rule=treatmentSurrogate,doc='Treatment costs')
-    def treatmentCapexSurrogate(model,i,t):
-        return model.v_C_TreatmentCapEx_site[i]>=model.v_C_TreatmentCapEx_site_time[i,t] - 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
-    model.max_cap = Constraint(model.s_R,model.s_T,rule=treatmentCapexSurrogate,doc='Max treated vol as capex')
-    def treatmentCapexBigM(model,i,t):
-        return model.v_C_TreatmentCapEx_site[i]<=model.v_C_TreatmentCapEx_site_time[i,t] + 1e6*sum(model.vb_y_Treatment[i,'MVC',j] for j in model.s_J)
-    model.capBigM = Constraint(model.s_R,model.s_T,rule=treatmentCapexBigM,doc='Max treated vol as capex')
+    def treatmentCapexSurrogate(model, i, t):
+        return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[
+            i, t
+        ] - 1e6 * sum(model.vb_y_Treatment[i, "MVC", j] for j in model.s_J)
+
+    model.max_cap = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=treatmentCapexSurrogate,
+        doc="Max treated vol as capex",
+    )
+
+    def treatmentCapexBigM(model, i, t):
+        return model.v_C_TreatmentCapEx_site[i] <= model.v_C_TreatmentCapEx_site_time[
+            i, t
+        ] + 1e6 * sum(model.vb_y_Treatment[i, "MVC", j] for j in model.s_J)
+
+    model.capBigM = Constraint(
+        model.s_R, model.s_T, rule=treatmentCapexBigM, doc="Max treated vol as capex"
+    )
+
     def capExSurrogate(model):
-        return model.v_C_TreatmentCapEx_surrogate==sum(model.v_C_TreatmentCapEx_site[i] for i in model.s_R)
-    model.CapEx_cost = Constraint(rule=capExSurrogate,doc='Treatment costs')
-    
+        return model.v_C_TreatmentCapEx_surrogate == sum(
+            model.v_C_TreatmentCapEx_site[i] for i in model.s_R
+        )
+
+    model.CapEx_cost = Constraint(rule=capExSurrogate, doc="Treatment costs")
+
     # def capexTotal(model):
     #     return model.totalCapex==model.v_C_TreatmentCapEx+model.v_C_TreatmentCapEx_surrogate
     # model.capextot = Constraint(rule=capexTotal,doc='Total Capex')
@@ -3281,8 +3311,7 @@ def create_model(df_sets, df_parameters, default={}):
                 - model.p_M_Flow
                 * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             )
-            * model.p_pi_Treatment[r,wt]
-
+            * model.p_pi_Treatment[r, wt]
         )
         return process_constraint(constraint)
 
@@ -3309,7 +3338,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.p_M_Flow
                 * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             )
-            * model.p_pi_Treatment[r,wt]
+            * model.p_pi_Treatment[r, wt]
         )
         return process_constraint(constraint)
 
@@ -3323,7 +3352,11 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TotalTreatmentCostRule(model):
         constraint = model.v_C_TotalTreatment == sum(
-            sum(model.v_C_Treatment[r, t] + model.v_C_Treatment_site[r,t]/52 for r in model.s_R) for t in model.s_T
+            sum(
+                model.v_C_Treatment[r, t] + model.v_C_Treatment_site[r, t] / 52
+                for r in model.s_R
+            )
+            for t in model.s_T
         )
 
         return process_constraint(constraint)

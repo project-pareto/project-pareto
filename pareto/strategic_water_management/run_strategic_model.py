@@ -198,8 +198,8 @@ options = {
 results = solve_model(model=strategic_model, options=options)
 
 # strategic_model.vb_y_MVCselected.display()
-filename = os.path.join(os.path.dirname(__file__), 'model.lp')
-strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
+filename = os.path.join(os.path.dirname(__file__), "model.lp")
+strategic_model.write(filename, io_options={"symbolic_solver_labels": True})
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
