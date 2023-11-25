@@ -5114,7 +5114,7 @@ def water_quality(model):
 
     def TreatedWaterQualityConcentrationBasedLHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
-            epsilon_value = 0.99
+            epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
@@ -5131,7 +5131,7 @@ def water_quality(model):
 
     def TreatedWaterQualityConcentrationBasedRHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
-            epsilon_value = 0.99
+            epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
@@ -5148,7 +5148,7 @@ def water_quality(model):
 
     def TreatedWaterQualityLoadBasedLHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
-            epsilon_value = 0.99
+            epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
@@ -5168,7 +5168,7 @@ def water_quality(model):
 
     def TreatedWaterQualityLoadBasedRHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
-            epsilon_value = 0.99
+            epsilon_value = 0
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
         else:
             epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]

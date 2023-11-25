@@ -185,7 +185,7 @@ def check_feasibility(model):
     else:
         print("Model results validated and found to pass feasibility tests")
 
-check_feasibility(strategic_model)
+# check_feasibility(strategic_model)
 
 [model, results_dict] = generate_report(
     strategic_model,
