@@ -4773,9 +4773,9 @@ def water_quality(model):
         0 * 7 * conversion_factor,
         3 * 7 * conversion_factor,
     )
-    opex_lower_bound, opex_upper_bound = 0, 10000
-    capex_lower_bound, capex_upper_bound = -10, 1000
-    energy_lower_bound, energy_upper_bound = 0, 15000
+    # opex_lower_bound, opex_upper_bound = 0, 10000
+    # capex_lower_bound, capex_upper_bound = -10, 1000
+    # energy_lower_bound, energy_upper_bound = 0, 15000
 
     for i in model.s_R:
         for t in model.s_T:
@@ -4787,20 +4787,20 @@ def water_quality(model):
 
                 model.quality.v_T_Treatment_scaled[i, t].fix(0)
 
-    for i in model.s_R:
-        for t in model.s_T:
-            if model.p_chi_DesalinationSites[i]:
+    # for i in model.s_R:
+    #     for t in model.s_T:
+    #         if model.p_chi_DesalinationSites[i]:
 
-                model.quality.v_C_Treatment_site[i, t].setlb(opex_lower_bound)
-                model.quality.v_C_Treatment_site[i, t].setub(opex_upper_bound)
-                model.quality.v_C_TreatmentCapEx_site_time[i, t].setlb(
-                    capex_lower_bound
-                )
-                model.quality.v_C_TreatmentCapEx_site_time[i, t].setub(
-                    capex_upper_bound
-                )
-                model.quality.treatment_energy[i].setlb(energy_lower_bound)
-                model.quality.treatment_energy[i].setub(energy_upper_bound)
+    #             model.quality.v_C_Treatment_site[i, t].setlb(opex_lower_bound)
+    #             model.quality.v_C_Treatment_site[i, t].setub(opex_upper_bound)
+    #             model.quality.v_C_TreatmentCapEx_site_time[i, t].setlb(
+    #                 capex_lower_bound
+    #             )
+    #             model.quality.v_C_TreatmentCapEx_site_time[i, t].setub(
+    #                 capex_upper_bound
+    #             )
+    #             model.quality.treatment_energy[i].setlb(energy_lower_bound)
+    #             model.quality.treatment_energy[i].setub(energy_upper_bound)
 
     def scalingTreatment(b, r, t):
         if model.p_chi_DesalinationSites[r]:

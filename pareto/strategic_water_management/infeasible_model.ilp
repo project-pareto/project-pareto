@@ -1,0 +1,26 @@
+\ Model unknown_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ surrogate_costs(R01_T02)_nn_layer(2596976263856)_dense_layer(2):
+   0.4385068416595459 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(0)
+   + 0.00658231973648071 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(1)
+   + 0.29678875207901 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(2)
+   + surrogate_costs(R01_T02)_nn_layer(2596976263856)_zhat(2) = 0
+ surrogate_costs(R01_T02)_nn_layer(2596976263856)_dense_layer(8):
+   - 0.00219512707553804 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(0)
+   + 0.4695759415626526 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(1)
+   + 0.4252825379371643 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(2)
+   + surrogate_costs(R01_T02)_nn_layer(2596976263856)_zhat(8)
+   = -0.0136309787631035
+ surrogate_costs(R01_T02)_nn_layer(2596976263856)_dense_layer(18):
+   - 0.4043374359607697 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(0)
+   - 0.3981198966503143 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(1)
+   - 0.0509119927883148 surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(2)
+   + surrogate_costs(R01_T02)_nn_layer(2596976263856)_zhat(18)
+   = -0.2788333594799042
+Bounds
+ surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(0) free
+ surrogate_costs(R01_T02)_nn_layer(2596976263328)_z(1) free
+End

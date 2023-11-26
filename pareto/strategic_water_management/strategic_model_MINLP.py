@@ -11,8 +11,8 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization_minlp import (
-    # from pareto.strategic_water_management.strategic_produced_water_optimization_minlp import (
+# from pareto.strategic_water_management.strategic_produced_water_optimization_minlp import (
+from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_re_revised import (
     WaterQuality,
     create_model,
     Objectives,
@@ -259,13 +259,18 @@ def free_variables(model, exception_list, time_period=None):
                 # unfix binary variables and unbound the continuous variables
                 if index_var.domain is Binary:
                     # index_var.free()
-                    # index_var.unfix()
+                    index_var.unfix()
                     pass
                 else:
-                    index_var.unfix()
                     if str(var)[:23]!='quality.surrogate_costs':
+                        index_var.unfix()
                         index_var.setlb(0)
                         index_var.setub(None)
+                    else:
+                        index_var.unfix()
+                        # index_var.setlb(-1e6)
+                        # index_var.setub(1e6)
+
 
 
 def deactivate_slacks(model):
@@ -303,7 +308,7 @@ def CostObjectiveFunctionRule2(model):
         + model.v_C_TotalStorage
         + model.v_C_TotalTrucking
         + model.quality.v_C_TotalTreatment_surrogate
-        + model.quality.v_C_TreatmentCapex_surrogate
+        # + model.quality.v_C_TreatmentCapex_surrogate
         + model.p_alpha_AnnualizationRate
         * (
             model.v_C_DisposalCapEx
@@ -387,72 +392,34 @@ if minlp_solver_source == "gams":
         wall_time.append(1500)
         time.append(1500)
         objs.append(None)
-        penalty_value.append(i)
+        # penalty_value.append(i)
 
 elif minlp_solver_source == "gurobi":
     print("solving with GUROBI")
     mathoptsolver = "gurobi"
     solver = SolverFactory(mathoptsolver)
-    solver.options["timeLimit"] = 1500
+    solver.options["timeLimit"] = 1000
+    solver.options["NoRelHeurTime"]=100
     solver.options["NonConvex"] = 2
-    solver.options["MIPGap"] = 0.05
+    solver.options["MIPGap"] = 0.01
 
-    strategic_model.penalty = 0.001
+    strategic_model.penalty = 1
     try:
         results = solver.solve(strategic_model, tee=True, warmstart=True)
+        filename = os.path.join(os.path.dirname(__file__), 'model.lp')
+        strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
         res = list(results.values())
         solver_status.append(res[1][0]["Termination condition"].value)
         wall_time.append(res[1][0]["Wall time"])
         time.append(res[1][0]["Time"])
         objs.append(strategic_model.objective())
-        penalty_value.append(0.001)
+        penalty_value.append(1)
     except:
         solver_status.append("TimeoutError")
         wall_time.append(1500)
         time.append(1500)
         objs.append(None)
         penalty_value.append(0.001)
-
-elif minlp_solver_source == "baron":
-    solver = SolverFactory("baron")
-    for i in penalties:
-        strategic_model.penalty = i
-        print(i)
-        try:
-            results = solver.solve(strategic_model, tee=False)
-            res = list(results.values())
-            solver_status.append(res[1][0]["Termination condition"].value)
-            wall_time.append(res[1][0]["Wall time"])
-            time.append(res[1][0]["Time"])
-            objs.append(strategic_model.objective())
-            penalty_value.append(i)
-        except:
-            solver_status.append("TimeoutError")
-            wall_time.append(1500)
-            time.append(1500)
-            objs.append(None)
-            penalty_value.append(i)
-
-elif minlp_solver_source == "ipopt":
-    solver = get_solver("ipopt")
-    solver.options["maxiter"] = 100
-    for i in penalties:
-        strategic_model.penalty = i
-        print(i)
-        try:
-            results = solver.solve(strategic_model, tee=False)
-            res = list(results.values())
-            solver_status.append(res[1][0]["Termination condition"].value)
-            wall_time.append(res[1][0]["Wall time"])
-            time.append(res[1][0]["Time"])
-            objs.append(strategic_model.objective())
-            penalty_value.append(i)
-        except:
-            solver_status.append("TimeoutError")
-            wall_time.append(1500)
-            time.append(1500)
-            objs.append(None)
-            penalty_value.append(i)
 
 # Check feasibility of the solved model
 def check_feasibility(model):
@@ -470,5 +437,5 @@ check_feasibility(strategic_model)
     strategic_model,
     # is_print=[PrintValues.essential],
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_MINLP_gurobi.xlsx",
+    fname="MINLP_gurobi_pen_1.xlsx",
 )
