@@ -11,7 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization_with_surrogate_elmira_re_revised import (
+from pareto.strategic_water_management.strategic_produced_water_optimization_MILP_surrogate import (
     WaterQuality,
     create_model,
     Objectives,

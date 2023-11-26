@@ -3029,12 +3029,16 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 for wt in model.s_WT
             )
+<<<<<<< HEAD
             + pyunits.convert_value(
                 10000,
                 from_units=pyunits.oil_bbl / pyunits.day,
                 to_units=model.model_units["volume_time"],
             )
             * model.vb_y_MVCselected[r]
+=======
+            for wt in model.s_WT
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         )
 
     model.TreatmentCapacityExpansion = Constraint(
@@ -3089,6 +3093,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ResidualWaterLHSRule(model, r, wt, t):
+<<<<<<< HEAD
         if model.p_chi_DesalinationSites[r]:
             epsilon_treatment = 0.5733
             treatment_selection = model.vb_y_MVCselected[r]
@@ -3096,9 +3101,12 @@ def create_model(df_sets, df_parameters, default={}):
             epsilon_treatment = model.p_epsilon_Treatment[r, wt]
             treatment_selection = sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
 
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         constraint = (
-            model.v_F_TreatmentFeed[r, t] * (1 - epsilon_treatment)
-            - model.p_M_Flow * (1 - treatment_selection)
+            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
+            - model.p_M_Flow
+            * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             <= model.v_F_ResidualWater[r, t]
         )
         return process_constraint(constraint)
@@ -3112,6 +3120,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ResidualWaterRHSRule(model, r, wt, t):
+<<<<<<< HEAD
         if model.p_chi_DesalinationSites[r]:
             epsilon_treatment = 0.5733
             treatment_selection = model.vb_y_MVCselected[r]
@@ -3119,12 +3128,18 @@ def create_model(df_sets, df_parameters, default={}):
             epsilon_treatment = model.p_epsilon_Treatment[r, wt]
             treatment_selection = sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
 
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         constraint = (
-            model.v_F_TreatmentFeed[r, t] * (1 - epsilon_treatment)
-            + model.p_M_Flow * (1 - treatment_selection)
+            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
+            + model.p_M_Flow
+            * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             >= model.v_F_ResidualWater[r, t]
         )
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         return process_constraint(constraint)
 
     model.ResidualWaterRHS = Constraint(
@@ -3134,6 +3149,7 @@ def create_model(df_sets, df_parameters, default={}):
         rule=ResidualWaterRHSRule,
         doc="Residual water based on treatment efficiency",
     )
+<<<<<<< HEAD
 
     # Create a set of all treatment sites for which the treated stream should
     # be modeled
@@ -3143,6 +3159,8 @@ def create_model(df_sets, df_parameters, default={}):
         + list(model.df_parameters["LLT"].items())
         if origin in model.s_R and value == TreatmentStreams.treated_stream
     }
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
 
     def TreatedWaterBalanceRule(model, r, t):
         # If treated stream from a treatment site should be modeled, then
@@ -3896,6 +3914,44 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.LogicConstraintTreatmentAssignment = Constraint(
+<<<<<<< HEAD
+=======
+        model.s_R,
+        rule=LogicConstraintTreatmentRule,
+        doc="Treatment technology assignment",
+    )
+
+    def LogicConstraintTreatmentRule2(model, r, t):
+        constraint = (
+            sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
+            + sum(model.v_F_Piped[r, s, t] for s in model.s_S if model.p_RSA[r, s])
+        ) <= model.p_M_Flow * (
+            1
+            - sum(
+                sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                for wt in model.s_WT
+                if model.p_chi_DesalinationTechnology[wt]
+            )
+        )
+        return process_constraint(constraint)
+
+    model.LogicConstraintDesalinationFlow = Constraint(
+        model.s_R,
+        model.s_T,
+        rule=LogicConstraintTreatmentRule2,
+        doc="Logic constraint for flow after desalination",
+    )
+
+    def LogicConstraintTreatmentRule3(model, r, t):
+        constraint = model.v_F_DesalinatedWater[r, t] <= model.p_M_Flow * sum(
+            sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+            for wt in model.s_WT
+            if model.p_chi_DesalinationTechnology[wt]
+        )
+        return process_constraint(constraint)
+
+    model.LogicConstraintNoDesalinationFlow = Constraint(
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         model.s_R,
         rule=LogicConstraintTreatmentRule,
         doc="Treatment technology assignment",
@@ -3909,7 +3965,10 @@ def create_model(df_sets, df_parameters, default={}):
                     for wt in model.s_WT
                     if model.p_chi_DesalinationTechnology[wt]
                 )
+<<<<<<< HEAD
                 + model.vb_y_MVCselected[r]
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
                 == 1
             )
             return process_constraint(constraint)
@@ -4704,7 +4763,15 @@ def water_quality(model):
         doc="Water quality objective value ",
     )
     # endregion
+<<<<<<< HEAD
     # Surrogates
+=======
+
+    # region Disposal
+
+    # Surrogate
+    model.quality.vb_y_MVCselected = Var(model.s_R, within=Binary, initialize=0, doc="MVC selection for each desalination site")
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
     model.quality.recovery = Var(
         model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
     )
@@ -5173,6 +5240,7 @@ def water_quality(model):
         doc="Treatment water quality",
     )
 
+<<<<<<< HEAD
     def TreatedWaterQualityConcentrationBasedLHSRule(b, r, wt, qc, t):
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0.99
@@ -5183,15 +5251,46 @@ def water_quality(model):
                 b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
             )
 
+=======
+    # model.surrogate_costs = SurrogateBlock(model.s_R,model.s_T)
+    # keras_surrogate = KerasSurrogate.load_from_folder("keras_surrogate_2_evap_corrected")
+    # for i in model.s_R:
+    #     for t in model.s_T:
+    #         model.surrogate_costs[i,t].build_model(
+    #             keras_surrogate,
+    #             formulation=KerasSurrogate.Formulation.RELU_BIGM,
+    #             input_vars=[model.quality.TreatmentFeedWaterQuality[i,'TDS',t],model.recovery[i,t],model.v_F_TreatmentFeed[i,t]],
+    #             output_vars=[model.v_C_TreatmentCapEx_site_time[i,t],model.v_C_Treatment_site[i,t],model.treatment_energy[i]],
+    #         )
+    # def RecoveryConstraint(model,r,t):
+    #     return model.recovery[r,t]==(300-model.quality.TreatmentFeedWaterQuality[i,'TDS',t])/300
+    # model.quality.Recoevry = Constraint(
+    #     model.s_R,
+    #     model.s_T,
+    #     rule=RecoveryConstraint,
+    #     doc="Recovery",
+    # )
+
+    def TreatedWaterQualityConcentrationBasedLHSRule(b, r, wt, qc, t):
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         constraint = (
-            b.v_Q[r, qc, t] * (1 - epsilon_value)
-            + b.parent_block().p_M_Concentration * (1 - treatment_selection)
+            b.v_Q[r, qc, t]
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+            + b.parent_block().p_M_Concentration
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
             >= b.v_Q[r + treated_water_label, qc, t]
         )
 
         return process_constraint(constraint)
 
     def TreatedWaterQualityConcentrationBasedRHSRule(b, r, wt, qc, t):
+<<<<<<< HEAD
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0.99
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
@@ -5201,15 +5300,26 @@ def water_quality(model):
                 b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
             )
 
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         constraint = (
-            b.v_Q[r, qc, t] * (1 - epsilon_value)
-            - b.parent_block().p_M_Concentration * (1 - treatment_selection)
+            b.v_Q[r, qc, t]
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+            - b.parent_block().p_M_Concentration
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
             <= b.v_Q[r + treated_water_label, qc, t]
         )
 
         return process_constraint(constraint)
 
     def TreatedWaterQualityLoadBasedLHSRule(b, r, wt, qc, t):
+<<<<<<< HEAD
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0.99
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
@@ -5219,11 +5329,20 @@ def water_quality(model):
                 b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
             )
 
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         constraint = (
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
-            * (1 - epsilon_value)
-            + b.parent_block().p_M_Flow_Conc * (1 - treatment_selection)
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+            + b.parent_block().p_M_Flow_Conc
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
             >= b.v_Q[r + treated_water_label, qc, t]
             * b.parent_block().v_F_TreatedWater[r, t]
         )
@@ -5231,6 +5350,7 @@ def water_quality(model):
         return process_constraint(constraint)
 
     def TreatedWaterQualityLoadBasedRHSRule(b, r, wt, qc, t):
+<<<<<<< HEAD
         if b.parent_block().p_chi_DesalinationSites[r]:
             epsilon_value = 0.99
             treatment_selection = b.parent_block().vb_y_MVCselected[r]
@@ -5240,11 +5360,20 @@ def water_quality(model):
                 b.parent_block().vb_y_Treatment[r, wt, j] for j in b.parent_block().s_J
             )
 
+=======
+>>>>>>> parent of 3e69472 (Revert to this if nothing else works)
         constraint = (
             b.v_Q[r, qc, t]
             * b.parent_block().v_F_TreatmentFeed[r, t]
-            * (1 - epsilon_value)
-            - b.parent_block().p_M_Flow_Conc * (1 - treatment_selection)
+            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+            - b.parent_block().p_M_Flow_Conc
+            * (
+                1
+                - sum(
+                    b.parent_block().vb_y_Treatment[r, wt, j]
+                    for j in b.parent_block().s_J
+                )
+            )
             <= b.v_Q[r + treated_water_label, qc, t]
             * b.parent_block().v_F_TreatedWater[r, t]
         )
