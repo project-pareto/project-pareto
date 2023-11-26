@@ -1,0 +1,282 @@
+51
+11 0 0 0 361  0.00000000000000E+0000 5  0.00000000000000E+0000 0 0
+104983 2964 0 0 35327 39665 0 65318 0 0 0 0
+90770 9152 0 0 0 0 0 0
+493263 18968
+56568 34202 0 0 0 0 0 41903 0 14665
+312 0 0 0 0 0 0
+0 419 0
+31910 16 20
+ 1.00000000000000E-0004  0.00000000000000E+0000 0
+0  0.00000000000000E+0000 0  0.00000000000000E+0000
+ 1.00000000000000E+0010 2147483647 0
+1 1
+ 0.00000000000000E+0000 0 0 0  1.00000000000000E+0000 0 1 0 0  1.00000000000000E-0005 0
+76106 100
+0 0 0 0 0
+ 0.00000000000000E+0000  0.00000000000000E+0000  0.00000000000000E+0000  0.00000000000000E+0000  0.00000000000000E+0000
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\gamsmatr.dat
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\gamsinst.dat
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\dicopt.opt
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\gamsstat.dat
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\gamssolu.dat
+
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\gamsdict.dat
+3
+22:51:13
+11/25/23
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\
+C:\GAMS\36\
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\
+32767 2147483647
+0 0 353 45254 44931 60942
+Prof. Ignacio E. Grossmann                     G221207|0002AS-GEN0
+Carnegie Mellon University, Dept. of Chemical Engineering        0
+18409806010SECATBACOCTCPDEDIHIIPKNLDM5MBGEOAODPTSBSCSNXXGL       0
+0 1 104983 0
+225a\gmsprmNT.dat
+15 71 26
+LP          18 0
+MIP         18 0
+RMIP        18 0
+NLP         11 0
+MCP         59 0
+MPEC        52 0
+RMPEC       52 0
+CNS         11 0
+DNLP        11 0
+RMINLP      11 0
+MINLP       26 26
+QCP         11 0
+MIQCP       63 0
+RMIQCP      11 0
+EMP         34 0
+ALPHAECP    11 5 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsecpnt.cmd
+gmsecpnx.exe
+ANTIGONE    2011 5 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+BARON       1001 5 1 1 1 1 1 0 0 0 1 1 1 1 1 1 1 0
+gmsba_nt.cmd
+gmsba_nx.exe
+BONMIN      11 0 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsgennt.cmd
+gmsgennx.exe
+BONMINH     11 0 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsgennt.cmd optbonmin.def
+gmsgennx.exe
+CBC         2011 5 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+COINBONMIN  11 0 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsgennt.cmd optbonmin.def
+gmsgennx.exe
+COINCBC     2011 5 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd optcbc.def
+gmsgennx.exe
+COINIPOPT   11 5 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd optipopt.def
+gmsgennx.exe
+COINSCIP    2001 5 1 0 1 0 1 0 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+CONOPT      1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd
+gmsgennx.exe
+CONOPT3     1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd optconopt.def
+gmsgennx.exe
+CONOPT4     1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd
+gmsgennx.exe
+CONOPTD     1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd optconopt.def
+gmsgennx.exe
+CONVERT     103011 5 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+gmsgennt.cmd optconvert.def
+gmsgennx.exe
+CONVERTD    103011 5 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+gmsgennt.cmd
+gmsgennx.exe
+CONVERTOLD  103011 5 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0
+gmscv_nt.cmd
+gmscv_nx.exe
+CPLEX       2011 5 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+CPLEXCLASSIC 1011 5 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 0
+gmsgennt.cmd optcplex.def
+gmsgennx.exe
+CPLEXD      2011 5 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+CPOPTIMIZER 11 5 1 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsgennt.cmd
+gmsgennx.exe
+DE          101011 5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+gmsgennt.cmd
+gmsgennx.exe
+DECIS       2011 5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+gmsgennt.cmd
+gmsgennx.exe
+DECISC      2011 5 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+gmsdecnt.cmd optdecis.def
+DECISM      2011 5 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+gmsdemnt.cmd optdecis.def
+DICOPT      1 5 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsdi_nt.cmd
+gmsdi_nx.exe
+EXAMINER    103011 5 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 0
+gmsex_nt.cmd
+gmsex_nx.exe
+EXAMINER2   103011 5 1 1 1 1 1 1 0 0 0 1 1 1 1 1 1 0
+gmsgennt.cmd optexaminer.def
+gmsgennx.exe
+GAMSCHK     103011 5 1 1 1 1 1 1 0 0 0 1 1 1 1 1 1 0
+gmsck_nt.cmd
+gmsck_nx.exe
+GLOMIQO     2011 0 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+GUROBI      11 5 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+IPOPT       11 5 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd
+gmsgennx.exe
+IPOPTH      11 5 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd optipopt.def
+gmsgennx.exe
+JAMS        101011 5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+gmsja_nt.cmd
+gmsja_nx.exe
+KESTREL     103010 5 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+gmske_nt.cmd
+KNITRO      101011 0 1 1 0 1 1 0 1 1 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+LGO         1 5 1 1 0 1 1 0 0 0 0 1 1 0 1 0 1 0
+gmsgennt.cmd
+gmsgennx.exe
+LGOD        1 5 1 1 0 1 1 0 0 0 0 1 1 0 1 0 1 0
+gmsgennt.cmd optlgo.def
+gmsgennx.exe
+LINDO       1 5 1 1 1 1 1 0 0 0 0 1 1 1 1 1 1 1
+gmsgennt.cmd
+gmsgennx.exe
+LINDOGLOBAL 1 5 1 1 1 1 1 0 0 0 0 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+LOCALSOLVER 11 5 1 0 1 0 1 0 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+LOCALSOLVER70 11 5 1 0 1 0 1 0 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd optlocalsolver.def
+gmsgennx.exe
+LOGMIP      101011 5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+gmsja_nt.cmd optjams.def
+gmsja_nx.exe
+MILES       103001 5 1 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0
+gmsmcent.cmd
+gmsmcenx.exe
+MILESE      103001 5 1 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0
+gmsmcent.cmd optmiles.def
+gmsmcenx.exe
+MINOS       1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd
+gmsgennx.exe
+MINOS5      1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd optminos.def
+gmsgennx.exe
+MINOS55     1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd optminos.def
+gmsgennx.exe
+MOSEK       11 5 1 1 1 1 1 0 0 0 0 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+MPSGE       100001 5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgewnt.cmd
+gmsgewnx.exe
+MSNLP       11 0 1 0 0 0 1 0 0 0 0 1 1 0 1 0 1 0
+gmsmn_nt.cmd
+gmsmn_nx.exe
+NLPEC       103001 0 1 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0
+gmscvnnt.cmd
+gmscvnnx.exe
+ODHCPLEX    2011 5 1 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0
+gmsgennt.cmd
+gmsgennx.exe
+OSICPLEX    11 5 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+OSIGUROBI   11 5 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+OSIMOSEK    11 5 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+OSISOPLEX   11 5 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+OSIXPRESS   11 5 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+PATH        103001 5 1 0 0 0 0 1 0 0 1 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+PATHC       103001 5 1 0 0 0 0 1 0 0 1 0 0 0 0 0 0 0
+gmsgennt.cmd optpath.def
+gmsgennx.exe
+PATHNLP     11 5 1 1 0 1 1 0 0 0 0 1 1 0 1 0 1 0
+gmsptnnt.cmd
+gmsptnnx.exe
+QUADMINOS   1 0 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd optminos.def
+gmsgennx.exe
+SBB         11 5 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmssb_nt.cmd
+gmssb_nx.exe
+SCENSOLVER  1 5 1 1 1 1 1 1 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+SCIP        2001 5 1 0 1 0 1 0 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+SELKIE      102011 5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+gmsgennt.cmd
+gmsgennx.exe
+SHOT        1001 5 1 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0
+gmsgennt.cmd
+gmsgennx.exe
+SNOPT       1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 0 1 0
+gmsgennt.cmd
+gmsgennx.exe
+SOPLEX      11 5 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsgennt.cmd
+gmsgennx.exe
+XA          1 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+gmsxa_nt.cmd
+gmsxa_nx.exe
+XPRESS      11 5 1 1 1 1 1 0 0 0 1 1 1 1 1 1 1 0
+gmsgennt.cmd
+gmsgennx.exe
+264591620C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C0C       0
+DCE375       g 7                               A Eval            0
+License Admin: Ignacio E. Grossmann, grossmann@cmu.edu           0
+1 C:\GAMS\36\gamslice.txt
+1 C:\GAMS\36\gmscmpnt.txt
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\output.dat
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0  1.00000000000000E+0000 0 17
+0 0 0
+0 0 0 1 0
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\GAMS_MODEL.dll
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\sbbinfo.dat
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\225a\gamscntr.dat
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\
+dat
+ 1.00000000000000E+0299
+
+
+C:\Users\javal\Desktop\Internship\PARETO\project-pareto_forked\pareto\strategic_water_management\temp\model.gms
