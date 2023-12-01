@@ -217,6 +217,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{C_{s,t}^{Storage}}` =                        Cost of storing produced water at storage site (incl. treatment)
 
+:math:`\textcolor{red}{C_{o,t}^{BeneficialReuse}}` =                Processing cost of sending water to beneficial reuse
+
 :math:`\textcolor{red}{R_{s,t}^{Storage}}` =                        Credit for retrieving stored produced water from storage site
 
 :math:`\textcolor{red}{R_{o,t}^{BeneficialReuse}}` =                Credit for sending water to beneficial reuse
@@ -234,6 +236,8 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{red}{C^{TotalStorage}}` =                         Total cost of storing produced water
 
 :math:`\textcolor{red}{C^{TotalTrucking}}` =                        Total cost of trucking produced water
+
+:math:`\textcolor{red}{C^{TotalBeneficialReuse}}` =                 Total processing cost for sending water to beneficial reuse
 
 :math:`\textcolor{red}{C^{Slack}}` =                                Total cost of slack variables
 
@@ -414,6 +418,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\rho_{s}^{Storage}}` =                 Storage withdrawal operational credit
 
+:math:`\textcolor{green}{\pi_{o}^{BeneficialReuse}}` =                 Processing cost for sending water to beneficial reuse
+
 :math:`\textcolor{green}{\rho_{o}^{BeneficialReuse}}` =                 Credit for sending water to beneficial reuse
 
 :math:`\textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}` =               Pipeline operational cost
@@ -461,11 +467,13 @@ Two objective functions can be considered for the optimization of a produced wat
 
         + \textcolor{red}{C^{TotalCompletionsReuse}} + \textcolor{red}{C^{TotalPiping}} + \textcolor{red}{C^{TotalStorage}}
 
-        + \textcolor{red}{C^{TotalTrucking}} + \textcolor{green}{\alpha^{AnnualizationRate}} \cdot (\textcolor{red}{C^{DisposalCapEx}}
+        + \textcolor{red}{C^{TotalTrucking}} + \textcolor{red}{C^{TotalBeneficialReuse}}
 
-        + \textcolor{red}{C^{StorageCapEx}} + \textcolor{red}{C^{TreatmentCapEx}} + \textcolor{red}{C^{PipelineCapEx}})
+        + \textcolor{green}{\alpha^{AnnualizationRate}} \cdot (\textcolor{red}{C^{DisposalCapEx}} + \textcolor{red}{C^{StorageCapEx}}
 
-        + \textcolor{red}{C^{Slack}} - \textcolor{red}{R^{TotalStorage}} - \textcolor{red}{R^{TotalBeneficialReuse}}
+        + \textcolor{red}{C^{TreatmentCapEx}} + \textcolor{red}{C^{PipelineCapEx}}) + \textcolor{red}{C^{Slack}}
+
+        - \textcolor{red}{R^{TotalStorage}} - \textcolor{red}{R^{TotalBeneficialReuse}}
 
 
 .. math::
@@ -1055,6 +1063,18 @@ Credit from withdrawing from storage is equal to the volume of water moved out f
 .. math::
     \textcolor{red}{R^{TotalStorage}} = \sum_{t \in T}\sum_{s \in S}\textcolor{red}{R_{s,t}^{Storage}}
 
+
+**Beneficial Reuse Cost:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+Processing cost for sending water to beneficial reuse is equal to the volume of water sent to beneficial reuse multiplied by the beneficial reuse cost rate.
+
+.. math::
+    \textcolor{red}{C_{o,t}^{BeneficialReuse}}
+        = (\sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{o}^{BeneficialReuse}}
+
+.. math::
+    \textcolor{red}{C^{TotalBeneficialReuse}} = \sum_{t \in T}\sum_{o \in O}\textcolor{red}{C_{o,t}^{BeneficialReuse}}
 
 **Beneficial Reuse Credit:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
 

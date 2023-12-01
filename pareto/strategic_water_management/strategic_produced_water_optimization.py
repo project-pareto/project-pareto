@@ -666,6 +666,14 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_time"],
         doc="Cost of storing produced water at storage site [currency/time]",
     )
+    model.v_C_BeneficialReuse = Var(
+        model.s_O,
+        model.s_T,
+        initialize=0,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Processing cost of sending water to beneficial reuse [currency/time]",
+    )
     model.v_R_Storage = Var(
         model.s_S,
         model.s_T,
@@ -716,6 +724,11 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         units=model.model_units["currency"],
         doc="Total cost of trucking produced water [currency]",
+    )
+    model.v_C_TotalBeneficialReuse = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total processing cost for sending water to beneficial reuse [currency]",
     )
     model.v_C_Slack = Var(
         within=NonNegativeReals,
@@ -1048,7 +1061,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         default=0,
         initialize=init_arc_param("RCA"),
-        doc="Valid treatment-to-completions layflat arcs [-]",
+        doc="Valid treatment-to-completions pipeline arcs [-]",
     )
     model.p_RKA = Param(
         model.s_R,
@@ -1980,6 +1993,24 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",
     )
+    model.p_pi_BeneficialReuse = Param(
+        model.s_O,
+        default=pyunits.convert_value(
+            0.0,
+            from_units=pyunits.USD / pyunits.oil_bbl,
+            to_units=model.model_units["currency_volume"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency_volume"],
+                to_units=model.model_units["currency_volume"],
+            )
+            for key, value in model.df_parameters["BeneficialReuseCost"].items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Processing cost for sending water to beneficial reuse [currency/volume]",
+    )
     model.p_rho_BeneficialReuse = Param(
         model.s_O,
         default=pyunits.convert_value(
@@ -2244,6 +2275,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
+                + model.v_C_TotalBeneficialReuse
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -2275,6 +2307,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
+                + model.v_C_TotalBeneficialReuse
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -3342,6 +3375,40 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalStorageWithdrawalCredit = Constraint(
         rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
+    )
+
+    def BeneficialReuseCostRule(model, o, t):
+        constraint = model.v_C_BeneficialReuse[o, t] == (
+            (
+                sum(
+                    model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, o, t]
+                    for l in model.s_L
+                    if (l, o) in model.s_LLT
+                )
+            )
+            * model.p_pi_BeneficialReuse[o]
+        )
+
+        return process_constraint(constraint)
+
+    model.BeneficialReuseCost = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseCostRule,
+        doc="Beneficial reuse processing cost",
+    )
+
+    def TotalBeneficialReuseCostRule(model):
+        constraint = model.v_C_TotalBeneficialReuse == sum(
+            sum(model.v_C_BeneficialReuse[o, t] for o in model.s_O) for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalBeneficialReuseCost = Constraint(
+        rule=TotalBeneficialReuseCostRule, doc="Total beneficial reuse processing cost"
     )
 
     def BeneficialReuseCreditRule(model, o, t):
@@ -6375,8 +6442,10 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.v_L_PadStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_L_Storage] = 1 / scaling_factor
     model.scaling_factor[model.v_R_Storage] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_BeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_BeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
+    model.scaling_factor[model.v_C_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_S_DisposalCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Flowback] = 1000 / scaling_factor
@@ -6470,6 +6539,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.StorageSiteProcessingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageSiteTruckOffloadingCapacity] = 1 / scaling_factor
     model.scaling_factor[model.StorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.BeneficialReuseCost] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TerminalCompletionsPadStorageLevel] = 1 / scaling_factor
     model.scaling_factor[model.TerminalStorageLevel] = 1 / scaling_factor
@@ -6482,6 +6552,7 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalReuseVolume] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageWithdrawalCredit] = 1 / scaling_factor
+    model.scaling_factor[model.TotalBeneficialReuseCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalBeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
