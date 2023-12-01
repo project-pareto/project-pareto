@@ -314,7 +314,7 @@ Verifies the solution contained in a Pyomo model object is feasible. This requir
 
 **How to Use**
 
-The method requres that a Pyomo model be passed as the first argument. Two other keyword arguments are optional:
+The method requires that a Pyomo model be passed as the first argument. Two other keyword arguments are optional:
 
 1. *"bound_tol"* - Violation tolerance for bounds. Default value is 1e-3.
 
@@ -327,6 +327,7 @@ Example of how this method can be used::
 
   # Assume model is any Pyomo model that has already been created and solved
 
+  # Use with statement to suppress messages from the call to is_feasible
   with nostdout():
       feasibility_status = is_feasible(model)
 
