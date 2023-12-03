@@ -489,6 +489,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
     )
 
+    # Define sets for the piecewise linear approximation
     model.s_lamset = Set(initialize= list(range(1+int(70000/discretization_unit))))
     model.s_lamset2 = Set(initialize= list(range(int(70000/discretization_unit) )))
     model.s_zset = Set(initialize= list(range(math.ceil(math.log(8, 2)))) )
@@ -3910,8 +3911,8 @@ def pipeline_hydraulics(model):
     )
 
 
-
-    # The folllowing decision variables are intermediate variables that allow linearization of Hazen-William Equations
+    #------
+    # The folllowing decision variables are intermediate variables that allow piecewise linearization of Hazen-William Equations
 
     mh.v_term = Var(
         model.s_LLA,
@@ -3919,9 +3920,8 @@ def pipeline_hydraulics(model):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume_time"],
-        doc="Produced water quantity piped from location l to location l [volume/time]",
+        doc="Produced water quantity piped from location l to location l [volume/time] raised to 1.85",
     )
-
     mh.v_term2 = Var(model.s_D,
         model.s_LLA,
         model.s_T,
@@ -3929,7 +3929,6 @@ def pipeline_hydraulics(model):
         initialize=0,
         doc="H_flow[l1,l2,t]*y_pipeline[d]",
     )
-
     mh.v_lambdas = Var(model.s_LLA,
             model.s_T,
         model.s_lamset,
@@ -4232,6 +4231,14 @@ def pipeline_hydraulics(model):
             <= sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset if binary_list[j]==0) +\
             sum( (1 - mh.vb_z[l1, l2, t1, j]) for j in model.s_zset if binary_list[j]==1)
             return process_constraint(constraint)
+
+        mh.EnforceZero = Constraint(
+                model.s_lamset2,
+                model.s_LLA,
+                model.s_T,
+                rule=EnforceZeroRule,
+                doc="Put appropriate lambda to zero",
+            )
         
         def SumOneRule(b,  l1, l2, t1):
             constraint = sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset)* cons_scaling_factor\
@@ -4270,7 +4277,6 @@ def pipeline_hydraulics(model):
             rule=HazenWilliamsRule,
             doc="Pressure at Node L",
         )
-
 
         def V_term2_1Rule(b, l1, l2, t1, d):
             constraint = ( 
@@ -4315,18 +4321,34 @@ def pipeline_hydraulics(model):
 
 
         def NodePressureRule(b, l1, l2, t1):
-            constraint = (
-                b.v_Pressure[l1, t1]
-                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
-                == (
-                    b.v_Pressure[l2, t1]
-                    + model.p_zeta_Elevation[l2] * mh.p_rhog
-                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
-                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
-                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+            if (l2,l1) in model.s_LLA:
+                constraint = (
+                    b.v_Pressure[l1, t1]
+                    + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                    == (
+                        b.v_Pressure[l2, t1]
+                        + model.p_zeta_Elevation[l2] * mh.p_rhog
+                        + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                        - b.v_HW_loss[l2, l1, t1] * mh.p_rhog
+                        - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                        + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                    )
+                    * cons_scaling_factor
                 )
-                * cons_scaling_factor
-            )
+            else:
+                constraint = (
+                    b.v_Pressure[l1, t1]
+                    + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                    == (
+                        b.v_Pressure[l2, t1]
+                        + model.p_zeta_Elevation[l2] * mh.p_rhog
+                        + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                        - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                        + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                    )
+                    * cons_scaling_factor
+                )
+
             return process_constraint(constraint)
 
         mh.NodePressure = Constraint(
