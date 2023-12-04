@@ -32,6 +32,13 @@ Network schematics
 
     Strategic treatment demo network.
 
+.. figure:: ../img/workshop_network.png
+    :width: 1000
+    :align: center
+    :alt: Workshop network schematic
+
+    Strategic model network developed for use in PARETO workshops.
+
 Comparison table
 ----------------
 .. |br| raw:: html
@@ -46,14 +53,17 @@ Comparison table
      - Strategic model toy case study
      - Strategic model small case study
      - Strategic model treatment demo
+     - Strategic model workshop
      - Operational model case study
    * - **Input file**
      - ``strategic_permian_demo.xlsx``
      - ``strategic_toy_case_study.xlsx``
      - ``strategic_small_case_study.xlsx``
      - ``strategic_treatment_demo.xlsx``
+     - ``workshop_baseline_all_data.xlsx``
      - ``operational_generic_case_study.xlsx``
    * - **Model type**
+     - Strategic
      - Strategic
      - Strategic
      - Strategic
@@ -75,6 +85,8 @@ Comparison table
        Takes a bit longer to solve. This |br|
        can be seen as the "default" case |br|
        study for the strategic model.
+     - Network developed for use in |br|
+       PARETO workshops. Solves quickly.
      - Generic case study for the |br|
        operational model. Note that this |br|
        case study cannot currently be run |br|
@@ -86,8 +98,10 @@ Comparison table
      - Week
      - Week
      - Week
+     - Week
      - Day
    * - **Decision horizon**
+     - 52 weeks
      - 52 weeks
      - 52 weeks
      - 52 weeks
@@ -98,14 +112,17 @@ Comparison table
      - 9
      - 28
      - 28
+     - 9
      - 0
    * - **Production pads**
      - 14
      - 4
      - 15
      - 14
+     - 4
      - 5
    * - **Production tanks**
+     - N/A
      - N/A
      - N/A
      - N/A
@@ -116,12 +133,14 @@ Comparison table
      - 1
      - 4
      - 3
+     - 2
      - 1
    * - **External completions pads** [#]_
      - 1 (CP03)
      - 0
      - 0
      - 1 (CP03)
+     - 1 (CP02)
      - N/A
    * - **Disposal sites (SWD)**
      - 5
@@ -129,16 +148,19 @@ Comparison table
      - 3
      - 5
      - 2
+     - 2
    * - **Disposal expansion allowed?** [#]_
      - Yes, for K03 and K05
      - No
      - No
      - Yes, for K03 and K05
+     - Yes
      - No
    * - **Storage sites**
      - 3
      - 1
      - 2
+     - 3
      - 3
      - 0
    * - **Storage expansion allowed?**
@@ -146,12 +168,14 @@ Comparison table
      - Yes
      - No
      - Yes
+     - Yes
      - No
-   * - **Completions pad**
+   * - **Completions pad storage?**
      - No
      - No
      - Yes
      - No
+     - Yes
      - Yes
    * - **Treatment sites**
      - 6 |br|
@@ -173,6 +197,11 @@ Comparison table
        Desalination sites: R01, R03, R06 |br|
        All sites have zero initial treatment |br|
        capacity
+     - 2 |br|
+       Non-desalination site: R02 |br|
+       Desalination site: R01 |br|
+       Both sites have zero initial |br|
+       treatment capacity
      - 2
    * - **Treatment technologies**
      - Non-desalination: CB, CB-EV |br|
@@ -182,11 +211,14 @@ Comparison table
      - Non-desalination: CB
      - Non-desalination: CB, CB-EV |br|
        Desalination: FF, HDH
+     - Non-desalination: CB, CB-EV |br|
+       Desalination: MVC, MD
      - N/A
    * - **Treatment expansion allowed?**
      - Yes, except for R01
      - Yes
      - Yes (but only one capacity option)
+     - Yes
      - Yes
      - No
    * - **Pipeline expansion allowed?**
@@ -194,8 +226,11 @@ Comparison table
      - Yes
      - No
      - Yes
+     - Yes
      - No
    * - **Hydraulics settings**
+     - Roughness factor: 110 |br|
+       Head loss: 0.03
      - Roughness factor: 110 |br|
        Head loss: 0.03
      - Roughness factor: 110 |br|
@@ -214,6 +249,8 @@ Comparison table
        CAPEX lifetime: 20 years
      - Discount rate: 8% |br|
        CAPEX lifetime: 20 years
+     - Discount rate: 8% |br|
+       CAPEX lifetime: 20 years
      - N/A
    * - **Notes**
      - Recommend solving with Gurobi, |br|
@@ -221,6 +258,7 @@ Comparison table
      -
      -
      - Recommend solving with Gurobi.
+     - 
      -
 
 .. [#] In the strategic model, external completions pads can be used to model opportunities for water sharing outside of the main network.
