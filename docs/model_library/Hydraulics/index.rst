@@ -189,12 +189,21 @@ Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
+        \textcolor{blue}{\tilde{l},l \in LLA}
         \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
          = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
-         + \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
-         - \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
+         - \textcolor{red}{H_{\tilde{l},l,t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
+         - \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
+         + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
+    .. math::
+         \textcolor{blue}{\tilde{l},l \notin LLA}
+        \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
+         = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
+         + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
+         - \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
+         + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
     **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
 
