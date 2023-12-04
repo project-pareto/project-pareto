@@ -4368,7 +4368,7 @@ def pipeline_hydraulics(model):
                         * mh.p_rhog
                         * 1e3  # convert the kUSD/kWh to kUSD/Ws
                         * sum(
-                            b.v_PumpHead[l1, l2, t]
+                            1609
                             * pyunits.convert(
                                 (model.v_F_Piped[l1, l2, t]),
                                 to_units=pyunits.meter**3 / pyunits.h,
@@ -7261,51 +7261,30 @@ def solve_model(model, options=None):
             model_h.hydraulics.v_Pressure.setub(3.5e6)
 
             try:
-                solver = SolverFactory("gams")
-                mathoptsolver = "baron"
+                #solver = SolverFactory("gams")
+                solver = SolverFactory("gurobi")
             except:
                 print(
                     "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
                       please continue to use the post-process method for hydraulics at this time"
                 )
             else:
-                solver_options = {
-                    "firstfeas": 1,
-                }
-
-                if not os.path.exists("temp"):
-                    os.makedirs("temp")
-
-                with open("temp/" + mathoptsolver + ".opt", "w") as f:
-                    for k, v in solver_options.items():
-                        f.write(str(k) + " " + str(v) + "\n")
-
-                results_baron = solver.solve(
+                results_gurobi = solver.solve(
                     model_h,
                     tee=True,
-                    keepfiles=True,
-                    solver=mathoptsolver,
-                    tmpdir="temp",
-                    add_options=["gams_model.optfile=1;"],
-                )
-                try:
-                    # second solve with SCIP
-                    solver2 = SolverFactory("scip", solver_io="nl")
-                    print("  ")
-                    print(
-                        "WARNING: A default relative optimality gap of 30%/ is set to obtain good solutions at this time"
-                    )
-                    print("  ")
-                except:
-                    print(
-                        "A second solve with SCIP cannot be executed as SCIP was not found. Please add it to Path. \
-                          If you do not haev SCIP, proceed with caution when using solution obtain from first solve using BARON"
-                    )
-                else:
-                    results_2 = solver2.solve(
-                        model_h, options={"limits/gap": 0.3}, tee=True
-                    )
-
+                    keepfiles=True)
+                
+                results_2 = results_gurobi
+                #average_pumphead = 0
+                #ctr_pum=0
+                # for (l1, l2) in model.s_LLA:
+                #     if value(model_h.hydraulics.vb_Y_Pump[l1, l2])==1:
+                #         for t in model.s_T:
+                #             print("model_h.v_PumpHead['%s', '%s', '%s'] = %s"%(str(l1), str(l2), str(t), str(value(model_h.hydraulics.v_PumpHead[l1, l2, t]))))
+                #             average_pumphead+=value(model_h.hydraulics.v_PumpHead[l1, l2, t])
+                #             ctr_pum+=1
+                # average_pumphead/=ctr_pum
+                # print("Average pumphead is ",average_pumphead)
         # Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()
 

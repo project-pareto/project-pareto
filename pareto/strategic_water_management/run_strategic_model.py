@@ -164,7 +164,7 @@ strategic_model = create_model(
         "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
-        "hydraulics": Hydraulics.false,
+        "hydraulics": Hydraulics.co_optimize,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
