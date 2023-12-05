@@ -216,7 +216,7 @@ CONFIG.declare(
 
 
 # This is the basic length of refinement of the grid. Adjust to 1000 for 10 times more refinement
-discretization_unit = 10000
+Del_I = 10000
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
@@ -490,9 +490,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # Define sets for the piecewise linear approximation
-    model.s_lamset = Set(initialize= list(range(1+int(70000/discretization_unit))))
-    model.s_lamset2 = Set(initialize= list(range(int(70000/discretization_unit) )))
-    model.s_zset = Set(initialize= list(range(math.ceil(math.log(8, 2)))) )
+    model.s_lamset = Set(initialize= list(range(1+int(70000/Del_I))))
+    model.s_lamset2 = Set(initialize= list(range(int(70000/Del_I) )))
+    model.s_zset = Set(initialize= list(range(math.ceil(math.log(1+int(70000/Del_I), 2)))) )
 
     # Define continuous variables #
 
@@ -4200,7 +4200,7 @@ def pipeline_hydraulics(model):
 
         def FlowEquationConvRule(b, l1, l2, t1):
             constraint = model.v_F_Piped[l1, l2, t1]* cons_scaling_factor\
-            == sum(mh.v_lambdas[l1, l2, t1, k]*discretization_unit*k for k in model.s_lamset)* cons_scaling_factor
+            == sum(mh.v_lambdas[l1, l2, t1, k]*Del_I*k for k in model.s_lamset)* cons_scaling_factor
             return process_constraint(constraint)
 
         mh.FlowEquationConv = Constraint(
@@ -4214,7 +4214,7 @@ def pipeline_hydraulics(model):
         def termEquationConvRule(b, l1, l2, t1):
             constraint =\
                 mh.v_term[l1, l2, t1]\
-            == sum(mh.v_lambdas[l1, l2, t1, k]*(k*discretization_unit*1.84*10**(-6))**1.85 for k in model.s_lamset)
+            == sum(mh.v_lambdas[l1, l2, t1, k]*(k*Del_I*1.84*10**(-6))**1.85 for k in model.s_lamset)
             return process_constraint(constraint)
 
         mh.termEquationConv = Constraint(
