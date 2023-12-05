@@ -53,7 +53,7 @@ Comparison table
      - Strategic model toy case study
      - Strategic model small case study
      - Strategic model treatment demo
-     - Strategic model workshop
+     - Strategic model workshop baseline
      - Operational model case study
    * - **Input file**
      - ``strategic_permian_demo.xlsx``
@@ -162,6 +162,15 @@ Comparison table
      - 2
      - 3
      - 3
+       Only one storage site (S02) is shown |br|
+       in the above schematic and used in |br|
+       the workshop baseline scenario. Two |br|
+       additional storage sites (S03 and S04) |br|
+       are unused in the baseline scenario, |br|
+       but are included in the input file so |br|
+       they can used in the beneficial reuse |br|
+       scenario (which builds off of the |br|
+       baseline scenario).
      - 0
    * - **Storage expansion allowed?**
      - Yes
