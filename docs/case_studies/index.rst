@@ -161,7 +161,7 @@ Comparison table
      - 1
      - 2
      - 3
-     - 3
+     - 3 |br|
        Only one storage site (S02) is shown |br|
        in the above schematic and used in |br|
        the workshop baseline scenario. Two |br|
