@@ -1234,8 +1234,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Define set parameters #
 
-    # TODO: Implement - For EXISTING/INITAL pipeline capacity (l,l_tilde)=(l_tilde=l);
-
     PipelineCapacityIncrementsTable = {("D0"): 0}
 
     DisposalCapacityIncrementsTable = {("I0"): 0}
@@ -4428,11 +4426,14 @@ def water_quality(model):
         model.s_F,
         model.s_QC,
         default=0,
-        initialize=pyunits.convert_value(
-            0,
-            from_units=model.user_units["concentration"],
-            to_units=model.model_units["concentration"],
-        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["FreshwaterQuality"].items()
+        },
         units=model.model_units["concentration"],
         doc="Water Quality of freshwater [concentration]",
     )
@@ -4468,7 +4469,7 @@ def water_quality(model):
             ].items()
         },
         units=model.model_units["concentration"],
-        doc="Initial Water Quality at storage site [concentration]",
+        doc="Initial Water Quality at completions pad storage site [concentration]",
     )
     # Add variable to track water quality at each location over time
     model.quality.v_Q = Var(
@@ -5174,11 +5175,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_F,
         model.s_QC,
         default=0,
-        initialize=pyunits.convert_value(
-            0,
-            from_units=model.user_units["concentration"],
-            to_units=model.model_units["concentration"],
-        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["FreshwaterQuality"].items()
+        },
         units=model.model_units["concentration"],
         doc="Water Quality of freshwater [concentration]",
     )
@@ -5383,7 +5387,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 model.v_F_DiscreteTrucked[l, l_tilde, t, qc, q] for q in model.s_Q
             )
             == model.v_F_Trucked[l, l_tilde, t],
-            doc="Sum for each flow for component qc equals the produced water quantity trucked from location l to location l  ",
+            doc="Sum for each flow for component qc equals the produced water quantity trucked from location l to location l",
         )
 
     def DiscretizeDisposalDestinationQuality(model):

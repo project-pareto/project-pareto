@@ -1331,6 +1331,8 @@ Assumptions:
 
 :math:`\textcolor{green}{\nu_{p,qc,[t]}}` =                Water quality at well pad
 
+:math:`\textcolor{green}{\nu_{f,qc,[t]}}` =                Water quality of freshwater source
+
 :math:`\textcolor{green}{\xi_{s,qc}^{StorageSite}}` =    Initial water quality at storage
 
 :math:`\textcolor{green}{\xi_{p,qc}^{PadStorage}}` =     Initial water quality at pad storage
@@ -1517,13 +1519,13 @@ The water quality at the completions pad intermediate node is dependent on the f
 
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
         + \sum_{r \in R | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}} \cdot \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{red}{Q_{f,qc,t}}
+        + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{green}{\nu_{f,qc,[t]}}
 
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
         + \sum_{s \in S | (s, p) \in SCT}\textcolor{purple}{F_{s,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,qc,t}}
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
 
-        + \sum_{f \in F | (f, p) \in FCT}\textcolor{purple}{F_{f,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{f,qc,t}}
+        + \sum_{f \in F | (f, p) \in FCT}\textcolor{purple}{F_{f,p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{f,qc,[t]}}
         = \textcolor{red}{Q_{p^{IntermediateNode},qc,t}} \cdot (\textcolor{purple}{F_{p,t}^{PadStorageIn}}
         + \textcolor{purple}{F_{p,t}^{CompletionsDestination}})
 
