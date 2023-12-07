@@ -103,7 +103,10 @@ def generate_report(
                     "v_C_Trucked",
                     "v_C_Sourced",
                     "v_C_Disposal",
+                    "v_C_Treatment",
                     "v_C_Reuse",
+                    "v_C_Storage",
+                    "v_C_BeneficialReuse",
                     "v_L_Storage",
                     "vb_y_Pipeline",
                     "vb_y_Disposal",
@@ -183,6 +186,13 @@ def generate_report(
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
+            ],
+            "v_C_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Processing Cost For Sending Water to Beneficial Reuse",
+                )
             ],
             "v_R_BeneficialReuse_dict": [
                 (

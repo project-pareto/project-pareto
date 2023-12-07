@@ -98,6 +98,7 @@ def build_strategic_model():
         "ROA",
         "SOA",
         "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -107,10 +108,12 @@ def build_strategic_model():
         "RST",
         "ROT",
         "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
@@ -160,7 +163,6 @@ def build_strategic_model():
         "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_treatment_demo.xlsx",
@@ -400,6 +402,7 @@ def build_reduced_strategic_model():
         "ROA",
         "SOA",
         "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -409,10 +412,12 @@ def build_reduced_strategic_model():
         "RST",
         "ROT",
         "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
@@ -462,7 +467,6 @@ def build_reduced_strategic_model():
         "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_small_case_study.xlsx",
@@ -900,6 +904,7 @@ def build_modified_reduced_strategic_model():
         "ROA",
         "SOA",
         "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -909,10 +914,12 @@ def build_modified_reduced_strategic_model():
         "RST",
         "ROT",
         "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
@@ -962,7 +969,6 @@ def build_modified_reduced_strategic_model():
         "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.tests",
         "strategic_small_case_study_load_removaleff.xlsx",
@@ -1117,6 +1123,7 @@ def test_strategic_model_UI_display_units():
         "ROA",
         "SOA",
         "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -1126,10 +1133,12 @@ def test_strategic_model_UI_display_units():
         "RST",
         "ROT",
         "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
@@ -1179,7 +1188,6 @@ def test_strategic_model_UI_display_units():
         "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_small_case_study.xlsx",
@@ -1229,6 +1237,7 @@ def build_toy_strategic_model():
         "ROA",
         "SOA",
         "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -1238,10 +1247,12 @@ def build_toy_strategic_model():
         "RST",
         "ROT",
         "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
@@ -1291,7 +1302,6 @@ def build_toy_strategic_model():
         "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_toy_case_study.xlsx",
@@ -1397,6 +1407,7 @@ def build_permian_demo_strategic_model():
         "ROA",
         "SOA",
         "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -1406,10 +1417,12 @@ def build_permian_demo_strategic_model():
         "RST",
         "ROT",
         "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
@@ -1459,7 +1472,6 @@ def build_permian_demo_strategic_model():
         "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_permian_demo.xlsx",
@@ -1580,3 +1592,173 @@ def test_infrastructure_buildout(build_toy_strategic_model):
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
+
+
+@pytest.fixture(scope="module")
+def build_workshop_strategic_model():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
+        "Elevation",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "WellPressure",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "RemovalEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
+    ]
+
+    with resources.path(
+        "pareto.case_studies",
+        "workshop_baseline_all_data.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            workshop_model = create_model(df_sets, df_parameters, config_dict)
+            return workshop_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_workshop_build(build_workshop_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert degrees_of_freedom(m) == 3973
+    # Check unit config arguments
+    assert len(m.config) == 8
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_workshop_model(build_workshop_strategic_model):
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 3851
+    assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
+    with nostdout():
+        assert is_feasible(m)
