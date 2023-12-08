@@ -432,7 +432,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "PadWaterQuality": user_units["concentration"],
         "StorageInitialWaterQuality": user_units["concentration"],
         "PadStorageInitialWaterQuality": user_units["concentration"],
-        "DisposalOperatingCapacity": user_units["concentration"],
+        "DisposalOperatingCapacity": "%",
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
