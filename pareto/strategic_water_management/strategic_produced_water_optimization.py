@@ -4402,7 +4402,7 @@ def water_quality(model):
             | model.quality.s_R_TreatedWaterNodes
             | model.quality.s_R_ResidualWaterNodes
         ),
-        doc="Locations with tracked water quality ",
+        doc="Locations with tracked water quality",
     )
 
     # Quality at pad
@@ -4998,7 +4998,7 @@ def water_quality(model):
         model.s_QC,
         model.s_T,
         rule=CompletionsPadIntermediateWaterQuality,
-        doc="Completions pad water quality",
+        doc="Completions pad intermediate node water quality",
     )
 
     def CompletionsPadWaterQuality(b, p, qc, t):
@@ -5124,7 +5124,7 @@ def get_max_value_for_parameter(parameter):
 def water_quality_discrete(model, df_parameters, df_sets):
     # Add sets, parameters and constraints
 
-    # Crate a set for Completions Pad storage by appending "-storage" to each item in the CompletionsPads Set
+    # Create a set for Completions Pad storage by appending "-storage" to each item in the CompletionsPads Set
     storage_label = "-storage"
     df_sets["CompletionsPadsStorage"] = [
         p + storage_label for p in df_sets["CompletionsPads"]

@@ -54,6 +54,7 @@ def build_operational_model():
         "CompletionsPads",
         "ProductionTanks",
         "FreshwaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "SWDSites",
         "TreatmentSites",
@@ -92,6 +93,7 @@ def build_operational_model():
         "FreshSourcingCost",
         "ProductionRates",
         "TreatmentEfficiency",
+        "FreshwaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
     ]
@@ -132,7 +134,7 @@ def test_basic_build(build_operational_model):
 
 
 @pytest.mark.component
-def test_strategic_model_unit_consistency(build_operational_model):
+def test_operational_model_unit_consistency(build_operational_model):
     """
     Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
     This test utilizes assert_units_consistent in addition to a special case test assertion.
@@ -303,6 +305,7 @@ def test_operational_model_UI_display_units():
         "CompletionsPads",
         "ProductionTanks",
         "FreshwaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "SWDSites",
         "TreatmentSites",
@@ -340,6 +343,7 @@ def test_operational_model_UI_display_units():
         "FreshSourcingCost",
         "ProductionRates",
         "TreatmentEfficiency",
+        "FreshwaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
     ]

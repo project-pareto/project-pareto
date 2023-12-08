@@ -842,7 +842,7 @@ def generate_report(
                 ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
             ],
             "v_F_TreatmentDestination_dict": [
-                ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
+                ("Disposal Site", "Time", "Total Deliveries to Treatment Site")
             ],
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")

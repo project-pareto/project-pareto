@@ -78,7 +78,7 @@ CONFIG.declare(
         doc="""Selection to include water quality
         ***default*** - WaterQuality.continuous
         **Valid Values:** - {
-        **WaterQuality.False** - Exclude water quality from model,
+        **WaterQuality.false** - Exclude water quality from model,
         **WaterQuality.post_process** - Include water quality as post process
         **WaterQuality.discrete** - Include water quality as discrete values in model
         }""",
@@ -2534,7 +2534,7 @@ def water_quality(model, df_sets, df_parameters):
             for key, value in model.df_parameters["PadWaterQuality"].items()
         },
         units=model.model_units["concentration"],
-        doc="Water Quality at pad [mg/L]",
+        doc="Water Quality at pad [concentration]",
     )
 
     model.p_xi = Param(
@@ -2866,20 +2866,23 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for key, value in model.df_parameters["PadWaterQuality"].items()
         },
         units=model.model_units["concentration"],
-        doc="Water Quality at pad [mg/L]",
+        doc="Water Quality at pad [concentration]",
     )
     # Quality of Sourced Water
     model.p_nu_freshwater = Param(
         model.s_F,
         model.s_W,
         default=0,
-        initialize=pyunits.convert_value(
-            0,
-            from_units=model.user_units["concentration"],
-            to_units=model.model_units["concentration"],
-        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["FreshwaterQuality"].items()
+        },
         units=model.model_units["concentration"],
-        doc="Water Quality of freshwater [mg/L]",
+        doc="Water Quality of freshwater [concentration]",
     )
 
     StorageInitialWaterQuality_convert_to_model = {
@@ -2904,7 +2907,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         ),
         initialize=StorageInitialWaterQuality_convert_to_model,
         units=model.model_units["concentration"],
-        doc="Initial Water Quality at storage site [mg/L]",
+        doc="Initial Water Quality at storage site [concentration]",
     )
 
     # Create list of discretized qualities

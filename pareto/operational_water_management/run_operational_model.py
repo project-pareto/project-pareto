@@ -37,6 +37,7 @@ set_list = [
     "CompletionsPads",
     "ProductionTanks",
     "FreshwaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "SWDSites",
     "TreatmentSites",
@@ -75,6 +76,7 @@ parameter_list = [
     "FreshSourcingCost",
     "ProductionRates",
     "TreatmentEfficiency",
+    "FreshwaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
 ]
