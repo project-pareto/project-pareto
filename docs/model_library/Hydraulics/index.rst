@@ -214,8 +214,8 @@ Allows pumping only if a pump exists in a pipeline.
         \textcolor{red}{C_{l,\tilde{l}}^{Pump}} = \textcolor{green}{\nu^{Pump}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
         + \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g} \cdot \sum_{t \in T}\textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
 
-
-    **Linearizing the Equations/constraints specific to the co_optimize method**
+    
+**Linearizing the Equations/constraints specific to the co_optimize method**
 
     **Parameters**
     :math:`\textcolor{green}{\Delta_I}` =                        Length of interval of flows for building piecewise linear model
@@ -258,16 +258,18 @@ Allows pumping only if a pump exists in a pipeline.
 
        \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = 1
 
-    **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T} j \in \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
+    **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
-    c(k) = binary representation of number k of length :math:`\lceil log_2(70000/\Delta_I) \rceil\}`
+    c(k) = binary representation of length length :math:`\lceil log_2(70000/\Delta_I) \rceil\}` of decimal k 
+
     .. math::
-       \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}, i \neq j, j+1} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\Delta_I)\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
-       \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\Delta_I)\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} }
+
+       \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}, i \neq j, j+1} \textcolor{red}{\lambda_{l,\tilde{l},t, i} } = \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\Delta_I)\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
+       \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\Delta_I)\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} 
 
 
     
-    **Setting term in LHS:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}\textcolor{blue}{d \in D}`
+    **Setting term in LHS:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}, \textcolor{blue}{d \in D}`
 
     Set the product of pressure change and binary diameter selection variables by the following set of constraints
 
@@ -289,7 +291,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
-      \sum{d \in D}\textcolor{red}{term2_{l,\tilde{l},t,d}} \cdot (d)^{4.87}
+      \sum_{d \in D}\textcolor{red}{term2_{l,\tilde{l},t,d}} \cdot (\textcolor{green}{D_{l,\tilde{l}}^{Existing}} + \textcolor{green}{\delta_{d}^{Pipeline}})^{4.87}
         = 10.704 \cdot \textcolor{red}{term_{l,\tilde{l},t}^{Piped}} / (\textcolor{green}{\iota^{CHW}})^{1.85} \cdot \textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}
 
     **Node pressure rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
@@ -298,7 +300,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
-        \textcolor{blue}{\tilde{l},l \in LLA}
+        \textcolor{blue}{\tilde{l},l \in LLA}:
         \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
          = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
@@ -307,7 +309,7 @@ Allows pumping only if a pump exists in a pipeline.
          + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
     .. math::
-         \textcolor{blue}{\tilde{l},l \notin LLA}
+         \textcolor{blue}{\tilde{l},l \notin LLA}:
         \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
          = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
