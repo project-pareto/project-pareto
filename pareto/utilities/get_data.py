@@ -17,11 +17,14 @@ format that Pyomo requires
 Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
-from functools import singledispatch
 import logging
+import warnings
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Iterable
+from typing import List
+from typing import Union
 
 import pandas as pd
 import requests
@@ -31,14 +34,47 @@ import numpy as np
 _logger = logging.getLogger(__name__)
 
 
-@singledispatch
-def _squeeze_columns(data: pd.DataFrame) -> pd.Series:
-    return data.squeeze("columns")
+class DataLoadingError(ValueError):
+    def __init__(
+        self,
+        errors: Dict[str, Exception],
+    ):
+        self.errors = dict(errors)
+        self.summary = "\n".join(self._get_summary_lines())
+        super().__init__(self.summary)
+
+    def _get_summary_lines(self) -> List[str]:
+        max_name_len = max(len(name) for name in self.errors)
+
+        lines = ["Data loading failed for the following sheets: "]
+        for name, err in self.errors.items():
+            lines.append(f"\t{name:{max_name_len}}\t{err}")
+        return lines
 
 
-@_squeeze_columns.register(dict)
-def _(data: Dict[Any, pd.DataFrame]) -> Dict[Any, pd.Series]:
-    return {key: _squeeze_columns(df) for key, df in data.items()}
+def _sheets_to_dfs(
+    src: Union[str, Path],
+    sheets: Iterable[str],
+    raises: bool = True,
+    **kwargs,
+) -> Dict[str, pd.DataFrame]:
+    out = {}
+    failed = {}
+    file = pd.ExcelFile(src)
+    sheets_to_load = list(sheets or file.sheet_names)
+    for sheet_name in sheets_to_load:
+        try:
+            raw_df = pd.read_excel(file, sheet_name=sheet_name, **kwargs)
+            out[sheet_name] = raw_df.squeeze("columns")
+        except Exception as e:
+            failed[sheet_name] = e
+    if failed:
+        exc = DataLoadingError(failed)
+        if raises:
+            raise exc
+        else:
+            warnings.warn(exc.summary)
+    return out
 
 
 def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str]):
@@ -60,16 +96,16 @@ def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str])
     proprietary_data = False
     # pd.read_excel() does not support empty lists in recent versions of pandas
     if _set_list:
-        _df_sets = pd.read_excel(
+        _df_sets = _sheets_to_dfs(
             _fname,
-            sheet_name=_set_list,
+            sheets=_set_list,
+            raises=False,
             header=0,
             index_col=None,
             usecols="A",
             dtype="string",
             keep_default_na=False,
         )
-    _df_sets = _squeeze_columns(_df_sets)
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -80,15 +116,15 @@ def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str])
         _df_sets[df].dropna(inplace=True)
 
     if _parameter_list:
-        _df_parameters = pd.read_excel(
+        _df_parameters = _sheets_to_dfs(
             _fname,
-            sheet_name=_parameter_list,
+            sheets=_parameter_list,
+            raises=False,
             header=1,
             index_col=None,
             usecols=None,
             keep_default_na=False,
         )
-    _df_parameters = _squeeze_columns(_df_parameters)
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
