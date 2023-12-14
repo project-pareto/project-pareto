@@ -77,7 +77,7 @@ def _sheets_to_dfs(
     return out
 
 
-def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str]):
+def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str], raises: bool = True):
     """
     This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
@@ -99,7 +99,7 @@ def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str])
         _df_sets = _sheets_to_dfs(
             _fname,
             sheets=_set_list,
-            raises=False,
+            raises=raises,
             header=0,
             index_col=None,
             usecols="A",
@@ -119,7 +119,7 @@ def _read_data(_fname, _set_list: Iterable[str], _parameter_list: Iterable[str])
         _df_parameters = _sheets_to_dfs(
             _fname,
             sheets=_parameter_list,
-            raises=False,
+            raises=raises,
             header=1,
             index_col=None,
             usecols=None,
@@ -249,7 +249,7 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     return _df_parameters
 
 
-def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
+def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False, raises: bool = False):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -306,7 +306,8 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     """
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters, data_column] = _read_data(
-        fname, set_list, parameter_list
+        fname, set_list, parameter_list,
+        raises=raises,
     )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN

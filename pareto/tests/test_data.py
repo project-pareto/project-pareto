@@ -180,5 +180,6 @@ def test_case_studies(file_name: str):
         sets, parameters = Sets.strategic, Parameters.strategic
 
     with resources.path("pareto.case_studies", file_name) as fpath:
-        data = get_data(fpath, sets, parameters)
+        # changing to raises=True will cause the test to fail on data loading failures
+        data = get_data(fpath, sets, parameters, raises=False)
     assert data is not None
