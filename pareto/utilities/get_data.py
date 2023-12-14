@@ -64,10 +64,17 @@ def _sheets_to_dfs(
     sheets_to_load = list(sheets or file.sheet_names)
     for sheet_name in sheets_to_load:
         try:
-            raw_df = pd.read_excel(file, sheet_name=sheet_name, **kwargs)
-            out[sheet_name] = raw_df.squeeze("columns")
+            df = (
+                pd.read_excel(file, sheet_name=sheet_name, **kwargs)
+                .squeeze("columns")
+            )
         except Exception as e:
+            _logger.exception("Loading failed for sheet %r", sheet_name)
+            _logger.info("An empty dataframe will be used as fallback.")
             failed[sheet_name] = e
+            df = pd.DataFrame()
+        finally:
+            out[sheet_name] = df
     if failed:
         exc = DataLoadingError(failed)
         if raises:
