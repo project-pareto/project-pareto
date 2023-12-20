@@ -92,6 +92,11 @@ class InfrastructureTiming(Enum):
     true = 1
 
 
+class SeismicityRisk(Enum):
+    false = 0
+    true = 1
+
+
 # create config dictionary
 CONFIG = ConfigBlock()
 CONFIG.declare(
@@ -210,6 +215,21 @@ CONFIG.declare(
         **Valid Values:** - {
         **InfrastructureTiming.false** - Exclude infrastructure timing from model,
         **InfrastructureTiming.true** - Include infrastructure timing in model
+        }""",
+    ),
+)
+
+CONFIG.declare(
+    "seismicity_risk",
+    ConfigValue(
+        default=SeismicityRisk.false,
+        domain=In(SeismicityRisk),
+        description="Seismicity risk",
+        doc="""Selection to include seismicity risk.
+        ***default*** - SeismicityRisk.false
+        **Valid Values:** - {
+        **SeismicityRisk.false** - Exclude seismicity risk from model,
+        **SeismicityRisk.true** - Include seismicity risk in model
         }""",
     ),
 )
@@ -6916,6 +6936,73 @@ def infrastructure_timing(model):
             )
 
 
+def seismicity_risk(model):
+    sites = model.df_sets["SWDSites"]
+    deep = model.df_parameters["SWDDeep"]
+    pressure = model.df_parameters["SWDAveragePressure"]
+    prox = {
+        "orphan": model.df_parameters["SWDProxOrphanWell"],
+        "inactive": model.df_parameters["SWDProxInactiveWell"],
+        "eq": model.df_parameters["SWDProxEQ"],
+        "fault": model.df_parameters["SWDProxFault"],
+        "hplp": model.df_parameters["SWDProxHpOrLpWell"],
+    }
+    risk_factors = model.df_parameters["SWDRiskFactors"]
+
+    risk_factor_names = {
+        "orphan": "orphan_well",
+        "inactive": "inactive_well",
+        "eq": "EQ",
+        "fault": "fault",
+        "hplp": "HP_LP",
+    }
+
+    distance_risk_factors = {}
+    severity_risk_factors = {}
+    sum_risk_factors = {
+        "distance": 0,
+        "severity": 0,
+    }
+    for factor, name in risk_factor_names.items():
+        distance_risk_factor = distance_risk_factors[factor] = risk_factors[f"{name}_distance_risk_factor"]
+        severity_risk_factor = severity_risk_factors[factor] = risk_factors[f"{name}_severity_risk_factor"]
+        sum_risk_factors["distance"] += distance_risk_factor
+        sum_risk_factors["severity"] += severity_risk_factor
+
+    for factor in risk_factor_names:
+        distance_risk_factors[f"norm_{factor}"] = distance_risk_factors[factor] / sum_risk_factors["distance"]
+        severity_risk_factors[f"norm_{factor}"] = severity_risk_factors[factor] / sum_risk_factors["severity"]
+
+    pressure_thresholds = {
+        "max": risk_factors["HP_threshold"],
+        "min": risk_factors["LP_threshold"],
+    }
+
+    max_risk_factor_for_lowest_risk = 0
+    for factor in risk_factor_names:
+        norm_factor = f"norm_{factor}"
+        max_risk_factor_for_lowest_risk += distance_risk_factors[factor] * distance_risk_factors[norm_factor] * severity_risk_factors[norm_factor]
+
+    risk_metrics = {}
+    sites_included = {}
+    for site in sites:
+        weighted_site_risk_factor = 0
+        for factor in risk_factor_names:
+            if factor in ("orphan", "inactive") and deep[site]:
+                site_risk_factor = distance_risk_factors[factor]
+            else:
+                site_risk_factor = min(prox[factor][site], distance_risk_factors[factor])
+            norm_factor = f"norm_{factor}"
+            weighted_site_risk_factor += site_risk_factor * distance_risk_factors[norm_factor] * severity_risk_factors[norm_factor]
+        inverse_weighted_site_risk_factor = weighted_site_risk_factor / max_risk_factor_for_lowest_risk
+        risk_metrics[site] = 1 - inverse_weighted_site_risk_factor
+        # only consider these sites with True sites_included!
+        sites_included[site] = pressure_thresholds["min"] <= pressure[site] < pressure_thresholds["max"]
+
+    model.seismicity_risk_metrics = risk_metrics
+    model.seismicity_sites_included = sites_included
+
+
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:
     # Step 1 - generate a feasible initial solution
@@ -7148,6 +7235,11 @@ def solve_model(model, options=None):
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
         infrastructure_timing(model)
+
+    # calculate seismicity risk
+    if model.config.seismicity_risk == SeismicityRisk.true:
+        # create model.seismicity_risk_metrics and model.seismicity_sites_included
+        seismicity_risk(model)
 
     results.write()
 
