@@ -25,7 +25,7 @@ Get Data
 **Method Description:**
 
 This method uses Pandas methods to read data for sets and parameters from an
-Excel spreadsheet. Sets are assumed to not have neither a header nor an index column.
+Excel spreadsheet. Sets are assumed to have neither a header nor an index column.
 In addition, the data should be placed in column A, row 2, for example:
 
 
@@ -52,9 +52,12 @@ and a dictionary that contains parameters in the following format:
 
 **How to Use**::
 
- set_list = ['ProductionPads','CompletionsPads'], parameter_list = ['DriveTimes', 'CompletionsDemand]
+ set_list = ['ProductionPads','CompletionsPads']
+ parameter_list = ['DriveTimes', 'CompletionsDemand']
  fpath = 'path\\to\\excel\\file.xlsx’
+ # Note: set_list and parameter_list are optional parameters. When not given, only tabs with valid PARETO input tab names will be read.
  [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
 
 
 

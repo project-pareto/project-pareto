@@ -32,107 +32,6 @@ from pareto.utilities.results import (
 )
 from importlib import resources
 
-# This emulates what the pyomo command-line tools does
-# Tabs in the input Excel spreadsheet
-set_list = [
-    "ProductionPads",
-    "CompletionsPads",
-    "SWDSites",
-    "FreshwaterSources",
-    "StorageSites",
-    "TreatmentSites",
-    "ReuseOptions",
-    "NetworkNodes",
-    "PipelineDiameters",
-    "StorageCapacities",
-    "InjectionCapacities",
-    "TreatmentCapacities",
-    "TreatmentTechnologies",
-]
-parameter_list = [
-    "Units",
-    "PNA",
-    "CNA",
-    "CCA",
-    "NNA",
-    "NCA",
-    "NKA",
-    "NRA",
-    "NSA",
-    "FCA",
-    "RCA",
-    "RNA",
-    "RSA",
-    "SCA",
-    "SNA",
-    "ROA",
-    "RKA",
-    "SOA",
-    "NOA",
-    "PCT",
-    "PKT",
-    "FCT",
-    "CST",
-    "CCT",
-    "CKT",
-    "RST",
-    "ROT",
-    "SOT",
-    "RKT",
-    "Elevation",
-    "CompletionsPadOutsideSystem",
-    "DesalinationTechnologies",
-    "DesalinationSites",
-    "BeneficialReuseCost",
-    "BeneficialReuseCredit",
-    "TruckingTime",
-    "CompletionsDemand",
-    "PadRates",
-    "FlowbackRates",
-    "WellPressure",
-    "NodeCapacities",
-    "InitialPipelineCapacity",
-    "InitialPipelineDiameters",
-    "InitialDisposalCapacity",
-    "InitialTreatmentCapacity",
-    "ReuseMinimum",
-    "ReuseCapacity",
-    "FreshwaterSourcingAvailability",
-    "PadOffloadingCapacity",
-    "CompletionsPadStorage",
-    "DisposalOperationalCost",
-    "TreatmentOperationalCost",
-    "ReuseOperationalCost",
-    "PipelineOperationalCost",
-    "FreshSourcingCost",
-    "TruckingHourlyCost",
-    "PipelineDiameterValues",
-    "DisposalCapacityIncrements",
-    "InitialStorageCapacity",
-    "StorageCapacityIncrements",
-    "TreatmentCapacityIncrements",
-    "TreatmentEfficiency",
-    "RemovalEfficiency",
-    "DisposalExpansionCost",
-    "StorageExpansionCost",
-    "TreatmentExpansionCost",
-    "PipelineCapexDistanceBased",
-    "PipelineCapexCapacityBased",
-    "PipelineCapacityIncrements",
-    "PipelineExpansionDistance",
-    "Hydraulics",
-    "Economics",
-    "PadWaterQuality",
-    "StorageInitialWaterQuality",
-    "PadStorageInitialWaterQuality",
-    "DisposalOperatingCapacity",
-    "TreatmentExpansionLeadTime",
-    "DisposalExpansionLeadTime",
-    "StorageExpansionLeadTime",
-    "PipelineExpansionLeadTime_Dist",
-    "PipelineExpansionLeadTime_Capac",
-]
-
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
@@ -141,12 +40,14 @@ strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
 strategic_toy_case_study.xlsx
+workshop_baseline_all_data.xlsx
 """
 with resources.path(
     "pareto.case_studies",
     "strategic_toy_case_study.xlsx",
 ) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
+    [df_sets, df_parameters] = get_data(fpath)
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
@@ -210,4 +111,5 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "strategic_optimization_results.xlsx"
+# When set_list and parameter_list is specified to get_data(), only the specified tab names are read
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

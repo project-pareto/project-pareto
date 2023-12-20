@@ -28,13 +28,118 @@ def _read_data(_fname, _set_list, _parameter_list):
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
+    if _set_list is not None:
+        valid_set_tab_names = _set_list
+    else:
+        valid_set_tab_names = [
+            "ProductionPads",
+            "CompletionsPads",
+            "SWDSites",
+            "FreshwaterSources",
+            "StorageSites",
+            "TreatmentSites",
+            "ReuseOptions",
+            "NetworkNodes",
+            "PipelineDiameters",
+            "StorageCapacities",
+            "InjectionCapacities",
+            "TreatmentCapacities",
+            "TreatmentTechnologies",
+        ]
+    if _parameter_list is not None:
+        valid_parameter_tab_names = _parameter_list
+    else:
+        valid_parameter_tab_names = [
+            "Units",
+            "PNA",
+            "CNA",
+            "CCA",
+            "NNA",
+            "NCA",
+            "NKA",
+            "NRA",
+            "NSA",
+            "FCA",
+            "RCA",
+            "RNA",
+            "RSA",
+            "SCA",
+            "SNA",
+            "ROA",
+            "RKA",
+            "SOA",
+            "NOA",
+            "PCT",
+            "PKT",
+            "FCT",
+            "CST",
+            "CCT",
+            "CKT",
+            "RST",
+            "ROT",
+            "SOT",
+            "RKT",
+            "Elevation",
+            "CompletionsPadOutsideSystem",
+            "DesalinationTechnologies",
+            "DesalinationSites",
+            "BeneficialReuseCost",
+            "BeneficialReuseCredit",
+            "TruckingTime",
+            "CompletionsDemand",
+            "PadRates",
+            "FlowbackRates",
+            "WellPressure",
+            "NodeCapacities",
+            "InitialPipelineCapacity",
+            "InitialPipelineDiameters",
+            "InitialDisposalCapacity",
+            "InitialTreatmentCapacity",
+            "ReuseMinimum",
+            "ReuseCapacity",
+            "FreshwaterSourcingAvailability",
+            "PadOffloadingCapacity",
+            "CompletionsPadStorage",
+            "DisposalOperationalCost",
+            "TreatmentOperationalCost",
+            "ReuseOperationalCost",
+            "PipelineOperationalCost",
+            "FreshSourcingCost",
+            "TruckingHourlyCost",
+            "PipelineDiameterValues",
+            "DisposalCapacityIncrements",
+            "InitialStorageCapacity",
+            "StorageCapacityIncrements",
+            "TreatmentCapacityIncrements",
+            "TreatmentEfficiency",
+            "RemovalEfficiency",
+            "DisposalExpansionCost",
+            "StorageExpansionCost",
+            "TreatmentExpansionCost",
+            "PipelineCapexDistanceBased",
+            "PipelineCapexCapacityBased",
+            "PipelineCapacityIncrements",
+            "PipelineExpansionDistance",
+            "Hydraulics",
+            "Economics",
+            "PadWaterQuality",
+            "StorageInitialWaterQuality",
+            "PadStorageInitialWaterQuality",
+            "DisposalOperatingCapacity",
+            "TreatmentExpansionLeadTime",
+            "DisposalExpansionLeadTime",
+            "StorageExpansionLeadTime",
+            "PipelineExpansionLeadTime_Dist",
+            "PipelineExpansionLeadTime_Capac",
+        ]
     _df_parameters = {}
     _temp_df_parameters = {}
     _data_column = ["value"]
     proprietary_data = False
+    # Read all tabs in the input file
     _df_sets = pd.read_excel(
         _fname,
-        sheet_name=_set_list,
+        sheet_name=None, #read all tabs
         header=0,
         index_col=None,
         usecols="A",
@@ -42,6 +147,9 @@ def _read_data(_fname, _set_list, _parameter_list):
         dtype="string",
         keep_default_na=False,
     )
+
+    # Remove tabs that are not specified by user and are not valid PARETO inputs
+    _df_sets = {key:value for key,value in _df_sets.items() if key in valid_set_tab_names}
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -53,25 +161,30 @@ def _read_data(_fname, _set_list, _parameter_list):
 
     _df_parameters = pd.read_excel(
         _fname,
-        sheet_name=_parameter_list,
+        sheet_name=None,#read all tabs
         header=1,
         index_col=None,
         usecols=None,
         squeeze=True,
         keep_default_na=False,
     )
+
+    # Remove tabs that are not specified by user and are not valid PARETO inputs
+    _df_parameters = {key:value for key,value in _df_parameters.items() if key in valid_parameter_tab_names}
+
+    # Cleaning Parameters.
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
-    # If _set_list is empty, it is assummed that a parameter is column format is being read.
-    # and _set_list is created based on the DataFrame column names, except for the last name,
+    # If valid_set_tab_names is empty, it is assumed that a parameter is column format is being read.
+    # and valid_set_tab_names is created based on the DataFrame column names, except for the last name,
     # which is used as the data column name.
-    if len(_set_list) == 0:
+    if len(_df_sets.keys()) == 0:
         for i in _df_parameters:
-            _set_list.extend(list(_df_parameters[i].columns)[:-1])
+            valid_set_tab_names.extend(list(_df_parameters[i].columns)[:-1])
             _data_column.append(list(_df_parameters[i].columns)[-1])
 
-    _set_list = list(set(_set_list))
+    valid_set_tab_names = list(set(valid_set_tab_names))
     _data_column = list(set(_data_column))
     generic_words = ["index", "nodes", "time", "pads", "quantity"]
     remove_columns = ["unnamed", "proprietary data"]
@@ -113,7 +226,7 @@ def _read_data(_fname, _set_list, _parameter_list):
         index_col = []
         for j in _df_parameters[i].columns:
             # If a column name is in the set_list or in the list of keywords, it is assumed the column is an index and saved in index_col
-            if str(j).split(".")[0].lower() in [s.lower() for s in _set_list] or any(
+            if str(j).split(".")[0].lower() in [s.lower() for s in valid_set_tab_names] or any(
                 x in str(j).lower() for x in generic_words
             ):
                 index_col.append(j)
@@ -184,7 +297,7 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     return _df_parameters
 
 
-def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
+def get_data(fname, set_list=None, parameter_list=None, sum_repeated_indexes=False):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -194,6 +307,9 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
       The header should start in row 2, and the index column should start in cell A3.
       Column format: Does not require a header. Each set should be placed in one column,
       starting from column A and row 3. Data should be provided in the last column.
+    - set_list and parameter_list are optional parameters. When they are not given, tabs with
+      valid PARETO labels are read. Otherwise, only the specified tabs in set_list and
+      parameter_list are read.
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
@@ -250,7 +366,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     # The set for time periods is defined based on the columns of the parameter for
     # Completions Demand. This is done so the user does not have to add an extra tab
     # in the spreadsheet for the time period set
-    if "CompletionsDemand" in parameter_list:
+    if "CompletionsDemand" in _df_parameters.keys():
         _df_sets["TimePeriods"] = _df_parameters[
             "CompletionsDemand"
         ].columns.to_series()
@@ -258,7 +374,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     # The set for water quality components (e.g. TDS, Cl) is defined based on the columns of the parameter for
     # PadWaterQuality. This is done so the user does not have to add an extra tab
     # in the spreadsheet for the water quality component set
-    if "PadWaterQuality" in parameter_list:
+    if "PadWaterQuality" in _df_parameters.keys():
         _df_sets["WaterQualityComponents"] = _df_parameters[
             "PadWaterQuality"
         ].columns.to_series()
