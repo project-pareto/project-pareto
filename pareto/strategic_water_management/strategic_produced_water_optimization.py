@@ -74,6 +74,7 @@ class Hydraulics(Enum):
     false = 0
     post_process = 1
     co_optimize = 2
+    co_optimize_linearized = 3
 
 
 class RemovalEfficiencyMethod(Enum):
@@ -129,6 +130,7 @@ CONFIG.declare(
         **Hydraulics.false** - does not add hydraulics feature
         **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
         **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
+        **Hydraulics.co_optimize_linearized** linearized implementation of co_optimize,
         }""",
     ),
 )
@@ -4216,6 +4218,7 @@ def pipeline_hydraulics(model):
             doc="Objective function for Hydraulics block",
         )
 
+
     elif model.config.hydraulics == Hydraulics.co_optimize:
         """
         For the co-optimize method, the hydraulics block is solved along with
@@ -4235,6 +4238,147 @@ def pipeline_hydraulics(model):
             within=NonNegativeReals,
             units=pyunits.meter,
             doc="Hazen-Williams Frictional loss, m",
+        )
+        mh.v_effective_Pipeline_diameter = Var(
+            model.s_LLA,
+            initialize=0,
+            units=model.model_units["diameter"],
+            doc="Diameter of pipeline between two locations [inch]",
+        )
+
+        def EffectiveDiameterRule(b, l1, l2, t1):
+            constraint = mh.v_effective_Pipeline_diameter[
+                l1, l2
+            ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
+                model.vb_y_Pipeline[l1, l2, d]
+                * model.df_parameters["PipelineDiameterValues"][d]
+                for d in model.s_D
+            )
+            return process_constraint(constraint)
+
+        mh.EffectiveDiameter = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=EffectiveDiameterRule,
+            doc="Pressure at Node L",
+        )
+
+        def HazenWilliamsRule(b, l1, l2, t1):
+            constraint = (
+                b.v_HW_loss[l1, l2, t1]
+                * (
+                    pyunits.convert(
+                        mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
+                    )
+                    ** 4.87
+                )
+            ) * cons_scaling_factor == (
+                10.704
+                * (
+                    (
+                        pyunits.convert(
+                            model.v_F_Piped[l1, l2, t1],
+                            to_units=pyunits.m**3 / pyunits.s,
+                        )
+                        / mh.p_iota_HW_material_factor_pipeline
+                    )
+                    ** 1.85
+                )
+                * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
+            ) * cons_scaling_factor
+            return process_constraint(constraint)
+
+        mh.HW_loss_equaltion = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=HazenWilliamsRule,
+            doc="Pressure at Node L",
+        )
+
+        def NodePressureRule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1]
+                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                == (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.NodePressure = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressureRule,
+            doc="Pressure at Node L",
+        )
+
+        def PumpCostRule(b, l1, l2):
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                == (
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + (
+                        (mh.p_nu_ElectricityCost / 3.6e6)
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
+                        * sum(
+                            b.v_PumpHead[l1, l2, t]
+                            * pyunits.convert(
+                                (model.v_F_Piped[l1, l2, t]),
+                                to_units=pyunits.meter**3 / pyunits.h,
+                            )
+                            for t in model.s_T
+                        )
+                    )
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        model.objective = Objective(
+            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
+            sense=minimize,
+            doc="Objective function",
+        )
+
+
+    elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
+        """
+        For the co-optimize method, the hydraulics block is solved along with
+        the network model to optimize the network in the presence of
+        hydraulics constraints. The objective is to minimize total cost including
+        the cost of pumps.
+        """
+        # In the co_optimize method the objective should include the cost of pumps. So,
+        # delete the original objective to add a modified objective in this method.
+        del model.objective
+
+        # add necessary variables and constraints
+        mh.v_HW_loss = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+
+        mh.v_variable_pump_cost = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
         )
 
         # -----------------Removing effective diameter rule. We will put the expression of binaries where needed
@@ -4425,25 +4569,39 @@ def pipeline_hydraulics(model):
             doc="Pressure at Node L",
         )
 
-        def PumpCostRule(b, l1, l2):
-            constraint = (
-                b.v_PumpCost[l1, l2] * cons_scaling_factor
-                == (
-                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
-                    + (
+        def VariablePumpCostRule(b, l1, l2, t, i):
+            binary_string = bin(i)[2:].zfill(len(model.s_zset))
+            binary_list = [int(bit) for bit in binary_string]
+            constraint = (b.v_variable_pump_cost[l1, l2, t]  * cons_scaling_factor >= ((
                         (mh.p_nu_ElectricityCost / 3.6e6)
                         * mh.p_rhog
                         * 1e3  # convert the kUSD/kWh to kUSD/Ws
-                        * sum(
-                            1609
-                            * pyunits.convert(
-                                (model.v_F_Piped[l1, l2, t]),
-                                to_units=pyunits.meter**3 / pyunits.h,
-                            )
+                        * b.v_PumpHead[l1, l2, t]
+                            * Del_I*i*1.84*10**(-6)*3600
+                    )\
+                    - 20000*(sum(mh.vb_z[l1, l2, t, j] for j in model.s_zset if binary_list[j]==0) +\
+            sum( (1 - mh.vb_z[l1, l2, t, j]) for j in model.s_zset if binary_list[j]==1))) * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+        
+        mh.VariablePumpCost = Constraint(
+            model.s_LLA,model.s_T, model.s_lamset2,
+            rule=VariablePumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        def PumpCostRule(b, l1, l2):
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                >= (
+                    
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                   +                    
+                        sum(
+                            mh.v_variable_pump_cost[l1, l2, t]
                             for t in model.s_T
                         )
                     )
-                )
                 * cons_scaling_factor
             )
             return process_constraint(constraint)
@@ -7321,6 +7479,63 @@ def solve_model(model, options=None):
                 results_2 = opt.solve(mh, tee=True)
 
         elif model.config.hydraulics == Hydraulics.co_optimize:
+            # Currently, this method is supported for only MINLP solvers accessed through GAMS.
+            # The default solver is Baron and is set to find the first feasible solution.
+            # If the user has SCIP, then the feasible solution from BARON is passed to SCIP, which is then solved to a gap of 0.3.
+            # If the user do not have these solvers installed then it limits the use of co_optimize method at this time.
+            # Ongoing work is geared to address this limitation and will soon be updated here.
+
+            # Adding temporary variable bounds until the bounding method is implemented for the following Vars
+            model_h.v_F_Piped.setub(1050)
+            model_h.hydraulics.v_Pressure.setub(3.5e6)
+
+            try:
+                solver = SolverFactory("gams")
+                mathoptsolver = "baron"
+            except:
+                print(
+                    "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
+                      please continue to use the post-process method for hydraulics at this time"
+                )
+            else:
+                solver_options = {
+                    "firstfeas": 1,
+                }
+
+                if not os.path.exists("temp"):
+                    os.makedirs("temp")
+
+                with open("temp/" + mathoptsolver + ".opt", "w") as f:
+                    for k, v in solver_options.items():
+                        f.write(str(k) + " " + str(v) + "\n")
+
+                results_baron = solver.solve(
+                    model_h,
+                    tee=True,
+                    keepfiles=True,
+                    solver=mathoptsolver,
+                    tmpdir="temp",
+                    add_options=["gams_model.optfile=1;"],
+                )
+                try:
+                    # second solve with SCIP
+                    solver2 = SolverFactory("scip", solver_io="nl")
+                    print("  ")
+                    print(
+                        "WARNING: A default relative optimality gap of 30%/ is set to obtain good solutions at this time"
+                    )
+                    print("  ")
+                except:
+                    print(
+                        "A second solve with SCIP cannot be executed as SCIP was not found. Please add it to Path. \
+                          If you do not haev SCIP, proceed with caution when using solution obtain from first solve using BARON"
+                    )
+                else:
+                    results_2 = solver2.solve(
+                        model_h, options={"limits/gap": 0.3}, tee=True
+                    )
+
+        elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
             # Currently, this method is supported for only MINLP solvers accessed through GAMS.
             # The default solver is Baron and is set to find the first feasible solution.
             # If the user has SCIP, then the feasible solution from BARON is passed to SCIP, which is then solved to a gap of 0.3.
