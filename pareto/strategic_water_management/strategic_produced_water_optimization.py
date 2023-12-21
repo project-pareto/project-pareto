@@ -220,6 +220,7 @@ CONFIG.declare(
 # This is the basic length of refinement of the grid. Adjust to 1000 for 10 times more refinement
 Del_I = 10000
 
+
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
 
@@ -492,9 +493,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     # Define sets for the piecewise linear approximation
-    model.s_lamset = Set(initialize= list(range(1+int(70000/Del_I))))
-    model.s_lamset2 = Set(initialize= list(range(int(70000/Del_I) )))
-    model.s_zset = Set(initialize= list(range(math.ceil(math.log(1+int(70000/Del_I), 2)))) )
+    model.s_lamset = Set(initialize=list(range(1 + int(70000 / Del_I))))
+    model.s_lamset2 = Set(initialize=list(range(int(70000 / Del_I))))
+    model.s_zset = Set(
+        initialize=list(range(math.ceil(math.log(1 + int(70000 / Del_I), 2))))
+    )
 
     # Define continuous variables #
 
@@ -3979,8 +3982,7 @@ def pipeline_hydraulics(model):
         doc="Well pressure at production or completions pad [pressure]",
     )
 
-
-    #------
+    # ------
     # The folllowing decision variables are intermediate variables that allow piecewise linearization of Hazen-William Equations
 
     mh.v_term = Var(
@@ -3991,28 +3993,31 @@ def pipeline_hydraulics(model):
         units=model.model_units["volume_time"],
         doc="Produced water quantity piped from location l to location l [volume/time] raised to 1.85",
     )
-    mh.v_term2 = Var(model.s_D,
+    mh.v_term2 = Var(
+        model.s_D,
         model.s_LLA,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
         doc="H_flow[l1,l2,t]*y_pipeline[d]",
     )
-    mh.v_lambdas = Var(model.s_LLA,
-            model.s_T,
+    mh.v_lambdas = Var(
+        model.s_LLA,
+        model.s_T,
         model.s_lamset,
         within=NonNegativeReals,
         initialize=0,
         doc="Convex combination multipliers",
     )
-    mh.vb_z = Var(model.s_LLA, model.s_T,\
+    mh.vb_z = Var(
+        model.s_LLA,
+        model.s_T,
         model.s_zset,
         within=Binary,
+        initialize=0,
         doc="Convex combination binaries",
     )
-    #---------------
-
-
+    # ---------------
 
     mh.vb_Y_Pump = Var(
         model.s_LLA,
@@ -4218,7 +4223,6 @@ def pipeline_hydraulics(model):
             doc="Objective function for Hydraulics block",
         )
 
-
     elif model.config.hydraulics == Hydraulics.co_optimize:
         """
         For the co-optimize method, the hydraulics block is solved along with
@@ -4352,7 +4356,6 @@ def pipeline_hydraulics(model):
             doc="Objective function",
         )
 
-
     elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
         """
         For the co-optimize method, the hydraulics block is solved along with
@@ -4406,77 +4409,99 @@ def pipeline_hydraulics(model):
         #     doc="Pressure at Node L",
         # )
 
-        # Add the constraints, starting with the constraints that linearize (piecewise) 
-        # non-linear flow term in Hazen-William Equation 
+        # Add the constraints, starting with the constraints that linearize (piecewise)
+        # non-linear flow term in Hazen-William Equation
 
         def FlowEquationConvRule(b, l1, l2, t1):
-            constraint = model.v_F_Piped[l1, l2, t1]* cons_scaling_factor\
-            == sum(mh.v_lambdas[l1, l2, t1, k]*Del_I*k for k in model.s_lamset)* cons_scaling_factor
+            constraint = (
+                model.v_F_Piped[l1, l2, t1] * cons_scaling_factor
+                == sum(mh.v_lambdas[l1, l2, t1, k] * Del_I * k for k in model.s_lamset)
+                * cons_scaling_factor
+            )
             return process_constraint(constraint)
 
         mh.FlowEquationConv = Constraint(
-                model.s_LLA,
-                model.s_T,
-                rule=FlowEquationConvRule,
-                doc="Flow at an arc at a time",
-            )
-        
-        
+            model.s_LLA,
+            model.s_T,
+            rule=FlowEquationConvRule,
+            doc="Flow at an arc at a time",
+        )
+
         def termEquationConvRule(b, l1, l2, t1):
-            constraint =\
-                mh.v_term[l1, l2, t1]\
-            == sum(mh.v_lambdas[l1, l2, t1, k]*(k*Del_I*1.84*10**(-6))**1.85 for k in model.s_lamset)
+            constraint = mh.v_term[l1, l2, t1] == sum(
+                mh.v_lambdas[l1, l2, t1, k] * (k * Del_I * 1.84 * 10 ** (-6)) ** 1.85
+                for k in model.s_lamset
+            )
             return process_constraint(constraint)
 
         mh.termEquationConv = Constraint(
-                model.s_LLA,
-                model.s_T,
-                rule=termEquationConvRule,
-                doc="Value of flow to the power 1.85 at the selected flow",
-            )
+            model.s_LLA,
+            model.s_T,
+            rule=termEquationConvRule,
+            doc="Value of flow to the power 1.85 at the selected flow",
+        )
 
         def EnforceZeroRule(b, i, l1, l2, t1):
             binary_string = bin(i)[2:].zfill(len(model.s_zset))
             binary_list = [int(bit) for bit in binary_string]
-            constraint = sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset if j!=i and j!=i+1)\
-            <= sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset if binary_list[j]==0) +\
-            sum( (1 - mh.vb_z[l1, l2, t1, j]) for j in model.s_zset if binary_list[j]==1)
+            constraint = sum(
+                mh.v_lambdas[l1, l2, t1, j]
+                for j in model.s_lamset
+                if j != i and j != i + 1
+            ) <= sum(
+                mh.vb_z[l1, l2, t1, j] for j in model.s_zset if binary_list[j] == 0
+            ) + sum(
+                (1 - mh.vb_z[l1, l2, t1, j])
+                for j in model.s_zset
+                if binary_list[j] == 1
+            )
             return process_constraint(constraint)
 
         mh.EnforceZero = Constraint(
-                model.s_lamset2,
-                model.s_LLA,
-                model.s_T,
-                rule=EnforceZeroRule,
-                doc="Put appropriate lambda to zero",
+            model.s_lamset2,
+            model.s_LLA,
+            model.s_T,
+            rule=EnforceZeroRule,
+            doc="Put appropriate lambda to zero",
+        )
+
+        def SumOneRule(b, l1, l2, t1):
+            constraint = (
+                sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset)
+                * cons_scaling_factor
+                == 1 * cons_scaling_factor
             )
-        
-        def SumOneRule(b,  l1, l2, t1):
-            constraint = sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset)* cons_scaling_factor\
-            == 1* cons_scaling_factor
             return process_constraint(constraint)
 
         mh.SumOne = Constraint(
-                model.s_LLA,
-                model.s_T,
-                rule=SumOneRule,
-                doc="Lambdas add up to 1",
-            )
+            model.s_LLA,
+            model.s_T,
+            rule=SumOneRule,
+            doc="Lambdas add up to 1",
+        )
 
-
-        # Now define the Hazen William equation in terms of the intermediate variables. 
+        # Now define the Hazen William equation in terms of the intermediate variables.
         # v_term2(defined below) gives the product friction pressure drop with binary variable selecting pipe dia
-    
 
-         
         def HazenWilliamsRule(b, l1, l2, t1):
             constraint = (
-                sum(((mh.p_Initial_Pipeline_Diameter[l1, l2]+model.df_parameters["PipelineDiameterValues"][d])*0.0254)**4.87*mh.v_term2[d, l1, l2, t1] for d in model.s_D)
+                sum(
+                    (
+                        (
+                            mh.p_Initial_Pipeline_Diameter[l1, l2]
+                            + model.df_parameters["PipelineDiameterValues"][d]
+                        )
+                        * 0.0254
+                    )
+                    ** 4.87
+                    * mh.v_term2[d, l1, l2, t1]
+                    for d in model.s_D
+                )
             ) * cons_scaling_factor == (
                 10.704
                 * (
-                        mh.v_term[l1, l2, t1]
-                        / (mh.p_iota_HW_material_factor_pipeline)**1.85
+                    mh.v_term[l1, l2, t1]
+                    / (mh.p_iota_HW_material_factor_pipeline) ** 1.85
                 )
                 * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
             ) * cons_scaling_factor
@@ -4490,11 +4515,13 @@ def pipeline_hydraulics(model):
         )
 
         def V_term2_1Rule(b, l1, l2, t1, d):
-            constraint = ( 
-            mh.v_term2[d, l1, l2, t1] * cons_scaling_factor <= b.v_HW_loss[l1, l2, t1] * cons_scaling_factor)
+            constraint = (
+                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor
+                <= b.v_HW_loss[l1, l2, t1] * cons_scaling_factor
+            )
             return process_constraint(constraint)
 
-        mh.V_term2_1= Constraint(
+        mh.V_term2_1 = Constraint(
             model.s_LLA,
             model.s_T,
             model.s_D,
@@ -4506,10 +4533,12 @@ def pipeline_hydraulics(model):
 
         def V_term2_2Rule(b, l1, l2, t1, d):
             constraint = (
-                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor <= M_* model.vb_y_Pipeline[l1, l2, d]* cons_scaling_factor)
+                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor
+                <= M_ * model.vb_y_Pipeline[l1, l2, d] * cons_scaling_factor
+            )
             return process_constraint(constraint)
 
-        mh.V_term2_2= Constraint(
+        mh.V_term2_2 = Constraint(
             model.s_LLA,
             model.s_T,
             model.s_D,
@@ -4519,10 +4548,13 @@ def pipeline_hydraulics(model):
 
         def V_term2_3Rule(b, l1, l2, t1, d):
             constraint = (
-                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor >= (b.v_HW_loss[l1, l2, t1] - M_*(1 - model.vb_y_Pipeline[l1, l2, d]) )* cons_scaling_factor)
+                mh.v_term2[d, l1, l2, t1] * cons_scaling_factor
+                >= (b.v_HW_loss[l1, l2, t1] - M_ * (1 - model.vb_y_Pipeline[l1, l2, d]))
+                * cons_scaling_factor
+            )
             return process_constraint(constraint)
 
-        mh.V_term2_3= Constraint(
+        mh.V_term2_3 = Constraint(
             model.s_LLA,
             model.s_T,
             model.s_D,
@@ -4530,9 +4562,8 @@ def pipeline_hydraulics(model):
             doc="McCormick 3",
         )
 
-
         def NodePressureRule(b, l1, l2, t1):
-            if (l2,l1) in model.s_LLA:
+            if (l2, l1) in model.s_LLA:
                 constraint = (
                     b.v_Pressure[l1, t1]
                     + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
@@ -4572,20 +4603,42 @@ def pipeline_hydraulics(model):
         def VariablePumpCostRule(b, l1, l2, t, i):
             binary_string = bin(i)[2:].zfill(len(model.s_zset))
             binary_list = [int(bit) for bit in binary_string]
-            constraint = (b.v_variable_pump_cost[l1, l2, t]  * cons_scaling_factor >= ((
+            constraint = (
+                b.v_variable_pump_cost[l1, l2, t] * cons_scaling_factor
+                >= (
+                    (
                         (mh.p_nu_ElectricityCost / 3.6e6)
                         * mh.p_rhog
                         * 1e3  # convert the kUSD/kWh to kUSD/Ws
                         * b.v_PumpHead[l1, l2, t]
-                            * Del_I*i*1.84*10**(-6)*3600
-                    )\
-                    - 20000*(sum(mh.vb_z[l1, l2, t, j] for j in model.s_zset if binary_list[j]==0) +\
-            sum( (1 - mh.vb_z[l1, l2, t, j]) for j in model.s_zset if binary_list[j]==1))) * cons_scaling_factor
+                        * Del_I
+                        * i
+                        * 1.84
+                        * 10 ** (-6)
+                        * 3600
+                    )
+                    - 20000
+                    * (
+                        sum(
+                            mh.vb_z[l1, l2, t, j]
+                            for j in model.s_zset
+                            if binary_list[j] == 0
+                        )
+                        + sum(
+                            (1 - mh.vb_z[l1, l2, t, j])
+                            for j in model.s_zset
+                            if binary_list[j] == 1
+                        )
+                    )
+                )
+                * cons_scaling_factor
             )
             return process_constraint(constraint)
-        
+
         mh.VariablePumpCost = Constraint(
-            model.s_LLA,model.s_T, model.s_lamset2,
+            model.s_LLA,
+            model.s_T,
+            model.s_lamset2,
             rule=VariablePumpCostRule,
             doc="Capital Cost of Pump",
         )
@@ -4594,14 +4647,9 @@ def pipeline_hydraulics(model):
             constraint = (
                 b.v_PumpCost[l1, l2] * cons_scaling_factor
                 >= (
-                    
                     mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
-                   +                    
-                        sum(
-                            mh.v_variable_pump_cost[l1, l2, t]
-                            for t in model.s_T
-                        )
-                    )
+                    + sum(mh.v_variable_pump_cost[l1, l2, t] for t in model.s_T)
+                )
                 * cons_scaling_factor
             )
             return process_constraint(constraint)
@@ -7547,7 +7595,7 @@ def solve_model(model, options=None):
             model_h.hydraulics.v_Pressure.setub(3.5e6)
 
             try:
-                #solver = SolverFactory("gams")
+                # solver = SolverFactory("gams")
                 solver = SolverFactory("gurobi")
             except:
                 print(
@@ -7555,14 +7603,11 @@ def solve_model(model, options=None):
                       please continue to use the post-process method for hydraulics at this time"
                 )
             else:
-                results_gurobi = solver.solve(
-                    model_h,
-                    tee=True,
-                    keepfiles=True)
-                
+                results_gurobi = solver.solve(model_h, tee=True, keepfiles=True)
+
                 results_2 = results_gurobi
-                #average_pumphead = 0
-                #ctr_pum=0
+                # average_pumphead = 0
+                # ctr_pum=0
                 # for (l1, l2) in model.s_LLA:
                 #     if value(model_h.hydraulics.vb_Y_Pump[l1, l2])==1:
                 #         for t in model.s_T:
