@@ -214,6 +214,129 @@ CONFIG.declare(
     ),
 )
 
+# TODO: find a better location for this class
+class MissingDataError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+def check_required_data(df_sets, df_parameters, config):
+    data_error_items = []
+    data_warning_items = []
+
+    # Check that input data contains all minimally required data
+    set_list_min_required = [
+        "ProductionPads",
+        "CompletionsPads",
+        "PipelineDiameters",
+    ]
+
+    param_list_require_at_least_one = [
+        ("PNA", "PCT", "PKT",),
+        ("CNA", "CCA", "CST", "CCT", "CKT"),
+        ("NCA", "FCA", "RCA", "SCA", "FCT",)
+    ]
+
+    parameter_list_min_required = [
+        "Units",
+        "CompletionsDemand",
+        "FlowbackRates",
+        "InitialPipelineCapacity",
+        "PipelineOperationalCost",
+    ]
+
+    for set_name in set_list_min_required:
+        if set_name not in df_sets.keys():
+            data_error_items.append(set_name)
+
+    for param in parameter_list_min_required:
+        if param not in df_parameters.keys():
+            data_error_items.append(param)
+
+    for param_list in param_list_require_at_least_one:
+        # Check that there is at least one of set names in tuple in the data
+        if len(set(param_list) & set(df_parameters.keys())) < 1:
+            data_error_items.append("One of tabs " + str(param_list))
+
+    if len(data_error_items) > 0:
+        print(data_error_items)
+        error_message = ', '.join(data_error_items)
+        raise MissingDataError("Essential data is incomplete. Please add the following missing data tabs: " + error_message)
+
+    # Optional: SWDs. If SWDSites Set is given, then "InjectionCapacities", "InitialDisposalCapacity", "DisposalOperationalCost" are needed
+    # Question: If user has "InjectionCapacities", but not SWDs, does get_data still work to populate?
+
+    # Optional: Treatment Sites. If Treatment sites are given, then  "TreatmentCapacities", "TreatmentTechnologies", "InitialTreatmentCapacity", "TreatmentOperationalCost",
+#         one of: "RNA","RSA","RKA","RST","RKT",
+#         "DesalinationTechnologies",
+#         "DesalinationSites",
+#         "TreatmentEfficiency" are required
+    # Question: what to do if no TreatmentSites, but other tabs?
+
+#     # optional
+#     IF  "ReuseOptions", then "ROA", "SOA", "NOA", "ROT", "SOT",
+#
+#         "BeneficialReuseCost",
+#         "BeneficialReuseCredit",
+#         "ReuseMinimum",
+#         "ReuseCapacity",
+#         "ReuseOperationalCost",
+#
+#     IF any trucking arcs:   "TruckingTime", "TruckingHourlyCost",
+#
+#     IF "StorageSites", then  "StorageCapacities", one of ("SOA", "SOT","SNA","SCA"), one of ("RSA")
+#         "InitialStorageCapacity",
+#
+#     IF "FreshwaterSources", then "FCA", "FCT" (if not, warning)
+#         "FreshwaterSourcingAvailability", "FreshSourcingCost",
+#
+#     "NNA","NKA","NRA","NSA","NetworkNodes"
+#
+# # Needed, but can populate with default data
+#         "CompletionsPadOutsideSystem" (all inside system)
+#         "Economics",
+#         "DisposalOperatingCapacity", (all 100%)
+#         "PadOffloadingCapacity", (infinite)
+#         "CompletionsPadStorage", (0)
+#         IF "DisposalCapacityIncrements", "DisposalExpansionCost", otherwise 0s. IF NOT 0s
+#         IF "StorageCapacityIncrements", "StorageExpansionCost", otherwise 0s. IF NOT 0s
+#         IF "TreatmentCapacityIncrements","TreatmentExpansionCost", otherwise 0s IS NOT 0s
+#         "PipelineCapacityIncrements",
+
+#     # Check that input data contains required data for specific configuration options
+      # Check that parameters are built only for specified configurations
+# #         "objective": Objectives.cost,
+# #         "pipeline_cost": PipelineCost.distance_based,
+# if pipeline_cost = distance_based, then the input file requires the tabs "PipelineCapexDistanceBased", "PipelineExpansionDistance","PipelineDiameterValues"
+# if pipeline_cost = capacity_based, then the input file requires the tab "PipelineCapexCapacityBased",
+# #         "pipeline_capacity": PipelineCapacity.input,
+# if pipeline_capacity = calculated, then the input file requires the tabs "Hydraulics", "PipelineDiameterValues"
+# if pipeline_capacity = input, then the input file requires the tab "PipelineCapacityIncrements"
+# #         "hydraulics": Hydraulics.false,
+# "Hydraulics",
+# "Elevation",
+# "WellPressure",
+# "InitialPipelineDiameters",
+# "PipelineDiameterValues"
+# I think there is more here that is needed
+# #         "node_capacity": True,
+# "NodeCapacities",
+# #         "water_quality": WaterQuality.false,
+# "PadWaterQuality",
+# "StorageInitialWaterQuality",
+# "PadStorageInitialWaterQuality",
+# "RemovalEfficiency", #todo: may need to move the parameter read to be in water quality
+# #         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+# #         "infrastructure_timing": InfrastructureTiming.true,
+# "TreatmentExpansionLeadTime",
+# "DisposalExpansionLeadTime",
+# "StorageExpansionLeadTime",
+# "pipeline_cost"
+# "PipelineExpansionLeadTime_Dist",
+# "PipelineExpansionLeadTime_Capac",
+
+
+def model_infeasibility_detection():
+    print("test")
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
@@ -223,6 +346,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+
+    # check that input data contains required data
+    check_required_data(model.df_sets, model.df_parameters, model.config)
 
     try:
         # Check that currency is set to USD
