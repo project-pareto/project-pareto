@@ -15,7 +15,11 @@
 from pyomo.environ import (
     Var,
     Binary,
+    units as pyunits,
 )
+import logging
+
+_log = logging.getLogger(__name__)
 
 ###--- Functions ---###
 # free variables function
@@ -56,3 +60,27 @@ def deactivate_slacks(model):
     model.v_S_TreatmentCapacity.fix(0)
     model.v_S_BeneficialReuseCapacity.fix(0)
     return None
+
+
+def fix_vars(
+    model, vars_to_fix, indexes, v_val, upper_bound=None, lower_bound=None, fixvar=True
+):
+    _log.info("inside fix_vars")
+    for var in model.component_objects(Var):
+        if var.name in vars_to_fix:
+            _log.info("\nFixing this variable")
+            _log.info(var)
+            for index in var:
+                if index == indexes:
+                    if fixvar is True:
+                        if not var[index].domain is Binary:
+                            v_val = pyunits.convert_value(
+                                v_val,
+                                from_units=model.user_units["volume_time"],
+                                to_units=model.model_units["volume_time"],
+                            )
+                        var[index].fix(v_val)
+                    else:
+                        # TODO check units
+                        var[index].setlb(lower_bound)
+                        var[index].setub(upper_bound)
