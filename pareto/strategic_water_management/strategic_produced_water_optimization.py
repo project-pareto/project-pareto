@@ -219,6 +219,7 @@ class MissingDataError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
+
 def check_required_data(df_sets, df_parameters, config):
     data_error_items = []
     data_warning_items = []
@@ -231,9 +232,19 @@ def check_required_data(df_sets, df_parameters, config):
     ]
 
     param_list_require_at_least_one = [
-        ("PNA", "PCT", "PKT",),
+        (
+            "PNA",
+            "PCT",
+            "PKT",
+        ),
         ("CNA", "CCA", "CST", "CCT", "CKT"),
-        ("NCA", "FCA", "RCA", "SCA", "FCT",)
+        (
+            "NCA",
+            "FCA",
+            "RCA",
+            "SCA",
+            "FCT",
+        ),
     ]
 
     parameter_list_min_required = [
@@ -259,18 +270,23 @@ def check_required_data(df_sets, df_parameters, config):
 
     if len(data_error_items) > 0:
         print(data_error_items)
-        error_message = ', '.join(data_error_items)
-        raise MissingDataError("Essential data is incomplete. Please add the following missing data tabs: " + error_message)
+        error_message = ", ".join(data_error_items)
+        raise MissingDataError(
+            "Essential data is incomplete. Please add the following missing data tabs: "
+            + error_message
+        )
 
     # Optional: SWDs. If SWDSites Set is given, then "InjectionCapacities", "InitialDisposalCapacity", "DisposalOperationalCost" are needed
     # Question: If user has "InjectionCapacities", but not SWDs, does get_data still work to populate?
 
     # Optional: Treatment Sites. If Treatment sites are given, then  "TreatmentCapacities", "TreatmentTechnologies", "InitialTreatmentCapacity", "TreatmentOperationalCost",
+
+
 #         one of: "RNA","RSA","RKA","RST","RKT",
 #         "DesalinationTechnologies",
 #         "DesalinationSites",
 #         "TreatmentEfficiency" are required
-    # Question: what to do if no TreatmentSites, but other tabs?
+# Question: what to do if no TreatmentSites, but other tabs?
 
 #     # optional
 #     IF  "ReuseOptions", then "ROA", "SOA", "NOA", "ROT", "SOT",
@@ -303,7 +319,7 @@ def check_required_data(df_sets, df_parameters, config):
 #         "PipelineCapacityIncrements",
 
 #     # Check that input data contains required data for specific configuration options
-      # Check that parameters are built only for specified configurations
+# Check that parameters are built only for specified configurations
 # #         "objective": Objectives.cost,
 # #         "pipeline_cost": PipelineCost.distance_based,
 # if pipeline_cost = distance_based, then the input file requires the tabs "PipelineCapexDistanceBased", "PipelineExpansionDistance","PipelineDiameterValues"
@@ -337,6 +353,7 @@ def check_required_data(df_sets, df_parameters, config):
 
 def model_infeasibility_detection():
     print("test")
+
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()

@@ -139,7 +139,7 @@ def _read_data(_fname, _set_list, _parameter_list):
     # Read all tabs in the input file
     _df_sets = pd.read_excel(
         _fname,
-        sheet_name=None, #read all tabs
+        sheet_name=None,  # read all tabs
         header=0,
         index_col=None,
         usecols="A",
@@ -149,7 +149,9 @@ def _read_data(_fname, _set_list, _parameter_list):
     )
 
     # Remove tabs that are not specified by user and are not valid PARETO inputs
-    _df_sets = {key:value for key,value in _df_sets.items() if key in valid_set_tab_names}
+    _df_sets = {
+        key: value for key, value in _df_sets.items() if key in valid_set_tab_names
+    }
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -161,7 +163,7 @@ def _read_data(_fname, _set_list, _parameter_list):
 
     _df_parameters = pd.read_excel(
         _fname,
-        sheet_name=None,#read all tabs
+        sheet_name=None,  # read all tabs
         header=1,
         index_col=None,
         usecols=None,
@@ -170,7 +172,11 @@ def _read_data(_fname, _set_list, _parameter_list):
     )
 
     # Remove tabs that are not specified by user and are not valid PARETO inputs
-    _df_parameters = {key:value for key,value in _df_parameters.items() if key in valid_parameter_tab_names}
+    _df_parameters = {
+        key: value
+        for key, value in _df_parameters.items()
+        if key in valid_parameter_tab_names
+    }
 
     # Cleaning Parameters.
     # A parameter can be defined in column format or table format.
@@ -226,9 +232,9 @@ def _read_data(_fname, _set_list, _parameter_list):
         index_col = []
         for j in _df_parameters[i].columns:
             # If a column name is in the set_list or in the list of keywords, it is assumed the column is an index and saved in index_col
-            if str(j).split(".")[0].lower() in [s.lower() for s in valid_set_tab_names] or any(
-                x in str(j).lower() for x in generic_words
-            ):
+            if str(j).split(".")[0].lower() in [
+                s.lower() for s in valid_set_tab_names
+            ] or any(x in str(j).lower() for x in generic_words):
                 index_col.append(j)
 
         # If the number of index_col is equal to the total columns of the dataframe
