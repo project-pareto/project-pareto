@@ -87,6 +87,10 @@ class TreatmentStreams(IntEnum):
     residual_stream = 2
 
 
+class ResourceRecoveryStreams(IntEnum):
+    Recovered_stream = 1
+    residual_stream = 2
+
 class InfrastructureTiming(Enum):
     false = 0
     true = 1
@@ -390,6 +394,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_R = Set(initialize=model.df_sets["TreatmentSites"], doc="Treatment Sites")
     model.s_O = Set(initialize=model.df_sets["ReuseOptions"], doc="Reuse Options")
     model.s_N = Set(initialize=model.df_sets["NetworkNodes"], doc="Network Nodes")
+    model.s_M = Set(initialize=model.df_sets["ResourceRecoverySites"], doc="Resource and mineral recovery sites")
     model.s_QC = Set(
         initialize=model.df_sets["WaterQualityComponents"],
         doc="Water Quality Components",
@@ -403,6 +408,7 @@ def create_model(df_sets, df_parameters, default={}):
             | model.s_R
             | model.s_O
             | model.s_N
+            | model.s_M
         ),
         doc="Locations",
     )
@@ -418,6 +424,10 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_I = Set(
         initialize=model.df_sets["InjectionCapacities"],
         doc="Injection (i.e. disposal) capacities",
+    )
+    model.s_V = Set(
+        initialize=model.df_sets["ResourceRecoveryCapacities"],
+        doc="Resource Recovery capacities",
     )
 
     model.s_WT = Set(
@@ -447,6 +457,8 @@ def create_model(df_sets, df_parameters, default={}):
         "SRA",
         "SOA",
         "ROA",
+        "RMA",
+        
     ]
 
     # Build dictionary of all specified piping arcs
@@ -475,6 +487,7 @@ def create_model(df_sets, df_parameters, default={}):
         "RKT",
         "RST",
         "ROT",
+        "MOT",
     ]
 
     # Build dictionary of all specified trucking arcs
@@ -541,6 +554,31 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
         doc="Water at storage lost to evaporation [bbl/week]",
+    )
+
+    model.v_F_ResourceRecoveryFeed = Var(
+        model.s_M,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Flow of feed to a resource recovery site [volume/time]",
+    )
+
+    model.v_F_RecoveredResource = Var(
+        model.s_M,
+        model.s_QC,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="recoverd resource or concentrated stream out of the recovery site [volume/time]",
+    )
+
+    model.v_F_RecoveryResidual = Var(
+        model.s_M,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="residual waste stream out of the recovery site [volume/time]",
     )
 
     model.v_F_TreatmentFeed = Var(
@@ -634,6 +672,14 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_time"],
         doc="Cost of sourcing fresh water from source f to completion pad p [currency/time]",
     )
+    model.v_C_ResourceRecovery = Var(
+        model.s_M,
+        model.s_T,
+        initialize=0,
+        within=NonNegativeReals,
+        units=model.model_units["currency_time"],
+        doc="Cost of Resource recovery at recovery site [currency/time]",
+    )
     model.v_C_Disposal = Var(
         model.s_K,
         model.s_T,
@@ -699,6 +745,11 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         units=model.model_units["currency"],
         doc="Total cost of injecting produced water [currency]",
+    )
+    model.v_C_TotalResourceRecovery = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Total cost of resource recovery [currency]",
     )
     model.v_C_TotalTreatment = Var(
         within=NonNegativeReals,
@@ -817,6 +868,12 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
     )
 
+    model.p_RecoveryProcessType = Param(
+        model.s_M,
+        initialize=model.df_parameters["RecoveryProcessType"],
+        doc="Binary parameter indicating whether recovery process type is preconcentration or final product recovery",
+    )
+
     # If p_chi_DesalinationSites was not specified for one or more r, raise an
     # Exception
     missing_desal_sites = []
@@ -834,6 +891,11 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding disposal capacity [currency]",
+    )
+    model.v_C_ResourceRecoveryCapEx = Var(
+        within=NonNegativeReals,
+        units=model.model_units["currency"],
+        doc="Capital cost of Resource Recovery Facility [currency]",
     )
     model.v_C_PipelineCapEx = Var(
         within=NonNegativeReals,
@@ -938,6 +1000,13 @@ def create_model(df_sets, df_parameters, default={}):
         within=Binary,
         initialize=0,
         doc="New or additional disposal capacity installed at disposal site with specific injection capacity",
+    )
+    model.vb_y_ResourceRecovery = Var(
+        model.s_M,
+        model.s_V,
+        within=Binary,
+        initialize=0,
+        doc="New or additional resource recovery capacity installed at resource recovery site with specific recovery capacity",
     )
     model.vb_y_Flow = Var(
         model.s_L,
@@ -1549,6 +1618,57 @@ def create_model(df_sets, df_parameters, default={}):
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Removal efficiency [%]",
     )
+
+    model.p_eff_ResourceRecovery = Param(
+        model.s_M,
+        model.s_QC,
+        default=0,
+        initialize=model.df_parameters["ResourceRecoveryEfficiency"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Resource Recovery efficiency [%]",
+    )
+
+    model.p_loss_ResourceRecovery = Param(
+        model.s_M,
+        default=0,
+        initialize=model.df_parameters["ResourceRecoveryWaterLoss"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Resource Recovery feed loss [%]",
+    )
+
+    model.p_MassConversionFactor = Param(
+        model.s_M,
+        model.s_QC,
+        default=0,
+        initialize=model.df_parameters["RecoveryMassConversionFactor"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Resource Recovery mass conversion factor accounting for change in the product mass change due to added checmicals [%]",
+    )
+
+    model.p_RecoveryRatio = Param(
+        model.s_M,
+        default=0,
+        initialize=model.df_parameters["ResourceRecoveryRatio"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="the ratio of the concentrated stream to the total volume of the feed  [%]",
+    )
+
+    model.p_nu_resourcerecovery = Param(
+        model.s_M,
+        model.s_QC,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
+            for key, value in model.df_parameters["EstimatedRecoverySiteQuality"].items()
+        },
+        units=model.model_units["concentration"],
+        doc="Estimated Water Quality at resource recovery sites [concentration]",
+    )
+
     # Note PipelineCapacityIncrements_Calculated is set in _pre_process. These values are already in model units, they
     # do not need to be calculated
     if model.config.pipeline_capacity == PipelineCapacity.calculated:
@@ -1593,6 +1713,24 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Disposal capacity installation/expansion increments [volume/time]",
+    )
+    model.p_delta_ResourceRecovery = Param(
+        model.s_V,
+        default=pyunits.convert_value(
+            10,
+            from_units=pyunits.oil_bbl / pyunits.week,
+            to_units=model.model_units["volume_time"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["ResourceRecovCapacityIncrement"].items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Resource Recovery capacity installation/expansion increments [volume/time]",
     )
     model.p_delta_Storage = Param(
         model.s_C,
@@ -1718,6 +1856,25 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=PipelineExpansionDistance_convert_to_model,
         units=model.model_units["distance"],
         doc="Pipeline segment length [distance]",
+    )
+    model.p_kappa_ResourceRecovery = Param(
+        model.s_M,
+        model.s_V,
+        default=pyunits.convert_value(
+            10,
+            from_units=pyunits.USD / (pyunits.oil_bbl / pyunits.day),
+            to_units=model.model_units["currency_volume_time"],
+        ),
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency_volume_time"],
+                to_units=model.model_units["currency_volume_time"],
+            )
+            for key, value in model.df_parameters["ResourceRecoveryExpansionCost"].items()
+        },
+        units=model.model_units["currency_volume_time"],
+        doc="Resource Recovery construction/expansion capital cost for selected increment [currency/(volume/time)]",
     )
     model.p_kappa_Disposal = Param(
         model.s_K,
@@ -1936,6 +2093,22 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Treatment operational cost [currency/volume]",
     )
+
+    model.p_pi_ResourceRecovery = Param(
+        model.s_M,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency_volume"],
+                to_units=model.model_units["currency_volume"],
+            )
+            for key, value in model.df_parameters["ResourceRecoveryOperationalCost"].items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Treatment operational cost [currency/volume]",
+    ) 
+
     ReuseOperationalCost_convert_to_model = {
         key: pyunits.convert_value(
             value,
@@ -2270,6 +2443,7 @@ def create_model(df_sets, df_parameters, default={}):
             return model.v_Z == (
                 model.v_C_TotalSourced
                 + model.v_C_TotalDisposal
+                + model.v_C_TotalResourceRecovery
                 + model.v_C_TotalTreatment
                 + model.v_C_TotalReuse
                 + model.v_C_TotalPiping
@@ -2279,6 +2453,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
+                    + model.v_C_ResourceRecoveryCapEx
                     + model.v_C_StorageCapEx
                     + model.v_C_TreatmentCapEx
                     + model.v_C_PipelineCapEx
@@ -2302,6 +2477,7 @@ def create_model(df_sets, df_parameters, default={}):
             ) + 1 / 38446652 * (
                 model.v_C_TotalSourced
                 + model.v_C_TotalDisposal
+                + model.v_C_TotalResourceRecovery
                 + model.v_C_TotalTreatment
                 + model.v_C_TotalReuse
                 + model.v_C_TotalPiping
@@ -2311,6 +2487,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
+                    + model.v_C_ResourceRecoveryCapEx
                     + model.v_C_StorageCapEx
                     + model.v_C_TreatmentCapEx
                     + model.v_C_PipelineCapEx
@@ -2958,6 +3135,130 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Residual water balance",
     )
 
+    def RecoveryFeedBalanceRule(model, m, t):
+        constraint = (
+            sum(model.v_F_Piped[l, m, t] for l in model.s_L if (l, m) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, m, t] for l in model.s_L if (l, m) in model.s_LLT
+            )
+            == model.v_F_ResourceRecoveryFeed[m, t]
+        )
+        return process_constraint(constraint)
+
+    model.RecoveryFeedBalance = Constraint(
+        model.s_M,
+        model.s_T,
+        rule=RecoveryFeedBalanceRule,
+        doc="Resource Recovery site feed flow balance",
+    )
+
+    def RecoverySiteBalanceRule(model, m, qc, t):
+        if model.p_RecoveryProcessType[m]:
+            # the recovered resource volume (e.g produced solid) assumed to be negligible in this case. Ut will be accounted in recovered resource rule separately
+            constraint = (
+                model.v_F_ResourceRecoveryFeed[m, t]
+                == model.v_F_RecoveryResidual[m, t] - model.v_F_ResourceRecoveryFeed[m, t] * model.p_loss_ResourceRecovery[m]
+            )
+        else:
+            constraint = (model.v_F_ResourceRecoveryFeed[m, t]
+                == model.v_F_RecoveryResidual[m, t] +  model.v_F_RecoveredResource[m, qc, t] - model.v_F_ResourceRecoveryFeed[m, t] * model.p_loss_ResourceRecovery[m]
+            )
+            
+        return process_constraint(constraint)
+
+    model.RecoverySitetBalance = Constraint(
+        model.s_M,
+        model.s_QC,
+        model.s_T,
+        rule=RecoverySiteBalanceRule,
+        doc="Resource recovery site flow balance",
+    )
+
+    def RecoverySiteRecoveredBalanceRule(model, m, qc, t):
+        if model.p_RecoveryProcessType[m]:
+            constraint = (model.v_F_ResourceRecoveryFeed[m, t] * model.p_nu_resourcerecovery[m, qc] * model.p_eff_ResourceRecovery[m, qc] * model.p_MassConversionFactor[m, qc]
+                == model.v_F_RecoveredResource[m, qc, t]
+            )
+        else:
+            constraint = (model.v_F_ResourceRecoveryFeed[m, t] * model.p_RecoveryRatio[m]
+                == model.v_F_RecoveredResource[m, qc, t]
+            )
+            
+        return process_constraint(constraint)
+
+    model.RecoverySiteRecoveredtBalance = Constraint(
+        model.s_M,
+        model.s_QC,
+        model.s_T,
+        rule=RecoverySiteRecoveredBalanceRule,
+        doc="Resource recovery site residual flow balance for concentration process",
+    )
+
+    resource_recovery_sites_with_recovered_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_M and value == ResourceRecoveryStreams.Recovered_stream
+    }
+
+    def RecoveredStreamBalanceRule(model, m, qc, t):
+        # If recovered stream from a treatment site should be modeled, then
+        # create constraint for the recovered. Otherwise, skip.
+        if m in resource_recovery_sites_with_recovered_stream_modeled:
+            constraint = model.v_F_RecoveredResource[m, qc, t] == sum(
+                model.v_F_Piped[m, l, t]
+                for l in model.s_L
+                if (m, l) in model.s_LLA
+                and model.df_parameters["LLA"][m, l] == ResourceRecoveryStreams.Recovered_stream
+            ) + sum(
+                model.v_F_Trucked[m, l, t]
+                for l in model.s_L
+                if (m, l) in model.s_LLT
+                and model.df_parameters["LLT"][m, l] == ResourceRecoveryStreams.Recovered_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.RecoveredStreamBalance = Constraint(
+        model.s_M, model.s_QC, model.s_T, rule=RecoveredStreamBalanceRule, doc="Recovered stream balance"
+    )
+
+    
+    resource_recovery_sites_with_residual_stream_modeled = {
+        origin
+        for ((origin, _), value) in list(model.df_parameters["LLA"].items())
+        + list(model.df_parameters["LLT"].items())
+        if origin in model.s_M and value == ResourceRecoveryStreams.residual_stream
+    }
+
+    def ResourceRecoveryResidualrBalanceRule(model, m, t):
+        # If residual stream from a resource recovery site should be modeled, then
+        # create constraint for the residual water. Otherwise, skip.
+        if m in resource_recovery_sites_with_residual_stream_modeled:
+            constraint = model.v_F_RecoveryResidual[m, t] == sum(
+                model.v_F_Piped[m, l, t]
+                for l in model.s_L
+                if (m, l) in model.s_LLA
+                and model.df_parameters["LLA"][m, l] == ResourceRecoveryStreams.residual_stream
+            ) + sum(
+                model.v_F_Trucked[m, l, t]
+                for l in model.s_L
+                if (m, l) in model.s_LLT
+                and model.df_parameters["LLT"][m, l] == ResourceRecoveryStreams.residual_stream
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.ResourceRecoveryResidualrBalance = Constraint(
+        model.s_M,
+        model.s_T,
+        rule=ResourceRecoveryResidualrBalanceRule,
+        doc="Resource Recovery Residual balance",
+    )
+
+
     def BeneficialReuseMinimumRule(model, o, t):
         if value(model.p_sigma_BeneficialReuseMinimum[o, t]) > 0:
             constraint = (
@@ -3136,6 +3437,49 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalDisposalVolumeRule, doc="Total disposal volume"
     )
 
+    def ResourceRecoveryCostRule(model, m, t):
+        constraint = (
+            model.v_C_ResourceRecovery[m, t]
+            == (
+                sum(
+                    model.v_F_Piped[l, m, t] for l in model.s_L if (l, m) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, m, t]
+                    for l in model.s_L
+                    if (l, m) in model.s_LLT
+                )
+            )
+            * model.p_pi_ResourceRecovery[m]
+        )
+        return process_constraint(constraint)
+
+    model.ResourceRecoveryCost = Constraint(
+        model.s_M, model.s_T, rule=ResourceRecoveryCostRule, doc="Resource Recovery cost"
+    )
+    
+    def TotalResourceRecoveryCostRule(model):
+        constraint = model.v_C_TotalResourceRecovery == sum(
+            sum(model.v_C_ResourceRecovery[m, t] for m in model.s_M) for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalResourceRecoveryCost = Constraint(
+        rule=TotalResourceRecoveryCostRule, doc="Total disposal cost"
+    )
+
+    def TotalDisposalVolumeRule(model):
+        constraint = model.v_F_TotalDisposed == sum(
+            sum(model.v_F_DisposalDestination[k, t] for k in model.s_K)
+            for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalDisposalVolume = Constraint(
+        rule=TotalDisposalVolumeRule, doc="Total disposal volume"
+    )
     def TreatmentCostLHSRule(model, r, wt, t):
         constraint = (
             model.v_C_Treatment[r, t]
@@ -3519,6 +3863,22 @@ def create_model(df_sets, df_parameters, default={}):
         rule=DisposalExpansionCapExRule,
         doc="Disposal construction or capacity expansion cost",
     )
+    def ResourceRecoveryExpansionCapExRule(model):
+        constraint = model.v_C_ResourceRecoveryCapEx == sum(
+            sum(
+                model.vb_y_ResourceRecovery[m, v]
+                * model.p_kappa_ResourceRecovery[m, v]
+                * model.p_delta_ResourceRecovery[v]
+                for v in model.s_V
+            )
+            for m  in model.s_M
+        )
+        return process_constraint(constraint)
+
+    model.ResourceRecoveryExpansionCapEx = Constraint(
+        rule=ResourceRecoveryExpansionCapExRule,
+        doc="Resource recovery facitlity construction or capacity expansion cost",
+    )
 
     def StorageExpansionCapExRule(model):
         constraint = model.v_C_StorageCapEx == sum(
@@ -3662,6 +4022,13 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.LogicConstraintDisposal = Constraint(
         model.s_K, rule=LogicConstraintDisposalRule, doc="Logic constraint disposal"
+    )
+    def LogicConstraintResourceRecoverylRule(model, m):
+        constraint = sum(model.vb_y_ResourceRecovery[m, v] for v in model.s_V) == 1
+        return process_constraint(constraint)
+
+    model.LogicConstraintResourceRecovery = Constraint(
+        model.s_M, rule=LogicConstraintResourceRecoverylRule, doc="Logic constraint Resource Recovery"
     )
 
     def LogicConstraintStorageRule(model, s):
