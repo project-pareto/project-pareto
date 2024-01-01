@@ -716,12 +716,9 @@ def make_mee_mvr_model(N_evap = 1, inputs_variables = False):
         return 1/1000*m.super_heated_vapor_enthalpy== (-13470 + 1.84*m.super_heated_vapor_temperature)/1000
     m.super_heated_vapor_enthalpy_calculation = pyo.Constraint(rule = _super_heated_vapor_enthalpy_calculation)
         
-    # m.delta_pos = pyo.Var(domain = pyo.NonNegativeReals)
-    # m.delta_neg = pyo.Var(domain = pyo.NonPositiveReals)
-    #m.delta.fix(0)
     #Salt outlet condition
     def _salt_outlet_con(m):
-        return m.salt[m.i.first()] == m.salt_outlet_spec #+ m.delta_pos + m.delta_neg
+        return m.salt[m.i.first()] == m.salt_outlet_spec
     m.salt_outlet_con = pyo.Constraint(rule = _salt_outlet_con)
     
     #Fresh water constraint
@@ -769,117 +766,4 @@ def make_mee_mvr_model(N_evap = 1, inputs_variables = False):
 
     m.obj = pyo.Objective(expr = (m.CAPEX + m.OPEX))
   
-    return m 
-
-if __name__ == "__main__":
-    
-    m = make_mee_mvr_model(N_evap = 2)
-    print(degrees_of_freedom(m))
-    
-    solver = pyo.SolverFactory("ipopt")
-    solver.options["max_iter"] = 1000
-    res = solver.solve(m, tee=True)
-    
-    # for c in m.component_data_objects(ctype = pyo.Constraint):
-    #     if c.ub is not None:
-    #         if abs(pyo.value(c.ub) - pyo.value(c)) >= 1e-5:
-    #             print(c.name, abs(pyo.value(c.ub) - pyo.value(c)))
-        
-    #     if c.lb is not None:
-    #         if abs(pyo.value(c.lb) - pyo.value(c)) >= 1e-5:
-    #             print(c.name, abs(pyo.value(c.lb) - pyo.value(c)))
-                
-    for c in m.component_data_objects(ctype = pyo.Constraint):
-        if c.ub is not None and c.ub != c.lb:
-            if abs(pyo.value(c.ub) - pyo.value(c)) <= 1e-5:
-                print(c.name, abs(pyo.value(c.ub) - pyo.value(c)))
-        
-        if c.lb is not None and c.ub != c.lb:
-            if abs(pyo.value(c.lb) - pyo.value(c)) <= 1e-5:
-                print(c.name, abs(pyo.value(c.lb) - pyo.value(c)))
-                
-    for v in m.component_data_objects(ctype = pyo.Var):
-        if v.ub is not None:
-            if abs(pyo.value(v.ub - v)) <= 1e-5:
-                print(v.name, pyo.value(v))
-        if v.lb is not None:
-            if abs(pyo.value(v.lb - v)) <= 1e-5:
-                print(v.name, pyo.value(v))
-    
-
-    pyo.assert_optimal_termination(res)
-    m.evaporator_vapor_enthalpy.display()
-    m.super_heated_vapor_enthalpy.display()
-    m.each_evaporator_area.display()
-    m.evaporator_heat_flow.display()
-    m.evaporator_brine_temperature.display()
-    m.total_compressor_work.display()
-    m.super_heated_vapor_temperature.display()
-    m.evaporator_condensate_temperature.display()
-    m.super_heated_vapor_pressure.display()
-    m.evaporator_vapor_pressure.display()
-    m.flow_vapor_evaporator.display()
-    m.mixer_temperature.display()
-    m.fresh_water_temperature.display()
-    m.evaporator_feed_temperature.display()
-    m.preheater_area.display()
-    m.salt.display()
-    m.flow_brine.display()
-    
-    salt_feed = [70, 90, 110, 130, 150 ,170, 190]
-    capex = []
-    opex = []
-    for s in salt_feed:
-        m.salt_feed = s
-        res=solver.solve(m, tee = True)
-        pyo.assert_optimal_termination(res)
-       
-        capex.append(pyo.value(m.CAPEX))
-        opex.append(pyo.value(m.OPEX))
-    
-    width = 6
-    fig = plt.subplots(figsize =(10, 6))
-    
-    p1 = plt.bar(salt_feed, capex, width)
-    p2 = plt.bar(salt_feed, opex, width,
-                  bottom = capex)
-     
-    plt.ylabel('Total annualized cost (kUS$/year)', fontsize = 18)
-    plt.xlabel('Feed salinity (kppm)', fontsize = 18)
-    plt.xticks(salt_feed, ('70', '90', '110', '130', '150', '170','190'), fontsize = 18)
-    plt.yticks(fontsize = 18)
-    plt.ylim((0,1700))
-    plt.title('TAC vs feed salinity for fixed feed flow', fontsize = 18)
-    plt.legend((p1[0], p2[0]), ('CAPEX', 'OPEX'), fontsize = 18)
-    plt.show()
-    
-    flow_feed = [1, 4, 7, 10, 13, 16, 19]
-    capex = []
-    opex = []
-    m.salt_feed = 130
-    for f in flow_feed:
-        m.flow_feed = f
-        res=solver.solve(m, tee = True)
-        pyo.assert_optimal_termination(res)
-       
-        capex.append(pyo.value(m.CAPEX))
-        opex.append(pyo.value(m.OPEX))
-    
-    width = 0.9
-    fig = plt.subplots(figsize =(10, 6))
-    
-    p1 = plt.bar(flow_feed, capex, width)
-    p2 = plt.bar(flow_feed, opex, width,
-                  bottom = capex)
-     
-    plt.ylabel('Total annualized cost (kUS$/year)', fontsize = 18)
-    plt.xlabel('Feed flow (kg/s)', fontsize = 18)
-    plt.xticks(flow_feed, ('1', '4', '7', '10', '13', '17','19'), fontsize = 18)
-    plt.yticks(fontsize = 18)
-    plt.ylim((0,3200))
-    plt.title('TAC vs feed flow for fixed feed salinity', fontsize = 18)
-    plt.legend((p1[0], p2[0]), ('CAPEX', 'OPEX'), fontsize = 18)
-    plt.show()
-   
-    
-                             
+    return m                             
