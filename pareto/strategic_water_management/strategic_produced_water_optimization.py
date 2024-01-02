@@ -48,6 +48,8 @@ from enum import Enum, IntEnum
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 
+import warnings
+
 
 class Objectives(Enum):
     cost = 0
@@ -219,18 +221,63 @@ class MissingDataError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
+def _check_optional_data(df_sets, df_parameters, optional_tab_name, required_sets_with_option, required_parameters_with_option, requires_at_least_one = []):
+    # create set object for df_sets and df_parameters for simpler item checking
+    _df_sets_set = set(df_sets)
+    _df_parameters_set = set(df_parameters.keys())
+    if optional_tab_name in _df_sets_set:
+        _missing_parameters = required_parameters_with_option - _df_parameters_set
+        _missing_sets = required_sets_with_option - _df_sets_set
+        if len(_missing_parameters) > 0:
+            for param in _missing_parameters:
+                df_parameters[param] = {}
+            warning_message = "Warning: {} are given, but {} Parameter data is missing. The following parameters have been assumed empty:".format(optional_tab_name, optional_tab_name) + str(_missing_parameters)
+            warnings.warn(warning_message)
+        if len(_missing_sets) > 0:
+            for s in _missing_sets:
+                df_sets[s] = {}
+            warning_message = "Warning: {} are given, but other {} Set data is missing. The following set has been assumed to be empty:".format(optional_tab_name, optional_tab_name) +str(_missing_sets)
+            warnings.warn(warning_message)
+        if len(requires_at_least_one) > 0:
+            for requires_list in requires_at_least_one:
+                _included_params = (set(requires_list) & _df_parameters_set)
+                if len(_included_params) < 1:
+                    error_message = "One of" + str(requires_list)
+                    warning_message = "Warning: {} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:".format(
+                        optional_tab_name) + str(requires_list)
+                    warnings.warn(warning_message)
+
+    # If there is specific parameter data for optional tab, the optional tab name is also required
+    if (len(required_parameters_with_option & _df_parameters_set) > 0) and optional_tab_name not in df_sets:
+        raise MissingDataError(
+            "Essential data is incomplete. Parameters for {} are given, but the \"{}\" Set is not given. Please add and complete the following tab(s): {}".format(
+                optional_tab_name, optional_tab_name, optional_tab_name)
+        )
+    return (df_sets, df_parameters)
 
 def check_required_data(df_sets, df_parameters, config):
+    # Create lists to hold error and warning data
     data_error_items = []
     data_warning_items = []
 
     # Check that input data contains all minimally required data
+    # Tab names for required Sets
     set_list_min_required = [
         "ProductionPads",
         "CompletionsPads",
         "PipelineDiameters",
     ]
 
+    # Tab names for required Parameters
+    parameter_list_min_required = [
+        "Units",
+        "CompletionsDemand",
+        "FlowbackRates",
+        "InitialPipelineCapacity",
+        "PipelineOperationalCost",
+    ]
+
+    # Tab names for parameters. For each tuple in the list, at least one Parameter tab is required.
     param_list_require_at_least_one = [
         (
             "PNA",
@@ -247,46 +294,48 @@ def check_required_data(df_sets, df_parameters, config):
         ),
     ]
 
-    parameter_list_min_required = [
-        "Units",
-        "CompletionsDemand",
-        "FlowbackRates",
-        "InitialPipelineCapacity",
-        "PipelineOperationalCost",
-    ]
-
+    # Check that Set list contains required Set tabs
     for set_name in set_list_min_required:
         if set_name not in df_sets.keys():
             data_error_items.append(set_name)
 
+    # Check that Parameter list contains required Parameter tabs
     for param in parameter_list_min_required:
         if param not in df_parameters.keys():
             data_error_items.append(param)
 
+    # Check that Parameter list contains at least one Parameter tab for each group of parameters
     for param_list in param_list_require_at_least_one:
         # Check that there is at least one of set names in tuple in the data
         if len(set(param_list) & set(df_parameters.keys())) < 1:
             data_error_items.append("One of tabs " + str(param_list))
 
     if len(data_error_items) > 0:
-        print(data_error_items)
         error_message = ", ".join(data_error_items)
         raise MissingDataError(
             "Essential data is incomplete. Please add the following missing data tabs: "
             + error_message
         )
 
-    # Optional: SWDs. If SWDSites Set is given, then "InjectionCapacities", "InitialDisposalCapacity", "DisposalOperationalCost" are needed
-    # Question: If user has "InjectionCapacities", but not SWDs, does get_data still work to populate?
+    # Optional Data: If data is not given, create empty dictionaries and a warning is raised to the user
+    # SWDs. If SWDSites Set is given, then "InjectionCapacities", "InitialDisposalCapacity", "DisposalOperationalCost" are needed.
 
-    # Optional: Treatment Sites. If Treatment sites are given, then  "TreatmentCapacities", "TreatmentTechnologies", "InitialTreatmentCapacity", "TreatmentOperationalCost",
+    SWD_set_name = "SWDSites"
+    SWD_required_sets = {"InjectionCapacities"}
+    SWD_required_parameters = { "InitialDisposalCapacity", "DisposalOperationalCost"}
 
+    (df_sets, df_parameters) = _check_optional_data(df_sets, df_parameters, SWD_set_name, SWD_required_sets,
+                             SWD_required_parameters)
 
-#         one of: "RNA","RSA","RKA","RST","RKT",
-#         "DesalinationTechnologies",
-#         "DesalinationSites",
-#         "TreatmentEfficiency" are required
-# Question: what to do if no TreatmentSites, but other tabs?
+    # Treatment Sites. If Treatment sites are given, then  "TreatmentCapacities", "TreatmentTechnologies", "InitialTreatmentCapacity", "TreatmentOperationalCost"
+
+    treatment_set_name = "TreatmentSites"
+    treatment_required_sets = {"TreatmentCapacities", "TreatmentTechnologies"}
+    treatment_required_parameters = {"InitialTreatmentCapacity", "TreatmentOperationalCost", "DesalinationTechnologies", "DesalinationSites", "TreatmentEfficiency"}
+    treatment_requires_at_least_one = [("RNA","RSA","RKA","ROA", "RCA", "RST","RKT")]
+
+    (df_sets, df_parameters) = _check_optional_data(df_sets, df_parameters, treatment_set_name, treatment_required_sets,
+                                                    treatment_required_parameters, treatment_requires_at_least_one)
 
 #     # optional
 #     IF  "ReuseOptions", then "ROA", "SOA", "NOA", "ROT", "SOT",
