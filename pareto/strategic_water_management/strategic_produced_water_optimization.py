@@ -221,7 +221,15 @@ class MissingDataError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-def _check_optional_data(df_sets, df_parameters, optional_tab_name, required_sets_with_option, required_parameters_with_option, requires_at_least_one = []):
+
+def _check_optional_data(
+    df_sets,
+    df_parameters,
+    optional_tab_name,
+    required_sets_with_option,
+    required_parameters_with_option,
+    requires_at_least_one=[],
+):
     # create set object for df_sets and df_parameters for simpler item checking
     _df_sets_set = set(df_sets)
     _df_parameters_set = set(df_parameters.keys())
@@ -231,29 +239,44 @@ def _check_optional_data(df_sets, df_parameters, optional_tab_name, required_set
         if len(_missing_parameters) > 0:
             for param in _missing_parameters:
                 df_parameters[param] = {}
-            warning_message = "Warning: {} are given, but {} Parameter data is missing. The following parameters have been assumed empty:".format(optional_tab_name, optional_tab_name) + str(_missing_parameters)
+            warning_message = "Warning: {} are given, but {} Parameter data is missing. The following parameters have been assumed empty:".format(
+                optional_tab_name, optional_tab_name
+            ) + str(
+                _missing_parameters
+            )
             warnings.warn(warning_message)
         if len(_missing_sets) > 0:
             for s in _missing_sets:
                 df_sets[s] = {}
-            warning_message = "Warning: {} are given, but other {} Set data is missing. The following set has been assumed to be empty:".format(optional_tab_name, optional_tab_name) +str(_missing_sets)
+            warning_message = "Warning: {} are given, but other {} Set data is missing. The following set has been assumed to be empty:".format(
+                optional_tab_name, optional_tab_name
+            ) + str(
+                _missing_sets
+            )
             warnings.warn(warning_message)
         if len(requires_at_least_one) > 0:
             for requires_list in requires_at_least_one:
-                _included_params = (set(requires_list) & _df_parameters_set)
+                _included_params = set(requires_list) & _df_parameters_set
                 if len(_included_params) < 1:
                     error_message = "One of" + str(requires_list)
                     warning_message = "Warning: {} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:".format(
-                        optional_tab_name) + str(requires_list)
+                        optional_tab_name
+                    ) + str(
+                        requires_list
+                    )
                     warnings.warn(warning_message)
 
     # If there is specific parameter data for optional tab, the optional tab name is also required
-    if (len(required_parameters_with_option & _df_parameters_set) > 0) and optional_tab_name not in df_sets:
+    if (
+        len(required_parameters_with_option & _df_parameters_set) > 0
+    ) and optional_tab_name not in df_sets:
         raise MissingDataError(
-            "Essential data is incomplete. Parameters for {} are given, but the \"{}\" Set is not given. Please add and complete the following tab(s): {}".format(
-                optional_tab_name, optional_tab_name, optional_tab_name)
+            'Essential data is incomplete. Parameters for {} are given, but the "{}" Set is not given. Please add and complete the following tab(s): {}'.format(
+                optional_tab_name, optional_tab_name, optional_tab_name
+            )
         )
     return (df_sets, df_parameters)
+
 
 def check_required_data(df_sets, df_parameters, config):
     # Create lists to hold error and warning data
@@ -322,20 +345,36 @@ def check_required_data(df_sets, df_parameters, config):
 
     SWD_set_name = "SWDSites"
     SWD_required_sets = {"InjectionCapacities"}
-    SWD_required_parameters = { "InitialDisposalCapacity", "DisposalOperationalCost"}
+    SWD_required_parameters = {"InitialDisposalCapacity", "DisposalOperationalCost"}
 
-    (df_sets, df_parameters) = _check_optional_data(df_sets, df_parameters, SWD_set_name, SWD_required_sets,
-                             SWD_required_parameters)
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters, SWD_set_name, SWD_required_sets, SWD_required_parameters
+    )
 
     # Treatment Sites. If Treatment sites are given, then  "TreatmentCapacities", "TreatmentTechnologies", "InitialTreatmentCapacity", "TreatmentOperationalCost"
 
     treatment_set_name = "TreatmentSites"
     treatment_required_sets = {"TreatmentCapacities", "TreatmentTechnologies"}
-    treatment_required_parameters = {"InitialTreatmentCapacity", "TreatmentOperationalCost", "DesalinationTechnologies", "DesalinationSites", "TreatmentEfficiency"}
-    treatment_requires_at_least_one = [("RNA","RSA","RKA","ROA", "RCA", "RST","RKT")]
+    treatment_required_parameters = {
+        "InitialTreatmentCapacity",
+        "TreatmentOperationalCost",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "TreatmentEfficiency",
+    }
+    treatment_requires_at_least_one = [
+        ("RNA", "RSA", "RKA", "ROA", "RCA", "RST", "RKT")
+    ]
 
-    (df_sets, df_parameters) = _check_optional_data(df_sets, df_parameters, treatment_set_name, treatment_required_sets,
-                                                    treatment_required_parameters, treatment_requires_at_least_one)
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        treatment_set_name,
+        treatment_required_sets,
+        treatment_required_parameters,
+        treatment_requires_at_least_one,
+    )
+
 
 #     # optional
 #     IF  "ReuseOptions", then "ROA", "SOA", "NOA", "ROT", "SOT",
