@@ -133,7 +133,7 @@ parameter_list = [
     "PipelineExpansionLeadTime_Capac",
     "SWDDeep",
     "SWDAveragePressure",
-    "SWDProxOrphanWell",
+    "SWDProxPAWell",
     "SWDProxInactiveWell",
     "SWDProxEQ",
     "SWDProxFault",
