@@ -163,6 +163,7 @@ CONFIG.declare(
     ),
 )
 
+
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -216,12 +217,64 @@ CONFIG.declare(
     ),
 )
 
-# TODO: find a better location for this class
+
+# TODO: move this to utility
 class MissingDataError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
 
+# TODO: Move this function to a utility
+def get_trucking_arc_list():
+    return [
+        "PCT",
+        "PKT",
+        "PST",
+        "PRT",
+        "POT",
+        "FCT",
+        "CKT",
+        "CST",
+        "CRT",
+        "CCT",
+        "SCT",
+        "SKT",
+        "SOT",
+        "RKT",
+        "RST",
+        "ROT",
+    ]
+
+
+# TODO: Move this function to a utility
+def get_piping_arc_list():
+    return [
+        "PCA",
+        "PNA",
+        "PPA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NSA",
+        "NRA",
+        "NOA",
+        "FCA",
+        "RNA",
+        "RCA",
+        "RKA",
+        "RSA",
+        "SNA",
+        "SCA",
+        "SKA",
+        "SRA",
+        "SOA",
+        "ROA",
+    ]
+
+
+# TODO: Move this function to a utility
 def _check_optional_data(
     df_sets,
     df_parameters,
@@ -234,8 +287,8 @@ def _check_optional_data(
     _df_sets_set = set(df_sets)
     _df_parameters_set = set(df_parameters.keys())
     if optional_tab_name in _df_sets_set:
-        _missing_parameters = required_parameters_with_option - _df_parameters_set
-        _missing_sets = required_sets_with_option - _df_sets_set
+        _missing_parameters = set(required_parameters_with_option) - _df_parameters_set
+        _missing_sets = set(required_sets_with_option) - _df_sets_set
         if len(_missing_parameters) > 0:
             for param in _missing_parameters:
                 df_parameters[param] = {}
@@ -258,7 +311,6 @@ def _check_optional_data(
             for requires_list in requires_at_least_one:
                 _included_params = set(requires_list) & _df_parameters_set
                 if len(_included_params) < 1:
-                    error_message = "One of" + str(requires_list)
                     warning_message = "Warning: {} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:".format(
                         optional_tab_name
                     ) + str(
@@ -278,44 +330,69 @@ def _check_optional_data(
     return (df_sets, df_parameters)
 
 
+# TODO: Move this function to a utility
+def check_config_dependent_data(
+    df_sets,
+    df_parameters,
+    config_argument,
+    config_required_sets,  # {config option 1: [set1, set2], config option 2: []}
+    config_required_params,
+):
+    # Error message
+    error_message = []
+
+    # Data error is raised if
+    _df_sets_set = set(df_sets)
+    _df_params_set = set(df_parameters)
+
+    required_sets = set(config_required_sets[config_argument])
+    _missing_sets = required_sets - _df_sets_set
+
+    if len(_missing_sets) > 0:
+        error_message.append(
+            "The config option {} has been selected. The following sets are required for this option and are missing:".format(
+                config_argument
+            )
+            + str(_missing_sets)
+        )
+
+    required_params = set(config_required_params[config_argument])
+    _missing_params = required_params - _df_params_set
+
+    if len(_missing_params) > 0:
+        error_message.append(
+            "The config option {} has been selected. The following parameters are required for this option and are missing:".format(
+                config_argument
+            )
+            + str(_missing_params)
+        )
+
+    return error_message
+
+
+# TODO: Move this function to a utility
 def check_required_data(df_sets, df_parameters, config):
-    # Create lists to hold error and warning data
+    # Create a  to hold all missing data that causes an error
     data_error_items = []
-    data_warning_items = []
 
     # Check that input data contains all minimally required data
-    # Tab names for required Sets
-    set_list_min_required = [
-        "ProductionPads",
-        "CompletionsPads",
-        "PipelineDiameters",
-    ]
+    # Tab names for required Sets. Currently no explicitly required sets, but tab names
+    # can be added to this list if required sets are added.
+    set_list_min_required = []
 
     # Tab names for required Parameters
     parameter_list_min_required = [
         "Units",
-        "CompletionsDemand",
-        "FlowbackRates",
-        "InitialPipelineCapacity",
-        "PipelineOperationalCost",
+    ]
+
+    # Tab names for parameters. For each list in the list, at least one Parameter tab is required.
+    set_list_require_at_least_one = [
+        ["ProductionPads", "CompletionsPads", "FreshwaterSources"],
+        ["CompletionsPads", "SWDSites", "BeneficialReuse", "StorageSites"],
     ]
 
     # Tab names for parameters. For each tuple in the list, at least one Parameter tab is required.
-    param_list_require_at_least_one = [
-        (
-            "PNA",
-            "PCT",
-            "PKT",
-        ),
-        ("CNA", "CCA", "CST", "CCT", "CKT"),
-        (
-            "NCA",
-            "FCA",
-            "RCA",
-            "SCA",
-            "FCT",
-        ),
-    ]
+    param_list_require_at_least_one = []
 
     # Check that Set list contains required Set tabs
     for set_name in set_list_min_required:
@@ -327,12 +404,80 @@ def check_required_data(df_sets, df_parameters, config):
         if param not in df_parameters.keys():
             data_error_items.append(param)
 
+    # Check that Set list contains at least one Set tab for each group of Set
+    for set_list in set_list_require_at_least_one:
+        # Check that there is at least one of set names in tuple in the data
+        if len(set(set_list) & set(df_sets.keys())) < 1:
+            data_error_items.append("One of tabs " + str(set_list))
+
     # Check that Parameter list contains at least one Parameter tab for each group of parameters
     for param_list in param_list_require_at_least_one:
         # Check that there is at least one of set names in tuple in the data
         if len(set(param_list) & set(df_parameters.keys())) < 1:
             data_error_items.append("One of tabs " + str(param_list))
 
+    # Required Data for Configurations
+    hydraulics_config_errors = check_config_dependent_data(
+        df_sets,
+        df_parameters,
+        config.hydraulics,
+        {
+            Hydraulics.false: [],
+            Hydraulics.post_process: [],
+            Hydraulics.co_optimize: [],
+        },  # {config option 1: [set1, set2], config option 2: []}
+        {
+            Hydraulics.false: [],
+            Hydraulics.post_process: [
+                "Hydraulics",
+                "Elevation",
+                "WellPressure",
+                "InitialPipelineDiameters",
+                "PipelineDiameterValues",
+            ],
+            Hydraulics.co_optimize: [
+                "Hydraulics",
+                "Elevation",
+                "WellPressure",
+                "InitialPipelineDiameters",
+                "PipelineDiameterValues",
+            ],
+        },
+    )
+    data_error_items.extend(hydraulics_config_errors)
+
+    # TODO: Enforce the rest of the config options
+
+    #         "PipelineCapacityIncrements",
+    #     # Check that input data contains required data for specific configuration options
+    # Check that parameters are built only for specified configurations
+    # #         "objective": Objectives.cost,
+    # #         "pipeline_cost": PipelineCost.distance_based,
+    # if pipeline_cost = distance_based, then the input file requires the tabs "PipelineCapexDistanceBased", "PipelineExpansionDistance","PipelineDiameterValues"
+    # if pipeline_cost = capacity_based, then the input file requires the tab "PipelineCapexCapacityBased",
+    # #         "pipeline_capacity": PipelineCapacity.input,
+    # if pipeline_capacity = calculated, then the input file requires the tabs "Hydraulics", "PipelineDiameterValues"
+    # if pipeline_capacity = input, then the input file requires the tab "PipelineCapacityIncrements"
+    # #         "hydraulics": Hydraulics.false,
+
+    # I think there is more here that is needed
+    # #         "node_capacity": True,
+    # "NodeCapacities",
+    # #         "water_quality": WaterQuality.false,
+    # "PadWaterQuality",
+    # "StorageInitialWaterQuality",
+    # "PadStorageInitialWaterQuality",
+    # "RemovalEfficiency", #todo: may need to move the parameter read to be in water quality
+    # #         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+    # #         "infrastructure_timing": InfrastructureTiming.true,
+    # "TreatmentExpansionLeadTime",
+    # "DisposalExpansionLeadTime",
+    # "StorageExpansionLeadTime",
+    # "pipeline_cost"
+    # "PipelineExpansionLeadTime_Dist",
+    # "PipelineExpansionLeadTime_Capac",
+
+    # If there are errors to raise, raise them.
     if len(data_error_items) > 0:
         error_message = ", ".join(data_error_items)
         raise MissingDataError(
@@ -340,21 +485,60 @@ def check_required_data(df_sets, df_parameters, config):
             + error_message
         )
 
-    # Optional Data: If data is not given, create empty dictionaries and a warning is raised to the user
-    # SWDs. If SWDSites Set is given, then "InjectionCapacities", "InitialDisposalCapacity", "DisposalOperationalCost" are needed.
+    # Optional Data: If data is not given, create empty dictionaries and raise a warning to the user
 
+    # The following are conditional optional. If
+    # CompletionsPads. If given, check for additional data required to consider CompletionsPads in the model.
+    CP_set_name = "CompletionsPads"
+    CP_required_sets = {}
+    CP_required_parameters = {"CompletionsDemand", "FlowbackRates"}
+    CP_requires_at_least_one = [
+        [
+            "CNA",
+            "CCA",
+            "CST",
+            "CCT",
+            "CKT",
+        ],  # arc to remove flowback water TODO: Check that all relevant arcs are included
+        ["NCA", "FCA", "RCA", "SCA", "FCT"],  # arc to meet completions demand
+    ]
+    # Call check optional function. This returns modified df_sets and df_parameters that
+    # includes empty dictionaries for missing data, so the parameters can be defined without error
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        CP_set_name,
+        CP_required_sets,
+        CP_required_parameters,
+        CP_requires_at_least_one,
+    )
+
+    # ProductionPads
+    PP_set_name = "ProductionPads"
+    PP_required_sets = {}
+    PP_required_parameters = {"PadRates"}
+    PP_requires_at_least_one = [["PNA", "PCT", "PKT"]]
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        PP_set_name,
+        PP_required_sets,
+        PP_required_parameters,
+        PP_requires_at_least_one,
+    )
+
+    # SWDs
     SWD_set_name = "SWDSites"
-    SWD_required_sets = {"InjectionCapacities"}
+    SWD_required_sets = {}
     SWD_required_parameters = {"InitialDisposalCapacity", "DisposalOperationalCost"}
-
+    SWD_requires_at_least_one = [["NKA", "RKA", "PKT", "RKT"]]
     (df_sets, df_parameters) = _check_optional_data(
         df_sets, df_parameters, SWD_set_name, SWD_required_sets, SWD_required_parameters
     )
 
-    # Treatment Sites. If Treatment sites are given, then  "TreatmentCapacities", "TreatmentTechnologies", "InitialTreatmentCapacity", "TreatmentOperationalCost"
-
+    # Treatment Sites.
     treatment_set_name = "TreatmentSites"
-    treatment_required_sets = {"TreatmentCapacities", "TreatmentTechnologies"}
+    treatment_required_sets = {"TreatmentTechnologies"}
     treatment_required_parameters = {
         "InitialTreatmentCapacity",
         "TreatmentOperationalCost",
@@ -363,7 +547,7 @@ def check_required_data(df_sets, df_parameters, config):
         "TreatmentEfficiency",
     }
     treatment_requires_at_least_one = [
-        ("RNA", "RSA", "RKA", "ROA", "RCA", "RST", "RKT")
+        ["RNA", "RSA", "RKA", "ROA", "RCA", "RST", "RKT"]
     ]
 
     (df_sets, df_parameters) = _check_optional_data(
@@ -375,72 +559,146 @@ def check_required_data(df_sets, df_parameters, config):
         treatment_requires_at_least_one,
     )
 
+    # Beneficial Reuse
+    reuse_set_name = "ReuseOptions"
+    reuse_required_sets = {}
+    reuse_required_parameters = {
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ReuseOperationalCost",
+    }
+    reuse_requires_at_least_one = [["ROA", "SOA", "NOA", "ROT", "SOT"]]
 
-#     # optional
-#     IF  "ReuseOptions", then "ROA", "SOA", "NOA", "ROT", "SOT",
-#
-#         "BeneficialReuseCost",
-#         "BeneficialReuseCredit",
-#         "ReuseMinimum",
-#         "ReuseCapacity",
-#         "ReuseOperationalCost",
-#
-#     IF any trucking arcs:   "TruckingTime", "TruckingHourlyCost",
-#
-#     IF "StorageSites", then  "StorageCapacities", one of ("SOA", "SOT","SNA","SCA"), one of ("RSA")
-#         "InitialStorageCapacity",
-#
-#     IF "FreshwaterSources", then "FCA", "FCT" (if not, warning)
-#         "FreshwaterSourcingAvailability", "FreshSourcingCost",
-#
-#     "NNA","NKA","NRA","NSA","NetworkNodes"
-#
-# # Needed, but can populate with default data
-#         "CompletionsPadOutsideSystem" (all inside system)
-#         "Economics",
-#         "DisposalOperatingCapacity", (all 100%)
-#         "PadOffloadingCapacity", (infinite)
-#         "CompletionsPadStorage", (0)
-#         IF "DisposalCapacityIncrements", "DisposalExpansionCost", otherwise 0s. IF NOT 0s
-#         IF "StorageCapacityIncrements", "StorageExpansionCost", otherwise 0s. IF NOT 0s
-#         IF "TreatmentCapacityIncrements","TreatmentExpansionCost", otherwise 0s IS NOT 0s
-#         "PipelineCapacityIncrements",
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        reuse_set_name,
+        reuse_required_sets,
+        reuse_required_parameters,
+        reuse_requires_at_least_one,
+    )
 
-#     # Check that input data contains required data for specific configuration options
-# Check that parameters are built only for specified configurations
-# #         "objective": Objectives.cost,
-# #         "pipeline_cost": PipelineCost.distance_based,
-# if pipeline_cost = distance_based, then the input file requires the tabs "PipelineCapexDistanceBased", "PipelineExpansionDistance","PipelineDiameterValues"
-# if pipeline_cost = capacity_based, then the input file requires the tab "PipelineCapexCapacityBased",
-# #         "pipeline_capacity": PipelineCapacity.input,
-# if pipeline_capacity = calculated, then the input file requires the tabs "Hydraulics", "PipelineDiameterValues"
-# if pipeline_capacity = input, then the input file requires the tab "PipelineCapacityIncrements"
-# #         "hydraulics": Hydraulics.false,
-# "Hydraulics",
-# "Elevation",
-# "WellPressure",
-# "InitialPipelineDiameters",
-# "PipelineDiameterValues"
-# I think there is more here that is needed
-# #         "node_capacity": True,
-# "NodeCapacities",
-# #         "water_quality": WaterQuality.false,
-# "PadWaterQuality",
-# "StorageInitialWaterQuality",
-# "PadStorageInitialWaterQuality",
-# "RemovalEfficiency", #todo: may need to move the parameter read to be in water quality
-# #         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-# #         "infrastructure_timing": InfrastructureTiming.true,
-# "TreatmentExpansionLeadTime",
-# "DisposalExpansionLeadTime",
-# "StorageExpansionLeadTime",
-# "pipeline_cost"
-# "PipelineExpansionLeadTime_Dist",
-# "PipelineExpansionLeadTime_Capac",
+    # StorageSites
+    storage_set_name = "StorageSites"
+    storage_required_sets = {}
+    storage_required_parameters = {
+        "InitialStorageCapacity",
+    }
+    storage_requires_at_least_one = [["SOA", "SOT", "SNA", "SCA"], ["RSA"]]
+
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        storage_set_name,
+        storage_required_sets,
+        storage_required_parameters,
+        storage_requires_at_least_one,
+    )
+
+    # FreshwaterSources
+    fresh_set_name = "FreshwaterSources"
+    fresh_required_sets = {}
+    fresh_required_parameters = {"FreshwaterSourcingAvailability", "FreshSourcingCost"}
+    fresh_requires_at_least_one = [
+        ["FCA", "FCT"],
+    ]
+
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        fresh_set_name,
+        fresh_required_sets,
+        fresh_required_parameters,
+        fresh_requires_at_least_one,
+    )
+
+    # Treatment Capacity Expansion
+    treatmentCapex_set_name = "TreatmentCapacities"
+    treatmentCapex_required_sets = {}
+    treatmentCapex_required_parameters = {
+        "TreatmentExpansionCost",
+        "TreatmentCapacityIncrements",
+    }
+
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        treatmentCapex_set_name,
+        treatmentCapex_required_sets,
+        treatmentCapex_required_parameters,
+    )
+
+    # Disposal Capacity Expansion
+    disposalCapex_set_name = "InjectionCapacities"
+    disposalCapex_required_sets = {}
+    disposalCapex_required_parameters = {
+        "DisposalExpansionCost",
+        "DisposalCapacityIncrements",
+    }
+
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        disposalCapex_set_name,
+        disposalCapex_required_sets,
+        disposalCapex_required_parameters,
+    )
+
+    # Storage Capacity Expansion
+    storageCapex_set_name = "StorageCapacities"
+    storageCapex_required_sets = {}
+    storageCapex_required_parameters = {
+        "StorageExpansionCost",
+        "StorageCapacityIncrements",
+    }
+
+    (df_sets, df_parameters) = _check_optional_data(
+        df_sets,
+        df_parameters,
+        storageCapex_set_name,
+        storageCapex_required_sets,
+        storageCapex_required_parameters,
+    )
+
+    # Trucking is optional, but if trucking arcs are included, relevant parameters are required
+    trucking_parameters = ["TruckingTime", "TruckingHourlyCost"]
+    trucking_arcs = get_trucking_arc_list()
+
+    if len(set(trucking_arcs) & set(df_parameters)) > 0:
+        # Check that Parameter list contains trucking Parameter tabs
+        missing_trucking_data = set(trucking_parameters) - set(df_parameters)
+        if len(missing_trucking_data) > 0:
+            # Add empty dictionary to df_parameters
+            for s in missing_trucking_data:
+                df_parameters[s] = {}
+            warning_message = "Warning: {} are given, but some trucking parameters are missing. The following missing parameters have been set to default values:".format(
+                "Trucking Arcs"
+            ) + str(
+                missing_trucking_data
+            )
+            warnings.warn(warning_message)
+
+    # optional - set defaults
+    # Note: if an empty dictionary is used, the default value for the parameter
+    # is defined at the initialization of the parameter in create_model()
+    # TODO: enforce these
+    optional_default_values = {
+        "CompletionsPadOutsideSystem": {},
+        "Economics": {"discount_rate": 0.08, "CAPEX_lifetime": 20},
+        "DisposalOperatingCapacity": {},
+        "PadOffloadingCapacity": {},
+        "CompletionsPadStorage": {},
+        "NetworkNodes": {},
+    }
+
+    return (df_sets, df_parameters)
 
 
-def model_infeasibility_detection():
-    print("test")
+# TODO: Update
+# def model_infeasibility_detection():
+#
 
 
 def create_model(df_sets, df_parameters, default={}):
@@ -453,7 +711,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.df_parameters = df_parameters
 
     # check that input data contains required data
-    check_required_data(model.df_sets, model.df_parameters, model.config)
+    model.df_sets, model.df_parameters = check_required_data(
+        model.df_sets, model.df_parameters, model.config
+    )
 
     try:
         # Check that currency is set to USD
@@ -655,30 +915,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
 
-    piping_arc_types = [
-        "PCA",
-        "PNA",
-        "PPA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NSA",
-        "NRA",
-        "NOA",
-        "FCA",
-        "RNA",
-        "RCA",
-        "RKA",
-        "RSA",
-        "SNA",
-        "SCA",
-        "SKA",
-        "SRA",
-        "SOA",
-        "ROA",
-    ]
+    piping_arc_types = get_piping_arc_list()
 
     # Build dictionary of all specified piping arcs
     model.df_parameters["LLA"] = {}
@@ -689,24 +926,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
 
-    trucking_arc_types = [
-        "PCT",
-        "PKT",
-        "PST",
-        "PRT",
-        "POT",
-        "FCT",
-        "CKT",
-        "CST",
-        "CRT",
-        "CCT",
-        "SCT",
-        "SKT",
-        "SOT",
-        "RKT",
-        "RST",
-        "ROT",
-    ]
+    trucking_arc_types = get_trucking_arc_list()
 
     # Build dictionary of all specified trucking arcs
     model.df_parameters["LLT"] = {}
@@ -1035,6 +1255,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        default=0,
         doc="Binary parameter designating the Completion Pads that are outside the system",
     )
     model.p_chi_DesalinationTechnology = Param(
@@ -2487,7 +2708,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_epsilon_DisposalOperatingCapacity = Param(
         model.s_K,
         model.s_T,
-        default=0,
+        default=1,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Operating capacity of disposal site [%]",
@@ -2678,7 +2899,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -5581,7 +5801,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5618,7 +5837,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6623,7 +6841,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
