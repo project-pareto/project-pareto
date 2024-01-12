@@ -507,21 +507,24 @@ def generate_report(
         elif output_units == OutputUnits.user_units:
             to_unit = model.model_to_user_units[from_unit_string]
         for i in disposal_data:
+            # Get site name and selected capacity from data
+            disposal_site = i[0]
+            disposal_capacity = i[1]
             # add values to output dictionary
             if (
                 disposal_data[i].value >= 1 - binary_epsilon
                 and disposal_data[i].value <= 1 + binary_epsilon
-                and model.p_delta_Disposal[i[1]].value > 0
+                and model.p_delta_Disposal[disposal_site, disposal_capacity].value > 0
             ):
                 capacity = pyunits.convert_value(
-                    model.p_delta_Disposal[i[1]].value,
+                    model.p_delta_Disposal[disposal_site, disposal_capacity].value,
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
                 if model.config.infrastructure_timing == InfrastructureTiming.true:
-                    first_use = model.infrastructure_firstUse[i[0]]
-                    build_start = model.infrastructure_buildStart[i[0]]
-                    lead_time = model.infrastructure_leadTime[i[0]]
+                    first_use = model.infrastructure_firstUse[disposal_site]
+                    build_start = model.infrastructure_buildStart[disposal_site]
+                    lead_time = model.infrastructure_leadTime[disposal_site]
                 else:
                     first_use = "--"
                     build_start = "--"
@@ -529,7 +532,7 @@ def generate_report(
                 headers["vb_y_overview_dict"].append(
                     (
                         "Disposal Facility",
-                        i[0],
+                        disposal_site,
                         "--",
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
