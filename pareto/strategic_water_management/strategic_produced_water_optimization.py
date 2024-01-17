@@ -6945,7 +6945,7 @@ def seismicity_risk(model):
     deep = model.df_parameters["SWDDeep"]
     pressure = model.df_parameters["SWDAveragePressure"]
     prox = {
-        "orphan": model.df_parameters["SWDProxOrphanWell"],
+        "orphan": model.df_parameters["SWDProxPAWell"],
         "inactive": model.df_parameters["SWDProxInactiveWell"],
         "eq": model.df_parameters["SWDProxEQ"],
         "fault": model.df_parameters["SWDProxFault"],
