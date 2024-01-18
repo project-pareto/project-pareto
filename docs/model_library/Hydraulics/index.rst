@@ -14,6 +14,8 @@ a)	Hydraulics.false: This option allows the user to skip the hydraulics computat
 b)	Hydraulics.post_process: In this method, the basic PARETO strategic model is solved as step 1, and then using the optimal flows and network design, the hydraulics block containing constraints for pressure balances and losses is solved as step 2. In this case, as only the hydraulics model block solved for the objective of minimizing cost, the optimal values for variables included in the main strategic model and obtained from step 1 remain unaffected.
 
 c)	Hydraulics.co_optimize: In this method, the hydraulics model block is solved together with the strategic model. However, as the flow and diameter are variables in the strategic model, the addition of hydraulics block makes the model a mixed integer nonlinear programming (MINLP) model. In order to solve this MINLP model, the strategic model without the hydraulics constraints is solved as step 1 to determine a good initial state for all variables and constraints.
+
+d)	Hydraulics.co_optimize_linearized: This is a linearized approximated model for the co_optimize method designed to give solutions quickly in a realistic time frame.
  
 Note: The MINLP as currently implemented requires the following MINLP solvers: SCIP and BARON. The model is first solved using BARON (if available) to determine a feasible solution and then using SCIP. 
 Some subtle differences in model components such as in the definition of variables and parameters have been made to avoid nonlinearities and allow the user to use the same solver for solving the post-process method as used for the strategic model. These differences will be shown in the description of mathematical notation and formulation below.
@@ -219,19 +221,25 @@ Allows pumping only if a pump exists in a pipeline.
 
     **Parameters**
     :math:`\textcolor{green}{\Delta_I}` =                        Length of interval of flows for building piecewise linear model
-    :math:`M` =                       Large enough constant (maximum pressure change)
+    :math:`M` =                       Large enough constant
 
     **Binary Variables**
 
-    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}}, i\in \{0,1,2,..., \lceil \log_2(70000/\Delta_I) \rceil\}`:   Intermediate binary variables to determine the section of the piecewise linear graph 
+    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,...,\lceil\log_2(70000/\textcolor{green}{\Delta_I})\rceil\}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
+
 
     **Continuous Variables**
 
-    :math:`\textcolor{red}{\lambda_{l,\tilde{l},t, i}}, i\in \{0,1,2,..., \lceil 70000/\Delta_I \rceil\}`  Intermediate continuous variables, convex combination multipliers
+    :math:`\textcolor{red}{\lambda_{l,\tilde{l},t,i}}, i\in \{0,1,2,..., \lceil 70000/\textcolor{green}{\Delta_I}\rceil\}` =         Intermediate continuous variables, convex combination multipliers.
 
-    :math:`\textcolor{red}{term_{l,\tilde{l},t}}`  Continuous variables for flow raised to the power 1.85 (in RHS of Hazen-Williams)
+    :math:`\textcolor{red}{term_{l,\tilde{l},t}}` =                      Continuous variables for flow raised to the power 1.85 (in RHS of Hazen-Williams).
 
-    :math:`\textcolor{red}{term2_{l,\tilde{l},t, d}}`  Continuous variables for the product of pressure drop and binary to select diameter (in LHS of Hazen-Williams)
+    :math:`\textcolor{red}{term2_{l,\tilde{l},t, d}}` =                  Continuous variables for the product of pressure drop and binary to select diameter (in LHS of Hazen-Williams).
+
+    :math:`\textcolor{red}{ec_{l,\tilde{l},t}}` =                      Node pressure
+
+    :math:`\textcolor{red}{Z^{Hydraulics}}` =                   Continuous variables for electricity cost for a particular pump at particular time period.
+
 
     **Effective diameter rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
 
@@ -239,39 +247,39 @@ Allows pumping only if a pump exists in a pipeline.
 
     **Setting term in RHS:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
 
-    Set the right hand side term flow to the power 1.85 in Hazen-Williams equation
+    Set the right hand side term flow to the power 1.85 in Hazen-Williams equation.
 
     .. math::
 
         \textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
-        = \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}}i \cdot \Delta_I \cdot \textcolor{red}{\lambda_{l, \tilde{l}, t, i}}
+        = \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}}i \cdot \textcolor{green}{\Delta_I} \cdot \textcolor{red}{\lambda_{l, \tilde{l}, t, i}}
 
     .. math::
 
         \textcolor{red}{term_{l,\tilde{l},t}}
-        = \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}}(1.84E-6 \cdot i \cdot \Delta_I)^{1.85} \cdot \textcolor{red}{\lambda_{l,\tilde{l},t, i}}
+        = \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}}(1.84E-6 \cdot i \cdot \textcolor{green}{\Delta_I})^{1.85} \cdot \textcolor{red}{\lambda_{l,\tilde{l},t, i}}
 
     **Sum of convex multipliers is one** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
 
 
     .. math::
 
-       \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = 1
+       \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = 1
 
     **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
-    c(k) = binary representation of length length :math:`\lceil log_2(70000/\Delta_I) \rceil\}` of decimal k 
+    c(k) = binary representation of length :math:`\lceil log_2(70000/\textcolor{green}{\Delta_I}) \rceil\}` for decimal k.
 
     .. math::
 
-       \sum_{i \in \{0,1,2,..,\lceil 70000/\Delta_I \rceil\}, i \neq j, j+1} \textcolor{red}{\lambda_{l,\tilde{l},t, i} } = \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\Delta_I)\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
-       \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\Delta_I)\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} 
+       \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}, i \neq j, j+1} \textcolor{red}{\lambda_{l,\tilde{l},t, i} } = \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
+       \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} 
 
 
     
     **Setting term in LHS:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}, \textcolor{blue}{d \in D}`
 
-    Set the product of pressure change and binary diameter selection variables by the following set of constraints
+    Set the product of pressure change and binary diameter selection variables by the following set of constraints.
 
     .. math::
 
@@ -316,6 +324,16 @@ Allows pumping only if a pump exists in a pipeline.
          - \textcolor{red}{H_{l,\tilde{l},t}^{Pump}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
+    
+    **Electricity cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
+
+    Calculate electricity (variable) cost of pump at every time period.
+
+    .. math::
+         \textcolor{red}{ec_{l,\tilde{l},t}} \geq \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g}  \cdot  j \cdot  \textcolor{green}{\Delta_I} \cdot \textcolor{red}{H_{l,\tilde{l},t}^{Pump}}  - M (\sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
+     \\  \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} )
+
+
     **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
 
     Allows pumping only if a pump exists in a pipeline.
@@ -323,5 +341,5 @@ Allows pumping only if a pump exists in a pipeline.
     .. math::
 
         \textcolor{red}{C_{l,\tilde{l}}^{Pump}} = \textcolor{green}{\nu^{Pump}} \cdot \textcolor{red}{y_{l,\tilde{l},[t]}^{Pump}}
-        + \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g} \cdot \sum_{t \in T}1609 \cdot \textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
+        + \sum_{t \in T} \textcolor{red}{ec_{l,\tilde{l},t}}
 

@@ -4384,31 +4384,6 @@ def pipeline_hydraulics(model):
             within=NonNegativeReals,
         )
 
-        # -----------------Removing effective diameter rule. We will put the expression of binaries where needed
-        # mh.v_effective_Pipeline_diameter = Var(
-        #     model.s_LLA,
-        #     initialize=0,
-        #     units=model.model_units["diameter"],
-        #     doc="Diameter of pipeline between two locations [inch]",
-        # )
-
-        # def EffectiveDiameterRule(b, l1, l2, t1):
-        #     constraint = mh.v_effective_Pipeline_diameter[
-        #         l1, l2
-        #     ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
-        #         model.vb_y_Pipeline[l1, l2, d]
-        #         * model.df_parameters["PipelineDiameterValues"][d]
-        #         for d in model.s_D
-        #     )
-        #     return process_constraint(constraint)
-
-        # mh.EffectiveDiameter = Constraint(
-        #     model.s_LLA,
-        #     model.s_T,
-        #     rule=EffectiveDiameterRule,
-        #     doc="Pressure at Node L",
-        # )
-
         # Add the constraints, starting with the constraints that linearize (piecewise)
         # non-linear flow term in Hazen-William Equation
 
@@ -7606,16 +7581,6 @@ def solve_model(model, options=None):
                 results_gurobi = solver.solve(model_h, tee=True, keepfiles=True)
 
                 results_2 = results_gurobi
-                # average_pumphead = 0
-                # ctr_pum=0
-                # for (l1, l2) in model.s_LLA:
-                #     if value(model_h.hydraulics.vb_Y_Pump[l1, l2])==1:
-                #         for t in model.s_T:
-                #             print("model_h.v_PumpHead['%s', '%s', '%s'] = %s"%(str(l1), str(l2), str(t), str(value(model_h.hydraulics.v_PumpHead[l1, l2, t]))))
-                #             average_pumphead+=value(model_h.hydraulics.v_PumpHead[l1, l2, t])
-                #             ctr_pum+=1
-                # average_pumphead/=ctr_pum
-                # print("Average pumphead is ",average_pumphead)
         # Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()
 
