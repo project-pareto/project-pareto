@@ -660,7 +660,7 @@ def test_hydraulics_co_optimize_linearized_input(
     assert isinstance(mh.hydraulics.PumpCostEq, pyo.Constraint)
     assert isinstance(mh.hydraulics.HydraulicsCostEq, pyo.Constraint)
     assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
- 
+
 
 @pytest.mark.unit
 def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
