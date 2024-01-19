@@ -398,8 +398,8 @@ def get_display_units(input_sheet_name_list, user_units):
         "InitialStorageCapacity": user_units["volume"],
         "StorageCapacityIncrements": user_units["volume"],
         "TreatmentCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
-        "TreatmentEfficiency": "%",
-        "RemovalEfficiency": "%",
+        "TreatmentEfficiency": "fraction",
+        "RemovalEfficiency": "fraction",
         "DisposalExpansionCost": user_units["currency"]
         + "/("
         + user_units["volume"]
@@ -432,7 +432,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "PadWaterQuality": user_units["concentration"],
         "StorageInitialWaterQuality": user_units["concentration"],
         "PadStorageInitialWaterQuality": user_units["concentration"],
-        "DisposalOperatingCapacity": user_units["concentration"],
+        "DisposalOperatingCapacity": "fraction",
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
