@@ -383,7 +383,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc="Pads")
     model.s_F = Set(
-        initialize=model.df_sets["FreshwaterSources"], doc="Freshwater Sources"
+        initialize=model.df_sets["ExternalWaterSources"], doc="External Water Sources"
     )
     model.s_K = Set(initialize=model.df_sets["SWDSites"], doc="Disposal Sites")
     model.s_S = Set(initialize=model.df_sets["StorageSites"], doc="Storage Sites")
@@ -516,7 +516,7 @@ def create_model(df_sets, df_parameters, default={}):
         within=NonNegativeReals,
         initialize=0,
         units=model.model_units["volume_time"],
-        doc="Fresh water sourced from source f to completions pad p [volume/time]",
+        doc="Externally sourced water from source f to completions pad p [volume/time]",
     )
     model.v_F_PadStorageIn = Var(
         model.s_CP,
@@ -590,7 +590,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_F_TotalSourced = Var(
         within=NonNegativeReals,
         units=model.model_units["volume"],
-        doc="Total volume freshwater sourced [volume]",
+        doc="Total volume of externally sourced water [volume]",
     )
     model.v_F_TotalDisposed = Var(
         within=NonNegativeReals,
@@ -632,7 +632,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         within=NonNegativeReals,
         units=model.model_units["currency_time"],
-        doc="Cost of sourcing fresh water from source f to completion pad p [currency/time]",
+        doc="Cost of externally sourced water from source f to completion pad p [currency/time]",
     )
     model.v_C_Disposal = Var(
         model.s_K,
@@ -693,7 +693,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_C_TotalSourced = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
-        doc="Total cost of sourcing freshwater [currency]",
+        doc="Total cost of externally sourced water [currency]",
     )
     model.v_C_TotalDisposal = Var(
         within=NonNegativeReals,
@@ -1047,7 +1047,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         default=0,
         initialize=init_arc_param("FCA"),
-        doc="Valid freshwater-to-completions pipeline arcs [-]",
+        doc="Valid externally sourced water-to-completions pipeline arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
@@ -1159,7 +1159,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_CP,
         default=0,
         initialize=init_arc_param("FCT"),
-        doc="Valid freshwater-to-completions trucking arcs [-]",
+        doc="Valid externally sourced water-to-completions trucking arcs [-]",
     )
     model.p_CKT = Param(
         model.s_CP,
@@ -1418,7 +1418,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Capacity of beneficial reuse option [volume/time]",
     )
-    model.p_sigma_Freshwater = Param(
+    model.p_sigma_ExternalWater = Param(
         model.s_F,
         model.s_T,
         default=0,
@@ -1429,11 +1429,11 @@ def create_model(df_sets, df_parameters, default={}):
                 to_units=model.model_units["volume_time"],
             )
             for key, value in model.df_parameters[
-                "FreshwaterSourcingAvailability"
+                "ExtWaterSourcingAvailability"
             ].items()
         },
         units=model.model_units["volume_time"],
-        doc="Freshwater sourcing capacity at freshwater source [volume/time]",
+        doc="Externally sourced water capacity [volume/time]",
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
 
@@ -2124,26 +2124,26 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Trucking hourly cost (by source) [currency/hr]",
     )
-    FreshSourcingCost_convert_to_model = {
+    ExternalSourcingCost_convert_to_model = {
         key: pyunits.convert_value(
             value,
             from_units=model.user_units["currency_volume"],
             to_units=model.model_units["currency_volume"],
         )
-        for key, value in model.df_parameters["FreshSourcingCost"].items()
+        for key, value in model.df_parameters["ExternalSourcingCost"].items()
     }
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=max(FreshSourcingCost_convert_to_model.values()) * 100
-        if FreshSourcingCost_convert_to_model
+        default=max(ExternalSourcingCost_convert_to_model.values()) * 100
+        if ExternalSourcingCost_convert_to_model
         else pyunits.convert_value(
             150,
             from_units=pyunits.USD / pyunits.oil_bbl,
             to_units=model.model_units["currency_volume"],
         ),
-        initialize=FreshSourcingCost_convert_to_model,
+        initialize=ExternalSourcingCost_convert_to_model,
         units=model.model_units["currency_volume"],
-        doc="Fresh sourcing cost [currency/volume]",
+        doc="Externally sourced water cost [currency/volume]",
     )
     model.p_M_Flow = Param(
         default=pyunits.convert_value(
@@ -2429,20 +2429,20 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Terminal completions pad storage level",
     )
 
-    def FreshwaterSourcingCapacityRule(model, f, t):
+    def ExternalWaterSourcingCapacityRule(model, f, t):
         constraint = (
             sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
             + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
-            <= model.p_sigma_Freshwater[f, t]
+            <= model.p_sigma_ExternalWater[f, t]
         )
 
         return process_constraint(constraint)
 
-    model.FreshwaterSourcingCapacity = Constraint(
+    model.ExternalWaterSourcingCapacity = Constraint(
         model.s_F,
         model.s_T,
-        rule=FreshwaterSourcingCapacityRule,
-        doc="Freshwater sourcing capacity",
+        rule=ExternalWaterSourcingCapacityRule,
+        doc="Externally sourced water capacity",
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
@@ -3017,7 +3017,7 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalBeneficialReuseVolumeRule, doc="Total beneficial reuse volume"
     )
 
-    def FreshSourcingCostRule(model, f, p, t):
+    def ExternalSourcingCostRule(model, f, p, t):
         if f in model.s_F and p in model.s_CP:
             if model.p_FCA[f, p]:
                 constraint = (
@@ -3038,15 +3038,15 @@ def create_model(df_sets, df_parameters, default={}):
         else:
             return Constraint.Skip
 
-    model.FreshSourcingCost = Constraint(
+    model.ExternalSourcingCost = Constraint(
         model.s_F,
         model.s_CP,
         model.s_T,
-        rule=FreshSourcingCostRule,
-        doc="Fresh sourcing cost",
+        rule=ExternalSourcingCostRule,
+        doc="Externally sourced water cost",
     )
 
-    def TotalFreshSourcingCostRule(model):
+    def TotalExternalSourcingCostRule(model):
         constraint = model.v_C_TotalSourced == sum(
             sum(
                 sum(model.v_C_Sourced[f, p, t] for f in model.s_F if model.p_FCA[f, p])
@@ -3056,11 +3056,11 @@ def create_model(df_sets, df_parameters, default={}):
         )
         return process_constraint(constraint)
 
-    model.TotalFreshSourcingCost = Constraint(
-        rule=TotalFreshSourcingCostRule, doc="Total fresh sourcing cost"
+    model.TotalExternalSourcingCost = Constraint(
+        rule=TotalExternalSourcingCostRule, doc="Total externally sourced water cost"
     )
 
-    def TotalFreshSourcingVolumeRule(model):
+    def TotalExternalSourcingVolumeRule(model):
         constraint = model.v_F_TotalSourced == (
             sum(
                 sum(
@@ -3088,8 +3088,8 @@ def create_model(df_sets, df_parameters, default={}):
 
         return process_constraint(constraint)
 
-    model.TotalFreshSourcingVolume = Constraint(
-        rule=TotalFreshSourcingVolumeRule, doc="Total fresh sourcing volume"
+    model.TotalExternalSourcingVolume = Constraint(
+        rule=TotalExternalSourcingVolumeRule, doc="Total externally sourced water volume"
     )
 
     def DisposalCostRule(model, k, t):
@@ -4424,7 +4424,7 @@ def water_quality(model):
         doc="Water Quality at pad [concentration]",
     )
     # Quality of Sourced Water
-    model.quality.p_nu_freshwater = Param(
+    model.quality.p_nu_externalwater = Param(
         model.s_F,
         model.s_QC,
         default=0,
@@ -4434,10 +4434,10 @@ def water_quality(model):
                 from_units=model.user_units["concentration"],
                 to_units=model.model_units["concentration"],
             )
-            for key, value in model.df_parameters["FreshwaterQuality"].items()
+            for key, value in model.df_parameters["ExternalWaterQuality"].items()
         },
         units=model.model_units["concentration"],
-        doc="Water Quality of freshwater [concentration]",
+        doc="Water Quality of externally sourced water [concentration]",
     )
     # Initial water quality at storage site
     model.quality.p_xi_StorageSite = Param(
@@ -4968,7 +4968,7 @@ def water_quality(model):
             for r in b.parent_block().s_R
             if b.parent_block().p_RCA[r, p]
         ) + sum(
-            b.parent_block().v_F_Sourced[f, p, t] * b.p_nu_freshwater[f, qc]
+            b.parent_block().v_F_Sourced[f, p, t] * b.p_nu_externalwater[f, qc]
             for f in b.parent_block().s_F
             if b.parent_block().p_FCA[f, p]
         ) + sum(
@@ -4984,7 +4984,7 @@ def water_quality(model):
             for s in b.parent_block().s_S
             if b.parent_block().p_SCT[s, p]
         ) + sum(
-            b.parent_block().v_F_Trucked[f, p, t] * b.p_nu_freshwater[f, qc]
+            b.parent_block().v_F_Trucked[f, p, t] * b.p_nu_externalwater[f, qc]
             for f in b.parent_block().s_F
             if b.parent_block().p_FCT[f, p]
         ) == b.v_Q[
@@ -5173,7 +5173,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="Water Quality at pad [concentration]",
     )
     # Quality of Sourced Water
-    model.p_nu_freshwater = Param(
+    model.p_nu_externalwater = Param(
         model.s_F,
         model.s_QC,
         default=0,
@@ -5183,10 +5183,10 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 from_units=model.user_units["concentration"],
                 to_units=model.model_units["concentration"],
             )
-            for key, value in model.df_parameters["FreshwaterQuality"].items()
+            for key, value in model.df_parameters["ExternalWaterQuality"].items()
         },
         units=model.model_units["concentration"],
-        doc="Water Quality of freshwater [concentration]",
+        doc="Water Quality of externally sourced water [concentration]",
     )
     # Initial water quality at storage site
     model.p_xi_StorageSite = Param(
@@ -5258,7 +5258,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     )
 
     # Create sets for location to location arcs where the quality for the from location is variable.
-    # This excludes the production pads and fresh water sources because the quality is known.
+    # This excludes the production pads and external water sources because the quality is known.
     model.s_NonPLP = Set(
         initialize=[
             NonFromPPipelines
@@ -5276,7 +5276,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="location-to-location with discrete quality trucking arcs",
     )
 
-    # All locations where the quality is variable. This excludes the production pads and fresh water sources
+    # All locations where the quality is variable. This excludes the production pads and external water sources
     model.s_QL = Set(
         initialize=(
             model.s_K
@@ -6238,7 +6238,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for r in model.s_R
             if model.p_RCA[r, p]
         ) + sum(
-            model.v_F_Sourced[f, p, t] * b.p_nu_freshwater[f, qc]
+            model.v_F_Sourced[f, p, t] * b.p_nu_externalwater[f, qc]
             for f in model.s_F
             if model.p_FCA[f, p]
         ) + sum(
@@ -6258,7 +6258,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             for s in model.s_S
             if model.p_SCT[s, p]
         ) + sum(
-            model.v_F_Trucked[f, p, t] * b.p_nu_freshwater[f, qc]
+            model.v_F_Trucked[f, p, t] * b.p_nu_externalwater[f, qc]
             for f in model.s_F
             if model.p_FCT[f, p]
         ) <= sum(
@@ -6513,8 +6513,8 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.DisposalCost] = 1 / scaling_factor
     model.scaling_factor[model.DisposalDestinationDeliveries] = 1 / scaling_factor
     model.scaling_factor[model.DisposalExpansionCapEx] = 1 / scaling_factor
-    model.scaling_factor[model.FreshwaterSourcingCapacity] = 1 / scaling_factor
-    model.scaling_factor[model.FreshSourcingCost] = 1 / scaling_factor
+    model.scaling_factor[model.ExternalWaterSourcingCapacity] = 1 / scaling_factor
+    model.scaling_factor[model.ExternalSourcingCost] = 1 / scaling_factor
     # This constraint contains only binary variables
     model.scaling_factor[model.LogicConstraintDisposal] = 1
     # This constraint contains only binary variables
@@ -6552,8 +6552,8 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TotalCompletionsReuseCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalDisposalCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalDisposalVolume] = 1 / scaling_factor
-    model.scaling_factor[model.TotalFreshSourcingCost] = 1 / scaling_factor
-    model.scaling_factor[model.TotalFreshSourcingVolume] = 1 / scaling_factor
+    model.scaling_factor[model.TotalExternalSourcingCost] = 1 / scaling_factor
+    model.scaling_factor[model.TotalExternalSourcingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TotalPipingCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalReuseVolume] = 1 / scaling_factor
     model.scaling_factor[model.TotalStorageCost] = 1 / scaling_factor

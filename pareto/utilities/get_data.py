@@ -371,7 +371,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
         "ReuseMinimum": user_units["volume"] + "/" + user_units["time"],
         "ReuseCapacity": user_units["volume"] + "/" + user_units["time"],
-        "FreshwaterSourcingAvailability": user_units["volume"]
+        "ExtWaterSourcingAvailability": user_units["volume"]
         + "/"
         + user_units["time"],
         "PadOffloadingCapacity": user_units["volume"] + "/" + user_units["time"],
@@ -380,7 +380,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "TreatmentOperationalCost": user_units["currency"] + "/" + user_units["volume"],
         "ReuseOperationalCost": user_units["currency"] + "/" + user_units["volume"],
         "PipelineOperationalCost": user_units["currency"] + "/" + user_units["volume"],
-        "FreshSourcingCost": user_units["currency"] + "/" + user_units["volume"],
+        "ExternalSourcingCost": user_units["currency"] + "/" + user_units["volume"],
         "TruckingHourlyCost": user_units["currency"] + "/" + "hour",
         "PipelineDiameterValues": user_units["diameter"],
         "DisposalCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
@@ -418,7 +418,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "PipelineExpansionDistance": user_units["distance"],
         "Hydraulics": "",
         "Economics": "",
-        "FreshwaterQuality": user_units["concentration"],
+        "ExternalWaterQuality": user_units["concentration"],
         "PadWaterQuality": user_units["concentration"],
         "StorageInitialWaterQuality": user_units["concentration"],
         "PadStorageInitialWaterQuality": user_units["concentration"],
@@ -444,7 +444,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "ProductionTanks": "",
         "CompletionsPads": "",
         "SWDSites": "",
-        "FreshwaterSources": "",
+        "ExternalWaterSources": "",
         "WaterQualityComponents": "",
         "StorageSites": "",
         "TreatmentSites": "",

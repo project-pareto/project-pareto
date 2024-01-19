@@ -25,7 +25,7 @@ PARETO is designed as an executable optimization-based decision-support applicat
     * Demand forecasts
     * Quality constraints
 * Cost assumptions
-    * cost of freshwater
+    * cost of externally sourced
     * treatment, production, and storage cost
 
 
