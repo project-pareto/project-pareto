@@ -176,7 +176,12 @@ def generate_report(
                 ("External water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                ("External water source", "Completion pad", "Time", "Cost sourced water")
+                (
+                    "External water source",
+                    "Completion pad",
+                    "Time",
+                    "Cost sourced water",
+                )
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -811,7 +816,12 @@ def generate_report(
                 ("External water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                ("External water source", "Completion pad", "Time", "Cost sourced water")
+                (
+                    "External water source",
+                    "Completion pad",
+                    "Time",
+                    "Cost sourced water",
+                )
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],

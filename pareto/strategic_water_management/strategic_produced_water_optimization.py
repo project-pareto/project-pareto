@@ -3089,7 +3089,8 @@ def create_model(df_sets, df_parameters, default={}):
         return process_constraint(constraint)
 
     model.TotalExternalSourcingVolume = Constraint(
-        rule=TotalExternalSourcingVolumeRule, doc="Total externally sourced water volume"
+        rule=TotalExternalSourcingVolumeRule,
+        doc="Total externally sourced water volume",
     )
 
     def DisposalCostRule(model, k, t):

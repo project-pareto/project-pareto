@@ -371,9 +371,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
         "ReuseMinimum": user_units["volume"] + "/" + user_units["time"],
         "ReuseCapacity": user_units["volume"] + "/" + user_units["time"],
-        "ExtWaterSourcingAvailability": user_units["volume"]
-        + "/"
-        + user_units["time"],
+        "ExtWaterSourcingAvailability": user_units["volume"] + "/" + user_units["time"],
         "PadOffloadingCapacity": user_units["volume"] + "/" + user_units["time"],
         "CompletionsPadStorage": user_units["volume"],
         "DisposalOperationalCost": user_units["currency"] + "/" + user_units["volume"],

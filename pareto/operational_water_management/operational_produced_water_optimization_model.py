@@ -231,7 +231,9 @@ def create_model(df_sets, df_parameters, default={}):
     model.s_CP = Set(initialize=df_sets["CompletionsPads"], doc="Completions Pads")
     model.s_A = Set(initialize=df_sets["ProductionTanks"], doc="Production Tanks")
     model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc="Pads")
-    model.s_F = Set(initialize=df_sets["ExternalWaterSources"], doc="External Water Sources")
+    model.s_F = Set(
+        initialize=df_sets["ExternalWaterSources"], doc="External Water Sources"
+    )
     model.s_K = Set(initialize=df_sets["SWDSites"], doc="Disposal Sites")
     model.s_S = Set(initialize=df_sets["StorageSites"], doc="Storage Sites")
     model.s_R = Set(initialize=df_sets["TreatmentSites"], doc="Treatment Sites")
@@ -2169,7 +2171,8 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.TotalExternalSourcingVolume = Constraint(
-        rule=TotalExternalSourcingVolumeRule, doc="Total externally sourced water volume"
+        rule=TotalExternalSourcingVolumeRule,
+        doc="Total externally sourced water volume",
     )
 
     def DisposalCostRule(model, k, t):
