@@ -110,7 +110,7 @@ def Bound_v_Q_PP(model):
         max([x.value for x in model.quality.p_xi_StorageSite.values()]),
         max([x.value for x in model.quality.p_xi_PadStorage.values()]),
         max([x.value for x in model.quality.p_nu_pad.values()]),
-        max([x.value for x in model.quality.p_nu_freshwater.values()]),
+        max([x.value for x in model.quality.p_nu_externalwater.values()]),
     )
 
     """
