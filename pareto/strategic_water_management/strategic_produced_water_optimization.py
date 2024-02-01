@@ -3677,6 +3677,35 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_K, rule=LogicConstraintDisposalRule, doc="Logic constraint disposal"
     )
 
+    def LogicConstraintPipeline2Rule(model, l1, l2, d):
+        if (l2,l1) in model.s_LLA:
+            constraint = (
+                model.vb_y_Pipeline[l1, l2, d] == model.vb_y_Pipeline[l2, l1, d]
+                )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+        
+    model.LogicConstraintPipeline2= Constraint(
+        model.s_LLA,
+        model.s_D,
+        rule=LogicConstraintPipeline2Rule,
+        doc="Pressure at Node L",
+    )
+
+    def LogicConstraintFlowPipelineRule(model, l1, l2, t):
+        constraint = (
+            model.vb_y_Flow[l1, l2, t] <=  model.p_sigma_Pipeline[l1,l2] + 1 - model.vb_y_Pipeline[l1, l2, 'D0']
+            )
+        return process_constraint(constraint)
+
+        
+    model.LogicConstraintFlowPipeline= Constraint(
+        model.s_LLA, model.s_T,
+        rule=LogicConstraintFlowPipelineRule,
+        doc="Pressure at Node L",
+    )
+
     def LogicConstraintStorageRule(model, s):
         constraint = sum(model.vb_y_Storage[s, c] for c in model.s_C) == 1
         return process_constraint(constraint)
@@ -3947,6 +3976,12 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"],
         doc="Maximum ALlowable Operating Pressure",
     )
+
+    df_param_init_dia = {}
+    for key, value2 in model.df_parameters["InitialPipelineDiameters"].items():
+        df_param_init_dia[key] = value2
+        df_param_init_dia[(key[1],key[0])] = value2
+
     mh.p_Initial_Pipeline_Diameter = Param(
         model.s_L,
         model.s_L,
@@ -3961,7 +3996,7 @@ def pipeline_hydraulics(model):
                 from_units=model.user_units["diameter"],
                 to_units=model.model_units["diameter"],
             )
-            for key, value in model.df_parameters["InitialPipelineDiameters"].items()
+            for key, value in df_param_init_dia.items()
         },
         units=model.model_units["diameter"],
         doc="Initial pipeline diameter [inch]",
@@ -4537,41 +4572,52 @@ def pipeline_hydraulics(model):
             doc="McCormick 3",
         )
 
-        def NodePressureRule(b, l1, l2, t1):
-            if (l2, l1) in model.s_LLA:
-                constraint = (
-                    b.v_Pressure[l1, t1]
-                    + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
-                    == (
-                        b.v_Pressure[l2, t1]
-                        + model.p_zeta_Elevation[l2] * mh.p_rhog
-                        + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
-                        - b.v_HW_loss[l2, l1, t1] * mh.p_rhog
-                        - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
-                        + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
-                    )
-                    * cons_scaling_factor
-                )
-            else:
-                constraint = (
-                    b.v_Pressure[l1, t1]
-                    + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
-                    == (
-                        b.v_Pressure[l2, t1]
-                        + model.p_zeta_Elevation[l2] * mh.p_rhog
-                        + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
-                        - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
-                        + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
-                    )
-                    * cons_scaling_factor
-                )
 
+        M_1 = 10**8
+
+        def NodePressure1Rule(b, l1, l2, t1):
+            constraint = (
+                (b.v_Pressure[l1, t1]
+                + model.p_zeta_Elevation[l1] * mh.p_rhog) * cons_scaling_factor
+                >= (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                    - M_1*(1-model.vb_y_Flow[l1,l2,t1])* mh.p_rhog
+                )
+                * cons_scaling_factor
+            )
             return process_constraint(constraint)
 
-        mh.NodePressure = Constraint(
+        mh.NodePressure1 = Constraint(
             model.s_LLA,
             model.s_T,
-            rule=NodePressureRule,
+            rule=NodePressure1Rule,
+            doc="Pressure at Node L",
+        )
+
+        def NodePressure2Rule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1]
+                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                <= (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                    + M_1*(1-model.vb_y_Flow[l1,l2,t1])* mh.p_rhog
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.NodePressure2 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressure2Rule,
             doc="Pressure at Node L",
         )
 
@@ -7579,9 +7625,8 @@ def solve_model(model, options=None):
                 )
             else:
                 results_gurobi = solver.solve(model_h, tee=True, keepfiles=True)
-
                 results_2 = results_gurobi
-        # Once the hydraulics block is solved, it is deactivated to retain the original MILP
+        #Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()
 
         results_2.write()
