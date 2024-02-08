@@ -326,7 +326,7 @@ def make_mee_mvr_model(N_evap = 1, inputs_variables = False):
     m.compressor_capex = pyo.Var(bounds = (1e-20, None),
                                  initialize = 1)
     
-    m.evaporator_capex = pyo.Var(bounds = (1e-20, None),
+    m.evaporator_capex = pyo.Var(m.i, bounds = (1e-20, None),
                                  initialize = 1)
     
     m.preheater_capex = pyo.Var(bounds = (1e-20, None),
@@ -631,8 +631,11 @@ def make_mee_mvr_model(N_evap = 1, inputs_variables = False):
     #=====================================================================================
                                         #Mixer constraint
     def _mixer_energy_balance(m):
-        return m.mixer_temperature == sum(m.flow_vapor_evaporator[i]*
-                                         m.evaporator_condensate_temperature[i] for i in m.i)/sum(m.flow_vapor_evaporator[i] for i in m.i)
+        i_last = m.i.last()
+        i_first = m.i.first()
+        return m.mixer_temperature == (m.flow_vapor_evaporator[i_last]*m.evaporator_condensate_temperature[i_first] +
+                                       sum(m.flow_vapor_evaporator[i-1]*
+                                         m.evaporator_condensate_temperature[i] for i in m.i_except_1))/sum(m.flow_vapor_evaporator[i] for i in m.i)
     m.mixer_energy_balance = pyo.Constraint(rule = _mixer_energy_balance)
     #=====================================================================================
                                         #Preheater constraints
@@ -747,21 +750,25 @@ def make_mee_mvr_model(N_evap = 1, inputs_variables = False):
         return m.compressor_capex == m.cepci_ratio*(7.9*m.compressor_capacity**0.62)
     m.compressor_capex_con = pyo.Constraint(rule = _compressor_capex_con)
     
-    def _evaporator_capex_con(m):
-        return m.evaporator_capex == m.cepci_ratio*1.218*sum(pyo.exp(3.2362 - 0.0126*pyo.log(m.each_evaporator_area[i]*10.764) + 0.0244*(pyo.log(m.each_evaporator_area[i]*10.764))**2) for i in range(N_evap))
-    m.evaporator_capex_con = pyo.Constraint(rule = _evaporator_capex_con)
+    def _evaporator_capex_con(m, i):
+        #material factor for nickel
+        fm = 1.8
+        return m.evaporator_capex[i] == m.cepci_ratio*fm*1.218*pyo.exp(3.2362 - 0.0126*pyo.log(m.each_evaporator_area[i]*10.764) + 0.0244*(pyo.log(m.each_evaporator_area[i]*10.764))**2)
+    m.evaporator_capex_con = pyo.Constraint(m.i, rule = _evaporator_capex_con)
+
     
     def _preheater_capex_con(m):
         a = m.preheater_area*10.764
-        fd = pyo.exp(-0.9186 + 0.0830*pyo.log(a)) #utube heat exchanger
+        fd = pyo.exp(-0.9816 + 0.0830*pyo.log(a)) #utube heat exchanger
         fp = 1 #pressure < 4 bar
         fm = 1 #carbon steel
-        Cb = pyo.exp(8.821-0.306*pyo.log(a) + 0.0681*(pyo.log(a))**2)
+        Cb = pyo.exp(8.821-0.308*pyo.log(a) + 0.0681*(pyo.log(a))**2)
         return m.preheater_capex ==  m.cepci_ratio*1.218/1000*fd*fm*fp*Cb
     m.preheater_capex_con = pyo.Constraint(rule = _preheater_capex_con)
     
     m.capital_cost = pyo.Constraint(expr = m.CAPEX == m.annual_fac*
-                                    (m.compressor_capex + m.evaporator_capex + m.preheater_capex))
+                                    (sum(m.evaporator_capex[i] for i in range(N_evap)) +m.compressor_capex +  m.preheater_capex))
+    
     m.operation_cost = pyo.Constraint(expr = m.OPEX == 1.4*m.compressor_work)
 
     m.obj = pyo.Objective(expr = (m.CAPEX + m.OPEX))
