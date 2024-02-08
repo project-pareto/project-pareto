@@ -44,7 +44,7 @@ class TestMeeMvrModel():
     @pytest.mark.skipif(not ipopt_avail, reason="ipopt is not available")
     def test_two_stage(self):
         m = make_mee_mvr_model(N_evap = 2, inputs_variables=False)
-        m.flow_feed = 10 
+        m.flow_feed = 10
         m.salt_feed = 70
         
         ipopt = pyo.SolverFactory('ipopt')
@@ -70,9 +70,9 @@ class TestMeeMvrModel():
     def test_three_stage(self):
         m = make_mee_mvr_model(N_evap = 3, inputs_variables=False)
         #This needs a higher compression ratio to find the optimum
-        m.CR_max = 10
+        m.CR_max = 6
         
-        m.flow_feed = 10 
+        m.flow_feed = 10
         m.salt_feed = 70
         
         ipopt = pyo.SolverFactory('ipopt')
