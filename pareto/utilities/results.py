@@ -29,7 +29,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from enum import Enum
-from numbers import Number
 
 import contextlib
 import sys
@@ -1399,7 +1398,7 @@ def plot_sankey(input_data={}, args=None):
             & (sum_df["destination"] == row["destination"]),
             "value",
         ].sum()
-        sum_df.at[index, "value"] = _ensure_scalar(new_value)
+        sum_df.loc[index, "value"] = _ensure_scalar(new_value)
 
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
@@ -1772,7 +1771,7 @@ def plot_bars(input_data, args):
                 & (df_modified[time] == row[time]),
                 y_title,
             ].sum()
-            df_modified.at[index, y_title] = _ensure_scalar(new_value)
+            df_modified.loc[index, y_title] = _ensure_scalar(new_value)
 
         df_bar = df_modified.drop_duplicates(subset=[x_title, time], keep="first")
 
@@ -1860,7 +1859,7 @@ def plot_bars(input_data, args):
             new_value = df_modified.loc[
                 df_modified[x_title] == row[x_title], y_title
             ].sum()
-            df_new.at[index, y_title] = _ensure_scalar(new_value)
+            df_new.loc[index, y_title] = _ensure_scalar(new_value)
 
         df_new_updated = df_new.drop_duplicates(subset=[x_title], keep="first")
 
@@ -2209,7 +2208,7 @@ def plot_scatter(input_data, args):
                 & (df_modified_x[time] == row[time]),
                 x_title,
             ].sum()
-            df_modified_x.at[index, x_title] = _ensure_scalar(new_x_value)
+            df_modified_x.loc[index, x_title] = _ensure_scalar(new_x_value)
 
         for y_index, y_row in df_dup_y.iterrows():
             new_y_value = 0
@@ -2218,7 +2217,7 @@ def plot_scatter(input_data, args):
                 & (df_modified_y[time] == y_row[time]),
                 y_title,
             ].sum()
-            df_modified_y.at[y_index, y_title] = _ensure_scalar(new_y_value)
+            df_modified_y.loc[y_index, y_title] = _ensure_scalar(new_y_value)
 
         # Dropping new duplicates
         df_modified_x = df_modified_x.drop_duplicates(
@@ -2240,7 +2239,7 @@ def plot_scatter(input_data, args):
             if isinstance(y_value, pd.Series):
                 assert len(y_value) == 1
                 y_value = y_value.iloc[0]
-            df_modified_x.at[x_indx, y_title] = _ensure_scalar(y_value)
+            df_modified_x.loc[x_indx, y_title] = _ensure_scalar(y_value)
 
         # Add size column and calculate the ratio or grab the size from the variable passed in for size
         df_modified_x[size] = 0
@@ -2284,7 +2283,7 @@ def plot_scatter(input_data, args):
                         "Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size."
                     )
                 try:
-                    df_modified_x.at[s_indx, size] = _ensure_scalar(s_value)
+                    df_modified_x.loc[s_indx, size] = _ensure_scalar(s_value)
                 except:
                     raise Exception(
                         "Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.".format(
@@ -2324,7 +2323,7 @@ def plot_scatter(input_data, args):
                     & (df_modified_size[time] == size_row[time]),
                     s_title,
                 ].sum()
-                df_modified_size.at[size_index, s_title] = _ensure_scalar(new_size_value)
+                df_modified_size.loc[size_index, s_title] = _ensure_scalar(new_size_value)
 
             # Dropping new duplicates
             df_modified_size = df_modified_size.drop_duplicates(
@@ -2343,7 +2342,7 @@ def plot_scatter(input_data, args):
                     (df_modified_x[col_1] == s_df_row[col_1])
                     & (df_modified_x[time] == s_df_row[time])
                 ].index
-                df_modified_x.at[x_index, size] = _ensure_scalar(s_value)
+                df_modified_x.loc[x_index, size] = _ensure_scalar(s_value)
 
         # Looping through updated dataframe and assigning all y and x values to a list
         for a, b in df_modified_x.iterrows():
@@ -2381,14 +2380,14 @@ def plot_scatter(input_data, args):
                     df_scatter[col_1] == c_df_row["Node"]
                 ].index.tolist()
                 for s_index in scatter_indxs:
-                    df_scatter.at[s_index, "Color"] = category_num
+                    df_scatter.loc[s_index, "Color"] = category_num
         else:
             if group_by_category:
                 df_scatter["Color"] = ""
                 category_char = ""
                 for row_ind, row in df_scatter.iterrows():
                     category_char = row[col_1][:1]
-                    df_scatter.at[row_ind, "Color"] = category_char
+                    df_scatter.loc[row_ind, "Color"] = category_char
             else:
                 df_scatter["Color"] = col_1
 
@@ -2477,14 +2476,14 @@ def plot_scatter(input_data, args):
             new_x_value = df_modified_x.loc[
                 (df_modified_x[col_1] == row[col_1]), x_title
             ].sum()
-            df_modified_x.at[index, x_title] = _ensure_scalar(new_x_value)
+            df_modified_x.loc[index, x_title] = _ensure_scalar(new_x_value)
 
         for y_index, y_row in df_dup_y.iterrows():
             new_y_value = 0
             new_y_value = df_modified_y.loc[
                 (df_modified_y[col_1] == y_row[col_1]), y_title
             ].sum()
-            df_modified_y.at[y_index, y_title] = _ensure_scalar(new_y_value)
+            df_modified_y.loc[y_index, y_title] = _ensure_scalar(new_y_value)
 
         # Dropping new duplicates
         df_modified_x = df_modified_x.drop_duplicates(subset=[col_1], keep="first")
@@ -2497,7 +2496,7 @@ def plot_scatter(input_data, args):
             y_value = df_modified_y.loc[
                 (df_modified_y[col_1] == x_df_row[col_1]), y_title
             ]
-            df_modified_x.at[x_indx, y_title] = _ensure_scalar(y_value)
+            df_modified_x.loc[x_indx, y_title] = _ensure_scalar(y_value)
 
         # Add size column and calculate the ratio
         df_modified_x[size] = 0
@@ -2537,7 +2536,7 @@ def plot_scatter(input_data, args):
                         "Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size."
                     )
                 try:
-                    df_modified_x.at[s_indx, size] = _ensure_scalar(s_value)
+                    df_modified_x.loc[s_indx, size] = _ensure_scalar(s_value)
                 except:
                     raise Exception(
                         "Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.".format(
@@ -2563,7 +2562,7 @@ def plot_scatter(input_data, args):
                 new_size_value = df_modified_size.loc[
                     (df_modified_size[col_1] == size_row[col_1]), s_title
                 ].sum()
-                df_modified_size.at[size_index, s_title] = _ensure_scalar(new_size_value)
+                df_modified_size.loc[size_index, s_title] = _ensure_scalar(new_size_value)
 
             # Dropping new duplicates
             df_modified_size = df_modified_size.drop_duplicates(
@@ -2578,7 +2577,7 @@ def plot_scatter(input_data, args):
                 x_index = df_modified_x.loc[
                     (df_modified_x[col_1] == s_df_row[col_1])
                 ].index
-                df_modified_x.at[x_index, size] = _ensure_scalar(s_value)
+                df_modified_x.loc[x_index, size] = _ensure_scalar(s_value)
 
         # Looping through updated dataframe and assigning all y and x values to a list
         for a, b in df_modified_x.iterrows():
@@ -2610,14 +2609,14 @@ def plot_scatter(input_data, args):
                     df_scatter[col_1] == c_df_row["Node"]
                 ].index.tolist()
                 for s_index in scatter_indxs:
-                    df_scatter.at[s_index, "Color"] = _ensure_scalar(category_num)
+                    df_scatter.loc[s_index, "Color"] = _ensure_scalar(category_num)
         else:
             if group_by_category:
                 df_scatter["Color"] = ""
                 category_char = ""
                 for row_ind, row in df_scatter.iterrows():
                     category_char = row[col_1][:1]
-                    df_scatter.at[row_ind, "Color"] = _ensure_scalar(category_char)
+                    df_scatter.loc[row_ind, "Color"] = _ensure_scalar(category_char)
             else:
                 df_scatter["Color"] = col_1
 
