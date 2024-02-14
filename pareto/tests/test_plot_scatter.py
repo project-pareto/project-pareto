@@ -16,12 +16,6 @@ from importlib import resources
 import pytest
 
 
-pytestmark = pytest.mark.xfail(
-    strict=False,
-    reason="test_plot_scatter is not compatible with pandas 2.0+",
-)
-
-
 @pytest.fixture(scope="module")
 def input_data_animated_1():
     set_list = []
