@@ -2323,7 +2323,9 @@ def plot_scatter(input_data, args):
                     & (df_modified_size[time] == size_row[time]),
                     s_title,
                 ].sum()
-                df_modified_size.loc[size_index, s_title] = _ensure_scalar(new_size_value)
+                df_modified_size.loc[size_index, s_title] = _ensure_scalar(
+                    new_size_value
+                )
 
             # Dropping new duplicates
             df_modified_size = df_modified_size.drop_duplicates(
@@ -2562,7 +2564,9 @@ def plot_scatter(input_data, args):
                 new_size_value = df_modified_size.loc[
                     (df_modified_size[col_1] == size_row[col_1]), s_title
                 ].sum()
-                df_modified_size.loc[size_index, s_title] = _ensure_scalar(new_size_value)
+                df_modified_size.loc[size_index, s_title] = _ensure_scalar(
+                    new_size_value
+                )
 
             # Dropping new duplicates
             df_modified_size = df_modified_size.drop_duplicates(
