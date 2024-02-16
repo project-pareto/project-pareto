@@ -169,7 +169,7 @@ def _read_data(
             to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value="", regex=True, inplace=True
         )
         # Removing whitespaces
-        _df_parameters[i] = _df_parameters[i].applymap(
+        _df_parameters[i] = _df_parameters[i].map(
             lambda x: x.strip() if isinstance(x, str) else x
         )
         # Removing all the columns that contain only empty strings

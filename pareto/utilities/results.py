@@ -2255,7 +2255,7 @@ def plot_scatter(input_data, args):
             df_modified_x.loc[x_indx, y_title] = _ensure_scalar(y_value)
 
         # Add size column and calculate the ratio or grab the size from the variable passed in for size
-        df_modified_x[size] = 0
+        df_modified_x[size] = 0.0
         if isinstance(s_variable, str):  # provided_size == False or
             for s_indx, s_df_row in df_modified_x.iterrows():
                 s_value = 0
@@ -2272,28 +2272,28 @@ def plot_scatter(input_data, args):
                     y_title,
                 ]
                 if s_variable == "y/x":
-                    if float(s_xvalue) == 0:
-                        if float(s_yvalue) == 0:
+                    if float(s_xvalue.iloc[0]) == 0:
+                        if float(s_yvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
                             raise Exception("Cannot divide by zero when using y/x option for marker size")
-                    elif float(s_xvalue) == float(s_yvalue):
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_xvalue) > float(s_yvalue):
+                        if float(s_xvalue.iloc[0]) > float(s_yvalue.iloc[0]):
                             s_value = s_value + (s_yvalue / s_xvalue) * 1000
                         else:
                             s_value = s_value + (s_yvalue / s_xvalue)
                 elif s_variable == "x/y":
-                    if float(s_yvalue) == 0:
-                        if float(s_xvalue) == 0:
+                    if float(s_yvalue.iloc[0]) == 0:
+                        if float(s_xvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
                             raise Exception("Cannot divide by zero when using x/y option for marker size")
-                    elif float(s_xvalue) == float(s_yvalue):
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_yvalue) > float(s_xvalue):
+                        if float(s_yvalue.iloc[0]) > float(s_xvalue.iloc[0]):
                             s_value = s_value + (s_xvalue / s_yvalue) * 1000
                         else:
                             s_value = s_value + (s_xvalue / s_yvalue)
@@ -2520,7 +2520,7 @@ def plot_scatter(input_data, args):
             df_modified_x.loc[x_indx, y_title] = _ensure_scalar(y_value)
 
         # Add size column and calculate the ratio
-        df_modified_x[size] = 0
+        df_modified_x[size] = 0.0
         if isinstance(s_variable, str):
             for s_indx, s_df_row in df_modified_x.iterrows():
                 s_value = 0
@@ -2533,28 +2533,28 @@ def plot_scatter(input_data, args):
                     (df_modified_x[col_1] == s_df_row[col_1]), y_title
                 ]
                 if s_variable == "y/x":
-                    if float(s_xvalue) == 0:
-                        if float(s_yvalue) == 0:
+                    if float(s_xvalue.iloc[0]) == 0:
+                        if float(s_yvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
                             raise Exception("Cannot divide by zero when using y/x option for marker size")
-                    elif float(s_xvalue) == float(s_yvalue):
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_xvalue) > float(s_yvalue):
+                        if float(s_xvalue.iloc[0]) > float(s_yvalue.iloc[0]):
                             s_value = s_value + (s_yvalue / s_xvalue) * 1000
                         else:
                             s_value = s_value + (s_yvalue / s_xvalue)
                 elif s_variable == "x/y":
-                    if float(s_yvalue) == 0:
-                        if float(s_xvalue) == 0:
+                    if float(s_yvalue.iloc[0]) == 0:
+                        if float(s_xvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
                             raise Exception("Cannot divide by zero when using x/y option for marker size")
-                    elif float(s_xvalue) == float(s_yvalue):
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_yvalue) > float(s_xvalue):
+                        if float(s_yvalue.iloc[0]) > float(s_xvalue.iloc[0]):
                             s_value = s_value + (s_xvalue / s_yvalue) * 1000
                         else:
                             s_value = s_value + (s_xvalue / s_yvalue)
