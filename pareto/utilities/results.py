@@ -2272,8 +2272,11 @@ def plot_scatter(input_data, args):
                     y_title,
                 ]
                 if s_variable == "y/x":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
+                    if float(s_xvalue) == 0:
+                        if float(s_yvalue) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception("Cannot divide by zero when using y/x option for marker size")
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
@@ -2282,8 +2285,11 @@ def plot_scatter(input_data, args):
                         else:
                             s_value = s_value + (s_yvalue / s_xvalue)
                 elif s_variable == "x/y":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
+                    if float(s_yvalue) == 0:
+                        if float(s_xvalue) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception("Cannot divide by zero when using x/y option for marker size")
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
@@ -2527,8 +2533,11 @@ def plot_scatter(input_data, args):
                     (df_modified_x[col_1] == s_df_row[col_1]), y_title
                 ]
                 if s_variable == "y/x":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
+                    if float(s_xvalue) == 0:
+                        if float(s_yvalue) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception("Cannot divide by zero when using y/x option for marker size")
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
@@ -2537,8 +2546,11 @@ def plot_scatter(input_data, args):
                         else:
                             s_value = s_value + (s_yvalue / s_xvalue)
                 elif s_variable == "x/y":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
+                    if float(s_yvalue) == 0:
+                        if float(s_xvalue) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception("Cannot divide by zero when using x/y option for marker size")
                     elif float(s_xvalue) == float(s_yvalue):
                         s_value = s_value + 1
                     else:
