@@ -34,6 +34,13 @@ import numpy as np
 _logger = logging.getLogger(__name__)
 
 
+try:
+    _dataframe_map = pd.DataFrame.map
+except AttributeError:
+    # compatibility with pandas 2.0.x
+    _dataframe_map = pd.DataFrame.applymap
+
+
 class DataLoadingError(ValueError):
     def __init__(
         self,
@@ -169,8 +176,8 @@ def _read_data(
             to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value="", regex=True, inplace=True
         )
         # Removing whitespaces
-        _df_parameters[i] = _df_parameters[i].map(
-            lambda x: x.strip() if isinstance(x, str) else x
+        _df_parameters[i] = _dataframe_map(
+            _df_parameters[i], lambda x: x.strip() if isinstance(x, str) else x
         )
         # Removing all the columns that contain only empty strings
         # _df_parameters[i] = _df_parameters[i][_df_parameters[i].columns[~_df_parameters[i].eq('').all(0)]]
