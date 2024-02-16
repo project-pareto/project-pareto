@@ -237,8 +237,8 @@ Variable Definitions
       - kg/s
       - None
 
-    * - :math:`{F_{freshwater}}`
-      - Flow rate of fresh water
+    * - :math:`{F_{externalwater}}`
+      - Flow rate of externally sourced water
       - kg/s
       - None
 
@@ -287,8 +287,8 @@ Variable Definitions
       - :math:`{^{\circ} C}`
       - None
 
-    * - :math:`{T_{freshwater}}`
-      - Temperature of fresh water
+    * - :math:`{T_{externalwater}}`
+      - Temperature of externally sourced water
       - :math:`{^{\circ} C}`
       - None
 
@@ -642,13 +642,13 @@ Mass balance in the mixer:
 
 .. math:: 
     
-    F_{fresh water} = \sum_{i = 1}^{I}F_{vapor}^{i}
+    F_{externalwater} = \sum_{i = 1}^{I}F_{vapor}^{i}
 
 Energy balance in the mixer:
 
 .. math:: 
 
-    T_{mix}^{out} = \frac{\sum_{i = 1}^{I} F_{vapor}^{(i)}T_{brine^{(i)}}}{F_{freshwater}}
+    T_{mix}^{out} = \frac{\sum_{i = 1}^{I} F_{vapor}^{(i)}T_{brine^{(i)}}}{F_{externalwater}}
 
 Preheater Model
 +++++++++++++++
@@ -657,7 +657,7 @@ Energy balance in the preheater:
 
 .. math:: 
 
-    F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
+    F_{externalwater}C_p^{mix}(T_{mix}^{out} - T_{externalwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
 
 **Thermodynamic Relations**
 
@@ -681,7 +681,7 @@ Preheater LMTD calculation:
 
     \theta_{1ph} = T_{mix}^{out} - T_{in}
 
-    \theta_{2ph} = T_{freshwater} - T_{feed}
+    \theta_{2ph} = T_{externalwater} - T_{feed}
 
      LMTD_{ph} = (0.5 \theta_{1ph} \theta_{2ph}(\theta_{1ph} + \theta_{2ph}))^{1/3}
 
@@ -691,7 +691,7 @@ Preheater area calculation:
 
 .. math:: 
 
-    A_{ph} = \frac{F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater})}{U_{ph}LMTD_{ph}}
+    A_{ph} = \frac{F_{externalwater}C_p^{mix}(T_{mix}^{out} - T_{externalwater})}{U_{ph}LMTD_{ph}}
 
 Bounds for feasible operation:
 

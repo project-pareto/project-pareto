@@ -37,7 +37,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{p \in CP}`                                         Completions pads (subset of well pads P)
 
-:math:`\textcolor{blue}{f \in F}`                                           Freshwater sources
+:math:`\textcolor{blue}{f \in F}`                                           External water sources
 
 :math:`\textcolor{blue}{k \in K}`                                           Disposal sites
 
@@ -76,7 +76,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{(n,o) \in NOA}`                                   Node-to-beneficial reuse pipeline arcs
 
-:math:`\textcolor{blue}{(f,p) \in FCA}`                                   Freshwater-to-completions pipeline arcs
+:math:`\textcolor{blue}{(f,p) \in FCA}`                                   Externally sourced water-to-completions pipeline arcs
 
 :math:`\textcolor{blue}{(r,n) \in RNA}`                                   Treatment-to-node pipeline arcs
 
@@ -98,7 +98,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{blue}{(p,p) \in PCT}`                                   Production-to-completions trucking arcs
 
-:math:`\textcolor{blue}{(f,c) \in FCT}`                                 Freshwater-to-completions trucking arcs
+:math:`\textcolor{blue}{(f,c) \in FCT}`                                 Externally sourced water-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(p,k) \in PKT}`                                   Production-to-disposal trucking arcs
 
@@ -134,7 +134,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}` =                           Produced water trucked from one location to another location
 
-:math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                         Fresh water sourced from source to completions
+:math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                         Externally sourced water to completions
 
 :math:`\textcolor{red}{F_{p,t}^{PadStorageIn}}` =                       Water put into completions pad storage
 
@@ -173,7 +173,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}` =                           Cost of trucking produced water from one location to another location
 
-:math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =                           Cost of sourcing fresh water from source to completions pad
+:math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =                           Cost of sourcing external water from source to completions pad
 
 :math:`\textcolor{red}{C_{k,t}^{Disposal}}` =                          Cost of injecting produced water at disposal site
 
@@ -187,7 +187,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{red}{C_{p,t}^{PadStorage}}` =                        Cost of storing produced water at completions pad storage
 
-:math:`\textcolor{red}{C^{TotalSourced}}` =                            Total cost of sourcing freshwater
+:math:`\textcolor{red}{C^{TotalSourced}}` =                            Total cost of externally sourced water
 
 :math:`\textcolor{red}{C^{TotalDisposal}}` =                           Total cost of injecting produced water
 
@@ -271,7 +271,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{o}^{BeneficialReuse}}` =                   Daily reuse capacity at a beneficial reuse site
 
-:math:`\textcolor{green}{\sigma_{f,t}^{Freshwater}}` =                      Daily freshwater sourcing capacity at freshwater source
+:math:`\textcolor{green}{\sigma_{f,t}^{ExternalWater}}` =                      Daily capacity of externally sourced water
 
 :math:`\textcolor{green}{\sigma_{p}^{Offloading,Pad}}` =                    Daily truck offloading sourcing capacity per pad
 
@@ -326,7 +326,7 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\pi_{l}^{Trucking}}` =                          Trucking hourly cost (by source)
 
-:math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                          Fresh sourcing cost (does not include transportation cost)
+:math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                          Externally sourced water cost (does not include transportation cost)
 
 
 :math:`\textcolor{green}{M^{Flow}}` =                                  Big-M flow parameter
@@ -354,7 +354,7 @@ Operational Model Mathematical Notation
 Operational Model Mathematical Program Formulation
 ---------------------------------------------------
 
-The default objective function for this produced water operational model is to minimize costs, which includes operational costs associated with procurement of fresh water, the cost of disposal, trucking and piping produced water between well pads and treatment facilities, and the cost of storing, treating and reusing produced water. A credit for using treated water is also considered, and additional slack variables are included to facilitate the identification of potential issues with input data.
+The default objective function for this produced water operational model is to minimize costs, which includes operational costs associated with procurement of externally sourced water, the cost of disposal, trucking and piping produced water between well pads and treatment facilities, and the cost of storing, treating and reusing produced water. A credit for using treated water is also considered, and additional slack variables are included to facilitate the identification of potential issues with input data.
 
 
 **Objective**
@@ -408,13 +408,13 @@ The storage in the last period must be at or below its terminal storage level.
 
 
 
-**Freshwater Sourcing Capacity:** :math:`\forall f \in F, t \in T`
+**External Water Sourcing Capacity:** :math:`\forall f \in F, t \in T`
 
-For each freshwater source and each time period, the outgoing water from the freshwater source is below the freshwater capacity.
+For each external water source and each time period, the outgoing water from the source is below the capacity.
 
 .. math::
 
-      \sum\nolimits_{(f,p)\in FCA}\textcolor{red}{F_{l,\tilde{l},t}^{Sourced}} +\sum\nolimits_{(f,p)\in FCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \leq \textcolor{green}{\sigma_{f,t}^{Freshwater}}
+      \sum\nolimits_{(f,p)\in FCA}\textcolor{red}{F_{l,\tilde{l},t}^{Sourced}} +\sum\nolimits_{(f,p)\in FCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \leq \textcolor{green}{\sigma_{f,t}^{ExternalWater}}
 
 
 
@@ -431,7 +431,7 @@ For each completions pad and time period, the volume of water being trucked into
 
 **Completions Pad Processing Capacity:**
 
-For each completions pad and time period, the volume of water (excluding freshwater) coming in must be below the processing limit.
+For each completions pad and time period, the volume of water (excluding externally sourced water) coming in must be below the processing limit.
 
 .. math::
 
@@ -750,9 +750,9 @@ The total water for beneficial reuse in a given time period must be less than th
         + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}=\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
 
 
-**Fresh Sourcing Cost:**  :math:`\forall f \in F, p \in CP, t \in T`
+**External Water Sourcing Cost:**  :math:`\forall f \in F, p \in CP, t \in T`
 
-For each freshwater source, for each completions pad, and for each time period, the freshwater sourcing cost is equal to all output from the freshwater source times the freshwater sourcing cost.
+For each external water source, for each completions pad, and for each time period, the sourcing cost is equal to all output from the source times the sourcing cost.
 
 .. math::
 
@@ -801,14 +801,14 @@ where :math:`\textcolor{green}{\varepsilon^{Treatment}} \leq 1`
 
 **Completions Reuse Cost:** :math:`\forall p \in P, t \in T`
 
-Completions reuse water is all water that meets completions pad demand, excluding freshwater. Completions reuse cost is the volume of completions reused water multiplied by the cost for reuse.
+Completions reuse water is all water that meets completions pad demand, excluding externally sourced water. Completions reuse cost is the volume of completions reused water multiplied by the cost for reuse.
 
 .. math::
 
     \textcolor{red}{C_{p,t}^{CompletionsReuse}} = (\sum\nolimits_{(l,\tilde{l})\in LLA, l\notin F}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}+\sum\nolimits_{(l,\tilde{l})\in LLT, l\notin F}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}) \cdot \textcolor{green}{\pi_{p}^{CompletionsReuse}}
 
 
-.. note:: Freshwater sourcing is excluded from completions reuse costs.
+.. note:: Externally sourced water is excluded from completions reuse costs.
 
 .. math::
 
@@ -840,7 +840,7 @@ Total Piping Cost:
 
     \textcolor{red}{C^{TotalPiping}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
 
-.. note:: Note: Freshwater piping is tracked through Sourced Flow variable.
+.. note:: Note: Externally sourced water piping is tracked through Sourced Flow variable.
 
 
 
@@ -890,7 +890,7 @@ Trucking cost between two locations for time period is equal to the trucking vol
 
     \textcolor{red}{C^{TotalTrucking}} = \sum_{t \in T}\sum_{(l, \tilde{l}) \in LLT}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
 
-.. note:: The constraints above explicitly consider freshwater trucking via FCT arcs included in LLT.
+.. note:: The constraints above explicitly consider trucking externally sourced water via FCT arcs included in LLT.
 
 
 
@@ -1017,9 +1017,9 @@ Operational Model Terminology
 
 **Beneficial Reuse Options:** This term refers to the reuse of water at mining facilities, farms, etc.
 
-**Completions Demand:** Demand set by completions pads.  This demand can be met by produced water, treated water, or freshwater.
+**Completions Demand:** Demand set by completions pads.  This demand can be met by produced water, treated water, or externally sourced water.
 
-**Completions Reuse Water:** Water that meets demand at a completions site. This does not include freshwater or water for beneficial reuse.
+**Completions Reuse Water:** Water that meets demand at a completions site. This does not include externally sourced water or water for beneficial reuse.
 
 **Network Nodes:** These are branch points for pipelines only.
 
