@@ -2276,7 +2276,9 @@ def plot_scatter(input_data, args):
                         if float(s_yvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
-                            raise Exception("Cannot divide by zero when using y/x option for marker size")
+                            raise Exception(
+                                "Cannot divide by zero when using y/x option for marker size"
+                            )
                     elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
@@ -2289,7 +2291,9 @@ def plot_scatter(input_data, args):
                         if float(s_xvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
-                            raise Exception("Cannot divide by zero when using x/y option for marker size")
+                            raise Exception(
+                                "Cannot divide by zero when using x/y option for marker size"
+                            )
                     elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
@@ -2537,7 +2541,9 @@ def plot_scatter(input_data, args):
                         if float(s_yvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
-                            raise Exception("Cannot divide by zero when using y/x option for marker size")
+                            raise Exception(
+                                "Cannot divide by zero when using y/x option for marker size"
+                            )
                     elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
@@ -2550,7 +2556,9 @@ def plot_scatter(input_data, args):
                         if float(s_xvalue.iloc[0]) == 0:
                             s_value = 0.0
                         else:
-                            raise Exception("Cannot divide by zero when using x/y option for marker size")
+                            raise Exception(
+                                "Cannot divide by zero when using x/y option for marker size"
+                            )
                     elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
