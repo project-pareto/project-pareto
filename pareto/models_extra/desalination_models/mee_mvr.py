@@ -19,7 +19,11 @@ import matplotlib.pyplot as plt
 def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     """
     Contains a model for mee-mvr desalination unit with
-    heat integration and single stage compression.
+    heat integration and single stage compression. The model is built based 
+    on the paper by Onishi et. al.
+    Citation: V. C. Onishi, et.al. “Shale gas flowback water desalination: Single vs multiple effect
+    evaporation with vapor recompression cycle and thermal integration,” Desalination,
+    vol. 404, pp. 230–248, Feb. 2017
 
     Inputs
     -------
@@ -64,7 +68,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.salt_outlet_spec = pyo.Param(initialize=250, units=pyo.units.g / pyo.units.kg, mutable=True)
 
     # Water recovery
-    m.water_recovery_fraction = pyo.Var(initialize=0.3, bounds=(0.1, 0.9))
+    m.water_recovery_fraction = pyo.Var(initialize=0.3, bounds=(1e-20, 1))
 
     # Temperature constraint parameters
     m.DT_min = pyo.Param(initialize=2, units=pyo.units.C)
