@@ -36,7 +36,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m = pyo.ConcreteModel()
 
     # Parameter definitions
-
     if inputs_variables:
         # Flowrate of feed stream
         m.flow_feed = pyo.Var(
@@ -59,10 +58,10 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         )
 
     # Temperature of the feed stream
-    m.feed_temperature = pyo.Param(initialize=25, units=pyo.units.C)
+    m.feed_temperature = pyo.Param(initialize=25, units=pyo.units.C, mutable=True)
 
     # TDS in brine concentration
-    m.salt_outlet_spec = pyo.Param(initialize=250, units=pyo.units.g / pyo.units.kg)
+    m.salt_outlet_spec = pyo.Param(initialize=250, units=pyo.units.g / pyo.units.kg, mutable=True)
 
     # Water recovery
     m.water_recovery_fraction = pyo.Var(initialize=0.3, bounds=(0.1, 0.9))
@@ -82,7 +81,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.cp_vapor = pyo.Param(initialize=1.873)
 
     # Minimum pressure delta between evaporators
-    m.DP_min = pyo.Param(initialize=0.1)  # ==============>NEW
+    m.DP_min = pyo.Param(initialize=0.1)  
 
     # Overall heat transfer coefficient (Known parameter)
     m.overall_heat_transfer_coef = pyo.Param(initialize=100)
@@ -107,8 +106,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.i = pyo.Set(initialize=range(N_evap))
 
     # Set of all evaporators except the first
-    # Used only to define latent heat variable
-    # Need to see if I can eliminate this set
     m.i_except_1 = pyo.Set(initialize=range(1, N_evap))
 
     # Variable definitions
@@ -122,7 +119,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         * N_evap,
         units=pyo.units.kg / pyo.units.s,
     )
-    # [pyo.value(m.flow_feed)*pyo.value(1-m.water_recovery_fraction)]*I
+    
     # Flow of vapor evaporator
     m.flow_vapor_evaporator = pyo.Var(
         m.i,
@@ -130,7 +127,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         initialize=[pyo.value(m.flow_feed - m.flow_brine[m.i.last()])] * N_evap,
         units=pyo.units.kg / pyo.units.s,
     )
-    # [pyo.value(m.flow_feed - m.flow_brine[m.i.last()])]*I
+    
     # Flow of super heated vapor
     m.flow_super_heated_vapor = pyo.Var(
         bounds=(1e-20, 100),
@@ -139,9 +136,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     )
 
     # Flow of treated water
-    # Just wanted to make it easy to find the treated water variable in the network
-    # Writing an equality constraint between flow_vapor from last evaporator and
-    # treated water variable
     m.flow_treated_water = pyo.Var(
         bounds=(1e-20, 100),
         initialize=pyo.value(m.flow_vapor_evaporator[m.i.last()]),
@@ -153,7 +147,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     )
     # ======================================================================
     # All concentration variables
-    # Concentration of salt/TDS (For now we are considering only one component in water)
+    # Concentration of salt/TDS 
     m.salt = pyo.Var(
         m.i,
         bounds=(1e-20, 300),
@@ -163,15 +157,12 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # Salt mass fraction (XS in paper)
     m.salt_mass_frac = pyo.Var(m.i, bounds=(1e-20, 1), initialize=0.5)
-    # [pyo.value(m.salt[i])/1000 for i in range(0,I)]
+   
     # Salt mass fraction in the feed
-    # Question
-    # maybe shouldn't be a parameter. There must be some relationship between
-    # salt_mass_frac_feed amd salt_feed
     m.salt_mass_frac_feed = pyo.Var(
         bounds=(1e-10, 1), initialize=pyo.value(m.salt_feed) / 1000
     )
-    # pyo.value(m.salt_feed)/1000
+  
     # ======================================================================
     # All pressure variables
     # Vapor pressure in evaporator effects
@@ -181,10 +172,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.super_heated_vapor_pressure = pyo.Var(
         bounds=(1, 200), initialize=60.540, units=pyo.units.kPa
     )
-    # ====================Not sure if we need this (Can this be replaced by evaporator vapor pressure?)
-    # This is used to say that the vapor of the i-1 th evaporator should be hotter than the vapor of the ith
-    # evaporator for it to be able to evaporate the feed in the ith evaporator
-
+  
     m.saturated_vapor_pressure = pyo.Var(
         m.i, bounds=(1, 300), initialize=101.00, units=pyo.units.kPa
     )
@@ -209,7 +197,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         bounds=(1, 300), initialize=50, units=pyo.units.C
     )
 
-    # This is linked with saturated vapor pressure. Not sure if we need this either
     m.evaporator_saturated_vapor_temperature = pyo.Var(
         m.i, bounds=(1, 200), initialize=30, units=pyo.units.C
     )
@@ -311,12 +298,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # =======================================================================
     # Evaporator Constraints
-
-    # #Link evaporator feed temp to feed temp
-    # def _evaporator_feed_temp_estimate(m):
-    #     return m.evaporator_feed_temperature == m.feed_temperature
-    # m.evaporator_feed_temp_estimate = pyo.Constraint(rule = _evaporator_feed_temp_estimate)
-
     # Flow balance across the evaporator (Equation 1, 3)
     def _evaporator_flow_balance(m, i):
         if i != m.i.last():
@@ -458,7 +439,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # ==============================================================================
     # Estimating the condensate temperature in the first evaporator from the outlet compressor pressure
-    # Not sure if this constraint is needed. Should be calculated by energy balance
     def _condensate_temperature_estimate(m, i):
         if i == m.i.first():
             return (
@@ -638,9 +618,6 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         rule=_evaporator_total_area_from_heat_calculation
     )
 
-    # Chen approximation for LMTD (Equation 22-26)
-    # For the other evaporators should theta 1 use T_vapor_evaporator/saturated temperatures
-    # Paper uses saturated temperatures
     def _theta_1_calculation(m, i):
         if i == m.i.first():
             return (
@@ -694,8 +671,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
             * ((alpha - 1) ** 2 + eps) ** 0.5
             / (pyo.log(alpha) ** 2 + eps) ** 0.5
         )
-        # return m.LMTD[i] == (0.5*m.theta_1[i]*m.theta_2[i]*(m.theta_1[i]+m.theta_2[i]))**(1/3)
-
+       
     m.LMTD_calculation = pyo.Constraint(m.i, rule=_LMTD_calculation)
 
     # Restrictions on area for uniform distribution (Equation 27, 28)
@@ -867,8 +843,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
             * ((alpha - 1) ** 2 + eps) ** 0.5
             / (pyo.log(alpha) ** 2 + eps) ** 0.5
         )
-        # return m.preheater_LMTD == (0.5*m.preheater_theta_1*m.preheater_theta_2*(m.preheater_theta_1+m.preheater_theta_2))**(1/3)
-
+      
     m.preheater_LMTD_calculation = pyo.Constraint(rule=_preheater_LMTD_calculation)
 
     def _preheater_theta_1_calculation(m):
