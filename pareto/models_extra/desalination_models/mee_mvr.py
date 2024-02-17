@@ -153,7 +153,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     )
     # ======================================================================
     # All concentration variables
-    # Flow of salt/TDS (For now we are considering only one component in water)
+    # Concentration of salt/TDS (For now we are considering only one component in water)
     m.salt = pyo.Var(
         m.i,
         bounds=(1e-20, 300),
