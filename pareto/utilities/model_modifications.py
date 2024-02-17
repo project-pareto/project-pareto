@@ -62,9 +62,7 @@ def deactivate_slacks(model):
     return None
 
 
-def fix_vars(
-    model, vars_to_fix, indexes, v_val, upper_bound=None, lower_bound=None, fixvar=True
-):
+def fix_vars(model, vars_to_fix, indexes, v_val):
     _log.info("inside fix_vars")
     for var in model.component_objects(Var):
         if var.name in vars_to_fix:
@@ -72,15 +70,10 @@ def fix_vars(
             _log.info(var)
             for index in var:
                 if index == indexes:
-                    if fixvar is True:
-                        if not var[index].domain is Binary:
-                            v_val = pyunits.convert_value(
-                                v_val,
-                                from_units=model.user_units["volume_time"],
-                                to_units=model.model_units["volume_time"],
-                            )
-                        var[index].fix(v_val)
-                    else:
-                        # TODO check units
-                        var[index].setlb(lower_bound)
-                        var[index].setub(upper_bound)
+                    if not var[index].domain is Binary:
+                        v_val = pyunits.convert_value(
+                            v_val,
+                            from_units=model.user_units["volume_time"],
+                            to_units=model.model_units["volume_time"],
+                        )
+                    var[index].fix(v_val)
