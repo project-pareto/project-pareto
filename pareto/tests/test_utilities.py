@@ -199,7 +199,7 @@ def test_utilities_wout_quality():
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = fetch_strategic_model(config_dict)
+    model, _, _ = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -281,7 +281,7 @@ def test_utilities_w_post_quality():
         "water_quality": WaterQuality.post_process,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = fetch_strategic_model(config_dict)
+    model, _, _ = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -336,7 +336,7 @@ def test_utilities_w_discrete_quality():
         "water_quality": WaterQuality.discrete,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = fetch_strategic_model(config_dict)
+    model, _, _ = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
