@@ -191,7 +191,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # =======================================================================
     # All temperature variables
-    # Actal temperature of feed entering the evaporator after preheating
+    # Actual temperature of feed entering the evaporator after preheating
     m.evaporator_feed_temperature = pyo.Var(
         bounds=(1, 200), initialize=25, units=pyo.units.C
     )
