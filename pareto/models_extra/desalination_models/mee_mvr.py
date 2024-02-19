@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     """
     Contains a model for mee-mvr desalination unit with
-    heat integration and single stage compression. The model is built based 
+    heat integration and single stage compression. The model is built based
     on the paper by Onishi et. al.
     Citation: V. C. Onishi, et.al. “Shale gas flowback water desalination: Single vs multiple effect
     evaporation with vapor recompression cycle and thermal integration,” Desalination,
@@ -65,7 +65,9 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.feed_temperature = pyo.Param(initialize=25, units=pyo.units.C, mutable=True)
 
     # TDS in brine concentration
-    m.salt_outlet_spec = pyo.Param(initialize=250, units=pyo.units.g / pyo.units.kg, mutable=True)
+    m.salt_outlet_spec = pyo.Param(
+        initialize=250, units=pyo.units.g / pyo.units.kg, mutable=True
+    )
 
     # Water recovery
     m.water_recovery_fraction = pyo.Var(initialize=0.3, bounds=(1e-20, 1))
@@ -85,7 +87,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.cp_vapor = pyo.Param(initialize=1.873)
 
     # Minimum pressure delta between evaporators
-    m.DP_min = pyo.Param(initialize=0.1)  
+    m.DP_min = pyo.Param(initialize=0.1)
 
     # Overall heat transfer coefficient (Known parameter)
     m.overall_heat_transfer_coef = pyo.Param(initialize=100)
@@ -123,7 +125,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         * N_evap,
         units=pyo.units.kg / pyo.units.s,
     )
-    
+
     # Flow of vapor evaporator
     m.flow_vapor_evaporator = pyo.Var(
         m.i,
@@ -131,7 +133,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         initialize=[pyo.value(m.flow_feed - m.flow_brine[m.i.last()])] * N_evap,
         units=pyo.units.kg / pyo.units.s,
     )
-    
+
     # Flow of super heated vapor
     m.flow_super_heated_vapor = pyo.Var(
         bounds=(1e-20, 100),
@@ -151,7 +153,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     )
     # ======================================================================
     # All concentration variables
-    # Concentration of salt/TDS 
+    # Concentration of salt/TDS
     m.salt = pyo.Var(
         m.i,
         bounds=(1e-20, 300),
@@ -161,12 +163,12 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # Salt mass fraction (XS in paper)
     m.salt_mass_frac = pyo.Var(m.i, bounds=(1e-20, 1), initialize=0.5)
-   
+
     # Salt mass fraction in the feed
     m.salt_mass_frac_feed = pyo.Var(
         bounds=(1e-10, 1), initialize=pyo.value(m.salt_feed) / 1000
     )
-  
+
     # ======================================================================
     # All pressure variables
     # Vapor pressure in evaporator effects
@@ -176,7 +178,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
     m.super_heated_vapor_pressure = pyo.Var(
         bounds=(1, 200), initialize=60.540, units=pyo.units.kPa
     )
-  
+
     m.saturated_vapor_pressure = pyo.Var(
         m.i, bounds=(1, 300), initialize=101.00, units=pyo.units.kPa
     )
@@ -675,7 +677,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
             * ((alpha - 1) ** 2 + eps) ** 0.5
             / (pyo.log(alpha) ** 2 + eps) ** 0.5
         )
-       
+
     m.LMTD_calculation = pyo.Constraint(m.i, rule=_LMTD_calculation)
 
     # Restrictions on area for uniform distribution (Equation 27, 28)
@@ -847,7 +849,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
             * ((alpha - 1) ** 2 + eps) ** 0.5
             / (pyo.log(alpha) ** 2 + eps) ** 0.5
         )
-      
+
     m.preheater_LMTD_calculation = pyo.Constraint(rule=_preheater_LMTD_calculation)
 
     def _preheater_theta_1_calculation(m):
