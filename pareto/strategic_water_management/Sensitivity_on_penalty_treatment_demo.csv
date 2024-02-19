@@ -1,4 +1,0 @@
-,Penalty,Objective,Wall time,Time,Terminal Condition
-0,0.001,,1500,1500.0,TimeoutError
-1,0.1,,1500,1500.0,TimeoutError
-2,1.0,18611.357095575422,1500.3540000915527,1502.8124318122864,maxTimeLimit
