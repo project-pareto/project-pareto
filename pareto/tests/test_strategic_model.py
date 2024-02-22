@@ -1913,14 +1913,14 @@ def test_seismicity_risk_build(build_seismicity_risk_model):
     m = build_seismicity_risk_model(
         config_dict={
             # TODO: seismicity risk is not optimized for any costs yet
-            #"objective": Objectives.cost,
-            #"pipeline_cost": PipelineCost.distance_based,
-            #"pipeline_capacity": PipelineCapacity.input,
+            # "objective": Objectives.cost,
+            # "pipeline_cost": PipelineCost.distance_based,
+            # "pipeline_capacity": PipelineCapacity.input,
             "seismicity_risk": SeismicityRisk.true,
         }
     )
     # TODO: not sure how this is determined
-    #assert degrees_of_freedom(m) == 3973
+    # assert degrees_of_freedom(m) == 3973
     # Check unit config arguments
     assert len(m.config) == 9
     # TODO: seismicity risk is not optimized for any costs yet
@@ -1933,23 +1933,24 @@ def test_run_seismicity_risk_model(build_seismicity_risk_model):
     m = build_seismicity_risk_model(
         config_dict={
             # TODO: seismicity risk is not optimized for any costs yet
-            #"objective": Objectives.cost,
-            #"pipeline_cost": PipelineCost.distance_based,
-            #"pipeline_capacity": PipelineCapacity.input,
+            # "objective": Objectives.cost,
+            # "pipeline_cost": PipelineCost.distance_based,
+            # "pipeline_capacity": PipelineCapacity.input,
             "seismicity_risk": SeismicityRisk.true,
         }
     )
 
     options = {
-            # TODO: no options for seismicity calculation yet
+        # TODO: no options for seismicity calculation yet
     }
 
     results = solve_model(model=m, options=options)
 
     # TODO: not sure how this is determined
-    #assert degrees_of_freedom(m) == 3851
+    # assert degrees_of_freedom(m) == 3851
     with nostdout():
         assert is_feasible(m)
 
-amodel=build_seismicity_risk_model()
+
+amodel = build_seismicity_risk_model()
 test_run_seismicity_risk_model(build_seismicity_risk_model=amodel)

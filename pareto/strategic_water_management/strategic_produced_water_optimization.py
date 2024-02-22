@@ -248,7 +248,10 @@ def create_model(df_sets, df_parameters, default={}):
     model.df_parameters = df_parameters
 
     # Calculate seismicity risk metrics if necessary
-    model.do_seismicity_calcs = model.config.seismicity_risk != SeismicityRisk.false or model.config.objective == Objectives.seismicity_risk
+    model.do_seismicity_calcs = (
+        model.config.seismicity_risk != SeismicityRisk.false
+        or model.config.objective == Objectives.seismicity_risk
+    )
     if model.do_seismicity_calcs:
         seismicity_risk(model)
 
@@ -2368,11 +2371,16 @@ def create_model(df_sets, df_parameters, default={}):
         # Seismicity risk objective
         def SeismicityRiskObjectiveFunctionRule(model):
             return model.v_Z_seismicity == (
-                sum(sum(model.v_F_DisposalDestination[k, t] for t in model.s_T) * model.seismicity_risk_metrics[k] for k in model.s_K)
+                sum(
+                    sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
+                    * model.seismicity_risk_metrics[k]
+                    for k in model.s_K
+                )
             )
 
         model.SeismicityRiskObjectiveFunction = Constraint(
-            rule=SeismicityRiskObjectiveFunctionRule, doc="Seismicity risk objective function"
+            rule=SeismicityRiskObjectiveFunctionRule,
+            doc="Seismicity risk objective function",
         )
 
     # Define constraints #
@@ -3902,13 +3910,16 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     if model.config.seismicity_risk == SeismicityRisk.exclude_risky_wells:
+
         def ExcludeRiskyDisposalWellsRule(model, k):
             if model.seismicity_sites_included[k]:
                 # Disposal is allowed at SWD k - skip
                 return Constraint.Skip
             else:
                 # Disposal is not allowed at SWD k - constrain to 0
-                constraint = sum(model.v_F_DisposalDestination[k, t] for t in model.s_T) == 0
+                constraint = (
+                    sum(model.v_F_DisposalDestination[k, t] for t in model.s_T) == 0
+                )
 
             return process_constraint(constraint)
 
@@ -7030,14 +7041,22 @@ def seismicity_risk(model):
         "severity": 0,
     }
     for factor, name in risk_factor_names.items():
-        distance_risk_factor = distance_risk_factors[factor] = risk_factors[f"{name}_distance_risk_factor"]
-        severity_risk_factor = severity_risk_factors[factor] = risk_factors[f"{name}_severity_risk_factor"]
+        distance_risk_factor = distance_risk_factors[factor] = risk_factors[
+            f"{name}_distance_risk_factor"
+        ]
+        severity_risk_factor = severity_risk_factors[factor] = risk_factors[
+            f"{name}_severity_risk_factor"
+        ]
         sum_risk_factors["distance"] += distance_risk_factor
         sum_risk_factors["severity"] += severity_risk_factor
 
     for factor in risk_factor_names:
-        distance_risk_factors[f"norm_{factor}"] = distance_risk_factors[factor] / sum_risk_factors["distance"]
-        severity_risk_factors[f"norm_{factor}"] = severity_risk_factors[factor] / sum_risk_factors["severity"]
+        distance_risk_factors[f"norm_{factor}"] = (
+            distance_risk_factors[factor] / sum_risk_factors["distance"]
+        )
+        severity_risk_factors[f"norm_{factor}"] = (
+            severity_risk_factors[factor] / sum_risk_factors["severity"]
+        )
 
     pressure_thresholds = {
         "max": risk_factors["HP_threshold"],
@@ -7047,7 +7066,11 @@ def seismicity_risk(model):
     max_risk_factor_for_lowest_risk = 0
     for factor in risk_factor_names:
         norm_factor = f"norm_{factor}"
-        max_risk_factor_for_lowest_risk += distance_risk_factors[factor] * distance_risk_factors[norm_factor] * severity_risk_factors[norm_factor]
+        max_risk_factor_for_lowest_risk += (
+            distance_risk_factors[factor]
+            * distance_risk_factors[norm_factor]
+            * severity_risk_factors[norm_factor]
+        )
 
     risk_metrics = {}
     sites_included = {}
@@ -7057,13 +7080,23 @@ def seismicity_risk(model):
             if factor in ("orphan", "inactive") and deep[site]:
                 site_risk_factor = distance_risk_factors[factor]
             else:
-                site_risk_factor = min(prox[factor][site], distance_risk_factors[factor])
+                site_risk_factor = min(
+                    prox[factor][site], distance_risk_factors[factor]
+                )
             norm_factor = f"norm_{factor}"
-            weighted_site_risk_factor += site_risk_factor * distance_risk_factors[norm_factor] * severity_risk_factors[norm_factor]
-        inverse_weighted_site_risk_factor = weighted_site_risk_factor / max_risk_factor_for_lowest_risk
+            weighted_site_risk_factor += (
+                site_risk_factor
+                * distance_risk_factors[norm_factor]
+                * severity_risk_factors[norm_factor]
+            )
+        inverse_weighted_site_risk_factor = (
+            weighted_site_risk_factor / max_risk_factor_for_lowest_risk
+        )
         risk_metrics[site] = 1 - inverse_weighted_site_risk_factor
         # only consider these sites with True sites_included!
-        sites_included[site] = pressure_thresholds["min"] <= pressure[site] < pressure_thresholds["max"]
+        sites_included[site] = (
+            pressure_thresholds["min"] <= pressure[site] < pressure_thresholds["max"]
+        )
 
     model.seismicity_risk_metrics = risk_metrics
     model.seismicity_sites_included = sites_included
