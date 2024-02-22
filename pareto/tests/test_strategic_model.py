@@ -35,6 +35,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     RemovalEfficiencyMethod,
     InfrastructureTiming,
     infrastructure_timing,
+    SeismicityRisk,
+    seismicity_risk,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -1776,3 +1778,178 @@ def test_run_workshop_model(build_workshop_strategic_model):
     assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
+
+
+@pytest.fixture(scope="module")
+def build_seismicity_risk_model():
+    # Each entry in set_list corresponds to a tab in the Excel input file that
+    # defines an index set.
+    set_list = [
+        "ProductionPads",
+        "CompletionsPads",
+        "SWDSites",
+        "FreshwaterSources",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    # Each entry in parameter_list also corresponds to a tab in the Excel input
+    # file, but these tabs have parameter data.
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "ROA",
+        "RKA",
+        "SOA",
+        "NOA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
+        "Elevation",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "WellPressure",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "FreshwaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "FreshSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "RemovalEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxOrphanWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
+    ]
+
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_toy_case_study Master Input for Modeling ^J EMAG 12.20.23.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            seismicity_risk_model = create_model(df_sets, df_parameters, config_dict)
+            return seismicity_risk_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_seismicity_risk_build(build_seismicity_risk_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_seismicity_risk_model(
+        config_dict={
+            # TODO: seismicity risk is not optimized for any costs yet
+            #"objective": Objectives.cost,
+            #"pipeline_cost": PipelineCost.distance_based,
+            #"pipeline_capacity": PipelineCapacity.input,
+            "seismicity_risk": SeismicityRisk.true,
+        }
+    )
+    # TODO: not sure how this is determined
+    #assert degrees_of_freedom(m) == 3973
+    # Check unit config arguments
+    assert len(m.config) == 9
+    # TODO: seismicity risk is not optimized for any costs yet
+    assert m.config.objective
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_seismicity_risk_model(build_seismicity_risk_model):
+    m = build_seismicity_risk_model(
+        config_dict={
+            # TODO: seismicity risk is not optimized for any costs yet
+            #"objective": Objectives.cost,
+            #"pipeline_cost": PipelineCost.distance_based,
+            #"pipeline_capacity": PipelineCapacity.input,
+            "seismicity_risk": SeismicityRisk.true,
+        }
+    )
+
+    options = {
+            # TODO: no options for seismicity calculation yet
+    }
+
+    results = solve_model(model=m, options=options)
+
+    # TODO: not sure how this is determined
+    #assert degrees_of_freedom(m) == 3851
+    with nostdout():
+        assert is_feasible(m)
+
+amodel=build_seismicity_risk_model()
+test_run_seismicity_risk_model(build_seismicity_risk_model=amodel)
