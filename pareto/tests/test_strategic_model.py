@@ -165,6 +165,14 @@ def build_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -471,6 +479,14 @@ def build_reduced_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -975,6 +991,14 @@ def build_modified_reduced_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1196,6 +1220,14 @@ def test_strategic_model_UI_display_units():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1312,6 +1344,14 @@ def build_toy_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1484,6 +1524,14 @@ def build_permian_demo_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1711,6 +1759,14 @@ def build_workshop_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1780,177 +1836,61 @@ def test_run_workshop_model(build_workshop_strategic_model):
         assert is_feasible(m)
 
 
-@pytest.fixture(scope="module")
-def build_seismicity_risk_model():
-    # Each entry in set_list corresponds to a tab in the Excel input file that
-    # defines an index set.
-    set_list = [
-        "ProductionPads",
-        "CompletionsPads",
-        "SWDSites",
-        "FreshwaterSources",
-        "StorageSites",
-        "TreatmentSites",
-        "ReuseOptions",
-        "NetworkNodes",
-        "PipelineDiameters",
-        "StorageCapacities",
-        "InjectionCapacities",
-        "TreatmentCapacities",
-        "TreatmentTechnologies",
-    ]
-    # Each entry in parameter_list also corresponds to a tab in the Excel input
-    # file, but these tabs have parameter data.
-    parameter_list = [
-        "Units",
-        "PNA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NRA",
-        "NSA",
-        "FCA",
-        "RCA",
-        "RNA",
-        "RSA",
-        "SCA",
-        "SNA",
-        "ROA",
-        "RKA",
-        "SOA",
-        "NOA",
-        "PCT",
-        "PKT",
-        "FCT",
-        "CST",
-        "CCT",
-        "CKT",
-        "RST",
-        "ROT",
-        "SOT",
-        "RKT",
-        "Elevation",
-        "CompletionsPadOutsideSystem",
-        "DesalinationTechnologies",
-        "DesalinationSites",
-        "BeneficialReuseCost",
-        "BeneficialReuseCredit",
-        "TruckingTime",
-        "CompletionsDemand",
-        "PadRates",
-        "FlowbackRates",
-        "WellPressure",
-        "NodeCapacities",
-        "InitialPipelineCapacity",
-        "InitialPipelineDiameters",
-        "InitialDisposalCapacity",
-        "InitialTreatmentCapacity",
-        "ReuseMinimum",
-        "ReuseCapacity",
-        "FreshwaterSourcingAvailability",
-        "PadOffloadingCapacity",
-        "CompletionsPadStorage",
-        "DisposalOperationalCost",
-        "TreatmentOperationalCost",
-        "ReuseOperationalCost",
-        "PipelineOperationalCost",
-        "FreshSourcingCost",
-        "TruckingHourlyCost",
-        "PipelineDiameterValues",
-        "DisposalCapacityIncrements",
-        "InitialStorageCapacity",
-        "StorageCapacityIncrements",
-        "TreatmentCapacityIncrements",
-        "TreatmentEfficiency",
-        "RemovalEfficiency",
-        "DisposalExpansionCost",
-        "StorageExpansionCost",
-        "TreatmentExpansionCost",
-        "PipelineCapexDistanceBased",
-        "PipelineCapexCapacityBased",
-        "PipelineCapacityIncrements",
-        "PipelineExpansionDistance",
-        "Hydraulics",
-        "Economics",
-        "PadWaterQuality",
-        "StorageInitialWaterQuality",
-        "PadStorageInitialWaterQuality",
-        "DisposalOperatingCapacity",
-        "TreatmentExpansionLeadTime",
-        "DisposalExpansionLeadTime",
-        "StorageExpansionLeadTime",
-        "PipelineExpansionLeadTime_Dist",
-        "PipelineExpansionLeadTime_Capac",
-        "SWDDeep",
-        "SWDAveragePressure",
-        "SWDProxOrphanWell",
-        "SWDProxInactiveWell",
-        "SWDProxEQ",
-        "SWDProxFault",
-        "SWDProxHpOrLpWell",
-        "SWDRiskFactors",
-    ]
-
-    with resources.path(
-        "pareto.case_studies",
-        "strategic_toy_case_study Master Input for Modeling ^J EMAG 12.20.23.xlsx",
-    ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
-
-        # create mathematical model
-        def _call_model_with_config(config_dict):
-            seismicity_risk_model = create_model(df_sets, df_parameters, config_dict)
-            return seismicity_risk_model
-
-    return _call_model_with_config
-
-
 @pytest.mark.unit
-def test_seismicity_risk_build(build_seismicity_risk_model):
+def test_seismicity_risk_build(build_toy_strategic_model):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_seismicity_risk_model(
+    m = build_toy_strategic_model(
         config_dict={
-            # TODO: seismicity risk is not optimized for any costs yet
-            # "objective": Objectives.cost,
-            # "pipeline_cost": PipelineCost.distance_based,
-            # "pipeline_capacity": PipelineCapacity.input,
-            "seismicity_risk": SeismicityRisk.true,
+            "objective": Objectives.seismicity_risk,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.false,
+            "seismicity_risk": SeismicityRisk.exclude_risky_wells,
         }
     )
-    # TODO: not sure how this is determined
-    # assert degrees_of_freedom(m) == 3973
-    # Check unit config arguments
+    assert degrees_of_freedom(m) == 7237
     assert len(m.config) == 9
-    # TODO: seismicity risk is not optimized for any costs yet
+    assert m.do_seismicity_calcs
     assert m.config.objective
+    assert isinstance(m.v_Z_seismicity, pyo.Var)
+    assert isinstance(m.SeismicityRiskObjectiveFunction, pyo.Constraint)
+    assert isinstance(m.ExcludeRiskyDisposalWells, pyo.Constraint)
 
 
 # if solver cbc exists @solver
 @pytest.mark.component
-def test_run_seismicity_risk_model(build_seismicity_risk_model):
-    m = build_seismicity_risk_model(
+def test_run_seismicity_risk_model(build_toy_strategic_model):
+    m = build_toy_strategic_model(
         config_dict={
-            # TODO: seismicity risk is not optimized for any costs yet
-            # "objective": Objectives.cost,
-            # "pipeline_cost": PipelineCost.distance_based,
-            # "pipeline_capacity": PipelineCapacity.input,
-            "seismicity_risk": SeismicityRisk.true,
+            "objective": Objectives.seismicity_risk,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.false,
+            "seismicity_risk": SeismicityRisk.exclude_risky_wells,
         }
     )
 
     options = {
-        # TODO: no options for seismicity calculation yet
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
     }
 
     results = solve_model(model=m, options=options)
 
-    # TODO: not sure how this is determined
-    # assert degrees_of_freedom(m) == 3851
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 6875
+    assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z_seismicity)
     with nostdout():
         assert is_feasible(m)
-
-
-amodel = build_seismicity_risk_model()
-test_run_seismicity_risk_model(build_seismicity_risk_model=amodel)
