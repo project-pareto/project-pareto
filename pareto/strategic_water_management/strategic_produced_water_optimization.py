@@ -52,6 +52,7 @@ from pyomo.opt import TerminationCondition
 class Objectives(Enum):
     cost = 0
     reuse = 1
+    seismicity_risk = 2
 
 
 class PipelineCapacity(Enum):
@@ -94,7 +95,8 @@ class InfrastructureTiming(Enum):
 
 class SeismicityRisk(Enum):
     false = 0
-    true = 1
+    exclude_risky_wells = 1
+    calculate_risk_metrics = 2
 
 
 # create config dictionary
@@ -228,8 +230,9 @@ CONFIG.declare(
         doc="""Selection to include seismicity risk.
         ***default*** - SeismicityRisk.false
         **Valid Values:** - {
-        **SeismicityRisk.false** - Exclude seismicity risk from model,
-        **SeismicityRisk.true** - Include seismicity risk in model
+        **SeismicityRisk.false** - Exclude seismicity risk from model (unless the seismicity risk objective function is selected),
+        **SeismicityRisk.exclude_risky_wells** - Calculate seismicity risk metrics and disallow disposal to sufficiently risky wells,
+        **SeismicityRisk.calculate_risk_metrics** - Calcuulate seismicity risk metrics for the user to view, but don't change the optimization model
         }""",
     ),
 )
@@ -243,6 +246,11 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+
+    # Calculate seismicity risk metrics if necessary
+    model.do_seismicity_calcs = model.config.seismicity_risk != SeismicityRisk.false or model.config.objective == Objectives.seismicity_risk
+    if model.do_seismicity_calcs:
+        seismicity_risk(model)
 
     try:
         # Check that currency is set to USD
@@ -513,6 +521,12 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Objective function variable [currency]",
     )
+    if model.do_seismicity_calcs:
+        model.v_Z_seismicity = Var(
+            within=Reals,
+            units=model.model_units["volume_time"],
+            doc="Objective function variable for seismicity risk objective [volume/time]",
+        )
     model.v_F_Piped = Var(
         model.s_LLA,
         model.s_T,
@@ -2281,10 +2295,10 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Operating capacity of disposal site [%]",
     )
 
-    # Define cost objective function #
+    # Define objective function depending on config argument #
 
     if model.config.objective == Objectives.cost:
-
+        # Cost objective
         def CostObjectiveFunctionRule(model):
             return model.v_Z == (
                 model.v_C_TotalSourced
@@ -2311,10 +2325,8 @@ def create_model(df_sets, df_parameters, default={}):
             rule=CostObjectiveFunctionRule, doc="Cost objective function"
         )
 
-    # Define reuse objective function #
-
     elif model.config.objective == Objectives.reuse:
-
+        # Reuse objective
         def ReuseObjectiveFunctionRule(model):
             return model.v_Z == -(
                 model.v_F_TotalReused / model.p_beta_TotalProd
@@ -2343,8 +2355,25 @@ def create_model(df_sets, df_parameters, default={}):
             rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
         )
 
+    elif model.config.objective == Objectives.seismicity_risk:
+        # The seismicity risk objective function is defined below if necessary.
+        # The purpose of this elif block is simply to prevent throwing an
+        # exception when the seismicity risk objective is selected.
+        pass
+
     else:
         raise Exception("objective not supported")
+
+    if model.do_seismicity_calcs:
+        # Seismicity risk objective
+        def SeismicityRiskObjectiveFunctionRule(model):
+            return model.v_Z_seismicity == (
+                sum(sum(model.v_F_DisposalDestination[k, t] for t in model.s_T) * model.seismicity_risk_metrics[k] for k in model.s_K)
+            )
+
+        model.SeismicityRiskObjectiveFunction = Constraint(
+            rule=SeismicityRiskObjectiveFunctionRule, doc="Seismicity risk objective function"
+        )
 
     # Define constraints #
 
@@ -3869,14 +3898,36 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_K,
         model.s_T,
         rule=SeismicActivityExceptionRule,
-        doc="Constraint to restrict flow to a seismic response area",
+        doc="Restrict flow within a seismic response area",
     )
+
+    if model.config.seismicity_risk == SeismicityRisk.exclude_risky_wells:
+        def ExcludeRiskyDisposalWellsRule(model, k):
+            if model.seismicity_sites_included[k]:
+                # Disposal is allowed at SWD k - skip
+                return Constraint.Skip
+            else:
+                # Disposal is not allowed at SWD k - constrain to 0
+                constraint = sum(model.v_F_DisposalDestination[k, t] for t in model.s_T) == 0
+
+            return process_constraint(constraint)
+
+        model.ExcludeRiskyDisposalWells = Constraint(
+            model.s_K,
+            rule=ExcludeRiskyDisposalWellsRule,
+            doc="Disallow disposal in sufficiently risky wells",
+        )
 
     # Define Objective and Solve Statement #
 
-    model.objective = Objective(
-        expr=model.v_Z, sense=minimize, doc="Objective function"
-    )
+    if model.config.objective == Objectives.seismicity_risk:
+        model.objective = Objective(
+            expr=model.v_Z_seismicity, sense=minimize, doc="Objective function"
+        )
+    else:
+        model.objective = Objective(
+            expr=model.v_Z, sense=minimize, doc="Objective function"
+        )
 
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
@@ -6427,6 +6478,8 @@ def scale_model(model, scaling_factor=None):
 
     # Scaling variables
     model.scaling_factor[model.v_Z] = 1 / scaling_factor
+    if model.do_seismicity_calcs:
+        model.scaling_factor[model.v_Z_seismicity] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
@@ -6514,6 +6567,8 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.CostObjectiveFunction] = 1 / scaling_factor
     elif model.config.objective == Objectives.reuse:
         model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
+    elif model.config.objective == Objectives.seismicity_risk:
+        model.scaling_factor[model.SeismicityRiskObjectiveFunction] = 1 / scaling_factor
 
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
@@ -6598,6 +6653,8 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
+    if model.config.seismicity_risk == SeismicityRisk.exclude_risky_wells:
+        model.scaling_factor[model.ExcludeRiskyDisposalWells] = 1 / scaling_factor
 
     if model.config.node_capacity == True:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
@@ -7244,11 +7301,6 @@ def solve_model(model, options=None):
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
         infrastructure_timing(model)
-
-    # calculate seismicity risk
-    if model.config.seismicity_risk == SeismicityRisk.true:
-        # create model.seismicity_risk_metrics and model.seismicity_sites_included
-        seismicity_risk(model)
 
     results.write()
 
