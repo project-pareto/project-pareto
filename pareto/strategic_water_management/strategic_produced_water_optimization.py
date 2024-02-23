@@ -521,7 +521,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     if model.do_subsurface_risk_calcs:
         objective_units = model.model_units["volume_time"]
-        objective_doc = "Objective function variable for subsurface risk objective [volume/time]"
+        objective_doc = (
+            "Objective function variable for subsurface risk objective [volume/time]"
+        )
     else:
         objective_units = model.model_units["currency"]
         objective_doc = "Objective function variable [currency]"
