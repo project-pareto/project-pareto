@@ -1855,7 +1855,7 @@ def test_seismicity_risk_build(build_toy_strategic_model):
     assert len(m.config) == 9
     assert m.do_seismicity_calcs
     assert m.config.objective
-    assert isinstance(m.v_Z_seismicity, pyo.Var)
+    assert isinstance(m.v_Z, pyo.Var)
     assert isinstance(m.SeismicityRiskObjectiveFunction, pyo.Constraint)
     assert isinstance(m.ExcludeRiskyDisposalWells, pyo.Constraint)
 
@@ -1890,6 +1890,6 @@ def test_run_seismicity_risk_model(build_workshop_strategic_model):
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 6875
-    assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z_seismicity)
+    assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)

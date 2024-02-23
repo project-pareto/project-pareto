@@ -519,17 +519,19 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Define continuous variables #
 
+    if model.do_seismicity_calcs:
+        objective_units = model.model_units["volume_time"]
+        objective_doc = "Objective function variable for seismicity risk objective [volume/time]"
+    else:
+        objective_units = model.model_units["currency"]
+        objective_doc = "Objective function variable [currency]"
+
     model.v_Z = Var(
         within=Reals,
-        units=model.model_units["currency"],
-        doc="Objective function variable [currency]",
+        units=objective_units,
+        doc=objective_doc,
     )
-    if model.do_seismicity_calcs:
-        model.v_Z_seismicity = Var(
-            within=Reals,
-            units=model.model_units["volume_time"],
-            doc="Objective function variable for seismicity risk objective [volume/time]",
-        )
+
     model.v_F_Piped = Var(
         model.s_LLA,
         model.s_T,
@@ -2370,7 +2372,7 @@ def create_model(df_sets, df_parameters, default={}):
     if model.do_seismicity_calcs:
         # Seismicity risk objective
         def SeismicityRiskObjectiveFunctionRule(model):
-            return model.v_Z_seismicity == (
+            return model.v_Z == (
                 sum(
                     sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
                     * model.seismicity_risk_metrics[k]
@@ -3931,14 +3933,9 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Define Objective and Solve Statement #
 
-    if model.config.objective == Objectives.seismicity_risk:
-        model.objective = Objective(
-            expr=model.v_Z_seismicity, sense=minimize, doc="Objective function"
-        )
-    else:
-        model.objective = Objective(
-            expr=model.v_Z, sense=minimize, doc="Objective function"
-        )
+    model.objective = Objective(
+        expr=model.v_Z, sense=minimize, doc="Objective function"
+    )
 
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
@@ -6489,8 +6486,6 @@ def scale_model(model, scaling_factor=None):
 
     # Scaling variables
     model.scaling_factor[model.v_Z] = 1 / scaling_factor
-    if model.do_seismicity_calcs:
-        model.scaling_factor[model.v_Z_seismicity] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
