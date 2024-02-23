@@ -7090,7 +7090,7 @@ def subsurface_risk(model):
         risk_metrics[site] = 1 - inverse_weighted_site_risk_factor
         # only consider these sites with True sites_included!
         sites_included[site] = (
-            pressure_thresholds["min"] <= pressure[site] < pressure_thresholds["max"]
+            pressure_thresholds["min"] <= pressure[site] <= pressure_thresholds["max"]
         )
 
     model.subsurface_risk_metrics = risk_metrics
