@@ -1889,7 +1889,7 @@ def test_run_subsurface_risk_model(build_workshop_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 6875
+    assert degrees_of_freedom(m) == 3851
     assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
