@@ -36,7 +36,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     InfrastructureTiming,
     infrastructure_timing,
     SeismicityRisk,
-    seismicity_risk,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -1863,8 +1862,8 @@ def test_seismicity_risk_build(build_toy_strategic_model):
 
 # if solver cbc exists @solver
 @pytest.mark.component
-def test_run_seismicity_risk_model(build_toy_strategic_model):
-    m = build_toy_strategic_model(
+def test_run_seismicity_risk_model(build_workshop_strategic_model):
+    m = build_workshop_strategic_model(
         config_dict={
             "objective": Objectives.seismicity_risk,
             "pipeline_cost": PipelineCost.distance_based,
