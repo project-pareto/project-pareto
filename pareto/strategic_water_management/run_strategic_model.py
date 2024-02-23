@@ -21,7 +21,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
-    SeismicityRisk,
+    SubsurfaceRisk,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -162,7 +162,7 @@ with resources.path(
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse, Objectives.seismicity_risk]
+ objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize]
@@ -170,7 +170,7 @@ with resources.path(
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
  infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
- seismicity_risk: [SeismicityRisk.false, SeismicityRisk.exclude_risky_wells, SeismicityRisk.calculate_risk_metrics]
+ subsurface_risk: [SubsurfaceRisk.false, SubsurfaceRisk.exclude_risky_wells, SubsurfaceRisk.calculate_risk_metrics]
  """
 
 strategic_model = create_model(
@@ -185,7 +185,7 @@ strategic_model = create_model(
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         "infrastructure_timing": InfrastructureTiming.true,
-        "seismicity_risk": SeismicityRisk.false,
+        "subsurface_risk": SubsurfaceRisk.false,
     },
 )
 
