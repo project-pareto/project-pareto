@@ -23,10 +23,6 @@ def calculate_earthquake_distances_usgs(swd_latlons):
         + ""
     )
 
-    # only for testing
-    max_radius_km = 1000
-    min_magnitude = 0.1
-
     earthquake_distances = []
 
     for swd_latlon in swd_latlons:
@@ -115,10 +111,6 @@ def calculate_earthquake_distances_texnet(swd_latlons):
         + "&featureEncoding=esriDefault"
         + ""
     )
-
-    # only for testing
-    max_radius_mi = 1000
-    min_magnitude = 0.1
 
     earthquake_distances = []
 
