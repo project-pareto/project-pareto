@@ -90,7 +90,6 @@ class PintUnitExtractionVisitor(EXPR.StreamBasedExpressionVisitor):
             " units of expression".format(str(nodetype), str(node))
         )
 
-
     def _get_unit_for_single_child(self, node, child_units):
         """
         Return (and test) the units corresponding to a unary operation (e.g. negation)
