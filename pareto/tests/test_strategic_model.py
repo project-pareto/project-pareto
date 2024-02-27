@@ -1856,7 +1856,7 @@ def test_subsurface_risk_build(build_toy_strategic_model):
     assert m.do_subsurface_risk_calcs
     assert m.config.objective
     assert isinstance(m.v_Z, pyo.Var)
-    assert isinstance(m.SubsurfaceRiskObjectiveFunction, pyo.Constraint)
+    assert isinstance(m.ObjectiveFunction, pyo.Constraint)
     assert isinstance(m.ExcludeRiskyDisposalWells, pyo.Constraint)
 
 

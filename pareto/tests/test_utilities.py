@@ -136,6 +136,14 @@ def fetch_strategic_model(config_dict):
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     # user needs to provide the path to the case study data file
@@ -149,7 +157,7 @@ def fetch_strategic_model(config_dict):
 
     # create mathematical model
     """Valid values of config arguments for the default parameter in the create_model() call
-    objective: [Objectives.cost, Objectives.reuse]
+    objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk]
     pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
     pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
     node_capacity: [True, False]
