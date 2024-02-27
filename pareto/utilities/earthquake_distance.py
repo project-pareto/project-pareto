@@ -63,6 +63,7 @@ def calculate_earthquake_distances_usgs(swd_latlons):
                     "magnitude": mag,
                 }
             )
+
     return earthquake_distances
 
 
@@ -152,6 +153,7 @@ def calculate_earthquake_distances_texnet(swd_latlons):
                     "magnitude": mag,
                 }
             )
+
     return earthquake_distances
 
 
