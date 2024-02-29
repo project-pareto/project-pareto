@@ -7564,15 +7564,15 @@ def solve_model(model, options=None):
 
             try:
                 # solver = SolverFactory("gams")
-                solver = SolverFactory("gurobi")
+                solver = SolverFactory("cbc")
             except:
                 print(
                     "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
                       please continue to use the post-process method for hydraulics at this time"
                 )
             else:
-                results_gurobi = solver.solve(model_h, tee=True, keepfiles=True)
-                results_2 = results_gurobi
+                results_cbc = solver.solve(model_h, tee=True, keepfiles=True)
+                results_2 = results_cbc
                 # Check the feasibility of the results with regards to max pressure and node pressures
 
                 # Navigate over all the times
