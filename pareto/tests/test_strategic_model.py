@@ -693,6 +693,7 @@ def test_run_hydraulics_co_optimize_linearized_reduced_strategic_model(
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
 
+
 @pytest.mark.unit
 def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     build_reduced_strategic_model,
