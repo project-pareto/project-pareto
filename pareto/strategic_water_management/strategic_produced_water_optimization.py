@@ -216,6 +216,7 @@ CONFIG.declare(
 )
 
 Del_I = 10000
+stress_factor = 0.800000
 
 
 def create_model(df_sets, df_parameters, default={}):
@@ -2362,7 +2363,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
         # If the completions pad is inside the system, demand must be met
         else:
-            constraint = model.p_gamma_Completions[p, t] == (
+            constraint = model.p_gamma_Completions[p, t] * stress_factor == (
                 sum(
                     model.v_F_Piped[l, p, t]
                     for l in (model.s_L - model.s_F)
@@ -2505,7 +2506,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ProductionPadSupplyBalanceRule(model, p, t):
         constraint = (
-            model.p_beta_Production[p, t]
+            model.p_beta_Production[p, t] * stress_factor
             == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
                 model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
@@ -2523,7 +2524,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadSupplyBalanceRule(model, p, t):
         constraint = (
-            model.p_beta_Flowback[p, t]
+            model.p_beta_Flowback[p, t] * stress_factor
             == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
                 model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
@@ -7465,14 +7466,14 @@ def solve_model(model, options=None):
     # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
     # these cases it's preferred to report a value of 0 to the user, so change
     # the value of vb_y_BeneficialReuse[o, t] as necessary.
-    for t in model.s_T:
-        for o in model.s_O:
-            if (
-                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
-                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
-                and value(model.vb_y_BeneficialReuse[o, t] > 0)
-            ):
-                model.vb_y_BeneficialReuse[o, t].value = 0
+    # for t in model.s_T:
+    #     for o in model.s_O:
+    #         if (
+    #             value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+    #             and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+    #             and value(model.vb_y_BeneficialReuse[o, t] > 0)
+    #         ):
+    #             model.vb_y_BeneficialReuse[o, t].value = 0
 
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
@@ -7564,15 +7565,15 @@ def solve_model(model, options=None):
 
             try:
                 # solver = SolverFactory("gams")
-                solver = SolverFactory("gurobi")
+                solver = SolverFactory("cbc")
             except:
                 print(
                     "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
                       please continue to use the post-process method for hydraulics at this time"
                 )
             else:
-                results_gurobi = solver.solve(model_h, tee=True, keepfiles=True)
-                results_2 = results_gurobi
+                results_cbc = solver.solve(model_h, tee=True, keepfiles=True)
+                results_2 = results_cbc
                 # Check the feasibility of the results with regards to max pressure and node pressures
 
                 # Navigate over all the times
