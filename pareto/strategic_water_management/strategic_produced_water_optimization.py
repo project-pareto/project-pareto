@@ -2362,7 +2362,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
         # If the completions pad is inside the system, demand must be met
         else:
-            constraint = model.p_gamma_Completions[p, t]  == (
+            constraint = model.p_gamma_Completions[p, t] == (
                 sum(
                     model.v_F_Piped[l, p, t]
                     for l in (model.s_L - model.s_F)
@@ -2505,7 +2505,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ProductionPadSupplyBalanceRule(model, p, t):
         constraint = (
-            model.p_beta_Production[p, t] 
+            model.p_beta_Production[p, t]
             == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
                 model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
@@ -2523,7 +2523,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def CompletionsPadSupplyBalanceRule(model, p, t):
         constraint = (
-            model.p_beta_Flowback[p, t] 
+            model.p_beta_Flowback[p, t]
             == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
             + sum(
                 model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
