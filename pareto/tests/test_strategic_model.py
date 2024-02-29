@@ -612,10 +612,10 @@ def test_hydraulics_co_optimize_input(
 
 @pytest.mark.unit
 def test_hydraulics_co_optimize_linearized_input(
-    build_reduced_strategic_model,
+    build_workshop_strategic_model,
 ):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_reduced_strategic_model(
+    m = build_workshop_strategic_model(
         config_dict={
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
@@ -662,6 +662,36 @@ def test_hydraulics_co_optimize_linearized_input(
     assert isinstance(mh.hydraulics.HydraulicsCostEq, pyo.Constraint)
     assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
 
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_hydraulics_co_optimize_linearized_reduced_strategic_model(
+    build_workshop_strategic_model,
+):
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.co_optimize_linearized,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "solver": "cbc",
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
 
 @pytest.mark.unit
 def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
