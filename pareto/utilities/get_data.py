@@ -20,7 +20,8 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 import numpy as np
-
+import openpyxl as xl 
+import warnings
 
 def _read_data(_fname, _set_list, _parameter_list):
     """
@@ -239,9 +240,34 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     Similarly, the Set for Water Quality Index "model.s_QC" is derived by the method based
     on the Parameter: PadWaterQuality which is indexed by QC
     """
+    # Using only the names available in the input sheet
+    set_list_common = []
+    parameter_list_common = []
+    df = pd.ExcelFile(fname)
+    sheet_list = df.sheet_names
+    exclusion_list = []
+    for name in sheet_list:
+        if name in set_list:
+            set_list_common.append(name)
+        elif name in parameter_list:
+            parameter_list_common.append(name)
+        else:
+            if name != 'Overview' and name != 'Schematic': 
+                exclusion_list.append(name)
+                warnings.warn(f'{name} is not found in defined sets or \
+                            parameters but is parsed in the input data', UserWarning, stacklevel=2)
+
+    for sets in set_list:
+        if sets not in set_list_common:
+            warnings.warn(f'{sets} is defined in set_list but \
+                      not parsed in the input data', UserWarning, stacklevel=2)
+    for params in parameter_list:
+        if params not in parameter_list_common:
+            warnings.warn(f'{params} is defined in parameter_list but \
+                      not parsed in the input data', UserWarning, stacklevel=2)
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters, data_column] = _read_data(
-        fname, set_list, parameter_list
+        fname, set_list_common, parameter_list_common
     )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
