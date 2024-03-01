@@ -199,4 +199,3 @@ strategic_model.objective.display()
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "strategic_optimization_results.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

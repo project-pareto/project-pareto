@@ -6701,4 +6701,3 @@ def solve_model(model, options=None):
         model_h.hydraulics.deactivate()
 
         results_2.write()
-    return results
