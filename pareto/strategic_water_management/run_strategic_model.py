@@ -11,7 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
-from pareto.strategic_water_management.strategic_produced_water_optimization_MILP_surrogate import (
+from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
     create_model,
     Objectives,
@@ -22,20 +22,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization_MIL
     RemovalEfficiencyMethod,
     InfrastructureTiming,
 )
-
-# from pareto.strategic_water_management.strategic_produced_water_optimization import (
-#     WaterQuality,
-#     create_model,
-#     Objectives,
-#     solve_model,
-#     PipelineCost,
-#     PipelineCapacity,
-#     Hydraulics,
-#     RemovalEfficiencyMethod,
-#     InfrastructureTiming,
-# )
 from pareto.utilities.get_data import get_data
-from pareto.utilities.results_better import (
+from pareto.utilities.results import (
     generate_report,
     PrintValues,
     OutputUnits,
@@ -43,7 +31,6 @@ from pareto.utilities.results_better import (
     nostdout,
 )
 from importlib import resources
-import os
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -51,7 +38,8 @@ set_list = [
     "ProductionPads",
     "CompletionsPads",
     "SWDSites",
-    "FreshwaterSources",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "TreatmentSites",
     "ReuseOptions",
@@ -79,6 +67,7 @@ parameter_list = [
     "SCA",
     "SNA",
     "ROA",
+    "RKA",
     "SOA",
     "NOA",
     "PCT",
@@ -90,10 +79,12 @@ parameter_list = [
     "RST",
     "ROT",
     "SOT",
+    "RKT",
     "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCost",
     "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
@@ -107,14 +98,14 @@ parameter_list = [
     "InitialTreatmentCapacity",
     "ReuseMinimum",
     "ReuseCapacity",
-    "FreshwaterSourcingAvailability",
+    "ExtWaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PipelineOperationalCost",
-    "FreshSourcingCost",
+    "ExternalSourcingCost",
     "TruckingHourlyCost",
     "PipelineDiameterValues",
     "DisposalCapacityIncrements",
@@ -132,6 +123,7 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
@@ -141,6 +133,14 @@ parameter_list = [
     "StorageExpansionLeadTime",
     "PipelineExpansionLeadTime_Dist",
     "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
 ]
 
 # user needs to provide the path to the case study data file
@@ -154,8 +154,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_modified_only_MVC.xlsx",
-    # "strategic_toy_case_study.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -175,8 +174,7 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        # "objective": Objectives.cost,
-        "objective": Objectives.cost_surrogate,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
@@ -191,15 +189,11 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 10000,
+    "running_time": 200,
     "gap": 0,
 }
 
 results = solve_model(model=strategic_model, options=options)
-
-# strategic_model.vb_y_MVCselected.display()
-filename = os.path.join(os.path.dirname(__file__), "model.lp")
-strategic_model.write(filename, io_options={"symbolic_solver_labels": True})
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -219,11 +213,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_revised.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results_revised.xlsx"
+fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
