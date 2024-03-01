@@ -20,8 +20,9 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 import numpy as np
-import openpyxl as xl 
+import openpyxl as xl
 import warnings
+
 
 def _read_data(_fname, _set_list, _parameter_list):
     """
@@ -252,19 +253,31 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
         elif name in parameter_list:
             parameter_list_common.append(name)
         else:
-            if name != 'Overview' and name != 'Schematic': 
+            if name != "Overview" and name != "Schematic":
                 exclusion_list.append(name)
-                warnings.warn(f'{name} is not found in defined sets or \
-                            parameters but is parsed in the input data', UserWarning, stacklevel=2)
+                warnings.warn(
+                    f"{name} is not found in defined sets or \
+                            parameters but is parsed in the input data",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
     for sets in set_list:
         if sets not in set_list_common:
-            warnings.warn(f'{sets} is defined in set_list but \
-                      not parsed in the input data', UserWarning, stacklevel=2)
+            warnings.warn(
+                f"{sets} is defined in set_list but \
+                      not parsed in the input data",
+                UserWarning,
+                stacklevel=2,
+            )
     for params in parameter_list:
         if params not in parameter_list_common:
-            warnings.warn(f'{params} is defined in parameter_list but \
-                      not parsed in the input data', UserWarning, stacklevel=2)
+            warnings.warn(
+                f"{params} is defined in parameter_list but \
+                      not parsed in the input data",
+                UserWarning,
+                stacklevel=2,
+            )
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     [_df_sets, _df_parameters, data_column] = _read_data(
         fname, set_list_common, parameter_list_common
