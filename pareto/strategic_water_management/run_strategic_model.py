@@ -20,8 +20,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     Hydraulics,
     RemovalEfficiencyMethod,
-    InfrastructureTiming,
 )
+
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
     generate_report,
@@ -31,15 +31,14 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
-
+import os 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
     "ProductionPads",
     "CompletionsPads",
     "SWDSites",
-    "ExternalWaterSources",
-    "WaterQualityComponents",
+    "FreshwaterSources",
     "StorageSites",
     "TreatmentSites",
     "ReuseOptions",
@@ -66,26 +65,16 @@ parameter_list = [
     "RSA",
     "SCA",
     "SNA",
-    "ROA",
-    "RKA",
-    "SOA",
-    "NOA",
     "PCT",
     "PKT",
     "FCT",
     "CST",
     "CCT",
     "CKT",
-    "RST",
-    "ROT",
-    "SOT",
-    "RKT",
     "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
-    "BeneficialReuseCost",
-    "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
@@ -96,16 +85,14 @@ parameter_list = [
     "InitialPipelineDiameters",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
-    "ReuseMinimum",
-    "ReuseCapacity",
-    "ExtWaterSourcingAvailability",
+    "FreshwaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PipelineOperationalCost",
-    "ExternalSourcingCost",
+    "FreshSourcingCost",
     "TruckingHourlyCost",
     "PipelineDiameterValues",
     "DisposalCapacityIncrements",
@@ -123,24 +110,10 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
-    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
     "DisposalOperatingCapacity",
-    "TreatmentExpansionLeadTime",
-    "DisposalExpansionLeadTime",
-    "StorageExpansionLeadTime",
-    "PipelineExpansionLeadTime_Dist",
-    "PipelineExpansionLeadTime_Capac",
-    "SWDDeep",
-    "SWDAveragePressure",
-    "SWDProxPAWell",
-    "SWDProxInactiveWell",
-    "SWDProxEQ",
-    "SWDProxFault",
-    "SWDProxHpOrLpWell",
-    "SWDRiskFactors",
 ]
 
 # user needs to provide the path to the case study data file
@@ -167,7 +140,6 @@ with resources.path(
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
- infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
  """
 
 strategic_model = create_model(
@@ -181,7 +153,6 @@ strategic_model = create_model(
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-        "infrastructure_timing": InfrastructureTiming.true,
     },
 )
 
@@ -194,6 +165,12 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+filename = os.path.join(os.path.dirname(__file__), 'model.lp')
+strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
+
+strategic_model.v_T_Capacity.pprint()
+# print(strategic_model.inlet_salinity['R01'].value,strategic_model.recovery['R01'].value,strategic_model.v_T_Capacity['R01'].value)
+# print(strategic_model.v_C_TreatmentCapEx_site['R01'].value,strategic_model.v_C_Treatment_site['R01'].value,strategic_model.treatment_energy['R01'].value)
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -208,13 +185,15 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
  is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
  output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
  """
-[model, results_dict] = generate_report(
-    strategic_model,
-    results_obj=results,
-    is_print=PrintValues.essential,
-    output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results.xlsx",
-)
+
+strategic_model.objective.display()
+# [model, results_dict] = generate_report(
+#     strategic_model,
+#     results_obj=results,
+#     is_print=PrintValues.essential,
+#     output_units=OutputUnits.user_units,
+#     fname="strategic_optimization_results.xlsx",
+# )
 
 # This shows how to read data from PARETO reports
 set_list = []
