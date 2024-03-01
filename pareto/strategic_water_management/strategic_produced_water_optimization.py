@@ -36,7 +36,6 @@ from pyomo.environ import (
     TransformationFactory,
     value,
     SolverFactory,
-    units
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
@@ -50,10 +49,10 @@ from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 
 
-
 class Objectives(Enum):
     cost = 0
     reuse = 1
+
 
 class PipelineCapacity(Enum):
     calculated = 0
@@ -885,7 +884,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Directional flow between two locations",
     )
-    
+
     # Pre-process Data #
     _preprocess_data(model)
 
@@ -2146,7 +2145,7 @@ def create_model(df_sets, df_parameters, default={}):
         raise Exception("objective not supported")
 
     # Define constraints #
-    
+
     def CompletionsPadDemandBalanceRule(model, p, t):
         # If completions pad is outside the system, the completions demand is not required to be met
         if model.p_chi_OutsideCompletionsPad[p] == 1:
@@ -6701,3 +6700,4 @@ def solve_model(model, options=None):
         model_h.hydraulics.deactivate()
 
         results_2.write()
+    return results
