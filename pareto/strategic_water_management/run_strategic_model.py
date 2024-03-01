@@ -163,6 +163,7 @@ options = {
     "gap": 0,
 }
 
+results = solve_model(model=strategic_model, options=options)
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -177,7 +178,6 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
  is_print: [PrintValues.detailed, PrintValues.nominal, PrintValues.essential]
  output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
  """
-
 [model, results_dict] = generate_report(
     strategic_model,
     results_obj=results,
