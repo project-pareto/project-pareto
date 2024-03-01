@@ -21,7 +21,6 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
 )
-
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
     generate_report,
@@ -31,7 +30,7 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
-import os 
+
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
@@ -127,7 +126,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_toy_case_study.xlsx",
+    "strategic_small_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -164,13 +163,6 @@ options = {
     "gap": 0,
 }
 
-results = solve_model(model=strategic_model, options=options)
-filename = os.path.join(os.path.dirname(__file__), 'model.lp')
-strategic_model.write(filename, io_options={'symbolic_solver_labels': True})
-
-strategic_model.v_T_Capacity.pprint()
-# print(strategic_model.inlet_salinity['R01'].value,strategic_model.recovery['R01'].value,strategic_model.v_T_Capacity['R01'].value)
-# print(strategic_model.v_C_TreatmentCapEx_site['R01'].value,strategic_model.v_C_Treatment_site['R01'].value,strategic_model.treatment_energy['R01'].value)
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -186,16 +178,16 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
  output_units: [OutputUnits.user_units, OutputUnits.unscaled_model_units]
  """
 
-strategic_model.objective.display()
-# [model, results_dict] = generate_report(
-#     strategic_model,
-#     results_obj=results,
-#     is_print=PrintValues.essential,
-#     output_units=OutputUnits.user_units,
-#     fname="strategic_optimization_results.xlsx",
-# )
+[model, results_dict] = generate_report(
+    strategic_model,
+    results_obj=results,
+    is_print=PrintValues.essential,
+    output_units=OutputUnits.user_units,
+    fname="strategic_optimization_results.xlsx",
+)
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
 fname = "strategic_optimization_results.xlsx"
+[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
