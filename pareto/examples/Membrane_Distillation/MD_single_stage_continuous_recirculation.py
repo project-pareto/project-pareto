@@ -315,12 +315,14 @@ def add_costs(m):
     m.fs.costing.add_LCOW(m.fs.permeate.properties[0].flow_vol)
 
 
-def set_operating_conditions(m, feed_flow_mass=1, feed_mass_frac_TDS=0.035, overall_recovery=0.5):
+def set_operating_conditions(
+    m, feed_flow_mass=1, feed_mass_frac_TDS=0.035, overall_recovery=0.5
+):
     # overall recovery
     m.fs.overall_recovery.fix(overall_recovery)
     # feed
-    #feed_flow_mass = 1
-    #feed_mass_frac_TDS = 0.1
+    # feed_flow_mass = 1
+    # feed_mass_frac_TDS = 0.1
     feed_pressure = 101325  # atmospheric
     feed_temperature = 273.15 + 25
     feed_mass_frac_H2O = 1 - feed_mass_frac_TDS
@@ -586,15 +588,60 @@ def display_system(m):
     )
     print("Levelized cost of water: %.2f $/m3" % value(m.fs.costing.LCOW))
 
+
 def display_detailed_costs(m):
-    print("total annualized capital cost: %.2f $/yr" % value(m.fs.costing.total_capital_cost * m.fs.costing.factor_capital_annualization))
-    print("total annual operating cost: %.2f $/yr" % value(m.fs.costing.total_operating_cost))
-    print("MD module annualized capital cost: %.2f $/yr" % value(m.fs.MD.costing.capital_cost * m.fs.costing.factor_capital_annualization))
-    print("Heat exchanger module annualized capital cost: %.2f $/yr" % value(m.fs.hx.costing.capital_cost * m.fs.costing.factor_capital_annualization))
-    print("Heater annualized capital cost: %.2f $/yr" % value(m.fs.heater.costing.capital_cost * m.fs.costing.factor_capital_annualization))
-    print("Chiller annualized capital cost: %.2f $/yr" % value(m.fs.chiller.costing.capital_cost * m.fs.costing.factor_capital_annualization))
-    print("Pumps annualized capital cost: %.2f $/yr" % value((m.fs.pump_brine.costing.capital_cost + m.fs.pump_permeate.costing.capital_cost +  m.fs.pump_feed.costing.capital_cost) * m.fs.costing.factor_capital_annualization))
-    print("Mixer annualized capital cost: %.2f $/yr" % value(m.fs.mixer.costing.capital_cost * m.fs.costing.factor_capital_annualization))
+    print(
+        "total annualized capital cost: %.2f $/yr"
+        % value(
+            m.fs.costing.total_capital_cost * m.fs.costing.factor_capital_annualization
+        )
+    )
+    print(
+        "total annual operating cost: %.2f $/yr"
+        % value(m.fs.costing.total_operating_cost)
+    )
+    print(
+        "MD module annualized capital cost: %.2f $/yr"
+        % value(
+            m.fs.MD.costing.capital_cost * m.fs.costing.factor_capital_annualization
+        )
+    )
+    print(
+        "Heat exchanger module annualized capital cost: %.2f $/yr"
+        % value(
+            m.fs.hx.costing.capital_cost * m.fs.costing.factor_capital_annualization
+        )
+    )
+    print(
+        "Heater annualized capital cost: %.2f $/yr"
+        % value(
+            m.fs.heater.costing.capital_cost * m.fs.costing.factor_capital_annualization
+        )
+    )
+    print(
+        "Chiller annualized capital cost: %.2f $/yr"
+        % value(
+            m.fs.chiller.costing.capital_cost
+            * m.fs.costing.factor_capital_annualization
+        )
+    )
+    print(
+        "Pumps annualized capital cost: %.2f $/yr"
+        % value(
+            (
+                m.fs.pump_brine.costing.capital_cost
+                + m.fs.pump_permeate.costing.capital_cost
+                + m.fs.pump_feed.costing.capital_cost
+            )
+            * m.fs.costing.factor_capital_annualization
+        )
+    )
+    print(
+        "Mixer annualized capital cost: %.2f $/yr"
+        % value(
+            m.fs.mixer.costing.capital_cost * m.fs.costing.factor_capital_annualization
+        )
+    )
 
 
 def display_design(m):
