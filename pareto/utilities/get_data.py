@@ -20,7 +20,6 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 import numpy as np
-import openpyxl as xl
 import warnings
 
 
@@ -256,8 +255,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
             if name != "Overview" and name != "Schematic":
                 exclusion_list.append(name)
                 warnings.warn(
-                    f"{name} is not found in defined sets or \
-                            parameters but is parsed in the input data",
+                    f"{name} is not found in defined sets or parameters but is parsed in the input data",
                     UserWarning,
                     stacklevel=2,
                 )
@@ -265,16 +263,14 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     for sets in set_list:
         if sets not in set_list_common:
             warnings.warn(
-                f"{sets} is defined in set_list but \
-                      not parsed in the input data",
+                f"{sets} is defined in set_list but not parsed in the input data",
                 UserWarning,
                 stacklevel=2,
             )
     for params in parameter_list:
         if params not in parameter_list_common:
             warnings.warn(
-                f"{params} is defined in parameter_list but \
-                      not parsed in the input data",
+                f"{params} is defined in parameter_list but not parsed in the input data",
                 UserWarning,
                 stacklevel=2,
             )
