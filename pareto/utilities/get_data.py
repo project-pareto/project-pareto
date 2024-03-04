@@ -198,7 +198,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
-    contains parameters in format {`param1`:{(set1, set2): value}, `param1`:{(set1, set2): value}}
+    contains parameters in format {‘param1’:{(set1, set2): value}, ‘param1’:{(set1, set2): value}}
 
     To use this method:
 
@@ -236,13 +236,15 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
 
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
+
+    Similarly, the Set for Water Quality Index "model.s_QC" is derived by the method based
+    on the Parameter: PadWaterQuality which is indexed by QC
     """
     # Using only the names available in the input sheet
     set_list_common = []
     parameter_list_common = []
     df = pd.ExcelFile(fname)
     sheet_list = df.sheet_names
-    exclusion_list = []
     for name in sheet_list:
         if name in set_list:
             set_list_common.append(name)
@@ -250,7 +252,6 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
             parameter_list_common.append(name)
         else:
             if name != "Overview" and name != "Schematic":
-                exclusion_list.append(name)
                 warnings.warn(
                     f"{name} is not found in defined sets or parameters but is parsed in the input data",
                     UserWarning,
@@ -285,6 +286,14 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     if "CompletionsDemand" in parameter_list:
         _df_sets["TimePeriods"] = _df_parameters[
             "CompletionsDemand"
+        ].columns.to_series()
+
+    # The set for water quality components (e.g. TDS, Cl) is defined based on the columns of the parameter for
+    # PadWaterQuality. This is done so the user does not have to add an extra tab
+    # in the spreadsheet for the water quality component set
+    if "PadWaterQuality" in parameter_list:
+        _df_sets["WaterQualityComponents"] = _df_parameters[
+            "PadWaterQuality"
         ].columns.to_series()
 
     # The data frame for Parameters is preprocessed to match the format required by Pyomo
@@ -374,26 +383,16 @@ def get_display_units(input_sheet_name_list, user_units):
         "RSA": "",
         "SCA": "",
         "SNA": "",
-        "ROA": "",
-        "SOA": "",
-        "NOA": "",
-        "RKA": "",
         "PCT": "",
         "PKT": "",
         "FCT": "",
         "CST": "",
         "CCT": "",
         "CKT": "",
-        "RST": "",
-        "ROT": "",
-        "SOT": "",
-        "RKT": "",
         "Elevation": user_units["elevation"],
         "CompletionsPadOutsideSystem": "",
         "DesalinationTechnologies": "",
         "DesalinationSites": "",
-        "BeneficialReuseCost": user_units["currency"] + "/" + user_units["volume"],
-        "BeneficialReuseCredit": user_units["currency"] + "/" + user_units["volume"],
         "TruckingTime": "hours",
         "CompletionsDemand": user_units["volume"] + "/" + user_units["time"],
         "PadRates": user_units["volume"] + "/" + user_units["time"],
@@ -404,24 +403,24 @@ def get_display_units(input_sheet_name_list, user_units):
         "InitialPipelineDiameters": user_units["diameter"],
         "InitialDisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
-        "ReuseMinimum": user_units["volume"] + "/" + user_units["time"],
-        "ReuseCapacity": user_units["volume"] + "/" + user_units["time"],
-        "ExtWaterSourcingAvailability": user_units["volume"] + "/" + user_units["time"],
+        "FreshwaterSourcingAvailability": user_units["volume"]
+        + "/"
+        + user_units["time"],
         "PadOffloadingCapacity": user_units["volume"] + "/" + user_units["time"],
         "CompletionsPadStorage": user_units["volume"],
         "DisposalOperationalCost": user_units["currency"] + "/" + user_units["volume"],
         "TreatmentOperationalCost": user_units["currency"] + "/" + user_units["volume"],
         "ReuseOperationalCost": user_units["currency"] + "/" + user_units["volume"],
         "PipelineOperationalCost": user_units["currency"] + "/" + user_units["volume"],
-        "ExternalSourcingCost": user_units["currency"] + "/" + user_units["volume"],
+        "FreshSourcingCost": user_units["currency"] + "/" + user_units["volume"],
         "TruckingHourlyCost": user_units["currency"] + "/" + "hour",
         "PipelineDiameterValues": user_units["diameter"],
         "DisposalCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
         "InitialStorageCapacity": user_units["volume"],
         "StorageCapacityIncrements": user_units["volume"],
         "TreatmentCapacityIncrements": user_units["volume"] + "/" + user_units["time"],
-        "TreatmentEfficiency": "fraction",
-        "RemovalEfficiency": "fraction",
+        "TreatmentEfficiency": "%",
+        "RemovalEfficiency": "%",
         "DisposalExpansionCost": user_units["currency"]
         + "/("
         + user_units["volume"]
@@ -451,11 +450,10 @@ def get_display_units(input_sheet_name_list, user_units):
         "PipelineExpansionDistance": user_units["distance"],
         "Hydraulics": "",
         "Economics": "",
-        "ExternalWaterQuality": user_units["concentration"],
         "PadWaterQuality": user_units["concentration"],
         "StorageInitialWaterQuality": user_units["concentration"],
         "PadStorageInitialWaterQuality": user_units["concentration"],
-        "DisposalOperatingCapacity": "fraction",
+        "DisposalOperatingCapacity": user_units["concentration"],
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
@@ -465,20 +463,12 @@ def get_display_units(input_sheet_name_list, user_units):
         "PAL": "",
         "PadStorageCost": user_units["volume"],
         "ProductionRates": user_units["volume"] + "/" + user_units["time"],
-        "TreatmentExpansionLeadTime": user_units["decision period"],
-        "DisposalExpansionLeadTime": user_units["decision period"],
-        "StorageExpansionLeadTime": user_units["decision period"],
-        "PipelineExpansionLeadTime_Dist": user_units["decision period"]
-        + "/"
-        + user_units["distance"],
-        "PipelineExpansionLeadTime_Capac": user_units["decision period"],
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
         "CompletionsPads": "",
         "SWDSites": "",
-        "ExternalWaterSources": "",
-        "WaterQualityComponents": "",
+        "FreshwaterSources": "",
         "StorageSites": "",
         "TreatmentSites": "",
         "ReuseOptions": "",
