@@ -22,6 +22,7 @@ from pareto.operational_water_management.operational_produced_water_optimization
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
     Hydraulics,
+    InfrastructureTiming,
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
 import plotly.graph_objects as go
@@ -102,13 +103,17 @@ def generate_report(
                     "v_C_Trucked",
                     "v_C_Sourced",
                     "v_C_Disposal",
+                    "v_C_Treatment",
                     "v_C_Reuse",
+                    "v_C_Storage",
+                    "v_C_BeneficialReuse",
                     "v_L_Storage",
                     "vb_y_Pipeline",
                     "vb_y_Disposal",
                     "vb_y_Storage",
                     "vb_y_Treatment",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
                     "v_S_Production",
@@ -117,7 +122,7 @@ def generate_report(
                     "v_S_StorageCapacity",
                     "v_S_DisposalCapacity",
                     "v_S_TreatmentCapacity",
-                    "v_S_ReuseCapacity",
+                    "v_S_BeneficialReuseCapacity",
                     "v_Q",
                 ]
 
@@ -135,6 +140,7 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
 
@@ -157,6 +163,9 @@ def generate_report(
                     "Capacity",
                     "Unit",
                     "Technology",
+                    "First Use",
+                    "Build Start",
+                    "Build Lead Time [" + model.model_units["time"].to_string() + "s]",
                 )
             ],
             "v_F_Piped_dict": [("Origin", "Destination", "Time", "Piped water")],
@@ -164,10 +173,15 @@ def generate_report(
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
             "v_F_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Sourced water")
+                ("External water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Cost sourced water")
+                (
+                    "External water source",
+                    "Completion pad",
+                    "Time",
+                    "Cost sourced water",
+                )
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -177,6 +191,20 @@ def generate_report(
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
+            ],
+            "v_C_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Processing Cost For Sending Water to Beneficial Reuse",
+                )
+            ],
+            "v_R_BeneficialReuse_dict": [
+                (
+                    "Beneficial Reuse",
+                    "Time",
+                    "Credit For Sending Water to Beneficial Reuse",
+                )
             ],
             "v_L_Storage_dict": [("Storage site", "Time", "Storage Levels")],
             "v_L_PadStorage_dict": [("Completion pad", "Time", "Storage Levels")],
@@ -196,6 +224,7 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
+            "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],
@@ -379,7 +408,9 @@ def generate_report(
             "v_S_TreatmentCapacity_dict": [
                 ("Treatment site", "Slack Treatment Capacity")
             ],
-            "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            "v_S_BeneficialReuseCapacity_dict": [
+                ("Reuse site", "Slack Reuse Capacity")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
@@ -402,16 +433,16 @@ def generate_report(
             disposalWater_value = 0
         model.disposal_WaterKPI.value = disposalWater_value
 
-        model.fresh_CompletionsDemandKPI = Var(
-            doc="Fresh Fraction Completions Demand [%]"
+        model.external_CompletionsDemandKPI = Var(
+            doc="External Fraction Completions Demand [%]"
         )
         if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
-            freshDemand_value = value(
+            externalDemand_value = value(
                 (model.v_F_TotalSourced / model.p_gamma_TotalDemand) * 100
             )
         else:
-            freshDemand_value = 0
-        model.fresh_CompletionsDemandKPI.value = freshDemand_value
+            externalDemand_value = 0
+        model.external_CompletionsDemandKPI.value = externalDemand_value
 
         model.reuse_CompletionsDemandKPI = Var(
             doc="Reuse Fraction Completions Demand [%]"
@@ -427,7 +458,7 @@ def generate_report(
         # Infrastructure buildout table
 
         # Due to tolerances, binaries may not exactly equal 1
-        binary_epsilon = 0.005
+        binary_epsilon = 0.1
         # "vb_y_Treatment"
         treatment_data = model.vb_y_Treatment._data
         # get units
@@ -449,6 +480,14 @@ def generate_report(
                     from_units=model.p_delta_Treatment.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Treatment Facility",
@@ -457,6 +496,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         i[1],
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -470,25 +512,39 @@ def generate_report(
         elif output_units == OutputUnits.user_units:
             to_unit = model.model_to_user_units[from_unit_string]
         for i in disposal_data:
+            # Get site name and selected capacity from data
+            disposal_site = i[0]
+            disposal_capacity = i[1]
             # add values to output dictionary
             if (
                 disposal_data[i].value >= 1 - binary_epsilon
                 and disposal_data[i].value <= 1 + binary_epsilon
-                and model.p_delta_Disposal[i[1]].value > 0
+                and model.p_delta_Disposal[disposal_site, disposal_capacity].value > 0
             ):
                 capacity = pyunits.convert_value(
-                    model.p_delta_Disposal[i[1]].value,
+                    model.p_delta_Disposal[disposal_site, disposal_capacity].value,
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[disposal_site]
+                    build_start = model.infrastructure_buildStart[disposal_site]
+                    lead_time = model.infrastructure_leadTime[disposal_site]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Disposal Facility",
-                        i[0],
+                        disposal_site,
                         "--",
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -513,6 +569,14 @@ def generate_report(
                     from_units=model.p_delta_Storage.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Storage Facility",
@@ -521,6 +585,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
 
@@ -549,6 +616,14 @@ def generate_report(
                     from_units=capacity_variable.get_units(),
                     to_units=to_unit,
                 )
+                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                    first_use = model.infrastructure_firstUse[(i[0], i[1])]
+                    build_start = model.infrastructure_buildStart[(i[0], i[1])]
+                    lead_time = model.infrastructure_leadTime[(i[0], i[1])]
+                else:
+                    first_use = "--"
+                    build_start = "--"
+                    lead_time = "--"
                 headers["vb_y_overview_dict"].append(
                     (
                         "Pipeline Construction",
@@ -557,6 +632,9 @@ def generate_report(
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
                         "--",
+                        first_use,
+                        build_start,
+                        lead_time,
                     )
                 )
         if model.config.hydraulics == Hydraulics.post_process:
@@ -684,7 +762,7 @@ def generate_report(
                     "vb_y_Truck",
                     "v_F_Drain",
                     "v_B_Production",
-                    "vb_y_FLow",
+                    "vb_y_Flow",
                     "v_F_Overview",
                     "v_L_PadStorage",
                     "v_C_Treatment",
@@ -735,10 +813,15 @@ def generate_report(
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
             "v_F_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Sourced water")
+                ("External water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Cost sourced water")
+                (
+                    "External water source",
+                    "Completion pad",
+                    "Time",
+                    "Cost sourced water",
+                )
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -772,7 +855,7 @@ def generate_report(
                 ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
             ],
             "v_F_TreatmentDestination_dict": [
-                ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
+                ("Disposal Site", "Time", "Total Deliveries to Treatment Site")
             ],
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
@@ -1033,7 +1116,7 @@ def generate_report(
 
                 if i is None:
                     # Create the overview report with variables that are not indexed, e.g.:
-                    # total piped water, total trucked water, total fresh water, etc.
+                    # total piped water, total trucked water, total externally sourced water, etc.
                     if to_unit is not None:
                         headers["v_F_Overview_dict"].append(
                             (
@@ -2667,7 +2750,9 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
                 print("Variable took a  non-integer value", var, val)
                 return False
 
-    for con in model.component_data_objects(ctype=Constraint, descend_into=True):
+    for con in model.component_data_objects(
+        ctype=Constraint, active=True, descend_into=True
+    ):
         body_value = value(con.body, exception=False)
         if _check_infeasible(con, body_value, cons_tol):
             print(

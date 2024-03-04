@@ -4,7 +4,7 @@
 Overview
 --------
 
-Given a set of existing network components (completion pads, storage pads, production pads, and distribution options like trucks and/or pipelines) and capacity expansion options, the strategic water management model provides an insight into financial opportunities and mid-long term investment decisions to reduce operational costs or maximize reuse or reduce fresh water consumption.
+Given a set of existing network components (completion pads, storage pads, production pads, and distribution options like trucks and/or pipelines) and capacity expansion options, the strategic water management model provides an insight into financial opportunities and mid-long term investment decisions to reduce operational costs or maximize reuse or reduce externally sourced water consumption.
 
 +---------------------------------------------------------+
 | Section                                                 |
@@ -30,9 +30,9 @@ Terminology
 
 **Beneficial reuse options:** This term refers to the reuse of water at mining facilities, farms, etc.
 
-**Completions demand:** Demand set by completions pads.  This demand can be met by produced water, treated water, or freshwater.
+**Completions demand:** Demand set by completions pads.  This demand can be met by produced water, treated water, or externally sourced water.
 
-**Completions reuse water:** Water that meets demand at a completions site. This does not include freshwater or water for beneficial reuse.
+**Completions reuse water:** Water that meets demand at a completions site. This does not include externally sourced water or water for beneficial reuse.
 
 **Network Nodes:** These are branch points for pipelines only.
 
@@ -60,7 +60,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{p \in CP}`          Completions pads (subset of well pads :math:`\textcolor{blue}{P}`)
 
-:math:`\textcolor{blue}{f \in F}`           Freshwater sources
+:math:`\textcolor{blue}{f \in F}`           External water sources
 
 :math:`\textcolor{blue}{k \in K}`           Disposal sites
 
@@ -110,7 +110,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(n,o) \in NOA}`     Node-to-beneficial reuse pipeline arcs
 
-:math:`\textcolor{blue}{(f,p) \in FCA}`     Freshwater-to-completions pipeline arcs
+:math:`\textcolor{blue}{(f,p) \in FCA}`     Externally sourced water-to-completions pipeline arcs
 
 :math:`\textcolor{blue}{(r,n) \in RNA}`     Treatment-to-node pipeline arcs
 
@@ -142,7 +142,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(p,o) \in POT}`     Production-to-beneficial reuse trucking arcs
 
-:math:`\textcolor{blue}{(f,p) \in FCT}`     Freshwater-to-completions trucking arcs
+:math:`\textcolor{blue}{(f,p) \in FCT}`     Externally sourced water-to-completions trucking arcs
 
 :math:`\textcolor{blue}{(p,k) \in CKT}`     Completions-to-disposal trucking arcs
 
@@ -167,13 +167,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}` =                      Water trucked from one location to another location
 
-:math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                      Fresh water sourced from source to completions
+:math:`\textcolor{red}{F_{f,p,t}^{Sourced}}` =                      Externally sourced water to completions
 
 :math:`\textcolor{red}{F_{p,t}^{PadStorageIn}}` =                   Water put into completions pad storage
 
 :math:`\textcolor{red}{F_{p,t}^{PadStorageOut}}` =                  Water removed from completions pad storage
-
-:math:`\textcolor{red}{F_{r,t}^{DesalinatedWater}}` =               Water removed from system post desalination
 
 :math:`\textcolor{red}{F_{s,t}^{StorageEvaporationStream}}` =       Water at storage lost to evaporation
 
@@ -187,11 +185,9 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F_{k,t}^{DisposalDestination}}` =            Water injected at disposal site
 
-:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse
+:math:`\textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse option
 
 :math:`\textcolor{red}{F_{p,t}^{CompletionsDestination}}` =         All water delivered to completions pad
-
-:math:`\textcolor{red}{F_{p,t}^{BeneficialReuseDestination}}` =     Water delivered to beneficial reuse site
 
 :math:`\textcolor{red}{L_{s,t}^{Storage}}` =                        Water level at storage site at the end of time period t
 
@@ -199,17 +195,19 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{F^{TotalTrucked}}` =                         Total volume of water trucked
 
-:math:`\textcolor{red}{F^{TotalSourced}}` =                         Total volume of freshwater sourced
+:math:`\textcolor{red}{F^{TotalSourced}}` =                         Total volume of externally sourced water
 
 :math:`\textcolor{red}{F^{TotalDisposed}}` =                        Total volume of produced water disposed
 
-:math:`\textcolor{red}{F^{TotalCompletionsReuse}}` =                Total volume of produced water reused
+:math:`\textcolor{red}{F^{TotalCompletionsReuse}}` =                Total volume of produced water reused at completions
+
+:math:`\textcolor{red}{F^{TotalBeneficialReuse}}` =                 Total volume of water beneficially reused
 
 :math:`\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}` =                        Cost of piping produced water from one location to another location
 
 :math:`\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}` =                      Cost of trucking produced water from one location to another location
 
-:math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =                      Cost of sourcing fresh water from source to completions pad
+:math:`\textcolor{red}{C_{f,p,t}^{Sourced}}` =                      Cost of sourcing external water from source to completions pad
 
 :math:`\textcolor{red}{C_{k,t}^{Disposal}}` =                       Cost of injecting produced water at disposal site
 
@@ -219,9 +217,13 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{C_{s,t}^{Storage}}` =                        Cost of storing produced water at storage site (incl. treatment)
 
+:math:`\textcolor{red}{C_{o,t}^{BeneficialReuse}}` =                Processing cost of sending water to beneficial reuse
+
 :math:`\textcolor{red}{R_{s,t}^{Storage}}` =                        Credit for retrieving stored produced water from storage site
 
-:math:`\textcolor{red}{C^{TotalSourced}}` =                         Total cost of sourcing freshwater
+:math:`\textcolor{red}{R_{o,t}^{BeneficialReuse}}` =                Credit for sending water to beneficial reuse
+
+:math:`\textcolor{red}{C^{TotalSourced}}` =                         Total cost of externally sourced water
 
 :math:`\textcolor{red}{C^{TotalDisposal}}` =                        Total cost of injecting produced water
 
@@ -235,9 +237,13 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{C^{TotalTrucking}}` =                        Total cost of trucking produced water
 
+:math:`\textcolor{red}{C^{TotalBeneficialReuse}}` =                 Total processing cost for sending water to beneficial reuse
+
 :math:`\textcolor{red}{C^{Slack}}` =                                Total cost of slack variables
 
 :math:`\textcolor{red}{R^{TotalStorage}}` =                         Total credit for withdrawing produced water
+
+:math:`\textcolor{red}{R^{TotalBeneficialReuse}}` =                 Total credit for sending water to beneficial reuse
 
 :math:`\textcolor{red}{D_{k,[t]}^{Capacity}}` =                     Disposal capacity in a given time period at disposal site
 
@@ -284,6 +290,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{y_{l,\tilde{l},t}^{Flow}}` =         Directional flow between two locations
 
+:math:`\textcolor{red}{y_{o,t}^{BeneficialReuse}}` =         Beneficial reuse option selection
+
 ..
     :math:`\textcolor{red}{z_{l,\tilde{l},d,t}^{Pipeline}}` =   Timing of pipeline installation between one location and another location with specific diameter
 
@@ -314,9 +322,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{r,wt}^{Treatment}}` =             Initial treatment capacity at treatment site
 
-:math:`\textcolor{green}{\sigma_{o}^{BeneficialReuse}}` =       Initial reuse capacity at reuse site
+:math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}}` =     Minimum flow that must be sent to beneficial reuse option
 
-:math:`\textcolor{green}{\sigma_{f,t}^{Freshwater}}` =          Freshwater sourcing capacity at freshwater source
+:math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuse}}` =     Capacity of beneficial reuse option
+
+:math:`\textcolor{green}{\sigma_{f,t}^{ExternalWater}}` =          Capacity of externally sourced water
 
 :math:`\textcolor{green}{\sigma_{p}^{Offloading,Pad}}` =        Truck offloading sourcing capacity per pad
 
@@ -348,7 +358,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\omega^{EvaporationRate}}` = Evaporation rate per week
 
-:math:`\textcolor{green}{\delta_{i}^{Disposal}}` =              Increments for installation/expansion of disposal capacity
+:math:`\textcolor{green}{\delta_{k,i}^{Disposal}}` =              Increments for installation/expansion of disposal capacity
 
 :math:`\textcolor{green}{\delta_{c}^{Storage}}` =               Increments for installation/expansion of storage capacity
 
@@ -356,11 +366,11 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\delta^{Truck}}` =                     Truck capacity
 
-:math:`\textcolor{green}{\tau_{k}^{Disposal}}` =                Disposal construction or expansion lead time
+:math:`\textcolor{green}{\tau_{k, i}^{Disposal}}` =                Disposal construction or expansion lead time
 
-:math:`\textcolor{green}{\tau_{s}^{Storage}}` =                 Storage construction or expansion lead time
+:math:`\textcolor{green}{\tau_{s, c}^{Storage}}` =                 Storage construction or expansion lead time
 
-:math:`\textcolor{green}{\tau_{l,\tilde{l}}^{Pipeline}}` =              Pipeline construction or expansion lead time
+:math:`\textcolor{green}{\tau_{r, wt, j}^{Treatment}}` =                 Treatment construction or expansion lead time
 
 :math:`\textcolor{green}{\tau_{l,\tilde{l}}^{Trucking}}` =      Drive time between two locations
 
@@ -387,11 +397,15 @@ Strategic Model Mathematical Notation
 
     :math:`\textcolor{green}{\lambda_{l,\tilde{l}}^{Pipeline}}` =       Pipeline segment length [distance]
 
+    :math:`\textcolor{green}{\tau^{Pipeline}}` =              Pipeline construction or expansion lead time [time/distance]
+
 **Otherwise, if the pipeline cost configuration is capacity based:**
 
     :math:`\textcolor{green}{\kappa_{l,\tilde{l},d}^{Pipeline}}` =      Pipeline construction or expansion capital cost for selected diameter capacity [currency/(volume/time)]
 
     :math:`\textcolor{green}{\delta_{d}^{Pipeline}}` =          Increments for installation/expansion of pipeline capacity [volume/time]
+
+    :math:`\textcolor{green}{\tau_{l,\tilde{l},d}^{Pipeline}}` =              Pipeline construction or expansion lead time [time]
 
 
 :math:`\textcolor{green}{\pi_{k}^{Disposal}}` =                 Disposal operational cost
@@ -404,11 +418,15 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\rho_{s}^{Storage}}` =                 Storage withdrawal operational credit
 
+:math:`\textcolor{green}{\pi_{o}^{BeneficialReuse}}` =                 Processing cost for sending water to beneficial reuse
+
+:math:`\textcolor{green}{\rho_{o}^{BeneficialReuse}}` =                 Credit for sending water to beneficial reuse
+
 :math:`\textcolor{green}{\pi_{l,\tilde{l}}^{Pipeline}}` =               Pipeline operational cost
 
 :math:`\textcolor{green}{\pi_{l}^{Trucking}}` =                 Trucking hourly cost (by source)
 
-:math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                 Fresh sourcing cost
+:math:`\textcolor{green}{\pi_{f}^{Sourcing}}` =                 Externally sourced water cost
 
 :math:`\textcolor{green}{M^{Flow}}` =                           Big-M flow parameter
 
@@ -441,24 +459,26 @@ Strategic Model Mathematical Program Formulation
 
 **Objectives**
 
-Two objective functions can be considered for the optimization of a produced water system: first, the minimization of costs, which includes operational costs associated with procurement of fresh water, the cost of disposal, trucking and piping produced water between well pads and treatment facilities, and the cost of storing, treating and reusing produced water. Capital costs are also considered due to infrastructure build out such as the installation of pipelines, treatment, and storage facilities. A credit for (re)using treated water is also considered, and additional slack variables are included to facilitate the identification of potential issues with input data. The second objective is the maximization of water reused which is defined as the ratio between the treated produced water that is used in completions operations and the total produced water coming to surface.
+Two objective functions can be considered for the optimization of a produced water system: first, the minimization of costs, which includes operational costs associated with procurement of externally sourced water, the cost of disposal, trucking and piping produced water between well pads and treatment facilities, and the cost of storing, treating and reusing produced water. Capital costs are also considered due to infrastructure build out such as the installation of pipelines, treatment, and storage facilities. A credit for (re)using treated water is also considered, and additional slack variables are included to facilitate the identification of potential issues with input data. The second objective is the maximization of water reused which is defined as the ratio between the treated produced water that is used in completions operations and the total produced water coming to surface.
 
 .. math::
 
-    \min \ \textcolor{red}{C^{TotalSourced}}+\textcolor{red}{C^{TotalDisposal}}+\textcolor{red}{C^{TotalTreatment}}
+    \min \ \textcolor{red}{C^{TotalSourced}} + \textcolor{red}{C^{TotalDisposal}} + \textcolor{red}{C^{TotalTreatment}}
 
-        + \textcolor{red}{C^{TotalCompletionsReuse}}+\textcolor{red}{C^{TotalPiping}}+\textcolor{red}{C^{TotalStorage}}
+        + \textcolor{red}{C^{TotalCompletionsReuse}} + \textcolor{red}{C^{TotalPiping}} + \textcolor{red}{C^{TotalStorage}}
 
-        + \textcolor{red}{C^{TotalTrucking}}+\textcolor{green}{\alpha^{AnnualizationRate}} \cdot (\textcolor{red}{C^{DisposalCapEx}}
+        + \textcolor{red}{C^{TotalTrucking}} + \textcolor{red}{C^{TotalBeneficialReuse}}
 
-        + \textcolor{red}{C^{StorageCapEx}}+\textcolor{red}{C^{TreatmentCapEx}}+\textcolor{red}{C^{PipelineCapEx}})
+        + \textcolor{green}{\alpha^{AnnualizationRate}} \cdot (\textcolor{red}{C^{DisposalCapEx}} + \textcolor{red}{C^{StorageCapEx}}
 
-        + \textcolor{red}{C^{Slack}}-\textcolor{red}{R^{TotalStorage}}
+        + \textcolor{red}{C^{TreatmentCapEx}} + \textcolor{red}{C^{PipelineCapEx}}) + \textcolor{red}{C^{Slack}}
+
+        - \textcolor{red}{R^{TotalStorage}} - \textcolor{red}{R^{TotalBeneficialReuse}}
 
 
 .. math::
 
-    \max \ \textcolor{red}{F^{TotalCompletionsReuse}}/\textcolor{green}{\beta^{TotalProd}}
+    \max \ \textcolor{red}{F^{TotalCompletionsReuse}} / \textcolor{green}{\beta^{TotalProd}}
 
 
 **Annualization Rate Calculation:**
@@ -536,15 +556,15 @@ The storage in the last period must be at or below its terminal storage level.
 The storage in the last period must be at or below its terminal storage level.
 
 
-**Freshwater Sourcing Capacity:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{t \in T}`
+**Externally Sourced Water Capacity:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{t \in T}`
 
-For each freshwater source and each time period, the outgoing water from the freshwater source is below the freshwater capacity.
+For each external water source and each time period, the outgoing water from the source is below the capacity.
 
 .. math::
 
       \sum_{p \in P | (f, p) \in FCA}\textcolor{red}{F_{f,p,t}^{Sourced}}
       + \sum_{p \in P | (f, p) \in FCT}\textcolor{red}{F_{f,p,t}^{Trucked}}
-      \leq \textcolor{green}{\sigma_{f,t}^{Freshwater}}
+      \leq \textcolor{green}{\sigma_{f,t}^{ExternalWater}}
 
 
 **Completions Pad Truck Offloading Capacity:** :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
@@ -559,7 +579,7 @@ For each completions pad and time period, the volume of water being trucked into
 
 **Completions Pad Processing Capacity:** :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
 
-For each completions pad and time period, the volume of water (excluding freshwater) coming in must be below the processing limit.
+For each completions pad and time period, the volume of water (excluding externally sourced water) coming in must be below the processing limit.
 
 .. math::
 
@@ -766,7 +786,7 @@ The set :math:`\textcolor{blue}{I}` should also include the 0th case (e.g. 0 bbl
 
 .. math::
 
-    \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\sum_{i \in I}\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
+    \textcolor{red}{D_{k,[t]}^{Capacity}} = \textcolor{green}{\sigma_{k}^{Disposal}}+\sum_{i \in I}\textcolor{green}{\delta_{k,i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}+\textcolor{red}{S_{k}^{DisposalCapacity}}
 
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
 
@@ -844,31 +864,62 @@ The efficiency of a treatment technology determines the amount of residual water
         \geq \textcolor{red}{F_{r,t}^{ResidualWater}}
 
 
-**Treated Water:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{wt \in WT}, \textcolor{blue}{t \in T}`
+**Treated and Residual Water Balances:**
 
-Treated water is either reused in the completion pads or stored in ponds or removed for beneficial reuse (if desalinated).
+For all piping or trucking arcs :math:`\textcolor{blue}{(r, l)}` immediately downstream of a treatment site :math:`\textcolor{blue}{r}`, the user must specify whether the arc carries treated water or residual water away from the treatment site. Moreover, 
+
+*Treated Water Balance*: :math:`\forall \textcolor{blue}{r \in R} \ |` there exists at least one arc :math:`\textcolor{blue}{(r,l)}` carrying treated water away from :math:`\textcolor{blue}{r}, \ \textcolor{blue}{t \in T}`
 
 .. math::
+        \textcolor{red}{F_{r,t}^{TreatedWater}} = \sum_{l \in L | (r, l) \in LLA \text{ and } (r,l) \text{ carries treated water}} \textcolor{red}{F_{r,l,t}^{Piped}}
+        + \sum_{l \in L | (r, l) \in LLT \text{ and } (r,l) \text{ carries treated water}} \textcolor{red}{F_{r,l,t}^{Trucked}}
 
-        \textcolor{red}{F_{r,t}^{TreatedWater}} =
-        \sum_{l \in L | (r, l) \in LLA}\textcolor{red}{F_{r,l,t}^{Piped}}
-        + \textcolor{red}{F_{r,t}^{DesalinatedWater}}
+*Residual Water Balance*: :math:`\forall \textcolor{blue}{r \in R} \ |` there exists at least one arc :math:`\textcolor{blue}{(r,l)}` carrying residual water away from :math:`\textcolor{blue}{r}, \ \textcolor{blue}{t \in T}`
+
+.. math::
+        \textcolor{red}{F_{r,t}^{ResidualWater}} = \sum_{l \in L | (r, l) \in LLA \text{ and } (r,l) \text{ carries residual water}} \textcolor{red}{F_{r,l,t}^{Piped}}
+        + \sum_{l \in L | (r, l) \in LLT \text{ and } (r,l) \text{ carries residual water}} \textcolor{red}{F_{r,l,t}^{Trucked}}
+
+.. note:: The user is not required to specify any arcs carrying away treated or residual water immedaitely downstream of a treatment site. In reality, water that enters a treatment site must eventually leave and go somewhere, but for the sake of modeling flexibility, it is not required to include such arcs. If the user chooses to omit downstream treated and/or residual water arcs for a treatment site, then the treatment site acts as a sink within the greater network model for the water which is not propagated downstream.
+
+**Beneficial Reuse Minimum:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+If a beneficial reuse option is selected (:math:`\textcolor{red}{y_{o,t}^{BeneficialReuse}} = 1`), the flow to it must meet the minimum required value.
+
+If :math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}} \gt 0`:
+
+.. math::
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+    \geq \textcolor{green}{\sigma_{o,t}^{BeneficialReuseMinimum}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
 
 **Beneficial Reuse Capacity:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
 
-For each beneficial reuse site and for each time period, water sent to a site must be less than or equal to the capacity.
+If a beneficial reuse option is not selected (:math:`\textcolor{red}{y_{o,t}^{BeneficialReuse}} = 0`), the flow to it must be zero. Furthermore, the specified capacities of beneficial reuse options must be respected.
+
+It is optional to specify capacities (:math:`\textcolor{green}{\sigma_{o,t}^{BeneficialReuse}}`) for reuse options. If a capcity is provided for reuse option :math:`\textcolor{blue}{o}`:
 
 .. math::
-
-    \sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
-        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}
-        \leq \textcolor{green}{\sigma_{o}^{BeneficialReuse}}
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+        \leq \textcolor{green}{\sigma_{o,t}^{BeneficialReuse}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
         + \textcolor{red}{S_{o}^{BeneficialReuseCapacity}}
 
+Otherwise:
 
-**Fresh Sourcing Cost:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
+.. math::
+    \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+        \leq \textcolor{green}{M^{Flow}} \cdot \textcolor{red}{y_{o,t}^{BeneficialReuse}}
+        + \textcolor{red}{S_{o}^{BeneficialReuseCapacity}}
 
-For each freshwater source, for each completions pad, and for each time period, the freshwater sourcing cost is equal to all output from the freshwater source times the freshwater sourcing cost.
+**Total Beneficial Reuse Volume:**
+
+.. math::
+    \textcolor{red}{F^{TotalBeneficialReuse}}
+    = \sum_{t \in T} \sum_{o \in O} \textcolor{red}{F_{o,t}^{BeneficialReuseDestination}}
+
+
+**Externally Sourced Water Cost:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
+
+For each external water source, for each completions pad, and for each time period, the sourcing cost is equal to all output from the source times the sourcing cost.
 
 .. math::
 
@@ -880,9 +931,9 @@ For each freshwater source, for each completions pad, and for each time period, 
     \textcolor{red}{C^{TotalSourced}} = \sum_{t \in T}\sum_{(f,p) \in FCA}\textcolor{red}{C_{f,p,t}^{Sourced}}
 
 
-**Total Fresh Sourced Volume:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
+**Total Externally Sourced Volume:** :math:`\forall \textcolor{blue}{f \in F}, \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
 
-The total fresh sourced volume is the sum of freshwater movements by truck and pipeline over all time periods, completions pads, and freshwater sources.
+The total externally sourced volume is the sum of externally sourced water movements by truck and pipeline over all time periods, completions pads, and external water sources.
 
 .. math::
 
@@ -913,7 +964,7 @@ Total disposed volume over all time is the sum of all piped and trucked water to
         = \sum_{t \in T}\sum_{k \in K}\textcolor{red}{F_{k,t}^{DisposalDestination}}
 
 
-**Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
+**Treatment Cost:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{wt \in WT}, \textcolor{blue}{t \in T}`
 
 For each treatment site, for each time period, the treatment cost is equal to all water moved to the treatment site multiplied by the operational treatment cost. The total treatments cost is the sum of treatment costs over all time periods and all treatment sites.
 
@@ -924,6 +975,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
         - \textcolor{green}{M^{Flow}}
         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}}))
+        \cdot \textcolor{green}{\pi_{r, wt}^{Treatment}}
 
 .. math::
 
@@ -932,6 +984,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
         + \textcolor{green}{M^{Flow}}
         \cdot (1 - \sum_{j \in J}\textcolor{red}{y_{r,wt,j}^{Treatment}}))
+        \cdot \textcolor{green}{\pi_{r, wt}^{Treatment}}
 
 .. math::
     \textcolor{red}{C^{TotalTreatment}} = \sum_{t \in T}\sum_{r \in R}\textcolor{red}{C_{r,t}^{Treatment}}
@@ -939,7 +992,7 @@ For each treatment site, for each time period, the treatment cost is equal to al
 
 **Completions Reuse Cost:** :math:`\forall \textcolor{blue}{p \in P}, \textcolor{blue}{t \in T}`
 
-Completions reuse water is all water that meets completions pad demand, excluding freshwater. Completions reuse cost is the volume of completions reused water multiplied by the cost for reuse.
+Completions reuse water is all water that meets completions pad demand, excluding externally sourced water. Completions reuse cost is the volume of completions reused water multiplied by the cost for reuse.
 
 .. math::
 
@@ -949,16 +1002,16 @@ Completions reuse water is all water that meets completions pad demand, excludin
         ) \cdot \textcolor{green}{\pi_{p}^{CompletionsReuse}}
 
 
-.. note:: Freshwater sourcing is excluded from completions reuse costs.
+.. note:: Externally sourced water is excluded from completions reuse costs.
 
 .. math::
 
-    \textcolor{red}{C^{TotalReuse}} = \sum_{t \in T}\sum_{p \in CP}\textcolor{red}{C_{p,t}^{Reuse}}
+    \textcolor{red}{C^{TotalCompletionsReuse}} = \sum_{t \in T}\sum_{p \in CP}\textcolor{red}{C_{p,t}^{Reuse}}
 
 
 **Total Completions Reuse Volume:**
 
-The total reuse volume is the total volume of produced water reused, or the total water meeting completions pad demand over all time periods, excluding freshwater.
+The total reuse volume is the total volume of produced water reused, or the total water meeting completions pad demand over all time periods, excluding externally sourced water.
 
 .. math::
 
@@ -981,7 +1034,7 @@ Piping cost is the total volume of piped water multiplied by the cost for piping
     \textcolor{red}{C^{TotalPiping}} = \sum_{t \in T}\sum_{(l,\tilde{l}) \in LLA}\textcolor{red}{C_{l,\tilde{l},t}^{Piped}}
 
 
-.. note:: The constraints above explicitly consider freshwater piping via :math:`\textcolor{blue}{FCA}` arcs.
+.. note:: The constraints above explicitly consider piping externally sourced water via :math:`\textcolor{blue}{FCA}` arcs.
 
 
 **Storage Deposit Cost:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
@@ -1000,16 +1053,40 @@ Cost of depositing into storage is equal to the total volume of water moved into
 
 **Storage Withdrawal Credit:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
 
-Credits from withdrawing from storage is equal to the total volume of water moved out from storage multiplied by the storage operation credit rate.
+Credit from withdrawing from storage is equal to the volume of water moved out from storage multiplied by the storage operation credit rate.
 
 .. math::
-
     \textcolor{red}{R_{s,t}^{Storage}}
         = (\sum_{l \in L | (s, l) \in LLA}\textcolor{red}{F_{s,l,t}^{Piped}}
         + \sum_{l \in L | (s, l) \in LLT}\textcolor{red}{F_{s,l,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{s}^{Storage}}
 
 .. math::
     \textcolor{red}{R^{TotalStorage}} = \sum_{t \in T}\sum_{s \in S}\textcolor{red}{R_{s,t}^{Storage}}
+
+
+**Beneficial Reuse Cost:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+Processing cost for sending water to beneficial reuse is equal to the volume of water sent to beneficial reuse multiplied by the beneficial reuse cost rate.
+
+.. math::
+    \textcolor{red}{C_{o,t}^{BeneficialReuse}}
+        = (\sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}) \cdot \textcolor{green}{\pi_{o}^{BeneficialReuse}}
+
+.. math::
+    \textcolor{red}{C^{TotalBeneficialReuse}} = \sum_{t \in T}\sum_{o \in O}\textcolor{red}{C_{o,t}^{BeneficialReuse}}
+
+**Beneficial Reuse Credit:** :math:`\forall \textcolor{blue}{o \in O}, \textcolor{blue}{t \in T}`
+
+Credit for sending water to beneficial reuse is equal to the volume of water sent to beneficial reuse multiplied by the beneficial reuse credit rate.
+
+.. math::
+    \textcolor{red}{R_{o,t}^{BeneficialReuse}}
+        = (\sum_{l \in L | (l, o) \in LLA}\textcolor{red}{F_{l,o,t}^{Piped}}
+        + \sum_{l \in L | (l, o) \in LLT}\textcolor{red}{F_{l,o,t}^{Trucked}}) \cdot \textcolor{green}{\rho_{o}^{BeneficialReuse}}
+
+.. math::
+    \textcolor{red}{R^{TotalBeneficialReuse}} = \sum_{t \in T}\sum_{o \in O}\textcolor{red}{R_{o,t}^{BeneficialReuse}}
 
 ..
     **Pad Storage Cost:** :math:`\forall \textcolor{blue}{l \in L}, \textcolor{blue}{\tilde{l} \in L}, \textcolor{blue}{t \in T}`
@@ -1025,7 +1102,7 @@ Trucking cost between two locations for time period is equal to the trucking vol
     \textcolor{red}{C^{TotalTrucking}} = \sum_{t \in T}\sum_{(l, \tilde{l}) \in LLT}\textcolor{red}{C_{l,\tilde{l},t}^{Trucked}}
 
 
-.. note:: The constraints above explicitly consider freshwater trucking via :math:`\textcolor{blue}{FCT}` arcs.
+.. note:: The constraints above explicitly consider trucking externally sourced water via :math:`\textcolor{blue}{FCT}` arcs.
 
 
 **Total Trucking Volume:** :math:`\forall \textcolor{blue}{t \in T}`
@@ -1043,7 +1120,7 @@ Cost related to expanding or constructing new disposal capacity. Takes into cons
 
 .. math::
 
-    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
+    \textcolor{red}{C^{DisposalCapEx}} = \sum_{i \in I} \sum_{k \in K}\textcolor{green}{\kappa_{k,i}^{Disposal}} \cdot\textcolor{green}{\delta_{k,i}^{Disposal}} \cdot \textcolor{red}{y_{k,i}^{Disposal}}
 
 
 **Storage Construction or Capacity Expansion Cost:**
@@ -1142,33 +1219,6 @@ Alternatively, if it is desired to only consider sizes to build, the 0th case ca
 
 **Logic Constraints for Desalination:**
 
-Desalinated water is not reused for completions pad demand or stored in the storage
-
-:math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
-
-.. math::
-
-    \sum_{p \in CP | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
-        + \sum_{s \in S | (r, s) \in RSA}\textcolor{red}{F_{r,s,t}^{Piped}}
-        \leq \textcolor{green}{M^{Flow}} \cdot (1 -
-        \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,wt,j}^{Treatment}})
-
-
-Treated water (but not desalinated) is reused for completions pad demand or stored in the storage.
-If desalination technology is not selected, then the amount of desalinated water is set to zero.
-
-
-:math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`
-
-.. math::
-
-    \textcolor{red}{F_{r,t}^{DesalinatedWater}}
-        \leq \textcolor{green}{M^{Flow}} \cdot
-        \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}
-        \textcolor{red}{y_{r,wt,j}^{Treatment}}
-
-
 Desalination technology is assigned to a pre-determined site.
 
 
@@ -1210,7 +1260,7 @@ For :math:`t > 1`:
 
 **Deliveries Destination Constraints:**
 
-Completions reuse deliveries at a completions pad in time period :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved into the completions pad, excluding freshwater.
+Completions reuse deliveries at a completions pad in time period :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved into the completions pad, excluding externally sourced water.
 :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
 
 .. math::
@@ -1280,6 +1330,8 @@ Assumptions:
 **Water Quality Parameters**
 
 :math:`\textcolor{green}{\nu_{p,qc,[t]}}` =                Water quality at well pad
+
+:math:`\textcolor{green}{\nu_{f,qc,[t]}}` =                Water quality of externally sourced water
 
 :math:`\textcolor{green}{\xi_{s,qc}^{StorageSite}}` =    Initial water quality at storage
 
@@ -1467,13 +1519,13 @@ The water quality at the completions pad intermediate node is dependent on the f
 
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{purple}{F_{\tilde{p},p,t}^{Piped}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
         + \sum_{r \in R | (r, p) \in RCA}\textcolor{purple}{F_{r,p,t}^{Piped}} \cdot \textcolor{red}{Q_{r^{TreatedWaterNodes},qc,t}}
-        + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{red}{Q_{f,qc,t}}
+        + \sum_{f \in F | (f, p) \in FCA}\textcolor{purple}{F_{f,p,t}^{Sourced}} \cdot \textcolor{green}{\nu_{f,qc,[t]}}
 
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
         + \sum_{s \in S | (s, p) \in SCT}\textcolor{purple}{F_{s,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{s,qc,t}}
         + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{purple}{F_{\tilde{p},p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{\tilde{p},qc,[t]}}
 
-        + \sum_{f \in F | (f, p) \in FCT}\textcolor{purple}{F_{f,p,t}^{Trucked}} \cdot \textcolor{red}{Q_{f,qc,t}}
+        + \sum_{f \in F | (f, p) \in FCT}\textcolor{purple}{F_{f,p,t}^{Trucked}} \cdot \textcolor{green}{\nu_{f,qc,[t]}}
         = \textcolor{red}{Q_{p^{IntermediateNode},qc,t}} \cdot (\textcolor{purple}{F_{p,t}^{PadStorageIn}}
         + \textcolor{purple}{F_{p,t}^{CompletionsDestination}})
 

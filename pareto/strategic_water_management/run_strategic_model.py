@@ -20,6 +20,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     Hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -37,7 +38,8 @@ set_list = [
     "ProductionPads",
     "CompletionsPads",
     "SWDSites",
-    "FreshwaterSources",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "TreatmentSites",
     "ReuseOptions",
@@ -64,16 +66,26 @@ parameter_list = [
     "RSA",
     "SCA",
     "SNA",
+    "ROA",
+    "RKA",
+    "SOA",
+    "NOA",
     "PCT",
     "PKT",
     "FCT",
     "CST",
     "CCT",
     "CKT",
+    "RST",
+    "ROT",
+    "SOT",
+    "RKT",
     "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
     "PadRates",
@@ -84,14 +96,16 @@ parameter_list = [
     "InitialPipelineDiameters",
     "InitialDisposalCapacity",
     "InitialTreatmentCapacity",
-    "FreshwaterSourcingAvailability",
+    "ReuseMinimum",
+    "ReuseCapacity",
+    "ExtWaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PipelineOperationalCost",
-    "FreshSourcingCost",
+    "ExternalSourcingCost",
     "TruckingHourlyCost",
     "PipelineDiameterValues",
     "DisposalCapacityIncrements",
@@ -109,10 +123,24 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
     "DisposalOperatingCapacity",
+    "TreatmentExpansionLeadTime",
+    "DisposalExpansionLeadTime",
+    "StorageExpansionLeadTime",
+    "PipelineExpansionLeadTime_Dist",
+    "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
 ]
 
 # user needs to provide the path to the case study data file
@@ -126,7 +154,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_small_case_study.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -139,6 +167,7 @@ with resources.path(
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
+ infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
  """
 
 strategic_model = create_model(
@@ -152,6 +181,7 @@ strategic_model = create_model(
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        "infrastructure_timing": InfrastructureTiming.true,
     },
 )
 
