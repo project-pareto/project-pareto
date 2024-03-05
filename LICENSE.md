@@ -1,7 +1,7 @@
 License Agreement
 =================
 
-PARETO Copyright (c) 2021-2023, by the software owners: The Regents of the University of California,
+PARETO Copyright (c) 2021-2024, by the software owners: The Regents of the University of California,
 through Lawrence Berkeley National Laboratory, et al. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted
