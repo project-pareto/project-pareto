@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "PARETO"
-copyright = "2021-2023, PARETO"
+copyright = "2021-2024, PARETO"
 author = "The PARETO Project"
 
 # The full version, including alpha/beta/rc tags
