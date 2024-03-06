@@ -38,7 +38,7 @@ large_case_study_Li: This file is the actual final case study with no TDS concen
 small_case_study_Li_Arsh: This file is the small case study with LI and TDS concentrations and a concentration requirement.
 """
 
-fname = "small_case_study_Li"
+fname = 'small_case_study_Li'
 with resources.path(
     "pareto.case_studies",
     "small_case_study_Li.xlsx",
@@ -51,9 +51,8 @@ data = data_parser(df_sets, df_parameters)
 # building model
 model = build_qcp_br(data)
 
-print(f"\nSolving case study: {fname}")
+print(f'\nSolving case study: {fname}')
 model, _ = solving(model, tee=True)
-print(model.br_obj())
 
-print("\nGenerating Report...")
+print('\nGenerating Report...')
 # report_results_to_excel(model, filename=f'{fname}_operational_results', split_var={'s_A':3})
