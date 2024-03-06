@@ -20,9 +20,18 @@ This file runs the model in the following order:
 """
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.gen_utils import report_results_to_excel, obj_fix, terminate
+from pareto.utilities.cm_utils.gen_utils import (
+    report_results_to_excel,
+    obj_fix,
+    terminate,
+)
 from pareto.utilities.cm_utils.data_parser import data_parser
-from pareto.utilities.cm_utils.run_utils import change_piping_connection, node_rerun, solving, print_results_summary
+from pareto.utilities.cm_utils.run_utils import (
+    change_piping_connection,
+    node_rerun,
+    solving,
+    print_results_summary,
+)
 from importlib import resources
 
 from set_param_list import set_list, parameter_list
@@ -34,7 +43,7 @@ large_case_study_Li: This file is the actual final case study with no TDS concen
 small_case_study_Li_Arsh: This file is the small case study with LI and TDS concentrations and a concentration requirement.
 """
 
-fname = 'small_case_study'
+fname = "small_case_study"
 with resources.path(
     "pareto.case_studies",
     "small_case_study_Li.xlsx",
@@ -42,13 +51,15 @@ with resources.path(
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 
-#checking for tabs in the excel sheet
+# checking for tabs in the excel sheet
 
 print(f"running case study {fname}.")
 
-# --------------Running treatment sites attached to different nodes------------- 
+# --------------Running treatment sites attached to different nodes-------------
 print("\n\nSolving for different nodes in the network\n\n")
-min_node, models = node_rerun(df_sets, df_parameters, treatment_site='R01', max_iterations=5000)
+min_node, models = node_rerun(
+    df_sets, df_parameters, treatment_site="R01", max_iterations=5000
+)
 
 # -----------------------------Generating report---------------------------
 # generating final report of variables for the best model
@@ -58,8 +69,7 @@ print("\n\nGenerating report\n\n")
 
 
 print()
-print(f'*** Lowest cost location for treatment ***')
+print(f"*** Lowest cost location for treatment ***")
 
 # Displaying specific broken down costs
 print_results_summary(final_model)
-
