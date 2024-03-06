@@ -26,7 +26,7 @@ set_list = [
     "InjectionCapacities",
     "TreatmentCapacities",
     "TreatmentTechnologies",
-    "WaterQualityComponents"
+    "WaterQualityComponents",
 ]
 parameter_list = [
     "Units",
@@ -50,9 +50,7 @@ parameter_list = [
     "CST",
     "CCT",
     "CKT",
-
     "FNA",
-
     "DesalinationTechnologies",
     "DesalinationSites",
     "TruckingTime",
