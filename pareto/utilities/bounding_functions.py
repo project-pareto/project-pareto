@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -110,7 +110,7 @@ def Bound_v_Q_PP(model):
         max([x.value for x in model.quality.p_xi_StorageSite.values()]),
         max([x.value for x in model.quality.p_xi_PadStorage.values()]),
         max([x.value for x in model.quality.p_nu_pad.values()]),
-        max([x.value for x in model.quality.p_nu_freshwater.values()]),
+        max([x.value for x in model.quality.p_nu_externalwater.values()]),
     )
 
     """

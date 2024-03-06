@@ -1,7 +1,7 @@
 License Agreement
 =================
 
-PARETO Copyright (c) 2021-2023, by the software owners: The Regents of the University of California,
+PARETO Copyright (c) 2021-2024, by the software owners: The Regents of the University of California,
 through Lawrence Berkeley National Laboratory, et al. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted
@@ -14,12 +14,12 @@ provided that the following conditions are met:
    and the following disclaimer in the documentation and/or other materials provided with the
    distribution.
 
-3. Neither the name of the Produced Water Application for Beneficial Reuse Environmental Impact and
+3. Neither the name of the Produced Water Application for Beneficial Reuse, Environmental Impact and
    Treatment Optimization (PARETO), University of California, Lawrence Berkeley National Laboratory,
    U.S. Dept. of Energy, nor the names of its contributors may be used to endorse or promote
    products derived from this software without specific prior written permission.
 
-THIS SOFTWARE S PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
 FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
 CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -35,4 +35,4 @@ National Laboratory, without imposing a separate written license agreement for s
 then you hereby grant Lawrence Berkeley National Laboratory the following license: a non-exclusive,
 royalty-free perpetual license to install, use, modify, prepare derivative works, incorporate into
 other computer software, distribute, and sublicense such enhancements or derivative works thereof,
-in binary and source code form
+in binary and source code form.

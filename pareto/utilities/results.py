@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -173,10 +173,15 @@ def generate_report(
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
             "v_F_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Sourced water")
+                ("External water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Cost sourced water")
+                (
+                    "External water source",
+                    "Completion pad",
+                    "Time",
+                    "Cost sourced water",
+                )
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -428,16 +433,16 @@ def generate_report(
             disposalWater_value = 0
         model.disposal_WaterKPI.value = disposalWater_value
 
-        model.fresh_CompletionsDemandKPI = Var(
-            doc="Fresh Fraction Completions Demand [%]"
+        model.external_CompletionsDemandKPI = Var(
+            doc="External Fraction Completions Demand [%]"
         )
         if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
-            freshDemand_value = value(
+            externalDemand_value = value(
                 (model.v_F_TotalSourced / model.p_gamma_TotalDemand) * 100
             )
         else:
-            freshDemand_value = 0
-        model.fresh_CompletionsDemandKPI.value = freshDemand_value
+            externalDemand_value = 0
+        model.external_CompletionsDemandKPI.value = externalDemand_value
 
         model.reuse_CompletionsDemandKPI = Var(
             doc="Reuse Fraction Completions Demand [%]"
@@ -507,21 +512,24 @@ def generate_report(
         elif output_units == OutputUnits.user_units:
             to_unit = model.model_to_user_units[from_unit_string]
         for i in disposal_data:
+            # Get site name and selected capacity from data
+            disposal_site = i[0]
+            disposal_capacity = i[1]
             # add values to output dictionary
             if (
                 disposal_data[i].value >= 1 - binary_epsilon
                 and disposal_data[i].value <= 1 + binary_epsilon
-                and model.p_delta_Disposal[i[1]].value > 0
+                and model.p_delta_Disposal[disposal_site, disposal_capacity].value > 0
             ):
                 capacity = pyunits.convert_value(
-                    model.p_delta_Disposal[i[1]].value,
+                    model.p_delta_Disposal[disposal_site, disposal_capacity].value,
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
                 if model.config.infrastructure_timing == InfrastructureTiming.true:
-                    first_use = model.infrastructure_firstUse[i[0]]
-                    build_start = model.infrastructure_buildStart[i[0]]
-                    lead_time = model.infrastructure_leadTime[i[0]]
+                    first_use = model.infrastructure_firstUse[disposal_site]
+                    build_start = model.infrastructure_buildStart[disposal_site]
+                    lead_time = model.infrastructure_leadTime[disposal_site]
                 else:
                     first_use = "--"
                     build_start = "--"
@@ -529,7 +537,7 @@ def generate_report(
                 headers["vb_y_overview_dict"].append(
                     (
                         "Disposal Facility",
-                        i[0],
+                        disposal_site,
                         "--",
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
@@ -805,10 +813,15 @@ def generate_report(
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
             "v_F_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Sourced water")
+                ("External water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                ("Fresh water source", "Completion pad", "Time", "Cost sourced water")
+                (
+                    "External water source",
+                    "Completion pad",
+                    "Time",
+                    "Cost sourced water",
+                )
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -842,7 +855,7 @@ def generate_report(
                 ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
             ],
             "v_F_TreatmentDestination_dict": [
-                ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
+                ("Disposal Site", "Time", "Total Deliveries to Treatment Site")
             ],
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
@@ -1103,7 +1116,7 @@ def generate_report(
 
                 if i is None:
                     # Create the overview report with variables that are not indexed, e.g.:
-                    # total piped water, total trucked water, total fresh water, etc.
+                    # total piped water, total trucked water, total externally sourced water, etc.
                     if to_unit is not None:
                         headers["v_F_Overview_dict"].append(
                             (

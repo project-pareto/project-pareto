@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -38,7 +38,8 @@ set_list = [
     "ProductionPads",
     "CompletionsPads",
     "SWDSites",
-    "FreshwaterSources",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "TreatmentSites",
     "ReuseOptions",
@@ -97,14 +98,14 @@ parameter_list = [
     "InitialTreatmentCapacity",
     "ReuseMinimum",
     "ReuseCapacity",
-    "FreshwaterSourcingAvailability",
+    "ExtWaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PipelineOperationalCost",
-    "FreshSourcingCost",
+    "ExternalSourcingCost",
     "TruckingHourlyCost",
     "PipelineDiameterValues",
     "DisposalCapacityIncrements",
@@ -122,6 +123,7 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
@@ -131,6 +133,14 @@ parameter_list = [
     "StorageExpansionLeadTime",
     "PipelineExpansionLeadTime_Dist",
     "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
 ]
 
 # user needs to provide the path to the case study data file
