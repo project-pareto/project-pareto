@@ -272,6 +272,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
                 stacklevel=2,
             )
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
+    # Pass only tab names that exist in the input file (rather than all expected tab names)
     [_df_sets, _df_parameters, data_column] = _read_data(
         fname, set_list_common, parameter_list_common
     )
