@@ -237,7 +237,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
     """
-    # Using only the names available in the input sheet
+    # Check all names available in the input sheet
     set_list_common = []
     parameter_list_common = []
     df = pd.ExcelFile(fname)
