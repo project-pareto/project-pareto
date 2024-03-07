@@ -247,6 +247,7 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
             set_list_common.append(name)
         elif name in parameter_list:
             parameter_list_common.append(name)
+        # If the sheet name is unused (not a Set or Parameter tab, "Overview", or "Schematic"), raise a warning.
         else:
             if name != "Overview" and name != "Schematic":
                 warnings.warn(
