@@ -1529,22 +1529,15 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["volume_time"],
             doc="Capacity per network node [volume/time]",
         )
-    # model.p_epsilon_Treatment = Param(
-    #     model.s_R,
-    #     model.s_WT,
-    #     default=1.0,
-    #     initialize=model.df_parameters["TreatmentEfficiency"],
-    #     mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
-    #     doc="Treatment efficiency [%]",
-    # )
-    model.p_epsilon_Treatment = Var(model.s_R,
-                                    model.s_WT,
-                                    model.s_T,
-                                    bounds = (0,1))
-    for s in model.s_R:
-        for w in model.s_WT:
-            model.p_epsilon_Treatment[s, w, :].fix(model.df_parameters["TreatmentEfficiency"][s, w])
-    
+    model.p_epsilon_Treatment = Param(
+        model.s_R,
+        model.s_WT,
+        default=1.0,
+        initialize=model.df_parameters["TreatmentEfficiency"],
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        doc="Treatment efficiency [%]",
+    )
+
     model.p_epsilon_TreatmentRemoval = Param(
         model.s_R,
         model.s_WT,
@@ -2864,7 +2857,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ResidualWaterLHSRule(model, r, wt, t):
         constraint = (
-            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt, t])
+            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
             - model.p_M_Flow
             * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             <= model.v_F_ResidualWater[r, t]
@@ -2881,7 +2874,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def ResidualWaterRHSRule(model, r, wt, t):
         constraint = (
-            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt, t])
+            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
             + model.p_M_Flow
             * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
             >= model.v_F_ResidualWater[r, t]

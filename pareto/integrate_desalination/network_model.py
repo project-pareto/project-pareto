@@ -71,6 +71,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     model.p_Cmin = pyo.Param(model.s_NTCW, model.s_Q, initialize = data['p_Cmin'], mutable = True, doc = "Minimum concentration required at the concentrated water node", units = pyunits.g/pyunits.liter)
     model.p_Cmax = pyo.Param(initialize = 300, doc = "Maximum concentration in the network", units = pyunits.g/pyunits.liter)
     # Cost Parameters
+    
     model.p_betaArc = pyo.Param(model.s_A, initialize = data['p_betaArc'], doc = "Operational costs of arcs" ,units = pyunits.kUSD/pyunits.bbl)
     model.p_betaD = pyo.Param(model.s_ND, initialize = data['p_betaD'], mutable = True, doc = "Operational cost of disposal site",units = pyunits.kUSD/pyunits.bbl)
     model.p_betaW = pyo.Param(model.s_NW, initialize = data['p_betaW'], doc = "Costs of sourcing freshwater",units = pyunits.kUSD/pyunits.bbl)
