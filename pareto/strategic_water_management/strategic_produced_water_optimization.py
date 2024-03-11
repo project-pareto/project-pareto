@@ -215,7 +215,8 @@ CONFIG.declare(
     ),
 )
 
-Del_I = 10000
+n_sections = 3
+Del_I = 70000/n_sections
 
 
 def create_model(df_sets, df_parameters, default={}):
@@ -452,10 +453,10 @@ def create_model(df_sets, df_parameters, default={}):
         "ROA",
     ]
     # Define sets for the piecewise linear approximation
-    model.s_lamset = Set(initialize=list(range(1 + int(70000 / Del_I))))
-    model.s_lamset2 = Set(initialize=list(range(int(70000 / Del_I))))
+    model.s_lamset = Set(initialize=list(range(n_sections+1)))
+    model.s_lamset2 = Set(initialize=list(range(n_sections)))
     model.s_zset = Set(
-        initialize=list(range(math.ceil(math.log(1 + int(70000 / Del_I), 2))))
+        initialize=list(range(n_sections))
     )
 
     # Build dictionary of all specified piping arcs
@@ -4406,23 +4407,16 @@ def pipeline_hydraulics(model):
         )
 
         def EnforceZeroRule(b, i, l1, l2, t1):
-            binary_string = bin(i)[2:].zfill(len(model.s_zset))
-            binary_list = [int(bit) for bit in binary_string]
-            constraint = sum(
-                mh.v_lambdas[l1, l2, t1, j]
-                for j in model.s_lamset
-                if j != i and j != i + 1
-            ) <= sum(
-                mh.vb_z[l1, l2, t1, j] for j in model.s_zset if binary_list[j] == 0
-            ) + sum(
-                (1 - mh.vb_z[l1, l2, t1, j])
-                for j in model.s_zset
-                if binary_list[j] == 1
-            )
+            if i==0:
+                constraint = mh.v_lambdas[l1, l2, t1, i]<= mh.vb_z[l1, l2, t1, i]
+            elif i==len(model.s_lamset)-1:
+                constraint = mh.v_lambdas[l1, l2, t1, i]<= mh.vb_z[l1, l2, t1, i-1]
+            else: 
+                constraint = mh.v_lambdas[l1, l2, t1, i]<= mh.vb_z[l1, l2, t1, i] + mh.vb_z[l1, l2, t1, i-1]
             return process_constraint(constraint)
 
         mh.EnforceZero = Constraint(
-            model.s_lamset2,
+            model.s_lamset,
             model.s_LLA,
             model.s_T,
             rule=EnforceZeroRule,
@@ -4441,6 +4435,21 @@ def pipeline_hydraulics(model):
             model.s_LLA,
             model.s_T,
             rule=SumOneRule,
+            doc="Lambdas add up to 1",
+        )
+
+        def SumOne2Rule(b, l1, l2, t1):
+            constraint = (
+                sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset)
+                * cons_scaling_factor
+                == 1 * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.SumOne2 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=SumOne2Rule,
             doc="Lambdas add up to 1",
         )
 
