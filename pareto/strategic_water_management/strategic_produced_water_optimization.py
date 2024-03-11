@@ -216,7 +216,7 @@ CONFIG.declare(
 )
 
 n_sections = 3
-Del_I = 70000/n_sections
+Del_I = 70000 / n_sections
 
 
 def create_model(df_sets, df_parameters, default={}):
@@ -453,11 +453,9 @@ def create_model(df_sets, df_parameters, default={}):
         "ROA",
     ]
     # Define sets for the piecewise linear approximation
-    model.s_lamset = Set(initialize=list(range(n_sections+1)))
+    model.s_lamset = Set(initialize=list(range(n_sections + 1)))
     model.s_lamset2 = Set(initialize=list(range(n_sections)))
-    model.s_zset = Set(
-        initialize=list(range(n_sections))
-    )
+    model.s_zset = Set(initialize=list(range(n_sections)))
 
     # Build dictionary of all specified piping arcs
     model.df_parameters["LLA"] = {}
@@ -4407,12 +4405,15 @@ def pipeline_hydraulics(model):
         )
 
         def EnforceZeroRule(b, i, l1, l2, t1):
-            if i==0:
-                constraint = mh.v_lambdas[l1, l2, t1, i]<= mh.vb_z[l1, l2, t1, i]
-            elif i==len(model.s_lamset)-1:
-                constraint = mh.v_lambdas[l1, l2, t1, i]<= mh.vb_z[l1, l2, t1, i-1]
-            else: 
-                constraint = mh.v_lambdas[l1, l2, t1, i]<= mh.vb_z[l1, l2, t1, i] + mh.vb_z[l1, l2, t1, i-1]
+            if i == 0:
+                constraint = mh.v_lambdas[l1, l2, t1, i] <= mh.vb_z[l1, l2, t1, i]
+            elif i == len(model.s_lamset) - 1:
+                constraint = mh.v_lambdas[l1, l2, t1, i] <= mh.vb_z[l1, l2, t1, i - 1]
+            else:
+                constraint = (
+                    mh.v_lambdas[l1, l2, t1, i]
+                    <= mh.vb_z[l1, l2, t1, i] + mh.vb_z[l1, l2, t1, i - 1]
+                )
             return process_constraint(constraint)
 
         mh.EnforceZero = Constraint(
@@ -4440,8 +4441,7 @@ def pipeline_hydraulics(model):
 
         def SumOne2Rule(b, l1, l2, t1):
             constraint = (
-                sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset)
-                * cons_scaling_factor
+                sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset) * cons_scaling_factor
                 == 1 * cons_scaling_factor
             )
             return process_constraint(constraint)
