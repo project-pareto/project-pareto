@@ -43,7 +43,7 @@ def print_results_summary(model):
     print(f"Treatment cost:         {pyo.value(model.treat_cost):>12.0f}")
     print(f"Storage cost:           {pyo.value(model.stor_cost):>12.0f}")
     print(f"Storage revenue:        {pyo.value(model.stor_rev):>12.0f}")
-    print(f"Treatment revenue:      {pyo.value(model.treat_rev):>12.0f}")
+    print(f"Lithium revenue:        {pyo.value(model.treat_rev):>12.0f}")
     print(f"Net Beneficial Cost:    {pyo.value(model.ben_reuse_net_cost):>12.0f}")
     print(f"Total cost:             {pyo.value(model.total_cost_w_br):>12.0f}")
 
@@ -458,6 +458,7 @@ def solving(
     term_cond = pyo.check_optimal_termination(status)
     if term_cond == True:
 
+        print('\n Successfully solved model')
         # Displaying specific broken down costs
         print_results_summary(model)
 
