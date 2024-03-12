@@ -13,11 +13,8 @@
 
 
 """
-Run file which runs any specific case study from the case_studies folder
-This has an intitializing scheme for ipopt:
-Flow based LP -> Bilinear NLP
-
-This is for the qcp only once
+Base Case Run
+Run file which runs any specific CM case study from the case_studies folder
 """
 
 import pyomo.environ as pyo

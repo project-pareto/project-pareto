@@ -10,6 +10,10 @@
 # the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
+"""
+Functions used in run_infrastructure_analysis.py
+"""
+
 from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 import pyomo.environ as pyo
 from pareto.utilities.cm_utils.gen_utils import obj_fix

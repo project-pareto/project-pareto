@@ -10,7 +10,12 @@
 # the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
-"This file contains all the functions which are required for run_resolve.py"
+"""
+Run utilities:
+Functions mainly used in run_optimal_desalination.py
+This also contains the solving function.
+"""
+
 import numpy as np
 import pyomo.environ as pyo
 from pareto.other_models.CM_module.models.qcp_br import build_qcp_br

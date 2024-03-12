@@ -11,10 +11,8 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 """
-This model optimizes a water network while trying to minimize costs 
-and maximize earnings. 
-The model has a linear objective function. 
-Compared to qcp4 this has updates to it's completions modelling
+Qudratically-Constrained Program (QCP) to find the optimal operational conditions
+to meet minimum critical mineral requirements within a produced water network.
 """
 import sys
 import pyomo.environ as pyo

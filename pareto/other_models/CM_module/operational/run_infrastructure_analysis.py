@@ -15,6 +15,7 @@
 """
 Runs and reports cost optimal operation and lithium revenue recovery opportunities
 """
+
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.gen_utils import report_results_to_excel

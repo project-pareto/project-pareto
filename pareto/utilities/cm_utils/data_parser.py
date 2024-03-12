@@ -11,9 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 """
-This file contains the data_parser function which converts
-the parameters and sets from the get_data function to align 
-with the qcp4 model
+This file parses data retreived by the get_data() function to align with the qcp model.
 """
 
 from pareto.utilities.get_data import get_data

@@ -11,6 +11,9 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
+"""
+List of all sets and parameters to be obtained by get_data() function
+"""
 
 set_list = [
     "ProductionPads",

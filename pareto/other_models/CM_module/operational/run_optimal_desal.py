@@ -13,6 +13,9 @@
 
 
 """
+Determining Optimal Desalination Location Run
+This file looks to find the optimal location of the desalination facility within the network.
+
 This file runs the model in the following order:
 1. Run for treatment site attached for different nodes in the network
 2. Display cost results plots
@@ -59,7 +62,7 @@ min_node, models = node_rerun(
 # generating final report of variables for the best model
 final_model = models[min_node]
 print("\n\nGenerating report\n\n")
-# report_results_to_excel(final_model, filename=f"{fname}_results.xlsx", split_var={'s_A':3})
+report_results_to_excel(final_model, filename=f"{fname}_results.xlsx", split_var={'s_A':3})
 
 
 print()
