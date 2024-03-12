@@ -2,7 +2,6 @@
 import numpy as np
 import pyomo.environ as pyo
 from pyomo.common.fileutils import this_file_dir
-from pareto.CM_module.models.qcp5 import build_qcp5
 from pareto.CM_module.models.qcp_br import build_qcp_br
 
 # from case_studies.Arshs_Test_Cases import test1, test2, test2a, test2b, test2c, test3
