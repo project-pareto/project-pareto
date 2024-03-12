@@ -19,7 +19,6 @@ import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
 from pareto.utilities.cm_utils.opt_utils import (
-    max_theoretical_recovery_flow,
     max_theoretical_recovery_flow_opt,
     cost_optimal,
     max_recovery_with_infrastructure,

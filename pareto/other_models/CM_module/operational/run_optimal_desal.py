@@ -20,16 +20,10 @@ This file runs the model in the following order:
 """
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.gen_utils import (
-    report_results_to_excel,
-    obj_fix,
-    terminate,
-)
+from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
 from pareto.utilities.cm_utils.data_parser import data_parser
 from pareto.utilities.cm_utils.run_utils import (
-    change_piping_connection,
     node_rerun,
-    solving,
     print_results_summary,
 )
 from importlib import resources

@@ -41,23 +41,22 @@ class TestCMqcpModel:
             model = build_qcp_br(data)
 
             return model
-    
+
     def test_model_data(self):
         """
         The correct objective value must be active
         """
         model = self.build_cm_qcp_model()
 
-        assert model.br_obj.active    # correct objective function is active
+        assert model.br_obj.active  # correct objective function is active
         assert not model.obj.active
 
-        assert model.p_Cmin['R01_CW','Li'].value == 100   # minimum lithium req is 100
+        assert model.p_Cmin["R01_CW", "Li"].value == 100  # minimum lithium req is 100
 
-    
     def test_small_case_study(self):
         model = self.build_cm_qcp_model()
 
-        solver = 'ipopt'
+        solver = "ipopt"
         opt = pyo.SolverFactory(solver)
         assert opt.available()
 
@@ -67,4 +66,3 @@ class TestCMqcpModel:
 
 if __name__ == "__main__":
     pytest.main()
-

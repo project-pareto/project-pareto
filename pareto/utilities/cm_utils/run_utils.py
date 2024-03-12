@@ -1,15 +1,24 @@
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
+#
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
+#####################################################################################################
 "This file contains all the functions which are required for run_resolve.py"
 import numpy as np
 import pyomo.environ as pyo
-from pyomo.common.fileutils import this_file_dir
 from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 
 # from case_studies.Arshs_Test_Cases import test1, test2, test2a, test2b, test2c, test3
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.gen_utils import (
     report_results_to_excel,
-    obj_fix,
-    terminate,
     alter_nonlinear_cons,
 )
 from pareto.utilities.cm_utils.data_parser import data_parser, _tolist
@@ -21,7 +30,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 import sys
-from pareto.other_models.CM_module.operational.set_param_list import set_list, parameter_list
+from pareto.other_models.CM_module.operational.set_param_list import (
+    set_list,
+    parameter_list,
+)
 
 
 def load_data(fpath):
@@ -457,7 +469,7 @@ def solving(
     term_cond = pyo.check_optimal_termination(status)
     if term_cond == True:
 
-        print('\n Successfully solved model')
+        print("\n Successfully solved model")
         # Displaying specific broken down costs
         print_results_summary(model)
 

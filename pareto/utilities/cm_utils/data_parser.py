@@ -1,3 +1,15 @@
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
+#
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
+#####################################################################################################
 """
 This file contains the data_parser function which converts
 the parameters and sets from the get_data function to align 
@@ -27,7 +39,6 @@ def data_parser(df_sets, df_parameters):
     d["s_NC"] = df_sets["CompletionsPads"].tolist()  # completion pads
     d["s_NS"] = df_sets["StorageSites"].tolist()  # storage
     d["s_ND"] = df_sets["SWDSites"].tolist()  # disposal
-    # TODO: Make additional disposal sites component recovery cases
     d["s_NW"] = df_sets["FreshwaterSources"].tolist()  # freshwater
     d["s_NT"] = df_sets["TreatmentSites"].tolist()  # treatment
     # NTIN, NTTW, NTCW created in set processing

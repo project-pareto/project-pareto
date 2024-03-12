@@ -15,7 +15,7 @@
 """
 Run file which runs any specific case study from the case_studies folder
 This has an intitializing scheme for ipopt:
-Flow based LP -> Conc based LP -> Bilinear NLP
+Flow based LP -> Bilinear NLP
 
 This is for the qcp only once
 """
@@ -27,7 +27,6 @@ from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
 from pareto.utilities.cm_utils.data_parser import data_parser
 from pareto.utilities.cm_utils.run_utils import solving
 from set_param_list import set_list, parameter_list
-import os
 from importlib import resources
 
 
@@ -38,10 +37,10 @@ large_case_study_Li: This file is the actual final case study with no TDS concen
 small_case_study_Li_Arsh: This file is the small case study with LI and TDS concentrations and a concentration requirement.
 """
 
-fname = 'small_case_study_Li'
+fname = "small_case_study_Li"
 with resources.path(
     "pareto.case_studies",
-    "small_case_study_Li.xlsx",
+    "large_case_study_Li.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -51,8 +50,8 @@ data = data_parser(df_sets, df_parameters)
 # building model
 model = build_qcp_br(data)
 
-print(f'\nSolving case study: {fname}')
+print(f"\nSolving case study: {fname}")
 model, _ = solving(model, tee=True)
 
-print('\nGenerating Report...')
+print("\nGenerating Report...")
 # report_results_to_excel(model, filename=f'{fname}_operational_results.xlsx', split_var={'s_A':3})

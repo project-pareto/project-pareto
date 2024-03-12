@@ -1,3 +1,15 @@
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
+#
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
+#####################################################################################################
 """
 General Utilities
 This file contains any utility functions that would help processing data,
@@ -126,9 +138,7 @@ def solve_nlp(m, solvername="gurobi", time_limit=100, tee=True):
 
 
 def report_results_to_excel(
-    model: pyo.ConcreteModel, 
-    filename: str, 
-    split_var: dict = {}
+    model: pyo.ConcreteModel, filename: str, split_var: dict = {}
 ) -> None:
     counter = 0
     for var_name, var in model.component_map(pyo.Var, active=True).items():
