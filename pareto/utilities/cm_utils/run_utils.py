@@ -2,7 +2,7 @@
 import numpy as np
 import pyomo.environ as pyo
 from pyomo.common.fileutils import this_file_dir
-from pareto.CM_module.models.qcp_br import build_qcp_br
+from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 
 # from case_studies.Arshs_Test_Cases import test1, test2, test2a, test2b, test2c, test3
 from pareto.utilities.get_data import get_data
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 import sys
-from pareto.CM_module.operational.set_param_list import set_list, parameter_list
+from pareto.other_models.CM_module.operational.set_param_list import set_list, parameter_list
 
 
 def load_data(fpath):

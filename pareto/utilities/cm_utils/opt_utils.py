@@ -1,4 +1,4 @@
-from pareto.CM_module.models.qcp_br import build_qcp_br
+from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 import pyomo.environ as pyo
 from pareto.utilities.cm_utils.gen_utils import obj_fix
 
