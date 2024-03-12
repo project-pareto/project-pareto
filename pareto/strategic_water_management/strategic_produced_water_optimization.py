@@ -4542,16 +4542,7 @@ def pipeline_hydraulics(model):
                     )
                     - 20000
                     * (
-                        sum(
-                            mh.vb_z[l1, l2, t, j]
-                            for j in model.s_zset
-                            if binary_list[j] == 0
-                        )
-                        + sum(
-                            (1 - mh.vb_z[l1, l2, t, j])
-                            for j in model.s_zset
-                            if binary_list[j] == 1
-                        )
+                        1 -   mh.vb_z[l1, l2, t, i] 
                     )
                 )
                 * cons_scaling_factor

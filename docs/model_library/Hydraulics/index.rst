@@ -225,7 +225,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     **Binary Variables**
 
-    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,...,\lceil\log_2(70000/\textcolor{green}{\Delta_I})\rceil\}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
+    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,...,\{0,1,2,..., \lceil 70000/\textcolor{green}{\Delta_I}\rceil - 1}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
 
 
     **Continuous Variables**
@@ -264,16 +264,28 @@ Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
+       \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil - 1\}} \textcolor{red}{z_{l,\tilde{l},t, i}} = 1
+
+    **Sum of binaries determining the section of pieccewise linear is one** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
+
+
+    .. math::
+
        \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = 1
 
     **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
-    c(k) = binary representation of length :math:`\lceil log_2(70000/\textcolor{green}{\Delta_I}) \rceil\}` for decimal k.
+    .. math::
+
+        \textcolor{red}{\lambda_{l,\tilde{l},t, 1} } \leq z_1
 
     .. math::
 
-       \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}, i \neq j, j+1} \textcolor{red}{\lambda_{l,\tilde{l},t, i} } = \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
-       \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} 
+        \textcolor{red}{\lambda_{l,\tilde{l},t, i} } \leq z_i + z_{i-1} \forall i \in \{2,3,...,\lceil 70000/\Delta_I \rceil-1\}
+
+    .. math::
+
+        \textcolor{red}{\lambda_{l,\tilde{l},t, \lceil 70000/\Delta_I \rceil} } \leq  z_{\lceil 70000/\Delta_I \rceil-1}
 
 
     
@@ -330,8 +342,7 @@ Allows pumping only if a pump exists in a pipeline.
     Calculate electricity (variable) cost of pump at every time period.
 
     .. math::
-         \textcolor{red}{ec_{l,\tilde{l},t}} \geq \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g}  \cdot  j \cdot  \textcolor{green}{\Delta_I} \cdot \textcolor{red}{H_{l,\tilde{l},t}^{Pump}}  - M (\sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i\in Supp(c(j))}1-\textcolor{red}{z_{l,\tilde{l},t, i}} +\
-     \\  \sum_{i \in \{0,1,2,..,\lceil log_2(70000/\textcolor{green}{\Delta_I})\rceil\}, i \notin Supp(c(j))}\textcolor{red}{z_{l,\tilde{l},t, i}} )
+         \textcolor{red}{ec_{l,\tilde{l},t}} \geq \textcolor{green}{\nu^{Electricity}} \cdot \textcolor{green}{\rho.g}  \cdot  j \cdot  \textcolor{green}{\Delta_I} \cdot \textcolor{red}{H_{l,\tilde{l},t}^{Pump}}  - M (1 - z_j)
 
 
     **Pump cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}`
