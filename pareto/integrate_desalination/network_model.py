@@ -17,6 +17,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     except:
         pyunits.load_definitions_from_strings(['kUSD = [currency]'])
     
+    user_flow_units = pyunits.oil_bbl
     model = pyo.ConcreteModel()
 
     # -------------------SETS-----------------------------
@@ -42,41 +43,51 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     
     # TODO: Can't do this because then you will have to separate sets for each node
     model.s_Qalpha = pyo.Param(model.s_NTIN, initialize = data['s_Qalpha'], doc = "Components being treated at Treated Water Node")
-
+   
     # Time Periods
     model.s_T = pyo.Set(initialize = data['s_T'], doc = "Time Periods")
 
     # ----------------------PARAMETERS-------------------------------------
     # Generation and Consumption Parameters
-    model.p_FGen = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_T, initialize = data['p_FGen'], doc = "Flow Generated", units = pyunits.bbl/pyunits.day)
+    model.p_FGen = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_T, initialize = data['p_FGen'], doc = "Flow Generated", units = user_flow_units/pyunits.day)
     model.p_CGen = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_Q, model.s_T, initialize = data['p_CGen'], doc = "Concentration in flow generated", units = pyunits.g/pyunits.liter)
-    model.p_SGen = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_Q, model.s_T, initialize = data['p_SGen'], doc = "Solids generated", units = pyunits.bbl/pyunits.day*pyunits.g/pyunits.liter)
-    model.p_FCons = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_T, initialize = data['p_FCons'], doc = "Flow consumed", units = pyunits.bbl/pyunits.day)
+    model.p_SGen = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_Q, model.s_T, initialize = data['p_SGen'], doc = "Solids generated", units = user_flow_units/pyunits.day*pyunits.g/pyunits.liter)
+    model.p_FCons = pyo.Param(model.s_NMS|model.s_NP|model.s_NC, model.s_T, initialize = data['p_FCons'], doc = "Flow consumed", units = user_flow_units/pyunits.day)
 
     # Inventory Parameters
-    model.p_I0 = pyo.Param(model.s_NS, initialize = data['p_I0'], doc = "Initial Inventory", units = pyunits.bbl)
-    model.p_IS0 = pyo.Param(model.s_NS, model.s_Q, initialize = data['p_IS0'], doc = "Initial solids in inventory", units = pyunits.bbl*pyunits.g/pyunits.liter)
+    model.p_I0 = pyo.Param(model.s_NS, initialize = data['p_I0'], doc = "Initial Inventory", units = user_flow_units)
+    model.p_IS0 = pyo.Param(model.s_NS, model.s_Q, initialize = data['p_IS0'], doc = "Initial solids in inventory", units = user_flow_units*pyunits.g/pyunits.liter)
     
     # Treatment Efficiencies
     #Should be set to 1 in the case where we use MVC as the treatment unit. 
     model.p_alpha = pyo.Param(model.s_NTIN, model.s_Q, initialize = data['p_alpha'], doc = "Treatment Efficiency")
 
     # Capacity limits for sinks
-    model.p_Cap = pyo.Param(model.s_ND | model.s_NW | model.s_NTIN, initialize = data['p_Cap'], doc = "Capacity of sources and sinks", units = pyunits.bbl/pyunits.day)
-    model.p_Cap_treat_min = pyo.Param(model.s_NTIN, initialize = data['p_Cap_treat_min'], doc = "Minimum flow to the treatment node", units = pyunits.bbl/pyunits.day)
+    model.p_Cap = pyo.Param(model.s_ND | model.s_NW | model.s_NTIN, initialize = data['p_Cap'], doc = "Capacity of sources and sinks", units = user_flow_units/pyunits.day)
+   
     # Time discretization
     model.p_dt = pyo.Param(initialize = data['p_dt'], doc = "Time discretized for inventory", units = pyunits.day)
 
-    # Minimum treatment concentration required
+    #Minimum flow required to operate the treatment unit
+    model.p_flow_treatment_min = pyo.Param(model.s_NTIN, initialize = data['p_flow_treatment_min'], doc = "Minimum flow to the treatment node", units = data['flow_units'])
+   
+    # Minimum concentration required to operate the treatment unit
+    
+    #Minimum concentration requirement from the concentrated node of the treatment unit
+    model.p_Cmin_treatment_inlet = pyo.Param(model.s_NTIN, initialize = data['p_Cmin_treatment_inlet'], mutable = True, doc = "Minimum concentration required at the treatment inlet node", units = data['concentration_units'])
+    
+    #Useful if there are any recovery requirememts for critical minerals
     model.p_Cmin = pyo.Param(model.s_NTCW, model.s_Q, initialize = data['p_Cmin'], mutable = True, doc = "Minimum concentration required at the concentrated water node", units = pyunits.g/pyunits.liter)
+    
+    #Maximum concentration possible in the network (super saturation)
     model.p_Cmax = pyo.Param(initialize = 300, doc = "Maximum concentration in the network", units = pyunits.g/pyunits.liter)
     # Cost Parameters
     
-    model.p_betaArc = pyo.Param(model.s_A, initialize = data['p_betaArc'], doc = "Operational costs of arcs" ,units = pyunits.kUSD/pyunits.bbl)
-    model.p_betaD = pyo.Param(model.s_ND, initialize = data['p_betaD'], mutable = True, doc = "Operational cost of disposal site",units = pyunits.kUSD/pyunits.bbl)
-    model.p_betaW = pyo.Param(model.s_NW, initialize = data['p_betaW'], doc = "Costs of sourcing freshwater",units = pyunits.kUSD/pyunits.bbl)
-    model.p_betaT = pyo.Param(model.s_NTIN, initialize = data['p_betaT'], mutable = True, doc = "Operating cost of treatment facility",units = pyunits.kUSD/pyunits.bbl)
-    model.p_betaS = pyo.Param(model.s_NS, initialize = data['p_betaS'], mutable = True, doc = "Costs of storing produced water",units = pyunits.kUSD/pyunits.bbl)
+    model.p_betaArc = pyo.Param(model.s_A, initialize = data['p_betaArc'], doc = "Operational costs of arcs" ,units = pyunits.kUSD/user_flow_units)
+    model.p_betaD = pyo.Param(model.s_ND, initialize = data['p_betaD'], mutable = True, doc = "Operational cost of disposal site",units = pyunits.kUSD/user_flow_units)
+    model.p_betaW = pyo.Param(model.s_NW, initialize = data['p_betaW'], doc = "Costs of sourcing freshwater",units = pyunits.kUSD/user_flow_units)
+    model.p_betaT = pyo.Param(model.s_NTIN, initialize = data['p_betaT'], mutable = True, doc = "Operating cost of treatment facility",units = pyunits.kUSD/user_flow_units)
+    model.p_betaS = pyo.Param(model.s_NS, initialize = data['p_betaS'], mutable = True, doc = "Costs of storing produced water",units = pyunits.kUSD/user_flow_units)
     
     #Differentiating the costs to send water to inventory slightly to avoid degeneracy
     data_inv_cost = {}
@@ -85,13 +96,12 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
         delta = 0.00001
         for t in model.s_T:
             data_inv_cost[n, t] = pyo.value(model.p_betaS[n]+ len(model.s_T)*delta - delta*counter)
-            counter = counter + 1
-            
-   
-    model.p_betaSt = pyo.Param(model.s_NS, model.s_T, initialize = data_inv_cost, mutable = True, doc = "Costs of storing produced water",units = pyunits.kUSD/pyunits.bbl)
+            counter = counter + 1       
+  
+    model.p_betaSt = pyo.Param(model.s_NS, model.s_T, initialize = data_inv_cost, mutable = True, doc = "Costs of storing produced water",units = pyunits.kUSD/user_flow_units)
     
-    model.p_gammaS = pyo.Param(model.s_NS, initialize = data['p_gammaS'], mutable = True, doc = "Earnings from retrieving water from storage tanks",units = pyunits.kUSD/pyunits.bbl)
-    model.p_gammaT = pyo.Param(model.s_NTTW, initialize = data['p_gammaT'], mutable = True, doc = "Earnings from treating water",units = pyunits.kUSD/pyunits.bbl)
+    model.p_gammaS = pyo.Param(model.s_NS, initialize = data['p_gammaS'], mutable = True, doc = "Earnings from retrieving water from storage tanks",units = pyunits.kUSD/user_flow_units)
+    model.p_gammaT = pyo.Param(model.s_NTTW, initialize = data['p_gammaT'], mutable = True, doc = "Earnings from treating water",units = pyunits.kUSD/user_flow_units)
     
     # Functions
     model.p_nodeUp = pyo.Param(model.s_A, initialize = data['p_nodeUp'], doc = "Upstream node of the arc")
@@ -107,14 +117,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     model.v_C = pyo.Var(model.s_NTIN |model.s_NTTW | model.s_NTCW | model.s_NS , model.s_Q, model.s_T, bounds = (0,300), doc = "Concentration of water at nodes", initialize = 100, units = pyunits.g/pyunits.liter)
     model.v_alphaW = pyo.Var(model.s_NTIN, model.s_T, bounds = (0.1,0.9), doc = "Treatment Efficiency", initialize = 0.5)
     model.v_Ctreatin = pyo.Var(model.s_NTIN, model.s_T, doc = "Concentration of salts going to treatment", bounds = (0, 210), initialize = 100, units = pyunits.g/pyunits.liter)
-    #Custom initialization
-    if init_custom:
-        model.v_I[:, :] = init_custom_param['I_init']
-        model.v_IS[:, :, :] = init_custom_param['IS_init']
-   
-    #Node R01 is just pretreatment. So fix it's alpha 
-    #Scaling factor 
-    scale_fac = 1/100
+    
     # ----------------------OBJECTIVE---------------------------
     
     @model.Expression()
@@ -155,7 +158,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     # solids flow for non-inventory terms 
     @model.Constraint(model.s_NP | model.s_NMS, model.s_Q, model.s_T, doc = "General solids flow equation for non inventory nodes")
     def noinvsolidsflow(m,n,q,t):
-        return scale_fac*(sum(m.v_S[a,q,t] for a in m.s_Ain[n]) + pyunits.convert(m.p_SGen[n,q,t], pyunits.g/pyunits.s)) == scale_fac*(sum(m.v_S[a,q,t] for a in m.s_Aout[n]))
+        return sum(m.v_S[a,q,t] for a in m.s_Ain[n]) + pyunits.convert(m.p_SGen[n,q,t], pyunits.g/pyunits.s) == sum(m.v_S[a,q,t] for a in m.s_Aout[n])
     assert_units_consistent(model.noinvsolidsflow)
     
     # Splitter and Mixers outlet concentration constraints
@@ -165,7 +168,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
             for q in model.s_Q:
                 for t in model.s_T:
                     for a in model.s_Aout[n]:
-                        model.splitter_conc.add(scale_fac*(model.v_S[a, q, t]*sum(model.v_F[a, t] for a in model.s_Ain[n])) == scale_fac*(sum(model.v_S[a, q, t] for a in model.s_Ain[n])*model.v_F[a, t]))
+                        model.splitter_conc.add(model.v_S[a, q, t]*sum(model.v_F[a, t] for a in model.s_Ain[n]) == sum(model.v_S[a, q, t] for a in model.s_Ain[n])*model.v_F[a, t])
     assert_units_consistent(model.splitter_conc)     
         
     # Completion Pads
@@ -217,18 +220,18 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     @model.Constraint(model.s_NS, model.s_T, doc = "Storage inventory balance")
     def Sinv(m,n,t):
         if t == m.s_T.first():
-            return scale_fac*(m.v_I[n,t])== scale_fac*(pyunits.convert(m.p_I0[n], pyunits.liter) + sum(m.v_F[a,t] for a in m.s_Ain[n])*pyunits.convert(m.p_dt, pyunits.s) - sum(m.v_F[a,t] for a in m.s_Aout[n])*pyunits.convert(m.p_dt, pyunits.s))
+            return m.v_I[n,t]== pyunits.convert(m.p_I0[n], pyunits.liter) + sum(m.v_F[a,t] for a in m.s_Ain[n])*pyunits.convert(m.p_dt, pyunits.s) - sum(m.v_F[a,t] for a in m.s_Aout[n])*pyunits.convert(m.p_dt, pyunits.s)
         else:
-            return scale_fac*(m.v_I[n,t]) == scale_fac*(m.v_I[n,m.s_T.prev(t)] + sum(m.v_F[a,t] for a in m.s_Ain[n])*pyunits.convert(m.p_dt, pyunits.s) - sum(m.v_F[a,t] for a in m.s_Aout[n])*pyunits.convert(m.p_dt, pyunits.s))
+            return m.v_I[n,t]== m.v_I[n,m.s_T.prev(t)] + sum(m.v_F[a,t] for a in m.s_Ain[n])*pyunits.convert(m.p_dt, pyunits.s) - sum(m.v_F[a,t] for a in m.s_Aout[n])*pyunits.convert(m.p_dt, pyunits.s)
     assert_units_consistent(model.Sinv)
     
     @model.Constraint(model.s_NS, model.s_Q, model.s_T, doc = "Storage solids balance")
     def Sconc(m,n,q,t):
         if t == m.s_T.first():
-            return scale_fac*(m.v_IS[n, q, t]) == scale_fac*(pyunits.convert(m.p_IS0[n, q], pyunits.g)+ 
+            return m.v_IS[n, q, t] == (pyunits.convert(m.p_IS0[n, q], pyunits.g)+ 
                     sum(m.v_S[a,q,t] for a in m.s_Ain[n])*pyunits.convert(m.p_dt, pyunits.s) - sum(m.v_S[a,q,t] for a in m.s_Aout[n])*pyunits.convert(m.p_dt, pyunits.s))
         else:
-            return scale_fac*(m.v_IS[n, q, t]) == scale_fac*(m.v_IS[n, q, m.s_T.prev(t)] + 
+            return m.v_IS[n, q, t] == (m.v_IS[n, q, m.s_T.prev(t)] + 
                     sum(m.v_S[a, q, t] for a in m.s_Ain[n])*pyunits.convert(m.p_dt, pyunits.s) - sum(m.v_S[a, q, t] for a in m.s_Aout[n])*pyunits.convert(m.p_dt, pyunits.s))
     assert_units_consistent(model.Sconc)
     
@@ -239,9 +242,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
         return m.v_C[n,q,t]*m.v_I[n,t] == m.v_IS[n, q, t]
     assert_units_consistent(model.Cinvcal)
     
-    # #This constraint is essential if there is a pretreatment unit before storage. 
-    # #Helps a little with situations where flow is 0 to storage and concentration can take any value since 
-    # #v_IS is also 0 
+    # This constraint is essential if there is a pretreatment unit before storage. 
     @model.Constraint(model.s_NS, model.s_Q, model.s_T)
     def Cinvzero_pretreatment(m,n,q,t):
         for a in m.s_Ain[n]:
@@ -253,7 +254,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     
     @model.Constraint(model.s_NS, model.s_Q, model.s_T)
     def Srelation(m,n,q,t):
-        return scale_fac*sum(m.v_S[a, q, t] for a in m.s_Aout[n]) == scale_fac*m.v_C[n,q,t]*sum(m.v_F[a, t] for a in m.s_Aout[n])
+        return sum(m.v_S[a, q, t] for a in m.s_Aout[n]) == m.v_C[n,q,t]*sum(m.v_F[a, t] for a in m.s_Aout[n])
     assert_units_consistent(model.Srelation)
     
     # Disposal
@@ -274,33 +275,33 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     assert_units_consistent(model.WSflow)
     
     # Treatment Inlet Node
-    @model.Constraint(model.s_NTIN, model.s_T, doc = "Treatment inlet flow restriction")
+    @model.Constraint(model.s_NTIN, model.s_T, doc = "Treatment inlet flow maximum")
     def TINflowmax(m,n,t):
-        return sum(m.v_F[a,t] for a in m.s_Ain[n]) <= 20*pyunits.liter/pyunits.s
+        return sum(m.v_F[a,t] for a in m.s_Ain[n]) <= pyunits.convert(m.p_Cap[n], pyunits.liter/pyunits.s)
     assert_units_consistent(model.TINflowmax)
     
     # Treatment inlet node minimum flow restriction
     @model.Constraint(model.s_NTIN, model.s_T, doc = "Treatment inlet flow minimum")
     def TINflowmin(m,n,t):
-        return sum(m.v_F[a,t] for a in m.s_Ain[n]) >= 3*pyunits.liter/pyunits.s
+        return sum(m.v_F[a,t] for a in m.s_Ain[n]) >= pyunits.convert(m.p_flow_treatment_min[n], pyunits.liter/pyunits.s)
     assert_units_consistent(model.TINflowmin)
     
     # Relate concentration to solids flow into the treatment unit
     @model.Constraint(model.s_NTIN, model.s_Q, model.s_T, doc = "Linking solids to treatment inlet to inlet concentration")
     def TINconc_rel(m, n, q, t):
-        return scale_fac*sum(model.v_F[a, t] for a in model.s_Ain[n])*m.v_C[n, q, t] == scale_fac*sum(model.v_S[a, q, t] for a in m.s_Ain[n])
+        return sum(model.v_F[a, t] for a in model.s_Ain[n])*m.v_C[n, q, t] == sum(model.v_S[a, q, t] for a in m.s_Ain[n])
     assert_units_consistent(model.TINconc_rel)
     
     #Make a total concentration variable for the treatment unit since it can only handle one component 
     @model.Constraint(model.s_NTIN, model.s_T, doc = "Linking total conc to component conc")
     def TINtotalconc(m, n, t):
-        return scale_fac*sum(model.v_F[a, t] for a in model.s_Ain[n])*m.v_Ctreatin[n, t] == scale_fac*sum(sum(model.v_S[a, q, t] for a in m.s_Ain[n]) for q in m.s_Q)
+        return sum(model.v_F[a, t] for a in model.s_Ain[n])*m.v_Ctreatin[n, t] == sum(sum(model.v_S[a, q, t] for a in m.s_Ain[n]) for q in m.s_Q)
     assert_units_consistent(model.TINtotalconc)
     
     #Bound on minimum total concentration
     @model.Constraint(model.s_NTIN, model.s_T, doc = "Minimum bound on inlet concentration of the treatment unit")
     def CINmin(m, n, t):
-        return model.v_Ctreatin[n, t] >= 70*pyunits.g/pyunits.liter
+        return model.v_Ctreatin[n, t] >= pyunits.convert(m.p_Cmin_treatment_inlet[n], pyunits.g/pyunits.liter)
     assert_units_consistent(model.CINmin)
     
     # Treatment Treated Water Node
@@ -335,13 +336,13 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
         n1 = model.p_treatedIN[n]
         for t in model.s_T:
             for q in model.s_Qalpha[n1]:
-                model.NTCWconc.add(scale_fac*model.v_C[n,q,t]*model.v_F[model.s_Aout[n][0], t] == scale_fac*model.v_C[n1,q,t]*model.v_F[model.s_Ain[n1][0], t])
+                model.NTCWconc.add(model.v_C[n,q,t]*model.v_F[model.s_Aout[n][0], t] == model.v_C[n1,q,t]*model.v_F[model.s_Ain[n1][0], t])
     assert_units_consistent(model.NTCWconc)
     
     #Relating outlet solids flow to concentration at the node
     @model.Constraint(model.s_NTCW|model.s_NTTW, model.s_Q, model.s_T, doc = "Outlet solids flow")
     def solids_flow(m, n, q, t):
-        return scale_fac*sum(m.v_S[a, q, t] for a in m.s_Aout[n]) == scale_fac*m.v_C[n,q,t]*sum(m.v_F[a,t] for a in m.s_Aout[n])
+        return sum(m.v_S[a, q, t] for a in m.s_Aout[n]) == m.v_C[n,q,t]*sum(m.v_F[a,t] for a in m.s_Aout[n])
     assert_units_consistent(model.solids_flow)
     
     # Treatment: Cases where treatment is acting as a splitter
@@ -374,12 +375,12 @@ if __name__ == "__main__" :
     data = get_processed_data("integrated_desalination_case_study.xlsx")
     m = build_qcp(data)
     m.TINflowmin['R02_IN', :].deactivate()
-    m.TINflowmax['R02_IN', :].deactivate()
     m.CINmin['R02_IN', :].deactivate()
     
     m.v_alphaW['R02_IN', :].fix(0.4)
     
     ipopt = pyo.SolverFactory('ipopt')
     ipopt.options["max_iter"] = 10000
+    ipopt.options["tol"] = 1e-4
     ipopt.solve(m, tee= True)
     
