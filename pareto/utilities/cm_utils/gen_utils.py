@@ -126,7 +126,9 @@ def solve_nlp(m, solvername="gurobi", time_limit=100, tee=True):
 
 
 def report_results_to_excel(
-    model: pyo.ConcreteModel, filename: str, split_var: dict = {}
+    model: pyo.ConcreteModel, 
+    filename: str, 
+    split_var: dict = {}
 ) -> None:
     counter = 0
     for var_name, var in model.component_map(pyo.Var, active=True).items():

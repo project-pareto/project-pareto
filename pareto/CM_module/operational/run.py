@@ -55,4 +55,4 @@ print(f'\nSolving case study: {fname}')
 model, _ = solving(model, tee=True)
 
 print('\nGenerating Report...')
-# report_results_to_excel(model, filename=f'{fname}_operational_results', split_var={'s_A':3})
+# report_results_to_excel(model, filename=f'{fname}_operational_results.xlsx', split_var={'s_A':3})
