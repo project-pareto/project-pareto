@@ -1935,16 +1935,9 @@ def plot_bars(input_data, args):
 
 
 def _ensure_scalar(val):
-    orig_type = type(val)
-    if isinstance(val, float):
-        val = float(val)
-    if isinstance(val, int):
-        val = int(val)
     if isinstance(val, pd.Series):
         assert len(val) == 1
-        return _ensure_scalar(val.iloc[0])
-    new_type = type(val)
-    print(f"{orig_type=}, {new_type=}")
+        return val.iloc[0]
     return val
 
 
