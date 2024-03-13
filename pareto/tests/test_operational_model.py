@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -53,7 +53,8 @@ def build_operational_model():
         "ProductionPads",
         "CompletionsPads",
         "ProductionTanks",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "SWDSites",
         "TreatmentSites",
@@ -80,7 +81,7 @@ def build_operational_model():
         "DisposalCapacity",
         "CompletionsPadStorage",
         "TreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "TruckingTime",
         "DisposalOperationalCost",
@@ -89,9 +90,10 @@ def build_operational_model():
         "PadStorageCost",
         "PipelineOperationalCost",
         "TruckingHourlyCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "ProductionRates",
         "TreatmentEfficiency",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
     ]
@@ -132,7 +134,7 @@ def test_basic_build(build_operational_model):
 
 
 @pytest.mark.component
-def test_strategic_model_unit_consistency(build_operational_model):
+def test_operational_model_unit_consistency(build_operational_model):
     """
     Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
     This test utilizes assert_units_consistent in addition to a special case test assertion.
@@ -302,7 +304,8 @@ def test_operational_model_UI_display_units():
         "ProductionPads",
         "CompletionsPads",
         "ProductionTanks",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "SWDSites",
         "TreatmentSites",
@@ -328,7 +331,7 @@ def test_operational_model_UI_display_units():
         "DisposalCapacity",
         "CompletionsPadStorage",
         "TreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "TruckingTime",
         "DisposalOperationalCost",
@@ -337,9 +340,10 @@ def test_operational_model_UI_display_units():
         "PadStorageCost",
         "PipelineOperationalCost",
         "TruckingHourlyCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "ProductionRates",
         "TreatmentEfficiency",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
     ]

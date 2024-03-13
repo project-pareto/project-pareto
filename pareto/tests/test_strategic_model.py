@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -33,6 +33,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     PipelineCapacity,
     pipeline_hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
+    infrastructure_timing,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -64,10 +66,10 @@ def build_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -94,16 +96,26 @@ def build_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -114,14 +126,16 @@ def build_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -139,13 +153,18 @@ def build_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_treatment_demo.xlsx",
@@ -172,9 +191,9 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -195,9 +214,9 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -218,9 +237,9 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -241,9 +260,9 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -329,12 +348,13 @@ def test_run_strategic_model(build_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "infrastructure_timing": InfrastructureTiming.false,
         }
     )
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 29751
+    assert degrees_of_freedom(m) == 29595
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -352,10 +372,10 @@ def build_reduced_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -382,16 +402,26 @@ def build_reduced_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -402,14 +432,16 @@ def build_reduced_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -427,13 +459,18 @@ def build_reduced_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_small_case_study.xlsx",
@@ -518,10 +555,10 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11789
+    assert degrees_of_freedom(m) == 11560
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
-    assert pytest.approx(26.067, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
+    assert pytest.approx(26.105, abs=1e-1) == pyo.value(m.hydraulics.v_Z_HydrualicsCost)
     assert pytest.approx(24, abs=1e-1) == pyo.value(
         sum(m.hydraulics.vb_Y_Pump[key] for key in m.s_LLA)
     )
@@ -586,9 +623,9 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 13081
+    assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -610,9 +647,9 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 13081
+    assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -634,9 +671,9 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 13081
+    assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -658,9 +695,9 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 104601
+    assert degrees_of_freedom(m) == 103331
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -769,7 +806,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11789
+    assert degrees_of_freedom(m) == 11560
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
@@ -839,10 +876,10 @@ def build_modified_reduced_strategic_model():
     # The modified excel sheet is located in the test folder
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -869,31 +906,46 @@ def build_modified_reduced_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -911,13 +963,18 @@ def build_modified_reduced_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.tests",
         "strategic_small_case_study_load_removaleff.xlsx",
@@ -1016,7 +1073,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11789
+    assert degrees_of_freedom(m) == 11560
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1040,10 +1097,10 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 def test_strategic_model_UI_display_units():
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -1070,16 +1127,26 @@ def test_strategic_model_UI_display_units():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -1090,14 +1157,16 @@ def test_strategic_model_UI_display_units():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -1115,13 +1184,18 @@ def test_strategic_model_UI_display_units():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_small_case_study.xlsx",
@@ -1139,10 +1213,10 @@ def build_toy_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -1169,16 +1243,26 @@ def build_toy_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -1189,14 +1273,16 @@ def build_toy_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -1214,13 +1300,18 @@ def build_toy_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_toy_case_study.xlsx",
@@ -1246,9 +1337,9 @@ def test_basic_toy_build(build_toy_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 4907
+    assert degrees_of_freedom(m) == 7237
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1266,6 +1357,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
@@ -1281,8 +1373,8 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 4558
-    assert pytest.approx(11122.325, abs=1e-1) == pyo.value(m.v_Z)
+    assert degrees_of_freedom(m) == 6875
+    assert pytest.approx(6122.5178, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
 
@@ -1293,10 +1385,10 @@ def build_permian_demo_strategic_model():
     # Tabs in the input Excel spreadsheet
     set_list = [
         "ProductionPads",
-        "ProductionTanks",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -1323,16 +1415,26 @@ def build_permian_demo_strategic_model():
         "RSA",
         "SCA",
         "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
         "PCT",
         "PKT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
         "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
@@ -1343,14 +1445,16 @@ def build_permian_demo_strategic_model():
         "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
-        "FreshwaterSourcingAvailability",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -1368,13 +1472,18 @@ def build_permian_demo_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
         "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
     ]
 
-    # note the double backslashes '\\' in that path reference
     with resources.path(
         "pareto.case_studies",
         "strategic_permian_demo.xlsx",
@@ -1402,9 +1511,9 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 21111
+    assert degrees_of_freedom(m) == 20955
     # Check unit config arguments
-    assert len(m.config) == 7
+    assert len(m.config) == 8
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1426,7 +1535,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 21111
+    assert degrees_of_freedom(m) == 20955
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1435,3 +1544,235 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_infrastructure_buildout(build_toy_strategic_model):
+    # Build model: Test with capacity based pipeline config option
+    m_capacity_based = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,  # capacity_based
+            "pipeline_capacity": PipelineCapacity.input,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    # Build Model: Test with distance based pipeline config option
+    m_distance_based = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,  # distance_based
+            "pipeline_capacity": PipelineCapacity.calculated,
+            "infrastructure_timing": InfrastructureTiming.false,
+        }
+    )
+
+    # Solve models
+    solver = get_solver("cbc")
+    solver.options["seconds"] = 60 * 5
+    results_capacity_based = solver.solve(m_capacity_based, tee=False)
+    results_distance_based = solver.solve(m_distance_based, tee=False)
+
+    # Toy case study builds treatment, storage, pipeline.
+    # For testing purposes, let's adjust results to also build disposal and use new disposal.
+    m_capacity_based.vb_y_Disposal["K01", "I2"].fix(1)
+    m_capacity_based.v_F_DisposalDestination["K01", "T13"].fix(
+        m_capacity_based.p_sigma_Disposal["K01"] * 2
+    )
+    m_distance_based.vb_y_Disposal[("K01", "I2")].fix(1)
+    m_distance_based.v_F_DisposalDestination["K01", "T13"].fix(
+        m_distance_based.p_sigma_Disposal["K01"] * 2
+    )
+
+    # Call infrastructure buildout
+    infrastructure_timing(m_capacity_based)
+    infrastructure_timing(m_distance_based)
+
+    # Test results report build with infrastructure buildout
+    [model, results_dict] = generate_report(
+        m_capacity_based,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+    [model, results_dict] = generate_report(
+        m_distance_based,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+@pytest.fixture(scope="module")
+def build_workshop_strategic_model():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "CompletionsPads",
+        "SWDSites",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
+        "Elevation",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "WellPressure",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "ExternalSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "RemovalEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "ExternalWaterQuality",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
+    ]
+
+    with resources.path(
+        "pareto.case_studies",
+        "workshop_baseline_all_data.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            workshop_model = create_model(df_sets, df_parameters, config_dict)
+            return workshop_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_workshop_build(build_workshop_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert degrees_of_freedom(m) == 3973
+    # Check unit config arguments
+    assert len(m.config) == 8
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_workshop_model(build_workshop_strategic_model):
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 3851
+    assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
+    with nostdout():
+        assert is_feasible(m)
