@@ -16,8 +16,8 @@ import pyomo.environ as pyo
 from importlib import resources
 import pytest
 
-from pareto.CM_module.models.qcp_br import build_qcp_br
-from pareto.CM_module.operational.set_param_list import set_list, parameter_list
+from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
+from pareto.other_models.CM_module.operational.set_param_list import set_list, parameter_list
 
 from pareto.utilities.cm_utils.data_parser import data_parser
 from pareto.utilities.get_data import get_data
