@@ -279,6 +279,9 @@ def get_data(
       Column format: Does not require a header. Each set should be placed in one column,
       starting from column A and row 3. Data should be provided in the last column.
 
+    By default, errors encountered while performing data pre-processing are collected and displayed as warnings.
+    If ``raises=True``, an exception will be raised instead.
+
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
     contains parameters in format {`param1`:{(set1, set2): value}, `param1`:{(set1, set2): value}}
