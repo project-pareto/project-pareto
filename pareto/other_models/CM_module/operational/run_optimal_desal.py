@@ -62,7 +62,9 @@ min_node, models = node_rerun(
 # generating final report of variables for the best model
 final_model = models[min_node]
 print("\n\nGenerating report\n\n")
-report_results_to_excel(final_model, filename=f"{fname}_results.xlsx", split_var={'s_A':3})
+report_results_to_excel(
+    final_model, filename=f"{fname}_results.xlsx", split_var={"s_A": 3}
+)
 
 
 print()

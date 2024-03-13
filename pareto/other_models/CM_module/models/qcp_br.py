@@ -626,13 +626,11 @@ def build_qcp_br(data):
     )
     def minconccon(m, n, q, t):
         return m.v_C[n, q, t] >= m.p_Cmin[n, q]
-    
+
     @model.Constraint(
-        model.s_NTIN,
-        model.s_T,
-        doc="Minimum inlet flow required at treatment site"
+        model.s_NTIN, model.s_T, doc="Minimum inlet flow required at treatment site"
     )
     def minflowcon(m, n, t):
-        return sum(m.v_F[a,t] for a in m.s_Ain[n]) >= m.p_Fmin[n] 
+        return sum(m.v_F[a, t] for a in m.s_Ain[n]) >= m.p_Fmin[n]
 
     return model

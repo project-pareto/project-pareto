@@ -143,8 +143,7 @@ def data_parser(df_sets, df_parameters):
         for q in d["s_Q"]
     }
     d["p_Fmin"] = {
-        d["NT_set"][n][0]: df_parameters["MinTreatmentFlow"][n]
-        for n in d["s_NT"]
+        d["NT_set"][n][0]: df_parameters["MinTreatmentFlow"][n] for n in d["s_NT"]
     }
 
     # TimeDiscretization

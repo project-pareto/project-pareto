@@ -17,7 +17,10 @@ from importlib import resources
 import pytest
 
 from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
-from pareto.other_models.CM_module.operational.set_param_list import set_list, parameter_list
+from pareto.other_models.CM_module.operational.set_param_list import (
+    set_list,
+    parameter_list,
+)
 from pareto.utilities.cm_utils.opt_utils import (
     max_theoretical_recovery_flow_opt,
     cost_optimal,
@@ -69,6 +72,7 @@ class TestCMqcpModel:
         status = opt.solve(model, tee=False)
         pyo.assert_optimal_termination(status)
 
+
 class TestAddFeatures:
     def obtain_data(self):
         with resources.path(
@@ -79,7 +83,7 @@ class TestAddFeatures:
 
         data = data_parser(df_sets, df_parameters)
         return data
-    
+
     def test_infra_analysis(self):
         data = self.obtain_data()
         print("--- Running cost optimal solution ---")
@@ -96,7 +100,6 @@ class TestAddFeatures:
         max_w_infra = pyo.value(max_inf_model.treat_rev)
 
         assert max_recovery >= max_w_infra
-    
 
 
 if __name__ == "__main__":
