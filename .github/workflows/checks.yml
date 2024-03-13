@@ -61,8 +61,8 @@ jobs:
             python-version: '3.8'
             cov-report: true
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Set up package (install-mode=${{ matrix.install-mode }})
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # the checkout step is needed to have access to codecov.yml
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
           name: coverage-report
@@ -105,8 +105,8 @@ jobs:
     name: Run Black to verify that committed code is formatted
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
       - name: Install (dev mode)
