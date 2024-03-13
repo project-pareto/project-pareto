@@ -49,13 +49,12 @@ def build_qcp_br(data):
     model.s_Aout = pyo.Param(
         model.s_N,
         initialize=data["s_Aout"],
-        doc="Arcs coming out of node)",
+        doc="Arcs coming out of node",
         within=pyo.Any,
     )
 
     # Components
     model.s_Q = pyo.Set(initialize=data["s_Q"], doc="Components")
-    # TODO: Can't do this because then you will have to separate sets for each node
     model.s_Qalpha = pyo.Param(
         model.s_NTIN,
         initialize=data["s_Qalpha"],
@@ -139,6 +138,13 @@ def build_qcp_br(data):
         initialize=data["p_Cmin"],
         mutable=True,
         doc="Minimum concentration required at the concentrated water node",
+        within=pyo.Reals,
+    )
+    model.p_Fmin = pyo.Param(
+        model.s_NTIN,
+        initialize=data["p_Fmin"],
+        mutable=True,
+        doc="Minimum Flow required at each treatment site",
         within=pyo.Reals,
     )
 
@@ -620,5 +626,13 @@ def build_qcp_br(data):
     )
     def minconccon(m, n, q, t):
         return m.v_C[n, q, t] >= m.p_Cmin[n, q]
+    
+    @model.Constraint(
+        model.s_NTIN,
+        model.s_T,
+        doc="Minimum inlet flow required at treatment site"
+    )
+    def minflowcon(m, n, t):
+        return sum(m.v_F[a,t] for a in m.s_Ain[n]) >= m.p_Fmin[n] 
 
     return model

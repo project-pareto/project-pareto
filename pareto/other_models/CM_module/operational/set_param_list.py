@@ -90,6 +90,7 @@ parameter_list = [
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
     "DisposalOperatingCapacity",
+    "MinTreatmentFlow",
     "MinResidualQuality",
     "ComponentPrice",
     "ComponentTreatment",

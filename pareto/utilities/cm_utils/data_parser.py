@@ -142,6 +142,10 @@ def data_parser(df_sets, df_parameters):
         for n in d["s_NT"]
         for q in d["s_Q"]
     }
+    d["p_Fmin"] = {
+        d["NT_set"][n][0]: df_parameters["MinTreatmentFlow"][n]
+        for n in d["s_NT"]
+    }
 
     # TimeDiscretization
     d["p_dt"] = 7  # TODO: Get get_data() to read this

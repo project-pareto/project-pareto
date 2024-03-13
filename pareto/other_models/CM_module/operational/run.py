@@ -43,6 +43,7 @@ with resources.path(
 
 
 data = data_parser(df_sets, df_parameters)
+print(data['p_Fmin'])
 
 # building model
 model = build_qcp_br(data)
