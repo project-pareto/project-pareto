@@ -4540,10 +4540,7 @@ def pipeline_hydraulics(model):
                         * 10 ** (-6)
                         * 3600
                     )
-                    - 20000
-                    * (
-                        1 -   mh.vb_z[l1, l2, t, i] 
-                    )
+                    - 20000 * (1 - mh.vb_z[l1, l2, t, i])
                 )
                 * cons_scaling_factor
             )
