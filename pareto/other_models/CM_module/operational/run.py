@@ -37,13 +37,11 @@ small_case_study_Li_Arsh: This file is the small case study with LI and TDS conc
 fname = "small_case_study_Li"
 with resources.path(
     "pareto.case_studies",
-    "large_case_study_Li.xlsx",
+    "small_case_study_Li.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-
 data = data_parser(df_sets, df_parameters)
-print(data['p_Fmin'])
 
 # building model
 model = build_qcp_br(data)
