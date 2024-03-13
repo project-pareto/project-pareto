@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -15,7 +15,11 @@
 from pyomo.environ import (
     Var,
     Binary,
+    units as pyunits,
 )
+import logging
+
+_log = logging.getLogger(__name__)
 
 ###--- Functions ---###
 # free variables function
@@ -56,3 +60,20 @@ def deactivate_slacks(model):
     model.v_S_TreatmentCapacity.fix(0)
     model.v_S_BeneficialReuseCapacity.fix(0)
     return None
+
+
+def fix_vars(model, vars_to_fix, indexes, v_val):
+    _log.info("inside fix_vars")
+    for var in model.component_objects(Var):
+        if var.name in vars_to_fix:
+            _log.info("\nFixing this variable")
+            _log.info(var)
+            for index in var:
+                if index == indexes:
+                    if not var[index].domain is Binary:
+                        v_val = pyunits.convert_value(
+                            v_val,
+                            from_units=model.user_units["volume_time"],
+                            to_units=model.model_units["volume_time"],
+                        )
+                    var[index].fix(v_val)
