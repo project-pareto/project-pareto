@@ -18,9 +18,15 @@ import pytest
 
 from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 from pareto.other_models.CM_module.operational.set_param_list import set_list, parameter_list
+from pareto.utilities.cm_utils.opt_utils import (
+    max_theoretical_recovery_flow_opt,
+    cost_optimal,
+    max_recovery_with_infrastructure,
+)
 
 from pareto.utilities.cm_utils.data_parser import data_parser
 from pareto.utilities.get_data import get_data
+from pareto.utilities.cm_utils.run_utils import node_rerun
 
 
 class TestCMqcpModel:
@@ -62,6 +68,35 @@ class TestCMqcpModel:
 
         status = opt.solve(model, tee=False)
         pyo.assert_optimal_termination(status)
+
+class TestAddFeatures:
+    def obtain_data(self):
+        with resources.path(
+            "pareto.case_studies",
+            "small_case_study_Li.xlsx",
+        ) as fpath:
+            [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        data = data_parser(df_sets, df_parameters)
+        return data
+    
+    def test_infra_analysis(self):
+        data = self.obtain_data()
+        print("--- Running cost optimal solution ---")
+        model = cost_optimal(data)
+
+        print("--- Running max treatment with infrastructure ---")
+        max_inf_model = max_recovery_with_infrastructure(data)
+
+        print("--- Runnning max theoretical treatment revenue ---")
+        max_recovery = max_theoretical_recovery_flow_opt(
+            model, treatment_unit="R01_IN", desired_li_conc=100
+        )
+
+        max_w_infra = pyo.value(max_inf_model.treat_rev)
+
+        assert max_recovery >= max_w_infra
+    
 
 
 if __name__ == "__main__":
