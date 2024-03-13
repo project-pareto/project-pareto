@@ -75,7 +75,7 @@ def generate_report(
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
     IMPORTANT: If an indexed variable is added or removed from a model, the printing lists and headers should be updated
-    accrodingly.
+    accordingly.
     """
     # Printing model sets, parameters, constraints, variable values
 
