@@ -105,7 +105,7 @@ def max_theoretical_recovery_flow_opt(
     )
     # mm.overall_conc = pyo.Expression(expr = mm.total_li/sum(mm.F[t] for t in mm.S))
 
-    status = pyo.SolverFactory("gurobi").solve(mm, tee=tee)
+    status = pyo.SolverFactory("ipopt").solve(mm, tee=tee)
     pyo.assert_optimal_termination(status)
     return pyo.value(mm.cumulative_F) * (1 - alphaW)
 
@@ -151,7 +151,7 @@ def max_recovery_with_infrastructure(data, tee=False):
 
     # Solve the linear flow model
     print("   ... running linear flow model")
-    opt = pyo.SolverFactory("gurobi")
+    opt = pyo.SolverFactory("ipopt")
     # opt.options['NonConvex'] = 2
     # opt.options['TimeLimit'] = 150
     status = opt.solve(model, tee=tee)
@@ -223,7 +223,7 @@ def cost_optimal(data, tee=False):
 
     # Solve the linear flow model
     print("   ... running linear flow model")
-    opt = pyo.SolverFactory("gurobi")
+    opt = pyo.SolverFactory("ipopt")
     # opt.options['NonConvex'] = 2
     # opt.options['TimeLimit'] = 150
     status = opt.solve(model, tee=tee)

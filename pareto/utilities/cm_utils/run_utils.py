@@ -445,7 +445,7 @@ def solving(
 
     # running linear flow model
     print("\nDeveloping an initialization...")
-    opt = pyo.SolverFactory("gurobi")
+    opt = pyo.SolverFactory("ipopt")
     # opt.options['NonConvex'] = 2
     # opt.options['TimeLimit'] = 150
     status = opt.solve(model, tee=False)
