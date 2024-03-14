@@ -7559,7 +7559,6 @@ def solve_model(model, options=None):
             model_h.hydraulics.v_Pressure.setub(3.5e6)
 
             try:
-                # solver = SolverFactory("gams")
                 solver = SolverFactory("cbc")
             except:
                 print(
