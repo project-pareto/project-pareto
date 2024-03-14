@@ -7548,12 +7548,6 @@ def solve_model(model, options=None):
                         model_h, options={"limits/gap": 0.3}, tee=True
                     )
         elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
-            # Currently, this method is supported for only MINLP solvers accessed through GAMS.
-            # The default solver is Baron and is set to find the first feasible solution.
-            # If the user has SCIP, then the feasible solution from BARON is passed to SCIP, which is then solved to a gap of 0.3.
-            # If the user do not have these solvers installed then it limits the use of co_optimize method at this time.
-            # Ongoing work is geared to address this limitation and will soon be updated here.
-
             # Adding temporary variable bounds until the bounding method is implemented for the following Vars
             model_h.v_F_Piped.setub(1050)
             model_h.hydraulics.v_Pressure.setub(3.5e6)
