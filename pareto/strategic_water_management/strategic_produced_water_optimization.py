@@ -7553,7 +7553,7 @@ def solve_model(model, options=None):
             model_h.hydraulics.v_Pressure.setub(3.5e6)
 
             results_2 = opt.solve(model_h, tee=True, keepfiles=True)
-            
+
             # Check the feasibility of the results with regards to max pressure and node pressures
 
             # Navigate over all the times
