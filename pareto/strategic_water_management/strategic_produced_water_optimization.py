@@ -7462,14 +7462,14 @@ def solve_model(model, options=None):
     # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
     # these cases it's preferred to report a value of 0 to the user, so change
     # the value of vb_y_BeneficialReuse[o, t] as necessary.
-    # for t in model.s_T:
-    #     for o in model.s_O:
-    #         if (
-    #             value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
-    #             and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
-    #             and value(model.vb_y_BeneficialReuse[o, t] > 0)
-    #         ):
-    #             model.vb_y_BeneficialReuse[o, t].value = 0
+    for t in model.s_T:
+        for o in model.s_O:
+            if (
+                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+                and value(model.vb_y_BeneficialReuse[o, t] > 0)
+            ):
+                model.vb_y_BeneficialReuse[o, t].value = 0
 
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
