@@ -17,10 +17,6 @@ to meet minimum critical mineral requirements within a produced water network.
 import sys
 import pyomo.environ as pyo
 
-# from case_studies.Arshs_Test_Cases import test1, test2, test2a, test2b, test2c, test3
-from pareto.utilities.cm_utils.gen_utils import solve_nlp
-
-
 def build_qcp_br(data):
     model = pyo.ConcreteModel()
 

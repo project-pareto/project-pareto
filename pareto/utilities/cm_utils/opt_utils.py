@@ -18,58 +18,6 @@ from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 import pyomo.environ as pyo
 from pareto.utilities.cm_utils.gen_utils import obj_fix
 
-
-def max_theoretical_recovery_flow(model, treatment_unit, desired_li_conc):
-    """This function computes the largest flow possible to
-    the treatment unit while still keeping the Li
-    concentration above the desired level.
-
-    This function ignores all infrastructure - this is only
-    based on mass balance along.
-    """
-    # get the efficiency for the treatment unit
-    assert model.p_alpha[treatment_unit, "Li"] > 0.999
-    alphaW = model.p_alphaW[treatment_unit]
-    # get the desired li conc at the inlet - correct this later
-    desired_li_conc = desired_li_conc * (1 - alphaW)
-
-    # create a list of the flows and concentrations
-    # sort by largest concentration first
-    produced_flows_conc = list()
-    sumf = 0
-    for t in model.p_FGen:
-        f = pyo.value(model.p_FGen[t]) * 7  # convert to bbls/wk
-        sumf += f
-        c = pyo.value(model.p_CGen[t[0], "Li", t[1]])
-        produced_flows_conc.append((f, c))
-    produced_flows_conc.sort(key=lambda t: t[1], reverse=True)
-
-    # iterate through the flows and accumulate until the
-    # overall concentration goes below the desired limit
-    cumulative_f = 0
-    cumulative_li = 0
-    li_conc = 0
-    for f, c in produced_flows_conc:
-        cf = cumulative_f + f
-        cli = cumulative_li + f * c
-        li_conc = cli / cf
-        # print(f, c, cf, li_conc)
-        if li_conc > desired_li_conc:
-            cumulative_f = cf
-            cumulative_li = cli
-        else:
-            ff = (cumulative_li - desired_li_conc * cumulative_f) / (
-                desired_li_conc - c
-            )
-            # print('***', ff)
-            cumulative_f += ff
-            cumulative_li += ff * c
-            li_conc = cumulative_li / cumulative_f
-            break
-
-    return cumulative_f * (1 - alphaW)
-
-
 def max_theoretical_recovery_flow_opt(
     model, treatment_unit, desired_li_conc, tee=False
 ):
