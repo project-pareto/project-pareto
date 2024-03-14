@@ -21,7 +21,6 @@ import pandas as pd
 import sys
 
 
-
 def report_results_to_excel(
     model: pyo.ConcreteModel, filename: str, split_var: dict = {}
 ) -> None:

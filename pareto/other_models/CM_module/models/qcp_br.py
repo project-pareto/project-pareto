@@ -17,6 +17,7 @@ to meet minimum critical mineral requirements within a produced water network.
 import sys
 import pyomo.environ as pyo
 
+
 def build_qcp_br(data):
     model = pyo.ConcreteModel()
 
