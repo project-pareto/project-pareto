@@ -7562,8 +7562,7 @@ def solve_model(model, options=None):
                 solver = SolverFactory("cbc")
             except:
                 print(
-                    "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
-                      please continue to use the post-process method for hydraulics at this time"
+                    "The specified solver was not found. Please try changing the solver."
                 )
             else:
                 results_cbc = solver.solve(model_h, tee=True, keepfiles=True)
