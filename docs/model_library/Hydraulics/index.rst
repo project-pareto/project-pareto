@@ -257,7 +257,7 @@ Allows pumping only if a pump exists in a pipeline.
     .. math::
 
         \textcolor{red}{term_{l,\tilde{l},t}}
-        = \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}}(1.84E-6 \cdot i \cdot \textcolor{green}{\Delta_I})^{1.85} \cdot \textcolor{red}{\lambda_{l,\tilde{l},t, i}}
+        = \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}}(1.84 \times 10^{-6} \cdot i \cdot \textcolor{green}{\Delta_I})^{1.85} \cdot \textcolor{red}{\lambda_{l,\tilde{l},t, i}}
 
     **Sum of convex multipliers is one** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
 
