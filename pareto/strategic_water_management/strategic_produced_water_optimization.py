@@ -7575,7 +7575,6 @@ def solve_model(model, options=None):
                 for t in model.s_T:
                     Press_dict = {}
                     for p in model.s_PP:
-                        # print("Currently doing iterations for : ",p)
                         Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
                         while True:
                             pres_dict_keys = list(Press_dict.keys())
