@@ -7583,8 +7583,6 @@ def solve_model(model, options=None):
                             pres_dict_keys = list(Press_dict.keys())
                             for (l1, l2) in model.s_LLA:
                                 if l1 in Press_dict.keys():
-                                    # if l2 not in Press_dict.keys():
-                                    #     Press_dict[l2] = []
                                     ps = Press_dict[l1]
                                     this_p = calc_new_pres(model_h, ps, l1, l2, t)
                                     Press_dict[l2] = this_p
