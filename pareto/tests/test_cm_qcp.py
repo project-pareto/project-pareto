@@ -30,6 +30,7 @@ from pareto.utilities.cm_utils.opt_utils import (
 from pareto.utilities.cm_utils.data_parser import data_parser
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.run_utils import node_rerun
+from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
 
 
 class TestCMqcpModel:
@@ -72,6 +73,10 @@ class TestCMqcpModel:
         status = opt.solve(model, tee=False)
         pyo.assert_optimal_termination(status)
 
+    def test_report_generation(self):
+        model = self.build_cm_qcp_model()
+        report_results_to_excel(model, "cm_testfile.xlsx", split_var={"s_A": 3})
+
 
 class TestAddFeatures:
     def obtain_data(self):
@@ -82,10 +87,10 @@ class TestAddFeatures:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
         data = data_parser(df_sets, df_parameters)
-        return data
+        return data, df_sets, df_parameters
 
     def test_infra_analysis(self):
-        data = self.obtain_data()
+        data, _, _ = self.obtain_data()
         print("--- Running cost optimal solution ---")
         model = cost_optimal(data)
 
@@ -100,6 +105,15 @@ class TestAddFeatures:
         max_w_infra = pyo.value(max_inf_model.treat_rev)
 
         assert max_recovery >= max_w_infra
+
+    @pytest.mark.slow
+    def test_desal_install(self):
+        _, df_sets, df_parameters = self.obtain_data()
+        min_node, models = node_rerun(
+            df_sets, df_parameters, treatment_site="R01", max_iterations=5000
+        )
+
+        assert min_node == "N06"
 
 
 if __name__ == "__main__":

@@ -154,7 +154,7 @@ def plot_comparisons(values, sorted_total_costs):
             )
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig("desal_comparison_plot.png")
 
 
 def change_piping_connection(data, base, old, new, pipe_in):
