@@ -25,8 +25,8 @@ from pyomo.environ import (
     ConcreteModel,
     Constraint,
     Objective,
-    Expression,
     minimize,
+    maximize,
     NonNegativeReals,
     Reals,
     Binary,
@@ -2288,10 +2288,18 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Operating capacity of disposal site [%]",
     )
 
-    # Define expressions for different objective functions #
+    # For each possible objective function, create a corresponding variable and constrain it with the correct expression #
 
-    model.e_Cost = Expression(
-        expr=model.v_C_TotalSourced
+    ####### Minimum cost objective #######
+    model.v_Z = Var(
+        within=Reals,
+        units=model.model_units["currency"],
+        doc="Objective function variable - minimize cost [currency]",
+    )
+
+    model.ObjectiveFunctionCost = Constraint(
+        expr=model.v_Z
+        == model.v_C_TotalSourced
         + model.v_C_TotalDisposal
         + model.v_C_TotalTreatment
         + model.v_C_TotalReuse
@@ -2309,53 +2317,69 @@ def create_model(df_sets, df_parameters, default={}):
         + model.v_C_Slack
         - model.v_R_TotalStorage
         - model.v_R_TotalBeneficialReuse,
-        doc="Expression for total annualized cost [currency]",
+        doc="Objective function constraint - minimize cost",
     )
 
-    model.e_Reuse = Expression(
-        expr=model.v_F_TotalReused / model.p_beta_TotalProd,
-        doc="Expression for fraction of produced + flowback water that is reused at completions [dimensionless]",
+    model.objective_Cost = Objective(
+        expr=model.v_Z, sense=minimize, doc="Objective function - minimize cost"
     )
 
+    model.objective_Cost.deactivate()
+
+    ####### Maximum reuse objective #######
+    model.v_Z_Reuse = Var(
+        within=Reals,
+        units=pyunits.dimensionless,
+        doc="Objective function variable - maximize reuse [dimensionless]",
+    )
+
+    model.ObjectiveFunctionReuse = Constraint(
+        expr=model.v_Z_Reuse == model.v_F_TotalReused / model.p_beta_TotalProd,
+        doc="Objective function constraint - maximize reuse",
+    )
+
+    model.objective_Reuse = Objective(
+        expr=model.v_Z_Reuse, sense=maximize, doc="Objective function - maximize reuse"
+    )
+
+    model.objective_Reuse.deactivate()
+
+    ####### Minimum subsurface risk objective #######
     if model.do_subsurface_risk_calcs:
-        model.e_SubsurfaceRisk = Expression(
-            expr=sum(
+        model.v_Z_SubsurfaceRisk = Var(
+            within=Reals,
+            units=model.model_units["volume_time"],
+            doc="Objective function variable - minimize subsurface risk [volume/time]",
+        )
+
+        model.ObjectiveFunctionSubsurfaceRisk = Constraint(
+            expr=model.v_Z_SubsurfaceRisk
+            == sum(
                 sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
                 * model.subsurface_risk_metrics[k]
                 for k in model.s_K
             ),
-            doc="Expression for total subsurface risk [volume/time]",
+            doc="Objective function constraint - minimize subsurface risk",
         )
 
-    # Define objective function depending on config argument #
+        model.objective_SubsurfaceRisk = Objective(
+            expr=model.v_Z_SubsurfaceRisk,
+            sense=minimize,
+            doc="Objective function - minimize subsurface risk",
+        )
+
+        model.objective_SubsurfaceRisk.deactivate()
+
+    # Activate correct objective function based on config value #
 
     if model.config.objective == Objectives.cost:
-        objective_units = model.model_units["currency"]
-        objective_doc = "Objective function variable - miminum cost [currency]"
-        obj_fun_expr = model.e_Cost
+        model.objective_Cost.activate()
     elif model.config.objective == Objectives.reuse:
-        objective_units = pyunits.dimensionless
-        objective_doc = "Objective function variable - maxiumize reuse [dimensionless]"
-        obj_fun_expr = -1 * model.e_Reuse
+        model.objective_Reuse.activate()
     elif model.config.objective == Objectives.subsurface_risk:
-        objective_units = model.model_units["volume_time"]
-        objective_doc = (
-            "Objective function variable - minimize subsurface risk [volume/time]"
-        )
-        obj_fun_expr = model.e_SubsurfaceRisk
+        model.objective_SubsurfaceRisk.activate()
     else:
-        raise Exception("objective not supported")
-
-    # Create variable for objective function and constraint it with the correct expression #
-    model.v_Z = Var(
-        within=Reals,
-        units=objective_units,
-        doc=objective_doc,
-    )
-
-    model.ObjectiveFunction = Constraint(
-        expr=model.v_Z == obj_fun_expr, doc="Objective function constraint"
-    )
+        raise Exception("Objective not supported")
 
     # Define constraints #
 
@@ -3903,12 +3927,6 @@ def create_model(df_sets, df_parameters, default={}):
             doc="Disallow disposal in sufficiently risky wells",
         )
 
-    # Define Objective and Solve Statement #
-
-    model.objective = Objective(
-        expr=model.v_Z, sense=minimize, doc="Objective function"
-    )
-
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
 
@@ -4232,8 +4250,11 @@ def pipeline_hydraulics(model):
         the cost of pumps.
         """
         # In the co_optimize method the objective should include the cost of pumps. So,
-        # delete the original objective to add a modified objective in this method.
-        del model.objective
+        # delete the original objectives to add a modified objective in this method.
+        del model.objective_Cost
+        del model.objective_Reuse
+        if model.do_subsurface_risk_calcs:
+            del model.objective_SubsurfaceRisk
 
         # add necessary variables and constraints
         mh.v_HW_loss = Var(
@@ -4351,8 +4372,17 @@ def pipeline_hydraulics(model):
             doc="Capital Cost of Pump",
         )
 
+        if model.config.objective == Objectives.cost:
+            obj_var = model.v_Z
+        elif model.config.objective == Objectives.reuse:
+            obj_var = model.v_Z_Reuse
+        elif model.config.objective == Objectives.subsurface_risk:
+            obj_var = model.v_Z_SubsurfaceRisk
+        else:
+            raise Exception("Objective not supported")
+
         model.objective = Objective(
-            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
+            expr=(obj_var + mh.v_Z_HydrualicsCost),
             sense=minimize,
             doc="Objective function",
         )
@@ -5292,7 +5322,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_Q,
         initialize={
             key: pyunits.convert_value(
-                value,
+                float(value),
                 from_units=model.user_units["concentration"],
                 to_units=model.model_units["concentration"],
             )
@@ -6404,9 +6434,18 @@ def water_quality_discrete(model, df_parameters, df_sets):
     )
 
     def ObjectiveFunctionQualityRule(model):
+        if model.config.objective == Objectives.cost:
+            obj_var = model.v_Z
+        elif model.config.objective == Objectives.reuse:
+            obj_var = model.v_Z_Reuse
+        elif model.config.objective == Objectives.subsurface_risk:
+            obj_var = model.v_Z_SubsurfaceRisk
+        else:
+            raise Exception("Objective not supported")
+        
         return (
             model.v_ObjectiveWithQuality
-            == model.v_Z
+            == obj_var
             + sum(
                 sum(
                     sum(model.v_Q_CompletionPad[p, qc, t] for p in model.s_CP)
@@ -6421,7 +6460,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
         rule=ObjectiveFunctionQualityRule, doc="Objective function water quality"
     )
 
-    model.objective.set_value(expr=model.v_ObjectiveWithQuality)
+    if model.config.objective == Objectives.cost:
+        model.objective_Cost.set_value(expr=model.v_ObjectiveWithQuality)
+    elif model.config.objective == Objectives.reuse:
+        model.objective_Reuse.set_value(expr=model.v_ObjectiveWithQuality)
+    elif model.config.objective == Objectives.subsurface_risk:
+        model.objective_SubsurfaceRisk.set_value(expr=model.v_ObjectiveWithQuality)
+    else:
+        raise Exception("Objective not supported")
 
     return model
 
@@ -6458,6 +6504,9 @@ def scale_model(model, scaling_factor=None):
 
     # Scaling variables
     model.scaling_factor[model.v_Z] = 1 / scaling_factor
+    model.scaling_factor[model.v_Z_Reuse] = 1 / scaling_factor
+    if model.do_subsurface_risk_calcs:
+        model.scaling_factor[model.v_Z_SubsurfaceRisk] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
@@ -6541,7 +6590,10 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.ObjectiveFunctionQuality] = 1 / scaling_factor
 
     # Scaling constraints
-    model.scaling_factor[model.ObjectiveFunction] = 1 / scaling_factor
+    model.scaling_factor[model.ObjectiveFunctionCost] = 1 / scaling_factor
+    model.scaling_factor[model.ObjectiveFunctionReuse] = 1 / scaling_factor
+    if model.do_subsurface_risk_calcs:
+        model.scaling_factor[model.ObjectiveFunctionSubsurfaceRisk] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
