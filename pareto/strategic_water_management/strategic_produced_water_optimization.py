@@ -7552,55 +7552,48 @@ def solve_model(model, options=None):
             model_h.v_F_Piped.setub(1050)
             model_h.hydraulics.v_Pressure.setub(3.5e6)
 
-            try:
-                solver = SolverFactory("cbc")
-            except:
-                print(
-                    "The specified solver was not found. Please try changing the solver."
-                )
+            results_2 = opt.solve(model_h, tee=True, keepfiles=True)
+            
+            # Check the feasibility of the results with regards to max pressure and node pressures
+
+            # Navigate over all the times
+            flagV = 0
+            flagU = 0
+            for t in model.s_T:
+                Press_dict = {}
+                for p in model.s_PP:
+                    Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
+                    while True:
+                        pres_dict_keys = list(Press_dict.keys())
+                        for (l1, l2) in model.s_LLA:
+                            if l1 in Press_dict.keys():
+                                ps = Press_dict[l1]
+                                this_p = calc_new_pres(model_h, ps, l1, l2, t)
+                                Press_dict[l2] = this_p
+                                if (
+                                    this_p > value(model_h.hydraulics.p_xi_Max_AOP)
+                                    and l2 in model.s_N
+                                ):
+                                    flagV = 1
+                                    print(l2, "->", l2 in model.s_N)
+                                    print(
+                                        "\n\nThe Pressure is ",
+                                        this_p,
+                                        " and max is ",
+                                        value(model_h.hydraulics.p_xi_Max_AOP),
+                                    )
+                                if this_p < 0 and l2 in model.s_N:
+                                    flagU = 1
+                        pres_dict_keys2 = list(Press_dict.keys())
+                        if pres_dict_keys == pres_dict_keys2:
+                            break
+
+            if flagV:
+                print("Violation of maximum pressure")
+            elif flagU:
+                print("Violation of minimum pressure")
             else:
-                results_cbc = solver.solve(model_h, tee=True, keepfiles=True)
-                results_2 = results_cbc
-                # Check the feasibility of the results with regards to max pressure and node pressures
-
-                # Navigate over all the times
-                flagV = 0
-                flagU = 0
-                for t in model.s_T:
-                    Press_dict = {}
-                    for p in model.s_PP:
-                        Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
-                        while True:
-                            pres_dict_keys = list(Press_dict.keys())
-                            for (l1, l2) in model.s_LLA:
-                                if l1 in Press_dict.keys():
-                                    ps = Press_dict[l1]
-                                    this_p = calc_new_pres(model_h, ps, l1, l2, t)
-                                    Press_dict[l2] = this_p
-                                    if (
-                                        this_p > value(model_h.hydraulics.p_xi_Max_AOP)
-                                        and l2 in model.s_N
-                                    ):
-                                        flagV = 1
-                                        print(l2, "->", l2 in model.s_N)
-                                        print(
-                                            "\n\nThe Pressure is ",
-                                            this_p,
-                                            " and max is ",
-                                            value(model_h.hydraulics.p_xi_Max_AOP),
-                                        )
-                                    if this_p < 0 and l2 in model.s_N:
-                                        flagU = 1
-                            pres_dict_keys2 = list(Press_dict.keys())
-                            if pres_dict_keys == pres_dict_keys2:
-                                break
-
-                if flagV:
-                    print("Violation of maximum pressure")
-                elif flagU:
-                    print("Violation of minimum pressure")
-                else:
-                    print("All pressures satisfied ")
+                print("All pressures satisfied ")
 
         # Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()
