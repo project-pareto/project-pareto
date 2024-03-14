@@ -7557,7 +7557,6 @@ def solve_model(model, options=None):
             # Adding temporary variable bounds until the bounding method is implemented for the following Vars
             model_h.v_F_Piped.setub(1050)
             model_h.hydraulics.v_Pressure.setub(3.5e6)
-            # model_h.write("treatmentLinear.gms", io_options={'symbolic_solver_labels': True})
 
             try:
                 # solver = SolverFactory("gams")
