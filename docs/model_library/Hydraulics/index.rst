@@ -337,7 +337,7 @@ Allows pumping only if a pump exists in a pipeline.
          + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
     
-    **Electricity cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
+    **Electricity cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
     Calculate electricity (variable) cost of pump at every time period.
 
