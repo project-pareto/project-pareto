@@ -128,8 +128,7 @@ def generate_report(
                     "v_S_TreatmentCapacity",
                     "v_S_BeneficialReuseCapacity",
                     "v_Q",
-                    "v_T_Treatment_scaled"
-                    
+                    "v_T_Treatment_scaled",
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -226,12 +225,14 @@ def generate_report(
                 )
             ],
             "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
-            "v_C_Treatment_site_dict":[("Treatment site", "Time","surrogate cost")],
-            "recovery_dict":[("Treatment site", "recovery")],
-            "inlet_salinity_dict":[("Treatment site", "salinity")],
+            "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
+            "recovery_dict": [("Treatment site", "recovery")],
+            "inlet_salinity_dict": [("Treatment site", "salinity")],
             "treatment_energy_dict": [("Treatment site", "energy")],
-            "v_C_TreatmentCapEx_site_time_dict":[("Treatment site", "Time","surrogate cost")],
-            "v_C_TreatmentCapEx_site_dict":[("Treatment site","surrogate cost")],
+            "v_C_TreatmentCapEx_site_time_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment site", "surrogate cost")],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
@@ -876,10 +877,6 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
-            
-            
-
-            
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
@@ -1095,7 +1092,7 @@ def generate_report(
         #             ],
         #         }
         #     )
-            
+
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
@@ -1116,14 +1113,14 @@ def generate_report(
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
 
-                    header = list(headers[str(variable.name) + "_dict"][0])
-                    header[-1] = (
-                        headers[str(variable.name) + "_dict"][0][-1]
-                        + " ["
-                        + to_unit.to_string().replace("oil_bbl", "bbl")
-                        + "]"
-                    )
-                    headers[str(variable.name) + "_dict"][0] = tuple(header)
+                header = list(headers[str(variable.name) + "_dict"][0])
+                header[-1] = (
+                    headers[str(variable.name) + "_dict"][0][-1]
+                    + " ["
+                    + to_unit.to_string().replace("oil_bbl", "bbl")
+                    + "]"
+                )
+                headers[str(variable.name) + "_dict"][0] = tuple(header)
 
         elif variable.get_units() is not None:
             to_unit = variable.get_units()
@@ -1167,11 +1164,16 @@ def generate_report(
                 if str(variable.name) == "v_DQ" and var_value > 0:
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
-                        if len(str(variable.name))>=15:
-                            if str(variable.name)[:15]!='surrogate_costs' and str(variable.name)!='v_T_Treatment_scaled':
-                                headers[str(variable.name) + "_dict"].append((*i, var_value))
-                        else:
-                            headers[str(variable.name) + "_dict"].append((*i, var_value))
+                    if len(str(variable.name)) >= 15:
+                        if (
+                            str(variable.name)[:15] != "surrogate_costs"
+                            and str(variable.name) != "v_T_Treatment_scaled"
+                        ):
+                            headers[str(variable.name) + "_dict"].append(
+                                (*i, var_value)
+                            )
+                    else:
+                        headers[str(variable.name) + "_dict"].append((*i, var_value))
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
@@ -1291,7 +1293,6 @@ def generate_report(
                 )
 
     return model, headers
-
 
 
 def plot_sankey(input_data={}, args=None):
