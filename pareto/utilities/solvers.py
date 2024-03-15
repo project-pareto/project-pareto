@@ -58,9 +58,16 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
     _enable_idaes_ext_solvers()
 
     for name in solver_names:
-        solver = SolverFactory(name)
-        if solver.available(exception_flag=False):
-            break
+        # Checks for solver is available and then for valid license
+        try:
+            solver = SolverFactory(name)
+            if solver.available(exception_flag=True):
+                if solver.license_is_valid():
+                    print(f'Model solved using {name}')
+                    break
+        except:
+            pass
+        
     else:
         raise NoAvailableSolver(solver_names)
     # TODO add extra solver validation, logging, etc
@@ -79,10 +86,13 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
     Raises:
         SolverError if no mapping for the option key is found for the given solver.
     """
+    # TODO: Adding reslim for gams based solvers. 
     name_key_mapping = {
         "gurobi": "timeLimit",
         "gurobi_direct": "timeLimit",
         "cbc": "seconds",
+        "gams:CPLEX": "resLim",
+        "gams": "reslim"
     }
     option_key = name_key_mapping.get(solver.name, None)
     if option_key is None:
