@@ -1089,7 +1089,7 @@ def generate_report(
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
         units_true = (
             variable.get_units() is not None
-            and variable.get_units().to_string() is not "dimensionless"
+            and variable.get_units().to_string() != "dimensionless"
         )
         # If units are used, determine what the display units should be based off user input
         if units_true:

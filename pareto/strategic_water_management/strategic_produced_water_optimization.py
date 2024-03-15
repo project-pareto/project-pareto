@@ -2372,14 +2372,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Activate correct objective function based on config value #
 
-    if model.config.objective == Objectives.cost:
-        model.objective_Cost.activate()
-    elif model.config.objective == Objectives.reuse:
-        model.objective_Reuse.activate()
-    elif model.config.objective == Objectives.subsurface_risk:
-        model.objective_SubsurfaceRisk.activate()
-    else:
-        raise Exception("Objective not supported")
+    set_objective(model, model.config.objective)
 
     # Define constraints #
 
@@ -3931,6 +3924,35 @@ def create_model(df_sets, df_parameters, default={}):
         model = water_quality_discrete(model, df_parameters, df_sets)
 
     return model
+
+
+def set_objective(model, obj):
+    """
+    Activate the indicated objectve function for the model. The argument obj
+    should be an instance of the Objectives class defined in this module.
+    """
+    # Deactivate all objective functions.
+    model.objective_Cost.deactivate()
+    model.objective_Reuse.deactivate()
+    if model.do_subsurface_risk_calcs:
+        model.objective_SubsurfaceRisk.deactivate()
+
+    # Activate the objective function indicated by obj, and change the config
+    # option accordingly.
+    if obj == Objectives.cost:
+        model.objective_Cost.activate()
+        model.config.objective = Objectives.cost
+    elif obj == Objectives.reuse:
+        model.objective_Reuse.activate()
+        model.config.objective = Objectives.reuse
+    elif obj == Objectives.subsurface_risk:
+        if model.do_subsurface_risk_calcs:
+            model.objective_SubsurfaceRisk.activate()
+            model.config.objective = Objectives.subsurface_risk
+        else:
+            raise Exception("Subsurface risk objective has not been created")
+    else:
+        raise Exception("Objective not supported")
 
 
 def pipeline_hydraulics(model):
