@@ -13,9 +13,11 @@ from pareto.integrate_desalination.data_util.get_model_from_case_study import ge
 def build_qcp(data, init_custom = False, init_custom_param = None):
     #Load kUSD as units in the pint_registry if the unit is absent
     try:
-        getattr(pyunits.pint_registry, 'kUSD')
+        #getattr(pyunits.pint_registry, 'kUSD')
+        getattr(pyunits.pint_registry, 'USD')
     except:
-        pyunits.load_definitions_from_strings(['kUSD = [currency]'])
+        #pyunits.load_definitions_from_strings(['kUSD = [currency]'])
+        pyunits.load_definitions_from_strings(['USD = [currency]'])
     
     user_flow_units = pyunits.oil_bbl
     model = pyo.ConcreteModel()
@@ -83,25 +85,25 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     model.p_Cmax = pyo.Param(initialize = 300, doc = "Maximum concentration in the network", units = pyunits.g/pyunits.liter)
     # Cost Parameters
     
-    model.p_betaArc = pyo.Param(model.s_A, initialize = data['p_betaArc'], doc = "Operational costs of arcs" ,units = pyunits.kUSD/user_flow_units)
-    model.p_betaD = pyo.Param(model.s_ND, initialize = data['p_betaD'], mutable = True, doc = "Operational cost of disposal site",units = pyunits.kUSD/user_flow_units)
-    model.p_betaW = pyo.Param(model.s_NW, initialize = data['p_betaW'], doc = "Costs of sourcing freshwater",units = pyunits.kUSD/user_flow_units)
-    model.p_betaT = pyo.Param(model.s_NTIN, initialize = data['p_betaT'], mutable = True, doc = "Operating cost of treatment facility",units = pyunits.kUSD/user_flow_units)
-    model.p_betaS = pyo.Param(model.s_NS, initialize = data['p_betaS'], mutable = True, doc = "Costs of storing produced water",units = pyunits.kUSD/user_flow_units)
+    model.p_betaArc = pyo.Param(model.s_A, initialize = data['p_betaArc'], doc = "Operational costs of arcs" ,units = pyunits.USD/user_flow_units)
+    model.p_betaD = pyo.Param(model.s_ND, initialize = data['p_betaD'], mutable = True, doc = "Operational cost of disposal site",units = pyunits.USD/user_flow_units)
+    model.p_betaW = pyo.Param(model.s_NW, initialize = data['p_betaW'], doc = "Costs of sourcing freshwater",units = pyunits.USD/user_flow_units)
+    model.p_betaT = pyo.Param(model.s_NTIN, initialize = data['p_betaT'], mutable = True, doc = "Operating cost of treatment facility",units = pyunits.USD/user_flow_units)
+    model.p_betaS = pyo.Param(model.s_NS, initialize = data['p_betaS'], mutable = True, doc = "Costs of storing produced water",units = pyunits.USD/user_flow_units)
     
     #Differentiating the costs to send water to inventory slightly to avoid degeneracy
     data_inv_cost = {}
     counter = 0
     for n in model.s_NS:
-        delta = 0.00001
+        delta = 1e-4
         for t in model.s_T:
             data_inv_cost[n, t] = pyo.value(model.p_betaS[n]+ len(model.s_T)*delta - delta*counter)
             counter = counter + 1       
   
-    model.p_betaSt = pyo.Param(model.s_NS, model.s_T, initialize = data_inv_cost, mutable = True, doc = "Costs of storing produced water",units = pyunits.kUSD/user_flow_units)
+    model.p_betaSt = pyo.Param(model.s_NS, model.s_T, initialize = data_inv_cost, mutable = True, doc = "Costs of storing produced water",units = pyunits.USD/user_flow_units)
     
-    model.p_gammaS = pyo.Param(model.s_NS, initialize = data['p_gammaS'], mutable = True, doc = "Earnings from retrieving water from storage tanks",units = pyunits.kUSD/user_flow_units)
-    model.p_gammaT = pyo.Param(model.s_NTTW, initialize = data['p_gammaT'], mutable = True, doc = "Earnings from treating water",units = pyunits.kUSD/user_flow_units)
+    model.p_gammaS = pyo.Param(model.s_NS, initialize = data['p_gammaS'], mutable = True, doc = "Earnings from retrieving water from storage tanks",units = pyunits.USD/user_flow_units)
+    model.p_gammaT = pyo.Param(model.s_NTTW, initialize = data['p_gammaT'], mutable = True, doc = "Earnings from treating water",units = pyunits.USD/user_flow_units)
     
     # Functions
     model.p_nodeUp = pyo.Param(model.s_A, initialize = data['p_nodeUp'], doc = "Upstream node of the arc")
@@ -110,6 +112,7 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     model.p_treatedIN = pyo.Param(model.s_NTTW | model.s_NTCW, initialize = data['p_treatedIN'], doc = "Inlet node for each treatment facility")
     
     # --------------------VARIABLES-----------------------------
+    #Convert_units for flow bounds and inventory bounds
     model.v_F = pyo.Var(model.s_A, model.s_T, bounds = data['p_Fbounds'], doc = "Flow in arc", initialize = 5, units = pyunits.liter/pyunits.s)
     model.v_S = pyo.Var(model.s_A, model.s_Q, model.s_T, bounds = (0,30000),doc = "Solid flow in arc", initialize = 30, units = pyunits.g/pyunits.s)
     model.v_I = pyo.Var(model.s_NS, model.s_T, bounds=data['p_Ibounds'], doc = "Inventory in node", initialize = 10, units = pyunits.liter)
@@ -122,31 +125,31 @@ def build_qcp(data, init_custom = False, init_custom_param = None):
     
     @model.Expression()
     def arc_cost(m):
-        return sum(sum(pyunits.convert(m.p_betaArc[a], pyunits.kUSD/pyunits.liter)*m.v_F[a,t] for a in m.s_A) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
+        return sum(sum(pyunits.convert(m.p_betaArc[a], pyunits.USD/pyunits.liter)*m.v_F[a,t] for a in m.s_A) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
     
     @model.Expression()
     def disp_cost(m):
-        return sum(sum(pyunits.convert(m.p_betaD[n], pyunits.kUSD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Ain[n]) for n in m.s_ND) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
+        return sum(sum(pyunits.convert(m.p_betaD[n], pyunits.USD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Ain[n]) for n in m.s_ND) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
     
     @model.Expression()
     def fresh_cost(m):
-        return sum(sum(pyunits.convert(m.p_betaW[n], pyunits.kUSD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Aout[n]) for n in m.s_NW) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
+        return sum(sum(pyunits.convert(m.p_betaW[n], pyunits.USD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Aout[n]) for n in m.s_NW) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
     
     @model.Expression()
     def stor_cost(m):
-        return sum(sum(pyunits.convert(m.p_betaSt[n,t], pyunits.kUSD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Ain[n]) for n in m.s_NS) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
+        return sum(sum(pyunits.convert(m.p_betaSt[n,t], pyunits.USD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Ain[n]) for n in m.s_NS) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
     
     @model.Expression()
     def stor_rev(m):
-        return sum(sum(pyunits.convert(m.p_gammaS[n], pyunits.kUSD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Aout[n]) for n in m.s_NS) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
+        return sum(sum(pyunits.convert(m.p_gammaS[n], pyunits.USD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Aout[n]) for n in m.s_NS) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
     
     @model.Expression()
     def treatment_rev(m):
-        return sum(sum(pyunits.convert(m.p_gammaT[n], pyunits.kUSD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Aout[n]) for n in m.s_NTTW) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
+        return sum(sum(pyunits.convert(m.p_gammaT[n], pyunits.USD/pyunits.liter)*sum(m.v_F[a,t] for a in m.s_Aout[n]) for n in m.s_NTTW) for t in m.s_T)*pyunits.convert(m.p_dt, pyunits.s)
     
     @model.Objective(doc = "Cost Minimization Objective")
     def obj(m):
-        return (m.arc_cost + m.disp_cost + m.fresh_cost + m.stor_cost - m.stor_rev - m.treatment_rev)
+        return (m.arc_cost + m.disp_cost + m.fresh_cost + m.stor_cost - m.stor_rev - m.treatment_rev)/100000
 
     # ---------------------------CONSTRAINTS-----------------------------------    
     # flow for non-inventory terms

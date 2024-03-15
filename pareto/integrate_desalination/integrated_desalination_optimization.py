@@ -151,13 +151,13 @@ def integrated_model_build(treatment_dict = {'R01_IN': 1}, pretreatment_dict = {
     m.m_treatment[:,:].obj.deactivate()
     
     m.objective = pyo.Objective(expr =
-        1e-4*(m.m_network.obj
+        1e-2*(m.m_network.obj/1000
         + sum(m.CAPEX[s] for s in m.m_network.desal_sites)/365*m.m_network.p_dt*len(m.m_network.s_T)
         + sum(sum(m.OPEX[s, t]/365*m.m_network.p_dt for t in m.m_network.s_T) for s in m.m_network.desal_sites)))
     
     return m
 if __name__ == "__main__":
-    treatment_dict = {'R01_IN': 1}
+    treatment_dict = {'R01_IN': 2}
     m = integrated_model_build(treatment_dict)
     
     #Solve model 
