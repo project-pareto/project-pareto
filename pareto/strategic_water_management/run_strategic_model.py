@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -10,7 +10,6 @@
 # the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
-
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
@@ -32,7 +31,6 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
-import os
 
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
@@ -40,7 +38,8 @@ set_list = [
     "ProductionPads",
     "CompletionsPads",
     "SWDSites",
-    "FreshwaterSources",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "TreatmentSites",
     "ReuseOptions",
@@ -68,6 +67,7 @@ parameter_list = [
     "SCA",
     "SNA",
     "ROA",
+    "RKA",
     "SOA",
     "NOA",
     "PCT",
@@ -79,10 +79,12 @@ parameter_list = [
     "RST",
     "ROT",
     "SOT",
+    "RKT",
     "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCost",
     "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
@@ -96,14 +98,14 @@ parameter_list = [
     "InitialTreatmentCapacity",
     "ReuseMinimum",
     "ReuseCapacity",
-    "FreshwaterSourcingAvailability",
+    "ExtWaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PipelineOperationalCost",
-    "FreshSourcingCost",
+    "ExternalSourcingCost",
     "TruckingHourlyCost",
     "PipelineDiameterValues",
     "DisposalCapacityIncrements",
@@ -121,6 +123,7 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
@@ -130,6 +133,14 @@ parameter_list = [
     "StorageExpansionLeadTime",
     "PipelineExpansionLeadTime_Dist",
     "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
 ]
 
 # user needs to provide the path to the case study data file
@@ -143,7 +154,7 @@ strategic_toy_case_study.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_modified_only_MVC.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -162,10 +173,8 @@ with resources.path(
 strategic_model = create_model(
     df_sets,
     df_parameters,
-    salinity_dict={"inlet_salinity": 200, "recovery": 0.573333},
     default={
-        # "objective": Objectives.cost,
-        "objective": Objectives.cost_surrogate,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
@@ -180,12 +189,11 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 10000,
+    "running_time": 200,
     "gap": 0,
 }
 
 results = solve_model(model=strategic_model, options=options)
-
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -205,11 +213,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results_revised.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results_revised.xlsx"
+fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
