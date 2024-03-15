@@ -6442,7 +6442,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
             obj_var = model.v_Z_SubsurfaceRisk
         else:
             raise Exception("Objective not supported")
-        
+
         return (
             model.v_ObjectiveWithQuality
             == obj_var
