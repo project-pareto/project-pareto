@@ -71,7 +71,7 @@ setup(
     py_modules=["stagedfright"],
     install_requires=[
         "pyomo>=6.2",
-        "pandas>=2",
+        "pandas>=2,<3",
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
         # https://peps.python.org/pep-0440/#compatible-release
