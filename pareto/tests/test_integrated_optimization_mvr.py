@@ -17,11 +17,15 @@ from importlib import resources
 from pareto.utilities.get_data import get_data
 from pareto.other_models.CM_module.operational.set_param_list import (
     set_list,
-    parameter_list)
+    parameter_list,
+)
 from pareto.utilities.cm_utils.data_parser import data_parser
-from pareto.other_models.Integrate_desal.integrated_models.integrated_optimization_mvr import integrated_model_build
+from pareto.other_models.Integrate_desal.integrated_models.integrated_optimization_mvr import (
+    integrated_model_build,
+)
 
 ipopt_avail = pyo.SolverFactory("ipopt").available()
+
 
 class TestIntegratedOptimizationMvr:
     def test_single_stage_mvr(self):
@@ -32,12 +36,12 @@ class TestIntegratedOptimizationMvr:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
             data = data_parser(df_sets, df_parameters)
-        m = integrated_model_build(network_data =  data, treatment_dict={'R01_IN':1})
-        
-        ipopt = pyo.SolverFactory('ipopt')
-        res = ipopt.solve(m, tee= True)
+        m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 1})
+
+        ipopt = pyo.SolverFactory("ipopt")
+        res = ipopt.solve(m, tee=True)
         pyo.assert_optimal_termination(res)
-        
+
     def test_two_stage_mvr(self):
         with resources.path(
             "pareto.case_studies",
@@ -46,11 +50,12 @@ class TestIntegratedOptimizationMvr:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
             data = data_parser(df_sets, df_parameters)
-        m = integrated_model_build(network_data =  data, treatment_dict={'R01_IN':2})
-        
-        ipopt = pyo.SolverFactory('ipopt', tee= True)
+        m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 2})
+
+        ipopt = pyo.SolverFactory("ipopt", tee=True)
         res = ipopt.solve(m)
         pyo.assert_optimal_termination(res)
-        
+
+
 if __name__ == "__main__":
     pytest.main()

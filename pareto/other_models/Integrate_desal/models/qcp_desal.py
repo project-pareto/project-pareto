@@ -13,6 +13,7 @@
 
 import pyomo.environ as pyo
 
+
 def build_network(data):
     model = pyo.ConcreteModel()
 
@@ -103,7 +104,7 @@ def build_network(data):
         doc="Treatment Efficiency",
         within=pyo.Reals,
     )
-    
+
     model.p_alphaW = pyo.Var(
         model.s_NTIN,
         model.s_T,
@@ -111,8 +112,8 @@ def build_network(data):
         within=pyo.Reals,
     )
     for n in model.s_NTIN:
-        model.p_alphaW[n,:].fix(data["p_alphaW"][n])
-    
+        model.p_alphaW[n, :].fix(data["p_alphaW"][n])
+
     # Capacity limits for sinks
     model.p_Cap = pyo.Param(
         model.s_ND | model.s_NW | model.s_NTIN,
@@ -435,7 +436,6 @@ def build_network(data):
     model.Cconc = pyo.ConstraintList(doc="Completions pad Concentration")
     for n in model.s_NC:
         for t in model.s_T:
-
             # condition where completion pad is producing
             if model.p_FGen[n, t] > 0 and model.p_FCons[n, t] == 0:
                 model.Cflow.add(
@@ -556,7 +556,9 @@ def build_network(data):
     def NTTWflow(m, n, t):
         assert len(m.s_Aout[n]) == 1
         n1 = m.p_treatedIN[n]
-        return m.v_F[m.s_Aout[n][0], t] == m.p_alphaW[n1, t] * (m.v_F[m.s_Ain[n1][0], t])
+        return m.v_F[m.s_Aout[n][0], t] == m.p_alphaW[n1, t] * (
+            m.v_F[m.s_Ain[n1][0], t]
+        )
 
     model.NTTWconc = pyo.ConstraintList(
         doc="Concentration of components being treated at Treated Water Node"
@@ -620,7 +622,7 @@ def build_network(data):
         doc="Minimum concentration out of concentrated water node",
     )
     def minconccon(m, n, q, t):
-        return m.v_C[n, q, t] >= 0#m.p_Cmin[n, q]
+        return m.v_C[n, q, t] >= 0  # m.p_Cmin[n, q]
 
     @model.Constraint(
         model.s_NTIN, model.s_T, doc="Minimum inlet flow required at treatment site"
