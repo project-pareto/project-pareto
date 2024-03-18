@@ -71,7 +71,7 @@ def data_parser(df_sets, df_parameters):
     # Creating the unified arc set and appending 'Piped' or 'Trucked' to the arc tuple
     for arc_name in arcs:
         if arc_name in list(df_parameters.keys()):
-            for (aIN, aOUT) in df_parameters[arc_name]:
+            for aIN, aOUT in df_parameters[arc_name]:
                 assert df_parameters[arc_name][(aIN, aOUT)] == 1
                 if arc_name[2] == "A":
                     d["s_A"].append((aIN, aOUT, "Piped"))
@@ -151,7 +151,7 @@ def data_parser(df_sets, df_parameters):
 
     # Operating costs
     d["p_betaArc"] = {}
-    for (aIN, aOUT, aTP) in d["s_A"]:
+    for aIN, aOUT, aTP in d["s_A"]:
         if aOUT.endswith("_CW") or aOUT.endswith("_TW"):
             d["p_betaArc"][
                 aIN, aOUT, aTP
@@ -183,7 +183,6 @@ def data_parser(df_sets, df_parameters):
     d["p_gammaR"] = {
         d["NT_set"][n][1]: df_parameters["BeneficialReuseRevenue"][n] for n in d["s_NT"]
     }
-
     # Bounds
     d["p_Ibounds"] = {
         (n, t): (0, df_parameters["InitialStorageCapacity"][n])
@@ -192,7 +191,7 @@ def data_parser(df_sets, df_parameters):
     }
 
     d["p_Fbounds"] = {}
-    for (aIN, aOUT, aTP) in d["s_A"]:
+    for aIN, aOUT, aTP in d["s_A"]:
         for t in d["s_T"]:
             # Trucked flow = Max Piped flow if volume is being trucked
             if aTP == "Trucked":
@@ -219,9 +218,7 @@ def data_parser(df_sets, df_parameters):
     d = parameter_processing(d, df_parameters)
 
     return d
-
-
-#%%
+# %%
 
 
 # %%
