@@ -629,23 +629,3 @@ def build_network(data):
         return sum(m.v_F[a, t] for a in m.s_Ain[n]) >= m.p_Fmin[n]
 
     return model
-if __name__ == "__main__":
-    from importlib import resources
-    from pareto.utilities.get_data import get_data
-    from pareto.other_models.CM_module.operational.set_param_list import (
-        set_list,
-        parameter_list)
-    from pareto.utilities.cm_utils.data_parser import data_parser
-    with resources.path(
-        "pareto.case_studies",
-        "integrated_desalination_demo.xlsx",
-    ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
-
-        data = data_parser(df_sets, df_parameters)
-
-        # building model
-        model = build_network(data)
-        
-    ipopt = pyo.SolverFactory('ipopt')
-    ipopt.solve(model, tee=True)
