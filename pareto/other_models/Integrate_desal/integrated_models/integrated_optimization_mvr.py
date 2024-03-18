@@ -55,6 +55,7 @@ def manipulate_network_vars_and_cons(m):
         m.p_alphaW[n, :].unfix()
         
     #Set treatment cost to not include desalination unit cost
+    m.del_component(m.treat_cost)
     @m.Expression()
     def treat_cost(m):
         return (
@@ -87,7 +88,9 @@ def integrated_model_build(network_data, treatment_dict = {'R01_IN': 1}):
     m.m_network.br_obj.deactivate()
     m.m_network.obj.activate()
     ipopt = pyo.SolverFactory('ipopt')
-    ipopt.solve(m.m_network, tee= True)
+    
+    print("#### Initializing network ####")
+    ipopt.solve(m.m_network)
    
     #Treatment models in each period
     treatment_models = {}
@@ -103,6 +106,7 @@ def integrated_model_build(network_data, treatment_dict = {'R01_IN': 1}):
     m.m_treatment = pyo.Reference(treatment_models)
     
     #Initialize treatment models
+    print("#### Initializing desalination unit ####")
     annual_fac = {}
     for site in treatment_dict.keys():
         for t in m.m_network.s_T:
@@ -201,80 +205,5 @@ def integrated_model_build(network_data, treatment_dict = {'R01_IN': 1}):
         + sum(m.CAPEX[s] for s in m.m_network.desalination_nodes)/365*m.m_network.p_dt*len(m.m_network.s_T)
         + sum(sum(m.OPEX[s, t]/365*m.m_network.p_dt for t in m.m_network.s_T) for s in m.m_network.desalination_nodes)))
     
+    print("#### Build Complete #####")
     return m
-if __name__ =="__main__":
-    
-    with resources.path(
-        "pareto.case_studies",
-        "integrated_desalination_demo.xlsx",
-    ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
-
-        data = data_parser(df_sets, df_parameters)
-
-    m = integrated_model_build(network_data = data)
-    ipopt = pyo.SolverFactory('ipopt')
-    # ipopt.options["mu_init"] = 1e-4
-    # ipopt.options["bound_push"] = 1e-4
-    ipopt.options["acceptable_tol"] = 1e-4
-    ipopt.options["acceptable_dual_inf_tol"] = 1e-4
-    ipopt.options['tol'] = 1e-6
-    ipopt.options['max_iter'] = 10000
-    ipopt.solve(m , tee= True)
-    
-    print("=================================================================")
-    print("#########            Costing Variables (USD)        #############")
-    print("=================================================================")
-    print("Piping cost")
-    print(pyo.value(m.m_network.arc_cost))   
-    print("=================================================================")
-    print("Disposal cost")
-    print(pyo.value(m.m_network.disp_cost))
-    print("=================================================================")
-    print("Fresh water cost")
-    print(pyo.value(m.m_network.fresh_cost))
-    print("=================================================================")
-    print("Storage Cost")
-    print(pyo.value(m.m_network.stor_cost))
-    print("=================================================================")
-    print("Storage reward")
-    print(pyo.value(m.m_network.stor_rev))
-    print("=================================================================")
-    print("Treatment cost - OPEX")
-    print(1000*pyo.value(sum(sum(m.OPEX[s, t]/365*m.m_network.p_dt for t in m.m_network.s_T) for s in m.m_network.desalination_nodes)))
-    print("Treatment cost - CAPEX")
-    print(1000*pyo.value(sum(m.CAPEX[s] for s in m.m_network.desalination_nodes)/365*m.m_network.p_dt*len(m.m_network.s_T)))
-    print("=================================================================")
-    print("Treatment reward")
-    print(pyo.value(m.m_network.treat_rev))
-    print("=================================================================")
-    print(" ")
-    # print("=================================================================")
-    # print("#########       Desalination Design Variables       #############")
-    # print("=================================================================")
-    # print("Evaporator capex = ", pyo.value(sum(m.global_evaporator_capex[i] for i in range(N_evap))))
-    # print("Preheater capex = ", pyo.value(m.global_preheater_capex))
-    # print("Compressor capex = ", pyo.value(m.global_compressor_capex))
-    print("=================================================================")
-    print("#########       Percentage to different nodes       #############")
-    print("=================================================================")
-    tf = m.m_network.s_T.last()
-    total_flow = pyo.value(sum(m.m_network.v_F['PP01',:,:,:]) + sum(m.m_network.v_F['PP02',:,:,:]) 
-                           + sum(m.m_network.v_F['PP03',:,:,:]) + sum(m.m_network.v_F['PP04',:,:,:])
-                           + sum(m.m_network.v_F['CP01',:,:,:]) 
-                           )
-    disposed = pyo.value(sum(m.m_network.v_F[:, 'K01', :, :]) + sum(m.m_network.v_F[:, 'K02', :, :]) + sum(m.m_network.v_F[:, 'K2_CW',:,:]))
-    desalination = pyo.value(sum(m.m_network.v_F[:,'R01_IN',:,:]))
-    reuse = pyo.value(sum(m.m_network.v_F['S02', 'CP01',:, :]) + sum(m.m_network.v_F['N01', 'CP01',:, :]) + sum(m.m_network.v_F['N05', 'CP01',:, :]))
-    fresh_water_added = pyo.value(sum(m.m_network.v_F['F01',:, :, :]) + sum(m.m_network.v_F['F02', :, :, :]))
-    stored = pyo.value(m.m_network.v_I['S02', tf])
-    #freshwater_for_completions = pyo.value(pyunits.convert((sum(m.m_network.v_F['F01', 'CP01', : ,:]) + sum(m.m_network.v_F['F02', 'CP01', : ,:]))*pyunits.convert(m.m_network.p_dt, pyunits.s), pyunits.bbl))
-    print("Percentage to disposal =  ", round(disposed/total_flow*100, 2), "%")
-    print("=================================================================")
-    print("Percentage to desalination: ", round(desalination/total_flow*100,2), "%")
-    print("=================================================================")
-    print("Percentage reused: ", round(reuse/total_flow*100,2), "%")
-    print("=================================================================")
-    print("Percentage in storage: ", round(stored/total_flow*100,2), "%")
-    print("Percent  fresh water added = ", round(fresh_water_added/total_flow*100,2), "%")
-    
