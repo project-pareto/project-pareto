@@ -13,7 +13,6 @@
 
 import pytest
 import pyomo.environ as pyo
-from pareto.models_extra.desalination_models.mee_mvr import make_mee_mvr_model
 from importlib import resources
 from pareto.utilities.get_data import get_data
 from pareto.other_models.CM_module.operational.set_param_list import (
