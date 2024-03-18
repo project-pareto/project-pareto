@@ -10,11 +10,7 @@
 # the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
-"""
-Qudratically-Constrained Program (QCP) to find the optimal operational conditions
-to meet minimum critical mineral requirements within a produced water network.
-"""
-import sys
+
 import pyomo.environ as pyo
 
 def build_network(data):
