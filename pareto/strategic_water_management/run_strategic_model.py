@@ -194,7 +194,7 @@ options = {
     "gap": 0,
 }
 
-results = solve_model(model=strategic_model, solver="gams:CPLEX",options=options)
+results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 

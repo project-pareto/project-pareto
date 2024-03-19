@@ -53,7 +53,6 @@ class Objectives(Enum):
     cost = 0
     reuse = 1
     cost_surrogate = 2
-    cost_surrogate = 2
 
 
 class PipelineCapacity(Enum):
@@ -5071,7 +5070,6 @@ def water_quality(model):
             )
 
             return process_constraint(constraint)
-
 
     if (
         model.config.removal_efficiency_method
