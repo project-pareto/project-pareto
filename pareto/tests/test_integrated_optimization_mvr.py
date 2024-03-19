@@ -53,9 +53,11 @@ class TestIntegratedOptimizationMvr:
         m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 2})
 
         ipopt = pyo.SolverFactory("ipopt")
+        ipopt.options["max_iter"] = 10000
         res = ipopt.solve(m)
         pyo.assert_optimal_termination(res)
 
 
 if __name__ == "__main__":
     pytest.main()
+    
