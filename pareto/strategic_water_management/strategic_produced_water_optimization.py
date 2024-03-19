@@ -6733,7 +6733,9 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    if opt.type == "gurobi_direct":
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(water_quality_model.quality, tee=True)
+    elif opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
         opt.solve(water_quality_model.quality, tee=True)
