@@ -53,6 +53,7 @@ class Objectives(Enum):
     cost = 0
     reuse = 1
     cost_surrogate = 2
+    cost_surrogate = 2
 
 
 class PipelineCapacity(Enum):
@@ -216,7 +217,7 @@ CONFIG.declare(
 )
 
 
-def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
+def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
 
     # import config dictionary
@@ -908,6 +909,31 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         doc="Slack variable to provide necessary reuse capacity [volume/time]",
     )
 
+    if model.config.objective == Objectives.cost_surrogate:
+        model.vb_y_MVCselected = Var(
+            model.s_R,
+            within=Binary,
+            initialize=0,
+            doc="MVC selection for each desalination site",
+        )
+
+        model.inlet_salinity = Var(
+            model.s_R,
+            within=Reals,
+            initialize=10,
+            units=pyunits.kg / pyunits.litre,
+            doc="Inlet salinity in the feed",
+        )
+        model.recovery = Var(
+            model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
+        )
+        model.treatment_energy = Var(
+            model.s_R,
+            within=Reals,
+            initialize=0,
+            # units=units.W,
+            doc="Energy required for each site for desalination",
+        )
     # Define binary variables #
 
     model.vb_y_Pipeline = Var(
@@ -955,6 +981,32 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         initialize=0,
         doc="Beneficial reuse option selection",
     )
+
+    if model.config.objective == Objectives.cost_surrogate:
+        model.vb_y_MVCselected = Var(
+            model.s_R,
+            within=Binary,
+            initialize=0,
+            doc="MVC selection for each desalination site",
+        )
+
+        model.inlet_salinity = Var(
+            model.s_R,
+            within=Reals,
+            initialize=10,
+            units=pyunits.kg / pyunits.litre,
+            doc="Inlet salinity in the feed",
+        )
+        model.recovery = Var(
+            model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
+        )
+        model.treatment_energy = Var(
+            model.s_R,
+            within=Reals,
+            initialize=0,
+            # units=units.W,
+            doc="Energy required for each site for desalination",
+        )
 
     if model.config.objective == Objectives.cost_surrogate:
         model.v_C_Treatment_site = Var(
@@ -2376,130 +2428,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         model.ReuseObjectiveFunction = Constraint(
             rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
         )
-    elif model.config.objective == Objectives.cost_surrogate:
-        from idaes.core.surrogate.surrogate_block import SurrogateBlock
-        from idaes.core.surrogate.keras_surrogate import KerasSurrogate
 
-        def CostSurrogateObjectiveFunctionRule(model):
-            return model.v_Z == (
-                model.v_C_TotalSourced
-                + model.v_C_TotalDisposal
-                + model.v_C_TotalTreatment
-                + model.v_C_TotalReuse
-                + model.v_C_TotalPiping
-                + model.v_C_TotalStorage
-                + model.v_C_TotalTrucking
-                + model.v_C_TreatmentCapEx_surrogate
-                + model.p_alpha_AnnualizationRate
-                * (
-                    model.v_C_DisposalCapEx
-                    + model.v_C_StorageCapEx
-                    + model.v_C_PipelineCapEx
-                    + model.v_C_TreatmentCapEx
-                )
-                + model.v_C_Slack
-                - model.v_R_TotalStorage
-            )
-
-        model.CostSurrogateObjectiveFunctionRule = Constraint(
-            rule=CostSurrogateObjectiveFunctionRule, doc="Cost objective function"
-        )
-
-        # Define constraints #
-        model.inlet_salinity.fix(salinity_dict["inlet_salinity"])
-        model.recovery.fix(salinity_dict["recovery"])
-        model.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
-        model.model_units["L_per_s"] = pyunits.L / pyunits.s
-        conversion_factor = pyunits.convert_value(
-            1,
-            from_units=model.model_units["volume_time"],
-            to_units=model.model_units["L_per_s"],
-        )
-
-        model.v_T_Treatment_scaled = Var(
-            model.s_R,
-            model.s_T,
-            within=NonNegativeReals,
-            initialize=2 * 10 * conversion_factor,
-        )
-
-        cap_lower_bound, cap_upper_bound = (
-            0 * 7 * conversion_factor,
-            32 * 7 * conversion_factor,
-        )
-
-        for i in model.s_R:
-            for t in model.s_T:
-                if model.p_chi_DesalinationSites[i]:
-                    model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
-                    model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
-
-                else:
-
-                    model.v_T_Treatment_scaled[i, t].fix(0)
-
-        def scalingTreatment(model, r, t):
-            if model.p_chi_DesalinationSites[r]:
-                return model.v_T_Treatment_scaled[r, t] == conversion_factor * (
-                    sum(
-                        model.v_F_Piped[l, r, t]
-                        for l in model.s_L
-                        if (l, r) in model.s_LLA
-                    )
-                    + sum(
-                        model.v_F_Trucked[l, r, t]
-                        for l in model.s_L
-                        if (l, r) in model.s_LLT
-                    )
-                )
-            else:
-                return Constraint.Skip
-
-        model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
-        keras_surrogate = KerasSurrogate.load_from_folder("mvc_keras")
-
-        for i in model.s_R:
-            for t in model.s_T:
-                if model.p_chi_DesalinationSites[i]:
-                    # Build the model with non-zero outputs
-                    cap = model.v_T_Treatment_scaled[i, t]
-                    model.surrogate_costs[i, t].build_model(
-                        keras_surrogate,
-                        formulation=KerasSurrogate.Formulation.RELU_BIGM,
-                        input_vars=[model.inlet_salinity[i], model.recovery[i], cap],
-                        output_vars=[
-                            model.v_C_TreatmentCapEx_site_time[i, t],
-                            model.v_C_Treatment_site[i, t],
-                            model.treatment_energy[i],
-                        ],
-                    )
-                else:
-                    # If not a desalination site is zero, fix the outputs to zero
-                    model.v_T_Treatment_scaled[i, t].fix(0)
-                    model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
-                    model.v_C_Treatment_site[i, t].fix(0)
-                    model.treatment_energy[i].fix(0)
-                    model.v_C_TreatmentCapEx_site[i].fix(0)
-
-        def treatmentCapexSurrogate(model, i, t):
-            return (
-                model.v_C_TreatmentCapEx_site[i]
-                >= model.v_C_TreatmentCapEx_site_time[i, t]
-            )
-
-        model.max_cap = Constraint(
-            model.s_R,
-            model.s_T,
-            rule=treatmentCapexSurrogate,
-            doc="Max treated vol as capex",
-        )
-
-        def capExSurrogate(model):
-            return model.v_C_TreatmentCapEx_surrogate == sum(
-                model.v_C_TreatmentCapEx_site[i] for i in model.s_R
-            )
-
-        model.CapEx_cost = Constraint(rule=capExSurrogate, doc="Treatment costs")
     else:
         raise Exception("objective not supported")
 
@@ -5143,6 +5072,7 @@ def water_quality(model):
 
             return process_constraint(constraint)
 
+
     if (
         model.config.removal_efficiency_method
         == RemovalEfficiencyMethod.concentration_based
@@ -7356,7 +7286,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     return results
 
 
-def solve_model(model, solver=None, options=None):
+def solve_model(model, options=None):
     # default option values
     running_time = 60  # solver running time in seconds
     gap = 0  # solver gap
@@ -7416,15 +7346,22 @@ def solve_model(model, solver=None, options=None):
             if "gurobi_numeric_focus" in options.keys():
                 gurobi_numeric_focus = options["gurobi_numeric_focus"]
 
-            if opt.type in ("gurobi_direct", "gurobi"):
-                # Apply Gurobi specific options
-                opt.options["mipgap"] = gap
-                opt.options["NumericFocus"] = gurobi_numeric_focus
-            elif opt.type in ("cbc"):
-                # Apply CBC specific option
-                opt.options["ratioGap"] = gap
-            # set maximum running time for solver
-            set_timeout(opt, timeout_s=running_time)
+    # load pyomo solver
+    opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
+
+    # set maximum running time for solver
+    set_timeout(opt, timeout_s=running_time)
+
+    # set solver gap
+    if opt.type in ("gurobi_direct", "gurobi"):
+        # Apply Gurobi specific options
+        opt.options["mipgap"] = gap
+        opt.options["NumericFocus"] = gurobi_numeric_focus
+    elif opt.type in ("cbc"):
+        # Apply CBC specific option
+        opt.options["ratioGap"] = gap
+    else:
+        print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
     # deactivate slack variables if necessary
     if deactivate_slacks:

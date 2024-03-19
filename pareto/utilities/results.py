@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -103,15 +103,19 @@ def generate_report(
                     "v_C_Trucked",
                     "v_C_Sourced",
                     "v_C_Disposal",
-                    "v_C_Treatment",
                     "v_C_Reuse",
-                    "v_C_Storage",
-                    "v_C_BeneficialReuse",
                     "v_L_Storage",
                     "vb_y_Pipeline",
                     "vb_y_Disposal",
                     "vb_y_Storage",
                     "vb_y_Treatment",
+                    "vb_y_MVCselected",
+                    "v_C_Treatment_site",
+                    "v_C_TreatmentCapEx_site_time",
+                    "v_C_TreatmentCapEx_site",
+                    "recovery",
+                    "treatment_energy",
+                    "inlet_salinity",
                     "vb_y_MVCselected",
                     "v_C_Treatment_site",
                     "v_C_TreatmentCapEx_site_time",
@@ -131,6 +135,7 @@ def generate_report(
                     "v_S_TreatmentCapacity",
                     "v_S_BeneficialReuseCapacity",
                     "v_Q",
+                    "v_T_Treatment_scaled",
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -147,6 +152,13 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_MVCselected",
+                    "v_C_Treatment_site",
+                    "v_C_TreatmentCapEx_site_time",
+                    "v_C_TreatmentCapEx_site",
+                    "recovery",
+                    "treatment_energy",
+                    "inlet_salinity",
                     "vb_y_MVCselected",
                     "v_C_Treatment_site",
                     "v_C_TreatmentCapEx_site_time",
@@ -187,15 +199,10 @@ def generate_report(
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
             "v_F_Sourced_dict": [
-                ("External water source", "Completion pad", "Time", "Sourced water")
+                ("Fresh water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                (
-                    "External water source",
-                    "Completion pad",
-                    "Time",
-                    "Cost sourced water",
-                )
+                ("Fresh water source", "Completion pad", "Time", "Cost sourced water")
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -205,13 +212,6 @@ def generate_report(
             "v_C_Storage_dict": [("Storage Site", "Time", "Cost of Storage")],
             "v_R_Storage_dict": [
                 ("Storage Site", "Time", "Credit of Retrieving Produced Water")
-            ],
-            "v_C_BeneficialReuse_dict": [
-                (
-                    "Beneficial Reuse",
-                    "Time",
-                    "Processing Cost For Sending Water to Beneficial Reuse",
-                )
             ],
             "v_R_BeneficialReuse_dict": [
                 (
@@ -238,6 +238,15 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
+            "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
+            "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
+            "recovery_dict": [("Treatment site", "recovery")],
+            "inlet_salinity_dict": [("Treatment site", "salinity")],
+            "treatment_energy_dict": [("Treatment site", "energy")],
+            "v_C_TreatmentCapEx_site_time_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment site", "surrogate cost")],
             "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
             "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
             "recovery_dict": [("Treatment site", "recovery")],
@@ -456,16 +465,16 @@ def generate_report(
             disposalWater_value = 0
         model.disposal_WaterKPI.value = disposalWater_value
 
-        model.external_CompletionsDemandKPI = Var(
-            doc="External Fraction Completions Demand [%]"
+        model.fresh_CompletionsDemandKPI = Var(
+            doc="Fresh Fraction Completions Demand [%]"
         )
         if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
-            externalDemand_value = value(
+            freshDemand_value = value(
                 (model.v_F_TotalSourced / model.p_gamma_TotalDemand) * 100
             )
         else:
-            externalDemand_value = 0
-        model.external_CompletionsDemandKPI.value = externalDemand_value
+            freshDemand_value = 0
+        model.fresh_CompletionsDemandKPI.value = freshDemand_value
 
         model.reuse_CompletionsDemandKPI = Var(
             doc="Reuse Fraction Completions Demand [%]"
@@ -535,24 +544,21 @@ def generate_report(
         elif output_units == OutputUnits.user_units:
             to_unit = model.model_to_user_units[from_unit_string]
         for i in disposal_data:
-            # Get site name and selected capacity from data
-            disposal_site = i[0]
-            disposal_capacity = i[1]
             # add values to output dictionary
             if (
                 disposal_data[i].value >= 1 - binary_epsilon
                 and disposal_data[i].value <= 1 + binary_epsilon
-                and model.p_delta_Disposal[disposal_site, disposal_capacity].value > 0
+                and model.p_delta_Disposal[i[1]].value > 0
             ):
                 capacity = pyunits.convert_value(
-                    model.p_delta_Disposal[disposal_site, disposal_capacity].value,
+                    model.p_delta_Disposal[i[1]].value,
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
                 if model.config.infrastructure_timing == InfrastructureTiming.true:
-                    first_use = model.infrastructure_firstUse[disposal_site]
-                    build_start = model.infrastructure_buildStart[disposal_site]
-                    lead_time = model.infrastructure_leadTime[disposal_site]
+                    first_use = model.infrastructure_firstUse[i[0]]
+                    build_start = model.infrastructure_buildStart[i[0]]
+                    lead_time = model.infrastructure_leadTime[i[0]]
                 else:
                     first_use = "--"
                     build_start = "--"
@@ -560,7 +566,7 @@ def generate_report(
                 headers["vb_y_overview_dict"].append(
                     (
                         "Disposal Facility",
-                        disposal_site,
+                        i[0],
                         "--",
                         capacity,
                         to_unit.to_string().replace("oil_bbl", "bbl"),
@@ -615,10 +621,11 @@ def generate_report(
                 )
 
         # vb_y_Pipeline
-        if model.config.pipeline_cost == PipelineCost.distance_based:
-            capacity_variable = model.p_mu_Pipeline
-        elif model.config.pipeline_cost == PipelineCost.capacity_based:
-            capacity_variable = model.p_delta_Pipeline
+        # if model.config.pipeline_cost == PipelineCost.distance_based:
+        #     capacity_variable = model.p_mu_Pipeline
+        # elif model.config.pipeline_cost == PipelineCost.capacity_based:
+        #     capacity_variable = model.p_delta_Pipeline
+        capacity_variable = model.p_mu_Pipeline
         pipeline_data = model.vb_y_Pipeline._data
         # get units
         from_unit_string = capacity_variable.get_units().to_string()
@@ -836,15 +843,10 @@ def generate_report(
             "v_F_Trucked_dict": [("Origin", "Destination", "Time", "Trucked water")],
             "v_C_Trucked_dict": [("Origin", "Destination", "Time", "Cost trucking")],
             "v_F_Sourced_dict": [
-                ("External water source", "Completion pad", "Time", "Sourced water")
+                ("Fresh water source", "Completion pad", "Time", "Sourced water")
             ],
             "v_C_Sourced_dict": [
-                (
-                    "External water source",
-                    "Completion pad",
-                    "Time",
-                    "Cost sourced water",
-                )
+                ("Fresh water source", "Completion pad", "Time", "Cost sourced water")
             ],
             "v_F_PadStorageIn_dict": [("Completion pad", "Time", "StorageIn")],
             "v_F_PadStorageOut_dict": [("Completion pad", "Time", "StorageOut")],
@@ -878,7 +880,7 @@ def generate_report(
                 ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
             ],
             "v_F_TreatmentDestination_dict": [
-                ("Disposal Site", "Time", "Total Deliveries to Treatment Site")
+                ("Disposal Site", "Time", "Total Deliveries to Disposal Site")
             ],
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
@@ -1092,6 +1094,28 @@ def generate_report(
                     ],
                 }
             )
+        # if model.config.objective == Objectives.cost_surrogate:
+        #     print('Updating Headers')
+        #     headers.update(
+        #         {
+        #             "inlet_salinity_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Inlet salinity in the feed")
+        #             ],
+        #             "recovery_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Recovery of water")
+        #             ],
+        #             "treatment_energy_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Energy required for each site for desalination")
+        #             ],
+        #             "v_C_TreatmentCapEx_site_dict": [
+        #                 ("Treatment Site", "Water Component", "Time", "Surrogate Costing","Capital cost for each site")
+        #             ],
+        #             "v_C_Treatment_site_dict": [
+        #                 ("Treatment Site", "Time","Water Component", "Time", "Surrogate Costing","Treatment cost for each site at each time")
+        #             ],
+        #         }
+        #     )
+
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
@@ -1111,6 +1135,7 @@ def generate_report(
                 print("ERROR: Report output units selected by user is not valid")
             # if variable data is not none and indexed, update headers to display unit
             if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
+
                 header = list(headers[str(variable.name) + "_dict"][0])
                 header[-1] = (
                     headers[str(variable.name) + "_dict"][0][-1]
@@ -1139,7 +1164,7 @@ def generate_report(
 
                 if i is None:
                     # Create the overview report with variables that are not indexed, e.g.:
-                    # total piped water, total trucked water, total externally sourced water, etc.
+                    # total piped water, total trucked water, total fresh water, etc.
                     if to_unit is not None:
                         headers["v_F_Overview_dict"].append(
                             (
@@ -1162,53 +1187,35 @@ def generate_report(
                 if str(variable.name) == "v_DQ" and var_value > 0:
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
-                    if (
-                        variable.name != "v_C_Treatment_site"
-                        and variable.name != "inlet_salinity"
-                        and variable.name != "v_C_TreatmentCapEx_site"
-                        and variable.name != "recovery"
-                        and variable.name != "treatment_energy"
-                        and variable.name != "v_C_TreatmentCapEx_site_time"
-                        and variable.name != "totalCapex"
-                        and variable.name != "v_T_Treatment_scaled"
-                    ):
-                        if len(str(variable.name)) >= 15:
-                            if str(variable.name)[:15] != "surrogate_costs":
-                                headers[str(variable.name) + "_dict"].append(
-                                    (*i, var_value)
-                                )
-                        else:
-                            headers[str(variable.name) + "_dict"].append(
-                                (*i, var_value)
-                            )
+                    headers[str(variable.name) + "_dict"].append((*i, var_value))
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
 
-    # Loop for printing information on the command prompt
-    for i in list(headers.items())[1:]:
-        dict_name = i[0][: -len("_dict")]
-        if dict_name in printing_list:
-            print("\n", "=" * 10, dict_name.upper(), "=" * 10)
-            print(i[1][0])
-            for j in i[1][1:]:
-                print("{0}{1} = {2}".format(dict_name, j[:-1], j[-1]))
+    # # Loop for printing information on the command prompt
+    # for i in list(headers.items())[1:]:
+    #     dict_name = i[0][: -len("_dict")]
+    #     if dict_name in printing_list:
+    #         print("\n", "=" * 10, dict_name.upper(), "=" * 10)
+    #         print(i[1][0])
+    #         for j in i[1][1:]:
+    #             print("{0}{1} = {2}".format(dict_name, j[:-1], j[-1]))
 
-    # Loop for printing Overview Information on the command prompt
-    for i in list(headers.items())[:1]:
-        dict_name = i[0][: -len("_dict")]
-        if dict_name in printing_list:
-            print("\n", "=" * 10, dict_name.upper(), "=" * 10)
-            # print(i[1][1][0])
-            for j in i[1][1:]:
-                if not j[0]:  # Conditional that checks if a blank line should be added
-                    print()
-                elif not j[
-                    1
-                ]:  # Conditional that checks if the header for a section should be added
-                    print(j[0].upper())
-                else:
-                    print("{0} = {1}".format(j[1], j[3]))
+    # # Loop for printing Overview Information on the command prompt
+    # for i in list(headers.items())[:1]:
+    #     dict_name = i[0][: -len("_dict")]
+    #     if dict_name in printing_list:
+    #         print("\n", "=" * 10, dict_name.upper(), "=" * 10)
+    #         # print(i[1][1][0])
+    #         for j in i[1][1:]:
+    #             if not j[0]:  # Conditional that checks if a blank line should be added
+    #                 print()
+    #             elif not j[
+    #                 1
+    #             ]:  # Conditional that checks if the header for a section should be added
+    #                 print(j[0].upper())
+    #             else:
+    #                 print("{0} = {1}".format(j[1], j[3]))
 
     # Printing warning if "proprietary_data" is True
     if len(printing_list) > 0 and model.proprietary_data is True:
@@ -1284,7 +1291,16 @@ def generate_report(
     if fname is not None:
         with pd.ExcelWriter(fname) as writer:
             for i in headers:
+                # Debugging: Print the header and data being passed to DataFrame
+                # print(f"Header for {i}: {headers[i][0]}")  # Print column names
+                # print(f"Data for {i}: {headers[i][1:]}")   # Print data
+
+                # Create DataFrame
                 df = pd.DataFrame(headers[i][1:], columns=headers[i][0])
+
+                # More debugging: Print the created DataFrame
+                # print(f"Created DataFrame for {i}:\n{df}")
+
                 df.fillna("")
                 df.to_excel(
                     writer, sheet_name=i[: -len("_dict")], index=False, startrow=1
