@@ -216,7 +216,7 @@ CONFIG.declare(
 )
 
 
-def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
+def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
     model = ConcreteModel()
 
     # import config dictionary
@@ -955,7 +955,6 @@ def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
         initialize=0,
         doc="Beneficial reuse option selection",
     )
-
 
     if model.config.objective == Objectives.cost_surrogate:
         model.v_C_Treatment_site = Var(
