@@ -39,7 +39,7 @@ class TestIntegratedOptimizationMvr:
         m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 1})
 
         ipopt = pyo.SolverFactory("ipopt")
-        res = ipopt.solve(m, tee=True)
+        res = ipopt.solve(m)
         pyo.assert_optimal_termination(res)
 
     def test_two_stage_mvr(self):
@@ -52,7 +52,7 @@ class TestIntegratedOptimizationMvr:
             data = data_parser(df_sets, df_parameters)
         m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 2})
 
-        ipopt = pyo.SolverFactory("ipopt", tee=True)
+        ipopt = pyo.SolverFactory("ipopt")
         res = ipopt.solve(m)
         pyo.assert_optimal_termination(res)
 
