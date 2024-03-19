@@ -26,8 +26,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
 
-# import plotly.graph_objects as go
-# import plotly.express as px
+import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
 from enum import Enum
 
