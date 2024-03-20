@@ -170,7 +170,7 @@ def calculate_earthquake_distances_texnet(swd_latlons):
     return earthquake_distances
 
 
-# Example rune
+# Example
 # swd_latlons = [
 #    {"id": 1, "lat": 34, "lon": -106},
 #    {"id": 2, "lat": 35, "lon": -105},
