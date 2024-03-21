@@ -42,6 +42,9 @@ except AttributeError:
     _dataframe_map = pd.DataFrame.applymap
 
 
+pd.set_option("future.no_silent_downcasting", True)
+
+
 class DataLoadingError(ValueError):
     def __init__(
         self,
