@@ -2456,7 +2456,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                 return Constraint.Skip
 
         model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
-        keras_surrogate = KerasSurrogate.load_from_folder("mvc_keras")
+        keras_surrogate = KerasSurrogate.load_from_folder("md_keras")
 
         for i in model.s_R:
             for t in model.s_T:
@@ -2470,7 +2470,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                         output_vars=[
                             model.v_C_TreatmentCapEx_site_time[i, t],
                             model.v_C_Treatment_site[i, t],
-                            model.treatment_energy[i],
+                            # model.treatment_energy[i],
                         ],
                     )
                 else:
