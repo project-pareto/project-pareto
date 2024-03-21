@@ -2420,12 +2420,12 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             model.s_R,
             model.s_T,
             within=NonNegativeReals,
-            initialize=2 * 10 * conversion_factor,
+            initialize=1 * 5 * conversion_factor,
         )
 
         cap_lower_bound, cap_upper_bound = (
             0 * 7 * conversion_factor,
-            32 * 7 * conversion_factor,
+            1 * 7 * conversion_factor,
         )
 
         for i in model.s_R:

@@ -175,7 +175,7 @@ strategic_model = create_model(
     df_parameters,
     salinity_dict={"inlet_salinity": 200, "recovery": 0.573333},
     default={
-        "objective": Objectives.cost,
+        "objective": Objectives.cost_surrogate,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
