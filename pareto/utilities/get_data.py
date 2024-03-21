@@ -145,7 +145,7 @@ def _read_data(
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
-    # If _set_list is empty, it is assummed that a parameter is column format is being read.
+    # If _set_list is empty, it is assumed that a parameter is column format is being read.
     # and _set_list is created based on the DataFrame column names, except for the last name,
     # which is used as the data column name.
     if len(_set_list) == 0:
@@ -234,7 +234,7 @@ def _cleanup_data(_df_parameters):
 def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     """
     This module converts the data frame that contains Parameters into the adequate
-    format that Pyomo expects for paramerters:
+    format that Pyomo expects for parameters:
     Input_parameter = {(column_index, row_header): value}
     """
     _df_parameters = {}
