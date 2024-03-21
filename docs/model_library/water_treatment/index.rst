@@ -648,7 +648,7 @@ Energy balance in the mixer:
 
 .. math:: 
 
-    T_{mix}^{out} = \frac{\sum_{i = 1}^{I} F_{vapor}^{(i)}T_{brine^{(i)}}}{F_{externalwater}}
+    T_{mix}^{out} = F^{I}_{vapor}T_{cond}^{1} + \sum_{i = 1}^{I}F_{vapor}^{(i-1)}T_{cond}^{i}
 
 Preheater Model
 +++++++++++++++
@@ -722,23 +722,24 @@ Bounds for feasible operation:
 Objective function
 ++++++++++++++++++
 
-The goal is to minimize the total annualized cost (TAC) of the treatent unit. CAPEX of the equipments were calculated using empirical relations from IDAES costing. Assuming the evaporator is a U-tube heat exchanger, the CAPEX of the evaporators in kUSD is given by:
+The goal is to minimize the total annualized cost (TAC) of the treatent unit. CAPEX of the equipments were calculated using empirical relations from Couper et. al. Assuming the evaporator is a falling film evaporator made of nickel steel to avoid corrosion, the
+annualized CAPEX in kUSD is given by:
 
 .. math:: 
 
-    CAPEX_{evap} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.05}{1000}\sum_{i = 1}^{N_{evap}} exp(11.3852 -0.9186(log(A_{evap}^{(i)}\times 1.1)) + 0.0979(log(A_{evap}^{(i)}\times 1.1))^2 )
+    CAPEX_{evap} = \frac{CEPCI_{2022}}{CEPCI_{base}} \times f_m \times 1.218 \sum_{i = 1}^I exp\Bigl[3.2362 - 0.0126 \log(\bar{A}^{(i)}_{evap} \times 10.64) + 0.0244\log(\bar{A}^{(i)}_{evap} \times 10.64)^2\Bigr]
 
-CAPEX of centrifugal compressor in kUSD is given by:
+CAPEX of centrifugal compressor made of carbon steel in kUSD is given by:
 
 .. math:: 
 
-    CAPEX_{compr} = \frac{CEPCI_{2022}}{CEPCI_{base}}\sum_{i = 1}^{N_{compr}} exp(7.58 + 0.8\times log(\mathcal{C}_{compr}))
+    CAPEX_{compr} = \frac{CEPCI_{2022}}{CEPCI_{base}}\sum_{i = 1}^{N_{compr}} 7.9\mathcal{C}_{compr}^{0.62}
 
 Assuming the preheater is a U-tube heat exchanger, the CAPEX of the preheater is given by:
 
 .. math:: 
 
-    CAPEX_{ph} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.05}{1000} (exp(11.3852 -0.9186(log(A_{ph} \times 1.1)) + 0.0979(log(A_{ph} \times 1.1))^2 ))
+    CAPEX_{ph} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.218}{1000} ( exp\Bigl[-0.9816 + 0.0830 \log(\bar{A}^{ph} \times 10.64)\Bigr] \times exp\Bigl[8.821 - 0.308 \log(\bar{A}^{ph} \times 10.64) + 0.0681 \log(\bar{A}^{ph} \times 10.64)^2\Bigr])
 
 Note: For CAPEX calculation, the areas have to be in sq. ft.
 
