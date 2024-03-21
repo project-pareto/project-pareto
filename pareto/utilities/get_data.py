@@ -60,6 +60,9 @@ class DataLoadingError(ValueError):
         lines = ["Data loading failed for the following sheets: "]
         for name, err in self.errors.items():
             lines.append(f"\t{name:{max_name_len}}\t{err}")
+        lines.append(
+            "This may be because the sheets are empty (possibly excepting a header)."
+        )
         return lines
 
 
