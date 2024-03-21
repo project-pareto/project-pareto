@@ -91,7 +91,10 @@ def _sheets_to_dfs(
         if raises:
             raise exc
         else:
-            warnings.warn(exc.summary + "\nFor these sheets, an empty dataframe is used as fallback.\n")
+            warnings.warn(
+                exc.summary
+                + "\nFor these sheets, an empty dataframe is used as fallback.\n"
+            )
     return out
 
 
