@@ -225,7 +225,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     **Binary Variables**
 
-    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,..., \lceil 70000/\textcolor{green}{\Delta_I}\rceil - 1}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
+    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,..., \lceil 70000/\textcolor{green}{\Delta_I}\rceil - 1\}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
 
 
     **Continuous Variables**
@@ -273,7 +273,7 @@ Allows pumping only if a pump exists in a pipeline.
 
        \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = 1
 
-    **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
+    **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}, \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
     .. math::
 
