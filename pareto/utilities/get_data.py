@@ -41,8 +41,12 @@ except AttributeError:
     # compatibility with pandas 2.0.x
     _dataframe_map = pd.DataFrame.applymap
 
-
-pd.set_option("future.no_silent_downcasting", True)
+try:
+    pd.set_option("future.no_silent_downcasting", True)
+except pd.errors.OptionError:
+    # future.no_silent_downcasting not available for pandas 2.0,
+    # which is the latest available for Python 3.8
+    pass
 
 
 class DataLoadingError(ValueError):
