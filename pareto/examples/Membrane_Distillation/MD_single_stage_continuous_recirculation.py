@@ -1,14 +1,15 @@
-#################################################################################
-# WaterTAP Copyright (c) 2020-2023, The Regents of the University of California,
-# through Lawrence Berkeley National Laboratory, Oak Ridge National Laboratory,
-# National Renewable Energy Laboratory, and National Energy Technology
-# Laboratory (subject to receipt of any required approvals from the U.S. Dept.
-# of Energy). All rights reserved.
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
 #
-# Please see the files COPYRIGHT.md and LICENSE.md for full copyright and license
-# information, respectively. These files are also available online at the URL
-# "https://github.com/watertap-org/watertap/"
-#################################################################################
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
+#####################################################################################################
 
 from pyomo.environ import (
     ConcreteModel,
@@ -590,11 +591,10 @@ def display_system(m):
 
 
 def display_detailed_costs(m):
+    print("\n---detailed costs---")
     print(
         "total annualized capital cost: %.2f $/yr"
-        % value(
-            m.fs.costing.total_capital_cost * m.fs.costing.factor_capital_annualization
-        )
+        % value(m.fs.costing.total_capital_cost * m.fs.costing.capital_recovery_factor)
     )
     print(
         "total annual operating cost: %.2f $/yr"
@@ -602,27 +602,20 @@ def display_detailed_costs(m):
     )
     print(
         "MD module annualized capital cost: %.2f $/yr"
-        % value(
-            m.fs.MD.costing.capital_cost * m.fs.costing.factor_capital_annualization
-        )
+        % value(m.fs.MD.costing.capital_cost * m.fs.costing.capital_recovery_factor)
     )
     print(
         "Heat exchanger module annualized capital cost: %.2f $/yr"
-        % value(
-            m.fs.hx.costing.capital_cost * m.fs.costing.factor_capital_annualization
-        )
+        % value(m.fs.hx.costing.capital_cost * m.fs.costing.capital_recovery_factor)
     )
     print(
         "Heater annualized capital cost: %.2f $/yr"
-        % value(
-            m.fs.heater.costing.capital_cost * m.fs.costing.factor_capital_annualization
-        )
+        % value(m.fs.heater.costing.capital_cost * m.fs.costing.capital_recovery_factor)
     )
     print(
         "Chiller annualized capital cost: %.2f $/yr"
         % value(
-            m.fs.chiller.costing.capital_cost
-            * m.fs.costing.factor_capital_annualization
+            m.fs.chiller.costing.capital_cost * m.fs.costing.capital_recovery_factor
         )
     )
     print(
@@ -633,21 +626,19 @@ def display_detailed_costs(m):
                 + m.fs.pump_permeate.costing.capital_cost
                 + m.fs.pump_feed.costing.capital_cost
             )
-            * m.fs.costing.factor_capital_annualization
+            * m.fs.costing.capital_recovery_factor
         )
     )
     print(
         "Mixer annualized capital cost: %.2f $/yr"
-        % value(
-            m.fs.mixer.costing.capital_cost * m.fs.costing.factor_capital_annualization
-        )
+        % value(m.fs.mixer.costing.capital_cost * m.fs.costing.capital_recovery_factor)
     )
 
 
 def display_design(m):
     print("---decision variables---")
     print("Membrane area %.1f m2" % (m.fs.MD.area.value))
-    print("Membrane area %.1f m2" % (m.fs.MD.length.value))
+    print("Membrane length %.1f m" % (m.fs.MD.length.value))
     print("Heat exchanger area %.1f m2" % (m.fs.hx.area.value))
     print(
         "Heater\noutlet temperature: %.1f Celcius\npower %.2f kW"
@@ -680,7 +671,7 @@ def display_design(m):
 
 
 def display_state(m):
-    print("---state---")
+    print("\n---state---")
 
     def print_state(s, b):
         flow_mass = sum(
