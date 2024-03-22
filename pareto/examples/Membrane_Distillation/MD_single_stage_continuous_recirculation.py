@@ -647,7 +647,7 @@ def display_detailed_costs(m):
 def display_design(m):
     print("---decision variables---")
     print("Membrane area %.1f m2" % (m.fs.MD.area.value))
-    print("Membrane area %.1f m2" % (m.fs.MD.length.value))
+    print("Membrane length %.1f m" % (m.fs.MD.length.value))
     print("Heat exchanger area %.1f m2" % (m.fs.hx.area.value))
     print(
         "Heater\noutlet temperature: %.1f Celcius\npower %.2f kW"
