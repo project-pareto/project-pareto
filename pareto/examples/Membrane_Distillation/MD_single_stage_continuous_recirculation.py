@@ -680,7 +680,7 @@ def display_design(m):
 
 
 def display_state(m):
-    print("---state---")
+    print("\n---state---")
 
     def print_state(s, b):
         flow_mass = sum(
