@@ -17,32 +17,125 @@ format that Pyomo requires
 Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
+import logging
+import warnings
+from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Union
+
 import pandas as pd
 import requests
 import numpy as np
 import warnings
 
 
-def _read_data(_fname, _set_list, _parameter_list):
+_logger = logging.getLogger(__name__)
+
+
+try:
+    _dataframe_map = pd.DataFrame.map
+except AttributeError:
+    # compatibility with pandas 2.0.x
+    _dataframe_map = pd.DataFrame.applymap
+
+try:
+    pd.set_option("future.no_silent_downcasting", True)
+except pd.errors.OptionError:
+    # future.no_silent_downcasting not available for pandas 2.0,
+    # which is the latest available for Python 3.8
+    pass
+
+
+class DataLoadingError(ValueError):
+    def __init__(
+        self,
+        errors: Dict[str, Exception],
+    ):
+        self.errors = dict(errors)
+        self.summary = "\n".join(self._get_summary_lines())
+        super().__init__(self.summary)
+
+    def _get_summary_lines(self) -> List[str]:
+        max_name_len = max(len(name) for name in self.errors)
+
+        lines = ["Data loading failed for the following sheets: "]
+        for name, err in self.errors.items():
+            lines.append(f"\t{name:{max_name_len}}\t{err}")
+        lines.append(
+            "This may be because the sheets are empty (possibly excepting a header)."
+        )
+        return lines
+
+
+def _sheets_to_dfs(
+    src: Union[str, Path],
+    sheets: Iterable[str],
+    raises: bool = True,
+    **kwargs,
+) -> Dict[str, pd.DataFrame]:
+    out = {}
+    failed = {}
+    file = pd.ExcelFile(src)
+    sheets_to_load = list(sheets or file.sheet_names)
+    for sheet_name in sheets_to_load:
+        try:
+            df = pd.read_excel(file, sheet_name=sheet_name, **kwargs).squeeze("columns")
+        except Exception as e:
+            _logger.warning("Loading failed for sheet %r: %r", sheet_name, e)
+            _logger.info("An empty dataframe will be used as fallback.")
+            failed[sheet_name] = e
+            df = pd.DataFrame()
+        finally:
+            out[sheet_name] = df
+    if failed:
+        exc = DataLoadingError(failed)
+        if raises:
+            raise exc
+        else:
+            warnings.warn(
+                exc.summary
+                + "\nFor these sheets, an empty dataframe is used as fallback.\n"
+            )
+    return out
+
+
+def _read_data(
+    _fname,
+    _set_list: Iterable[str],
+    _parameter_list: Iterable[str],
+    raises: bool = True,
+):
     """
     This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
+    _set_list = list(_set_list)
+    _parameter_list = list(_parameter_list)
+    _logger.debug("_set_list: %s", _set_list)
+    _logger.debug("_parameter_list: %s", _parameter_list)
+
+    _df_sets = {}
     _df_parameters = {}
+
     _temp_df_parameters = {}
     _data_column = ["value"]
     proprietary_data = False
-    _df_sets = pd.read_excel(
-        _fname,
-        sheet_name=_set_list,
-        header=0,
-        index_col=None,
-        usecols="A",
-        squeeze=True,
-        dtype="string",
-        keep_default_na=False,
-    )
+    # pd.read_excel() does not support empty lists in recent versions of pandas
+    if _set_list:
+        _df_sets = _sheets_to_dfs(
+            _fname,
+            sheets=_set_list,
+            raises=raises,
+            header=0,
+            index_col=None,
+            usecols="A",
+            dtype="string",
+            keep_default_na=False,
+        )
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -52,19 +145,20 @@ def _read_data(_fname, _set_list, _parameter_list):
         _df_sets[df].replace("", np.nan, inplace=True)
         _df_sets[df].dropna(inplace=True)
 
-    _df_parameters = pd.read_excel(
-        _fname,
-        sheet_name=_parameter_list,
-        header=1,
-        index_col=None,
-        usecols=None,
-        squeeze=True,
-        keep_default_na=False,
-    )
+    if _parameter_list:
+        _df_parameters = _sheets_to_dfs(
+            _fname,
+            sheets=_parameter_list,
+            raises=raises,
+            header=1,
+            index_col=None,
+            usecols=None,
+            keep_default_na=False,
+        )
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
-    # If _set_list is empty, it is assummed that a parameter is column format is being read.
+    # If _set_list is empty, it is assumed that a parameter is column format is being read.
     # and _set_list is created based on the DataFrame column names, except for the last name,
     # which is used as the data column name.
     if len(_set_list) == 0:
@@ -96,8 +190,8 @@ def _read_data(_fname, _set_list, _parameter_list):
             to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value="", regex=True, inplace=True
         )
         # Removing whitespaces
-        _df_parameters[i] = _df_parameters[i].applymap(
-            lambda x: x.strip() if isinstance(x, str) else x
+        _df_parameters[i] = _dataframe_map(
+            _df_parameters[i], lambda x: x.strip() if isinstance(x, str) else x
         )
         # Removing all the columns that contain only empty strings
         # _df_parameters[i] = _df_parameters[i][_df_parameters[i].columns[~_df_parameters[i].eq('').all(0)]]
@@ -153,7 +247,7 @@ def _cleanup_data(_df_parameters):
 def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     """
     This module converts the data frame that contains Parameters into the adequate
-    format that Pyomo expects for paramerters:
+    format that Pyomo expects for parameters:
     Input_parameter = {(column_index, row_header): value}
     """
     _df_parameters = {}
@@ -185,7 +279,9 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     return _df_parameters
 
 
-def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
+def get_data(
+    fname, set_list, parameter_list, sum_repeated_indexes=False, raises: bool = False
+):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -195,6 +291,9 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
       The header should start in row 2, and the index column should start in cell A3.
       Column format: Does not require a header. Each set should be placed in one column,
       starting from column A and row 3. Data should be provided in the last column.
+
+    By default, errors encountered while performing data pre-processing are collected and displayed as warnings.
+    If ``raises=True``, an exception will be raised instead.
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
@@ -274,7 +373,10 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
     # Pass only tab names that exist in the input file (rather than all expected tab names)
     [_df_sets, _df_parameters, data_column] = _read_data(
-        fname, set_list_common, parameter_list_common
+        fname,
+        set_list_common,
+        parameter_list_common,
+        raises=raises,
     )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
