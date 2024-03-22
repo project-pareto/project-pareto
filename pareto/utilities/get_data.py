@@ -84,7 +84,7 @@ def _sheets_to_dfs(
         try:
             df = pd.read_excel(file, sheet_name=sheet_name, **kwargs).squeeze("columns")
         except Exception as e:
-            _logger.exception("Loading failed for sheet %r", sheet_name)
+            _logger.warning("Loading failed for sheet %r: %r", sheet_name, e)
             _logger.info("An empty dataframe will be used as fallback.")
             failed[sheet_name] = e
             df = pd.DataFrame()
