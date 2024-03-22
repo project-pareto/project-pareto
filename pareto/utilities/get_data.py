@@ -22,36 +22,26 @@ import requests
 import numpy as np
 import warnings
 
+def get_valid_input_set_tab_names():
+    return [
+        "ProductionPads",
+        "CompletionsPads",
+        "SWDSites",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
 
-def _read_data(_fname, _set_list, _parameter_list):
-    """
-    This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
-    Two data frames are created, one that contains all the Sets: _df_sets, and another one that
-    contains all the parameters in raw format: _df_parameters
-    """
-    if _set_list is not None:
-        valid_set_tab_names = _set_list
-    else:
-        valid_set_tab_names = [
-            "ProductionPads",
-            "CompletionsPads",
-            "SWDSites",
-            "ExternalWaterSources",
-            "WaterQualityComponents",
-            "StorageSites",
-            "TreatmentSites",
-            "ReuseOptions",
-            "NetworkNodes",
-            "PipelineDiameters",
-            "StorageCapacities",
-            "InjectionCapacities",
-            "TreatmentCapacities",
-            "TreatmentTechnologies",
-        ]
-    if _parameter_list is not None:
-        valid_parameter_tab_names = _parameter_list
-    else:
-        valid_parameter_tab_names = [
+def get_valid_input_parameter_tab_names():
+    return [
             "Units",
             "PNA",
             "CNA",
@@ -142,7 +132,47 @@ def _read_data(_fname, _set_list, _parameter_list):
             "SWDProxFault",
             "SWDProxHpOrLpWell",
             "SWDRiskFactors",
-        ]
+    ]
+
+def _read_data(_fname, _set_list, _parameter_list):
+    """
+    This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
+    Two data frames are created, one that contains all the Sets: _df_sets, and another one that
+    contains all the parameters in raw format: _df_parameters
+    """
+    pareto_input_set_tab_names = get_valid_input_set_tab_names()
+    pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names()
+
+    if _set_list is not None:
+        valid_set_tab_names = pareto_input_set_tab_names
+        valid_set_tab_names.extend(_set_list)
+    else:
+        valid_set_tab_names = pareto_input_set_tab_names
+    if _parameter_list is not None:
+        valid_parameter_tab_names = pareto_input_parameter_tab_names
+        valid_parameter_tab_names.extend(_parameter_list)
+    else:
+        valid_parameter_tab_names = pareto_input_parameter_tab_names
+
+    # Check all names available in the input sheet
+    # If the sheet name is unused (not a  valid Set or Parameter tab, not "Overview", and not "Schematic"), raise a warning.
+    unused_tab_list = []
+    df = pd.ExcelFile(_fname)
+    sheet_list = df.sheet_names
+    for name in sheet_list:
+        if name not in valid_set_tab_names and name not in valid_parameter_tab_names and name != "Overview" and name != "Schematic":
+            unused_tab_list.append(name)
+
+    if len(unused_tab_list) > 0:
+        warning_message = f"Invalid PARETO input has been provided and has NOT been parsed. Check that input tab names match valid PARETO input. If you'd like to read custom tabs, please include as input to get_data(). The following tabs are NOT parsed: " + str(
+            unused_tab_list
+        )
+        warnings.warn(
+            warning_message,
+            UserWarning,
+            stacklevel=3,
+        )
+
     _df_parameters = {}
     _temp_df_parameters = {}
     _data_column = ["value"]
@@ -369,44 +399,9 @@ def get_data(fname, set_list=None, parameter_list=None, sum_repeated_indexes=Fal
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
     """
-    # Check all names available in the input sheet
-    set_list_common = []
-    parameter_list_common = []
-    df = pd.ExcelFile(fname)
-    sheet_list = df.sheet_names
-    for name in sheet_list:
-        if name in set_list:
-            set_list_common.append(name)
-        elif name in parameter_list:
-            parameter_list_common.append(name)
-        # If the sheet name is unused (not a Set or Parameter tab, "Overview", or "Schematic"), raise a warning.
-        else:
-            if name != "Overview" and name != "Schematic":
-                warnings.warn(
-                    f"{name} is not found in defined sets or parameters but is parsed in the input data",
-                    UserWarning,
-                    stacklevel=2,
-                )
-    # Check that expected Set tabs are included in input sheet. If they are missing, raise a warning.
-    for sets in set_list:
-        if sets not in set_list_common:
-            warnings.warn(
-                f"{sets} is defined in set_list but not parsed in the input data",
-                UserWarning,
-                stacklevel=2,
-            )
-    # Check that expected Parameter tabs are included in input sheet. If they are missing, raise a warning.
-    for params in parameter_list:
-        if params not in parameter_list_common:
-            warnings.warn(
-                f"{params} is defined in parameter_list but not parsed in the input data",
-                UserWarning,
-                stacklevel=2,
-            )
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
-    # Pass only tab names that exist in the input file (rather than all expected tab names)
     [_df_sets, _df_parameters, data_column] = _read_data(
-        fname, set_list_common, parameter_list_common
+        fname, set_list, parameter_list
     )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
