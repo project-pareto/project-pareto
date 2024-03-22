@@ -35,6 +35,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     RemovalEfficiencyMethod,
     InfrastructureTiming,
     infrastructure_timing,
+    SubsurfaceRisk,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -163,6 +164,14 @@ def build_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -193,7 +202,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -216,7 +225,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -239,7 +248,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -262,7 +271,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -469,6 +478,14 @@ def build_reduced_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -625,7 +642,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -649,7 +666,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -673,7 +690,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -697,7 +714,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
     )
     assert degrees_of_freedom(m) == 103331
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -973,6 +990,14 @@ def build_modified_reduced_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1194,6 +1219,14 @@ def test_strategic_model_UI_display_units():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1310,6 +1343,14 @@ def build_toy_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1339,7 +1380,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 7237
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1482,6 +1523,14 @@ def build_permian_demo_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1513,7 +1562,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
     )
     assert degrees_of_freedom(m) == 20955
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1709,6 +1758,14 @@ def build_workshop_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1738,7 +1795,7 @@ def test_workshop_build(build_workshop_strategic_model):
     )
     assert degrees_of_freedom(m) == 3973
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 9
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1774,5 +1831,65 @@ def test_run_workshop_model(build_workshop_strategic_model):
     assert results.solver.status == pyo.SolverStatus.ok
     assert degrees_of_freedom(m) == 3851
     assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
+    with nostdout():
+        assert is_feasible(m)
+
+
+@pytest.mark.unit
+def test_subsurface_risk_build(build_toy_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.subsurface_risk,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.false,
+            "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
+        }
+    )
+    assert degrees_of_freedom(m) == 7237
+    assert len(m.config) == 9
+    assert m.do_subsurface_risk_calcs
+    assert m.config.objective
+    assert isinstance(m.v_Z_SubsurfaceRisk, pyo.Var)
+    assert isinstance(m.ObjectiveFunctionSubsurfaceRisk, pyo.Constraint)
+    assert isinstance(m.ExcludeRiskyDisposalWells, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_subsurface_risk_model(build_workshop_strategic_model):
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.subsurface_risk,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.false,
+            "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+    }
+
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 3851
+    assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z_SubsurfaceRisk)
     with nostdout():
         assert is_feasible(m)

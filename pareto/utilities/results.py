@@ -480,7 +480,10 @@ def generate_report(
                     from_units=model.p_delta_Treatment.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and i[0] in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[i[0]]
                     build_start = model.infrastructure_buildStart[i[0]]
                     lead_time = model.infrastructure_leadTime[i[0]]
@@ -526,7 +529,10 @@ def generate_report(
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and disposal_site in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[disposal_site]
                     build_start = model.infrastructure_buildStart[disposal_site]
                     lead_time = model.infrastructure_leadTime[disposal_site]
@@ -569,7 +575,10 @@ def generate_report(
                     from_units=model.p_delta_Storage.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and i[0] in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[i[0]]
                     build_start = model.infrastructure_buildStart[i[0]]
                     lead_time = model.infrastructure_leadTime[i[0]]
@@ -616,7 +625,10 @@ def generate_report(
                     from_units=capacity_variable.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and (i[0], i[1]) in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[(i[0], i[1])]
                     build_start = model.infrastructure_buildStart[(i[0], i[1])]
                     lead_time = model.infrastructure_leadTime[(i[0], i[1])]
@@ -1075,7 +1087,10 @@ def generate_report(
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
-        units_true = variable.get_units() is not None
+        units_true = (
+            variable.get_units() is not None
+            and variable.get_units().to_string() != "dimensionless"
+        )
         # If units are used, determine what the display units should be based off user input
         if units_true:
             from_unit_string = variable.get_units().to_string()
@@ -1097,8 +1112,6 @@ def generate_report(
                 )
                 headers[str(variable.name) + "_dict"][0] = tuple(header)
 
-        elif variable.get_units() is not None:
-            to_unit = variable.get_units()
         else:
             to_unit = None
         if variable._data is not None:
