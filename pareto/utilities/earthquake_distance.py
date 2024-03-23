@@ -14,7 +14,8 @@
 import urllib.request
 import urllib.error
 import json
-import datetime
+import re
+from datetime import datetime
 import pyproj
 
 # API documentation: https://earthquake.usgs.gov/fdsnws/event/1/
@@ -76,15 +77,40 @@ texnet_api_url = (
     + ""
 )
 mi_per_m = 0.000621371  # mi/m
+date_re = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 geod = pyproj.Geod(ellps="WGS84")
 
 
+def convert_date_to_timestamp(date):
+    if date:
+        if date_re.match(date):
+            date_ts = datetime.strptime(date, "%Y-%m-%d").timestamp()
+        else:
+            raise "date must be in YYYY-MM-DD"
+    else:
+        date_ts = None
+    return date_ts
+
+
 def calculate_earthquake_distances(
-    swd_latlons, api="usgs", max_radius_mi=5.59, min_magnitude=3
+    swd_latlons,
+    api="usgs",
+    max_radius_mi=5.59,
+    min_magnitude=3,
+    min_date=None,
+    max_date=None,
 ):
     # swd_latlons is a list of dicts with id, lat, and lon
     if api not in ("usgs", "texnet"):
         raise "api must be either usgs or texnet"
+
+    min_date_ts = convert_date_to_timestamp(min_date)
+    max_date_ts = convert_date_to_timestamp(max_date)
+    if max_date_ts:
+        max_date_ts += 24 * 60 * 60  # max date 24:00:00
+
+    if min_date_ts and max_date_ts and min_date_ts > max_date_ts:
+        raise "min_date must be earlier than or equal to max_date"
 
     earthquake_distances = []
 
@@ -119,12 +145,16 @@ def calculate_earthquake_distances(
             props = feat["properties"]
             coords = feat["geometry"]["coordinates"]
 
+            time_ts = (props["time"] if api == "usgs" else props["Event_Date"]) / 1000
+            if (min_date_ts and time_ts < min_date_ts) or (
+                max_date_ts and time_ts > max_date_ts
+            ):
+                continue
+
+            time = datetime.fromtimestamp(time_ts).strftime("%Y-%m-%d %H:%M:%S")
             lat = coords[1]
             lon = coords[0]
             mag = props["mag"] if api == "usgs" else props["Magnitude"]
-            time = datetime.datetime.fromtimestamp(
-                (props["time"] if api == "usgs" else props["Event_Date"]) / 1000
-            ).strftime("%Y-%m-%d %H:%M:%S")
             dist_mi = geod.line_length([swd_lon, lon], [swd_lat, lat]) * mi_per_m
             earthquake_distances.append(
                 {
@@ -150,4 +180,19 @@ if __name__ == "__main__":
     print("# TexNet API\n", json.dumps(earthquake_distances, indent=1))
 
     earthquake_distances = calculate_earthquake_distances(swd_latlons)
+    print("# USGS API\n", json.dumps(earthquake_distances, indent=1))
+
+    earthquake_distances = calculate_earthquake_distances(
+        swd_latlons, min_date="2024-03-20"
+    )
+    print("# USGS API\n", json.dumps(earthquake_distances, indent=1))
+
+    earthquake_distances = calculate_earthquake_distances(
+        swd_latlons, max_date="2024-03-20"
+    )
+    print("# USGS API\n", json.dumps(earthquake_distances, indent=1))
+
+    earthquake_distances = calculate_earthquake_distances(
+        swd_latlons, min_date="2024-03-23", max_date="2024-03-23"
+    )
     print("# USGS API\n", json.dumps(earthquake_distances, indent=1))
