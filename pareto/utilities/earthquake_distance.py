@@ -17,8 +17,7 @@ import json
 import datetime
 import pyproj
 
-geod = pyproj.Geod(ellps="WGS84")
-mi_per_m = 0.000621371  # mi/m
+# API documentation: https://earthquake.usgs.gov/fdsnws/event/1/
 usgs_api_url = (
     "https://earthquake.usgs.gov/fdsnws/event/1/query"
     + "?format=geojson"
@@ -28,6 +27,11 @@ usgs_api_url = (
     + "&minmagnitude={min_magnitude}"
     + ""
 )
+# API documentation: https://www.beg.utexas.edu/texnet-cisr/texnet/earthquake-catalog/ =>
+# Important Information =>
+# Frequently Asked Questions =>
+# Is there a RESTful API that I can use to access these data?
+# https://maps.texnet.beg.utexas.edu/arcgis/rest/services/catalog/catalog_all/MapServer
 texnet_api_url = (
     "https://maps.texnet.beg.utexas.edu/arcgis/rest/services/catalog/catalog_all/MapServer/0/query"
     + "?f=geojson"
@@ -71,6 +75,8 @@ texnet_api_url = (
     + "&featureEncoding=esriDefault"
     + ""
 )
+mi_per_m = 0.000621371  # mi/m
+geod = pyproj.Geod(ellps="WGS84")
 
 
 def calculate_earthquake_distances(
