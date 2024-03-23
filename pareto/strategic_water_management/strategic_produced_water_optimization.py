@@ -5073,7 +5073,7 @@ def discretize_water_quality(df_parameters, df_sets, discrete_qualities) -> dict
         for i, value in enumerate(
             np.linspace(min_quality, max_quality, len(discrete_qualities))
         ):
-            discrete_quality[(quality_component, discrete_qualities[i])] = value
+            discrete_quality[(quality_component, discrete_qualities[i])] = float(value)
     return discrete_quality
 
 
