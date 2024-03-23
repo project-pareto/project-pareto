@@ -11,12 +11,15 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
+import os
+import re
+import json
+import csv
+import pandas as pd
+import pyproj
 import urllib.request
 import urllib.error
-import json
-import re
 from datetime import datetime
-import pyproj
 
 # API documentation: https://earthquake.usgs.gov/fdsnws/event/1/
 usgs_api_url = (
@@ -78,6 +81,7 @@ texnet_api_url = (
 )
 mi_per_m = 0.000621371  # mi/m
 date_re = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+save_re = re.compile("^.*\.(csv|xlsx)$", re.IGNORECASE)
 geod = pyproj.Geod(ellps="WGS84")
 
 
@@ -99,6 +103,8 @@ def calculate_earthquake_distances(
     min_magnitude=3,
     min_date=None,
     max_date=None,
+    save=None,
+    overwrite=False,
 ):
     # swd_latlons is a list of dicts with id, lat, and lon
     if api not in ("usgs", "texnet"):
@@ -112,7 +118,19 @@ def calculate_earthquake_distances(
     if min_date_ts and max_date_ts and min_date_ts > max_date_ts:
         raise "min_date must be earlier than or equal to max_date"
 
+    if save:
+        m = save_re.match(save)
+        if not m:
+            raise "save must be in *.csv or *.xlsx"
+        fmt = m[1].lower()
+        if not overwrite and os.path.exists(save):
+            raise f"{save} already exists"
+    else:
+        fmt = None
+
     earthquake_distances = []
+
+    keys = ("swd_id", "eq_id", "time", "distance_mi", "magnitude")
 
     for swd_latlon in swd_latlons:
         swd_id = swd_latlon["id"]
@@ -158,13 +176,22 @@ def calculate_earthquake_distances(
             dist_mi = geod.line_length([swd_lon, lon], [swd_lat, lat]) * mi_per_m
             earthquake_distances.append(
                 {
-                    "swd_id": swd_id,
-                    "eq_id": eq_id,
-                    "time": time,
-                    "distance_mi": dist_mi,
-                    "magnitude": mag,
+                    keys[0]: swd_id,
+                    keys[1]: eq_id,
+                    keys[2]: time,
+                    keys[3]: dist_mi,
+                    keys[4]: mag,
                 }
             )
+
+    if fmt == "csv":
+        with open(save, "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(keys)
+            for row in earthquake_distances:
+                writer.writerow(row.values())
+    elif fmt == "xlsx":
+        pd.DataFrame(earthquake_distances).to_excel(save, index=None)
 
     return earthquake_distances
 
@@ -176,7 +203,12 @@ if __name__ == "__main__":
         {"id": 2, "lat": 31.682, "lon": -104.401},
     ]
 
-    earthquake_distances = calculate_earthquake_distances(swd_latlons, "texnet")
+    calculate_earthquake_distances(
+        swd_latlons, "texnet", save="eq_dist_texnet_results.csv", overwrite=True
+    )
+    earthquake_distances = calculate_earthquake_distances(
+        swd_latlons, "texnet", save="eq_dist_texnet_results.xlsx", overwrite=True
+    )
     print("# TexNet API\n", json.dumps(earthquake_distances, indent=1))
 
     earthquake_distances = calculate_earthquake_distances(swd_latlons)
