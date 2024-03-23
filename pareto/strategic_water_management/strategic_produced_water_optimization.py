@@ -47,7 +47,12 @@ from enum import Enum, IntEnum
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 
-from pareto.utilities.process_data import get_valid_piping_arc_list, get_valid_trucking_arc_list, check_required_data
+from pareto.utilities.process_data import (
+    get_valid_piping_arc_list,
+    get_valid_trucking_arc_list,
+    check_required_data,
+)
+
 
 class Objectives(Enum):
     cost = 0
@@ -214,6 +219,7 @@ CONFIG.declare(
         }""",
     ),
 )
+
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()

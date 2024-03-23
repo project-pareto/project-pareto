@@ -21,7 +21,10 @@ Authors: PARETO Team
 """
 # Imports
 import warnings
-from pareto.utilities.get_data import get_valid_input_set_tab_names, get_valid_input_parameter_tab_names
+from pareto.utilities.get_data import (
+    get_valid_input_set_tab_names,
+    get_valid_input_parameter_tab_names,
+)
 
 # Returns a list of all valid trucking arcs.
 def get_valid_trucking_arc_list():
@@ -43,6 +46,7 @@ def get_valid_trucking_arc_list():
         "RST",
         "ROT",
     ]
+
 
 # Returns a list of all valid trucking arcs.
 def get_valid_piping_arc_list():
@@ -71,6 +75,7 @@ def get_valid_piping_arc_list():
         "ROA",
     ]
 
+
 # Process the input data (df_sets, df_parameters) from get_data.py.
 # Raise errors and warnings for missing data and infeasibilities.
 def check_required_data(df_sets, df_parameters, config):
@@ -82,6 +87,7 @@ def check_required_data(df_sets, df_parameters, config):
         PipelineCapacity,
         InfrastructureTiming,
     )
+
     # Create a list to hold all missing data that causes an error
     data_error_items = []
 
@@ -170,7 +176,11 @@ def check_required_data(df_sets, df_parameters, config):
             PipelineCost.capacity_based: [],
         },
         config_required_params={
-            PipelineCost.distance_based: ["PipelineCapexDistanceBased", "PipelineExpansionDistance", "PipelineDiameterValues"],
+            PipelineCost.distance_based: [
+                "PipelineCapexDistanceBased",
+                "PipelineExpansionDistance",
+                "PipelineDiameterValues",
+            ],
             PipelineCost.capacity_based: ["PipelineCapexCapacityBased"],
         },
     )
@@ -228,15 +238,18 @@ def check_required_data(df_sets, df_parameters, config):
     # If post_process of discrete water quality modules are selected config option,
     # Additional data may be needed, depending on what node types are used in the system
     # For example, If external water sources are used, external water quality is needed.
-    if config.water_quality is WaterQuality.discrete or config.water_quality is WaterQuality.post_process:
+    if (
+        config.water_quality is WaterQuality.discrete
+        or config.water_quality is WaterQuality.post_process
+    ):
         # Check if storage sites are given. If so, check for storage initial water quality.
         (df_sets, df_parameters) = _check_optional_data(
             df_sets,
             df_parameters,
-            optional_set_name = "StorageSites",
-            required_sets_with_option = {},
-            required_parameters_with_option = {"StorageInitialWaterQuality"},
-            requires_at_least_one = [],
+            optional_set_name="StorageSites",
+            required_sets_with_option={},
+            required_parameters_with_option={"StorageInitialWaterQuality"},
+            requires_at_least_one=[],
         )
         # Check if external water sources are given. If so, check for external water source quality.
         (df_sets, df_parameters) = _check_optional_data(
@@ -317,7 +330,6 @@ def check_required_data(df_sets, df_parameters, config):
                 requires_at_least_one=[],
             )
 
-
     # If there are config errors to raise, raise them.
     if len(data_error_items) > 0:
         error_message = ", ".join(data_error_items)
@@ -328,7 +340,6 @@ def check_required_data(df_sets, df_parameters, config):
 
     # Optional Data: If data is not given, create empty dictionaries and raise a warning to the user
 
-
     # CompletionsPads. If given, check for additional data required to consider CompletionsPads in the model.
     # Call check optional function. This returns modified df_sets and df_parameters that
     # includes empty dictionaries for missing data, so the parameters can be defined without error
@@ -338,7 +349,12 @@ def check_required_data(df_sets, df_parameters, config):
         df_parameters,
         optional_set_name="CompletionsPads",
         required_sets_with_option={},
-        required_parameters_with_option={"CompletionsDemand", "FlowbackRates", "CompletionsPadOutsideSystem", "PadOffloadingCapacity"},
+        required_parameters_with_option={
+            "CompletionsDemand",
+            "FlowbackRates",
+            "CompletionsPadOutsideSystem",
+            "PadOffloadingCapacity",
+        },
         requires_at_least_one=[
             [
                 "CNA",
@@ -348,7 +364,18 @@ def check_required_data(df_sets, df_parameters, config):
                 "CKT",
                 "CRT",
             ],  # arc to remove flowback water
-            ["NCA", "FCA", "RCA", "PCA", "CCA", "SCA", "FCT", "PCT", "CCT", "SCT"],  # arc to meet completions demand
+            [
+                "NCA",
+                "FCA",
+                "RCA",
+                "PCA",
+                "CCA",
+                "SCA",
+                "FCT",
+                "PCT",
+                "CCT",
+                "SCT",
+            ],  # arc to meet completions demand
         ],
     )
 
@@ -359,7 +386,7 @@ def check_required_data(df_sets, df_parameters, config):
         optional_set_name="ProductionPads",
         required_sets_with_option={},
         required_parameters_with_option={"PadRates"},
-        requires_at_least_one=[["PNA", "PCT", "PKT"]]
+        requires_at_least_one=[["PNA", "PCT", "PKT"]],
     )
 
     # SWDs
@@ -368,8 +395,13 @@ def check_required_data(df_sets, df_parameters, config):
         df_parameters,
         optional_set_name="SWDSites",
         required_sets_with_option={},
-        required_parameters_with_option={"InitialDisposalCapacity", "DisposalOperationalCost", "DisposalOperatingCapacity", "CompletionsPadStorage"},
-        requires_at_least_one=[["NKA", "RKA", "PKT", "RKT"]]
+        required_parameters_with_option={
+            "InitialDisposalCapacity",
+            "DisposalOperationalCost",
+            "DisposalOperatingCapacity",
+            "CompletionsPadStorage",
+        },
+        requires_at_least_one=[["NKA", "RKA", "PKT", "RKT"]],
     )
 
     # Treatment Sites.
@@ -384,11 +416,9 @@ def check_required_data(df_sets, df_parameters, config):
             "DesalinationTechnologies",
             "DesalinationSites",
             "TreatmentEfficiency",
-            "RemovalEfficiency"
+            "RemovalEfficiency",
         },
-        requires_at_least_one=[
-            ["RNA", "RSA", "RKA", "ROA", "RCA", "RST", "RKT"]
-        ]
+        requires_at_least_one=[["RNA", "RSA", "RKA", "ROA", "RCA", "RST", "RKT"]],
     )
 
     # Beneficial Reuse
@@ -404,27 +434,34 @@ def check_required_data(df_sets, df_parameters, config):
             "ReuseCapacity",
             "ReuseOperationalCost",
         },
-        requires_at_least_one=[["ROA", "SOA", "NOA", "ROT", "SOT"]]
+        requires_at_least_one=[["ROA", "SOA", "NOA", "ROT", "SOT"]],
     )
 
     # StorageSites
     (df_sets, df_parameters) = _check_optional_data(
         df_sets,
         df_parameters,
-        optional_set_name= "StorageSites",
+        optional_set_name="StorageSites",
         required_sets_with_option={},
-        required_parameters_with_option={"InitialStorageCapacity",},
-        requires_at_least_one=[["SOA", "SOT", "SNA", "SCA"], ["RSA"]]
+        required_parameters_with_option={
+            "InitialStorageCapacity",
+        },
+        requires_at_least_one=[["SOA", "SOT", "SNA", "SCA"], ["RSA"]],
     )
 
     # FreshwaterSources
     (df_sets, df_parameters) = _check_optional_data(
         df_sets,
         df_parameters,
-        optional_set_name= "ExternalWaterSources",
+        optional_set_name="ExternalWaterSources",
         required_sets_with_option={},
-        required_parameters_with_option={"ExtWaterSourcingAvailability", "ExternalSourcingCost"},
-        requires_at_least_one=[["FCA", "FCT"],]
+        required_parameters_with_option={
+            "ExtWaterSourcingAvailability",
+            "ExternalSourcingCost",
+        },
+        requires_at_least_one=[
+            ["FCA", "FCT"],
+        ],
     )
 
     # NetworkNodes
@@ -442,39 +479,39 @@ def check_required_data(df_sets, df_parameters, config):
     (df_sets, df_parameters) = _check_optional_data(
         df_sets,
         df_parameters,
-        optional_set_name= "TreatmentCapacities",
+        optional_set_name="TreatmentCapacities",
         required_sets_with_option={},
         required_parameters_with_option={
             "TreatmentExpansionCost",
             "TreatmentCapacityIncrements",
         },
-        requires_at_least_one=[]
+        requires_at_least_one=[],
     )
 
     # Disposal Capacity Expansion
     (df_sets, df_parameters) = _check_optional_data(
         df_sets,
         df_parameters,
-        optional_set_name= "InjectionCapacities",
+        optional_set_name="InjectionCapacities",
         required_sets_with_option={},
         required_parameters_with_option={
             "DisposalExpansionCost",
             "DisposalCapacityIncrements",
         },
-        requires_at_least_one=[]
+        requires_at_least_one=[],
     )
 
     # Storage Capacity Expansion
     (df_sets, df_parameters) = _check_optional_data(
         df_sets,
         df_parameters,
-        optional_set_name= "StorageCapacities",
+        optional_set_name="StorageCapacities",
         required_sets_with_option={},
         required_parameters_with_option={
             "StorageExpansionCost",
             "StorageCapacityIncrements",
         },
-        requires_at_least_one=[]
+        requires_at_least_one=[],
     )
 
     # Trucking is optional, but if trucking arcs are included, relevant parameters are required
@@ -488,11 +525,11 @@ def check_required_data(df_sets, df_parameters, config):
             # Add empty dictionary to df_parameters
             for s in missing_trucking_data:
                 df_parameters[s] = {}
-            warning_message = "Warning: Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:" + str(
-                missing_trucking_data
+            warning_message = (
+                "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:"
+                + str(missing_trucking_data)
             )
             warnings.warn(warning_message)
-
 
     # Set Default Data
     # Iterate through all expected input. For all input left without data, fill with empty dictionary or default data.
@@ -510,7 +547,7 @@ def check_required_data(df_sets, df_parameters, config):
     # Most default values are defined at the parameter definition. Some input data is not directly
     # associated with a parameter (e.g. "Economics")
     default_values = {
-        "Economics":{'discount_rate': 0.08, 'CAPEX_lifetime': 20.0},
+        "Economics": {"discount_rate": 0.08, "CAPEX_lifetime": 20.0},
     }
     for input_tab in default_values.keys():
         if input_tab not in df_parameters.keys():
@@ -525,8 +562,9 @@ def check_required_data(df_sets, df_parameters, config):
             default_used.append(param_tab)
     # Raise warning for default values
     if len(default_used) > 0:
-        warning_message = f"The following parameters were missing and default values were substituted:" + str(
-            default_used
+        warning_message = (
+            f"The following parameters were missing and default values were substituted:"
+            + str(default_used)
         )
         warnings.warn(warning_message)
     return (df_sets, df_parameters)
@@ -541,16 +579,16 @@ class MissingDataError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-# TODO: Add datatypes to each input, add better comments
+
 # Helper function to check for data that is expected if an optional set
 # (e.g. node type like "ReuseOptions") is given
 def _check_optional_data(
     df_sets,
     df_parameters,
-    optional_set_name, # e.g., "ReuseOptions"
-    required_sets_with_option, # []
-    required_parameters_with_option, # ["BeneficialReuseCost","BeneficialReuseCredit"]
-    requires_at_least_one=[], # ["ROA", "SOA", "NOA", "ROT", "SOT"]
+    optional_set_name,  # e.g., "ReuseOptions"
+    required_sets_with_option,  # []
+    required_parameters_with_option,  # ["BeneficialReuseCost","BeneficialReuseCredit"]
+    requires_at_least_one=[],  # ["ROA", "SOA", "NOA", "ROT", "SOT"]
 ):
     # create set object for df_sets and df_parameters for simpler list comparison
     _df_sets_set = set(df_sets)
@@ -562,50 +600,54 @@ def _check_optional_data(
         _missing_parameters = set(required_parameters_with_option) - _df_parameters_set
         _missing_sets = set(required_sets_with_option) - _df_sets_set
         # For each missing parameter, add an empty dictionary to df_parameters and raise a warning
-        if len(_missing_parameters) > 0:
+        if len(_missing_parameters) > 0 or len(_missing_sets) > 0:
             for param in _missing_parameters:
                 df_parameters[param] = {}
-            warning_message = f"Warning: {optional_set_name} are given, but {optional_set_name} Parameter data is missing. The following parameters have been assumed empty:" + str(
-                _missing_parameters
-            )
-            warnings.warn(warning_message)
-        # For each missing set, add an empty dictionary to df_set and raise a warning
-        if len(_missing_sets) > 0:
             for s in _missing_sets:
                 df_sets[s] = {}
-            warning_message = f"Warning: {optional_set_name} are given, but other {optional_set_name} Set data is missing. The following set has been assumed to be empty:" + str(
-                _missing_sets
+            _missing_tabs = _missing_sets
+            _missing_tabs.update(_missing_parameters)
+            warning_message = (
+                f"{optional_set_name} are given, but {optional_set_name} data is missing. The following tabs have been assumed empty:"
+                + str(_missing_tabs)
             )
             warnings.warn(warning_message)
         # For each group in requires_at_least_one, check that at least one parameter exists in the input
         for requires_list in requires_at_least_one:
             _included_params = set(requires_list) & _df_parameters_set
             if len(_included_params) < 1:
-                warning_message = f"Warning: {optional_set_name} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:" + str(
-                    requires_list
+                warning_message = (
+                    f"{optional_set_name} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:"
+                    + str(requires_list)
                 )
                 warnings.warn(warning_message)
+            # Check missing sets, add empty sets
+            for param in requires_list:
+                if param not in df_parameters:
+                    df_parameters[param] = {}
 
     # If the optional_set_name is missing from the input and required data dependent on it is included
     # (e.g. "SWDSites" is missing, but "DisposalOperationalCost" is included), raise a warning
-    _input_parameters_dependent_on_optional_set = set(required_parameters_with_option) & _df_parameters_set
+    _input_parameters_dependent_on_optional_set = (
+        set(required_parameters_with_option) & _df_parameters_set
+    )
     if optional_set_name not in df_sets and (
         len(_input_parameters_dependent_on_optional_set) > 0
     ):
         raise MissingDataError(
-            f'Essential data is incomplete. Parameter data for {optional_set_name} is given, but the "{optional_set_name}" Set is missing. Please add and complete the following tab(s): {optional_set_name}, or remove the following Parameters:' + str(
-                _input_parameters_dependent_on_optional_set
-            )
+            f'Essential data is incomplete. Parameter data for {optional_set_name} is given, but the "{optional_set_name}" Set is missing. Please add and complete the following tab(s): {optional_set_name}, or remove the following Parameters:'
+            + str(_input_parameters_dependent_on_optional_set)
         )
     return (df_sets, df_parameters)
+
 
 # Helper function for checking set and parameter data that is dependent on configuration options
 def _check_config_dependent_data(
     df_sets,
     df_parameters,
-    config_argument,    # e.g., "Hydraulics"
+    config_argument,  # e.g., "Hydraulics"
     config_required_sets,  # {config option 1: [set1, set2], config option 2: []}
-    config_required_params, # {config option 1: [param1], config option 2: [param2]}
+    config_required_params,  # {config option 1: [param1], config option 2: [param2]}
 ):
     # Error message
     error_message = []
@@ -617,19 +659,15 @@ def _check_config_dependent_data(
     required_sets = set(config_required_sets[config_argument])
     _missing_sets = required_sets - _df_sets_set
 
-    if len(_missing_sets) > 0:
-        error_message.append(
-            f"The config option {config_argument} has been selected. The following sets are required for this option and are missing:"
-            + str(_missing_sets)
-        )
-
     required_params = set(config_required_params[config_argument])
     _missing_params = required_params - _df_params_set
 
-    if len(_missing_params) > 0:
+    if len(_missing_params) > 0 or len(_missing_sets) > 0:
+        _missing_tabs = _missing_sets
+        _missing_tabs.update(_missing_params)
         error_message.append(
-            f"The config option {config_argument} has been selected. The following parameters are required for this option and are missing:"
-            + str(_missing_params)
+            f"The following inputs are missing and required for the selected config option {config_argument}:"
+            + str(_missing_tabs)
         )
 
     return error_message
