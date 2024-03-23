@@ -19,8 +19,6 @@ import pyproj
 
 geod = pyproj.Geod(ellps="WGS84")
 mi_per_m = 0.000621371  # mi/m
-max_radius_mi = 5.59
-min_magnitude = 3
 usgs_api_url = (
     "https://earthquake.usgs.gov/fdsnws/event/1/query"
     + "?format=geojson"
@@ -75,7 +73,7 @@ texnet_api_url = (
 )
 
 
-def calculate_earthquake_distances(swd_latlons, api="usgs"):
+def calculate_earthquake_distances(swd_latlons, api="usgs", max_radius_mi=5.59, min_magnitude=3):
     # swd_latlons is a list of dicts with id, lat, and lon
     if api not in ("usgs", "texnet"):
         raise "api must be either usgs or texnet"
