@@ -203,7 +203,7 @@ if __name__ == "__main__":
         {"id": 2, "lat": 31.682, "lon": -104.401},
     ]
 
-    calculate_earthquake_distances(
+    earthquake_distances = calculate_earthquake_distances(
         swd_latlons, "texnet", save="eq_dist_texnet_results.csv", overwrite=True
     )
     earthquake_distances = calculate_earthquake_distances(
