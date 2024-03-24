@@ -22,14 +22,15 @@ Calculate Earthquake Distances
 
 This method uses the `API <https://earthquake.usgs.gov/fdsnws/event/1/>` of the USGS `Earthquake Hazards Program <https://www.usgs.gov/programs/earthquake-hazards>` and the `RESTful API <https://maps.texnet.beg.utexas.edu/arcgis/rest/services/catalog/catalog_all/MapServer/0/>` of the `TexNet Earthquake Catalog <https://www.beg.utexas.edu/texnet-cisr/texnet/earthquake-catalog/>` to collect earthquake data and calculate distances from input saltwater disposal (SWD) well coordinates.
 The method accepts the following input arguments:
+
 - swd_latlons:
     REQUIRED. Defines a list of dictionaries with a SWD well ID (id), its decimal latitude (lat) and longitude (lon).
-    For example,
+    For example,::
 
-    [
-        {"id": 1, "lat": 32.262, "lon": -101.931},
-        {"id": 2, "lat": 31.682, "lon": -104.401},
-    ]
+     [
+         {"id": 1, "lat": 32.262, "lon": -101.931},
+         {"id": 2, "lat": 31.682, "lon": -104.401},
+     ]
 
     The SWD well IDs will be reported in the output list.
 
