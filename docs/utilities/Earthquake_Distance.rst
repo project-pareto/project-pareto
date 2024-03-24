@@ -20,7 +20,7 @@ Calculate Earthquake Distances
 
 **Method Description:**
 
-This method uses the `API <https://earthquake.usgs.gov/fdsnws/event/1/>` of the USGS `Earthquake Hazards Program <https://www.usgs.gov/programs/earthquake-hazards>` and the `RESTful API <https://maps.texnet.beg.utexas.edu/arcgis/rest/services/catalog/catalog_all/MapServer/0/>` of the `TexNet Earthquake Catalog <https://www.beg.utexas.edu/texnet-cisr/texnet/earthquake-catalog/>` to collect earthquake data and calculate distances from input saltwater disposal (SWD) well coordinates.
+This method uses the `API <https://earthquake.usgs.gov/fdsnws/event/1/>`_ of the USGS `Earthquake Hazards Program <https://www.usgs.gov/programs/earthquake-hazards>`_ and the `RESTful API <https://maps.texnet.beg.utexas.edu/arcgis/rest/services/catalog/catalog_all/MapServer/0/>`_ of the `TexNet Earthquake Catalog <https://www.beg.utexas.edu/texnet-cisr/texnet/earthquake-catalog/>`_ to collect earthquake data and calculate distances from input saltwater disposal (SWD) well coordinates.
 The method accepts the following input arguments:
 
 - swd_latlons:
