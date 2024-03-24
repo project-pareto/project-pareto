@@ -51,6 +51,7 @@ from pareto.utilities.process_data import (
     get_valid_piping_arc_list,
     get_valid_trucking_arc_list,
     check_required_data,
+    model_infeasibility_detection,
 )
 
 
@@ -3832,6 +3833,7 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
 
+    model = model_infeasibility_detection(model)
     return model
 
 

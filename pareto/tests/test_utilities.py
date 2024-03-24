@@ -39,7 +39,11 @@ from pareto.utilities.bounding_functions import VariableBounds
 from pareto.utilities.model_modifications import free_variables
 from pareto.utilities.model_modifications import deactivate_slacks
 from pareto.utilities.model_modifications import fix_vars
-from pareto.utilities.process_data import check_required_data, MissingDataError
+from pareto.utilities.process_data import (
+    check_required_data,
+    MissingDataError,
+    DataInfeasibilityError,
+)
 
 
 ############################
@@ -385,4 +389,70 @@ def test_data_check():
     assert (
         warning_record[3].message.args[0]
         == "The following parameters were missing and default values were substituted:['Economics']"
+    )
+
+
+############################
+def test_infeasibility_check():
+    # This emulates what the pyomo command-line tools does
+    # Check that DataInfeasibilityError is correctly raised for system capacity and demand infeasibilities
+    # This input sheet has a very high volume of flowback water in T01
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_infeasibility_capacity.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+    with pytest.raises(DataInfeasibilityError) as error_record:
+        config_dict = {
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+        # Model_infeasibility_detection() is called within create_model, after all constraints have been added
+        strategic_model = create_model(
+            df_sets,
+            df_parameters,
+            default=config_dict,
+        )
+
+    assert (
+        "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: T01 (700196 total koil_bbls PW)"
+        == str(error_record.value)
+    )
+
+    # This input sheet has a very high completions demand in T01
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_infeasibility_demand.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+    with pytest.raises(DataInfeasibilityError) as error_record:
+        config_dict = {
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+        # Model_infeasibility_detection() is called within create_model, after all constraints have been added
+        strategic_model = create_model(
+            df_sets,
+            df_parameters,
+            default=config_dict,
+        )
+
+    assert (
+        "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand)"
+        == str(error_record.value)
+        == str(error_record.value)
     )

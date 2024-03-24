@@ -25,6 +25,7 @@ from pareto.utilities.get_data import (
     get_valid_input_set_tab_names,
     get_valid_input_parameter_tab_names,
 )
+from pyomo.environ import Param, units as pyunits
 
 # Returns a list of all valid trucking arcs.
 def get_valid_trucking_arc_list():
@@ -570,12 +571,164 @@ def check_required_data(df_sets, df_parameters, config):
     return (df_sets, df_parameters)
 
 
-# TODO: Update
-# def model_infeasibility_detection():
-#
+def model_infeasibility_detection(strategic_model):
+    # check_required_data() performs basic feasibility checks:
+    # - at least one source node in the model
+    # - at least on sink node in the model
+    # - each source node has an outgoing arc, each sink node has an incoming arc, and all other nodes have both an incoming and an outgoing arc.
+
+    capacity_feasibility_message = []
+    demand_feasibility_message = []
+    # Checks that for each time period, the volume of produced water is below the maximum capacity limit of sink nodes
+    # Get the total system produced water for each time period (PadRates, FLowbackRates)
+    strategic_model.p_beta_TotalPW = Param(
+        strategic_model.s_T,
+        units=strategic_model.model_units["volume"],
+        doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+    )
+
+    # # Get the maximum capacity of sink nodes for each time period
+    # # Sink nodes: CompletionsDemand, (InitialDisposalCapacity + max(disposalCapacityIncrements)) * DisposalOperatingCapacity,
+    # # StorageEvaporation, ReuseCapacity, InitialStorageCapacity + Storage CapacityIncrements,
+    # (InitialTreatmentCapacity+TreatmentCapacityIncrements)*TreatmentResidual
+    strategic_model.p_sigma_MaxPWCapacity = Param(
+        strategic_model.s_T,
+        units=strategic_model.model_units["volume"],
+        doc="Combined produced water capacity in system [volume]",
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+    )
+
+    strategic_model.p_gamma_TimePeriodDemand = Param(
+        strategic_model.s_T,
+        units=strategic_model.model_units["volume"],
+        doc="Total water demand over the planning horizon [volume]",
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+    )
+
+    strategic_model.p_sigma_WaterAvailable = Param(
+        strategic_model.s_T,
+        units=strategic_model.model_units["volume"],
+        doc="Total PW and external water available [volume]",
+        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+    )
+
+    for t in strategic_model.s_T:
+        strategic_model.p_beta_TotalPW[t] = sum(
+            strategic_model.p_beta_Production[p, t]
+            + strategic_model.p_beta_Flowback[p, t]
+            for p in strategic_model.s_P
+        )
+
+        strategic_model.p_sigma_MaxPWCapacity[t] = (
+            sum(
+                strategic_model.p_gamma_Completions[p, t]
+                for p in strategic_model.s_P  # Completions Demand
+            )
+            + sum(
+                strategic_model.p_omega_EvaporationRate
+                for s in strategic_model.s_S  # Storage Evaporation
+            )
+            + sum(
+                strategic_model.p_sigma_BeneficialReuse[o, t]
+                if strategic_model.p_sigma_BeneficialReuse[o, t].value >= 0
+                else strategic_model.p_M_Flow
+                for o in strategic_model.s_O  # Beneficial Reuse (if user does not specific value, p_sigma_BeneficialReuse is -1)
+                # In this case, Beneficial Reuse at this site has no limit (big M parameter)
+            )
+            + sum(
+                strategic_model.p_sigma_Storage[s]
+                + _get_max_value_for_parameter(strategic_model.p_delta_Storage)
+                for s in strategic_model.s_S  # Storage
+            )
+            + sum(
+                (
+                    strategic_model.p_sigma_Disposal[k]
+                    + _get_max_value_for_parameter(strategic_model.p_delta_Disposal)
+                )
+                * strategic_model.p_epsilon_DisposalOperatingCapacity[k, t]
+                for k in strategic_model.s_K  # (Initial Disposal + max disposal) * operating capacity
+            )
+            + sum(
+                max(
+                    [
+                        (
+                            strategic_model.p_sigma_Treatment[r, wt].value
+                            + max(
+                                [
+                                    strategic_model.p_delta_Treatment[wt, j].value
+                                    for j in strategic_model.s_J
+                                ]
+                            )
+                        )
+                        * (1 - strategic_model.p_epsilon_Treatment[r, wt].value)
+                        for wt in strategic_model.s_WT
+                    ]
+                )
+                for r in strategic_model.s_R
+            )  # Treatment residual: for each treatment site - treatment technology that yields the
+            # maximum value for: (initial treatment + max treatment expansion) * treatment efficiency
+        )
+        # Note: if completions pad is outside system, demand is not required to be met
+        strategic_model.p_gamma_TimePeriodDemand[t] = sum(
+            strategic_model.p_gamma_Completions[cp, t]
+            * (1 - strategic_model.p_chi_OutsideCompletionsPad[cp])
+            for cp in strategic_model.s_CP
+        )
+
+        strategic_model.p_sigma_WaterAvailable[t] = strategic_model.p_beta_TotalPW[
+            t
+        ].value + sum(
+            strategic_model.p_sigma_ExternalWater[f, t] for f in strategic_model.s_F
+        )
+
+        # If volume of produced water is greater than capacity, raise an infeasibility error
+        if (
+            strategic_model.p_beta_TotalPW[t].value
+            > strategic_model.p_sigma_MaxPWCapacity[t].value
+        ):
+            capacity_feasibility_message.append(
+                f"{t} ({round(strategic_model.p_beta_TotalPW[t].value)} total {pyunits.get_units(strategic_model.p_beta_TotalPW[t])}s PW)"
+            )
+
+        # If completions demand is greater than combined water in system and external water available, raise an infeasibility error
+        if (
+            strategic_model.p_gamma_TimePeriodDemand[t].value
+            > strategic_model.p_sigma_WaterAvailable[t].value
+        ):
+            demand_feasibility_message.append(
+                f"{t} ({round(strategic_model.p_gamma_TimePeriodDemand[t].value)} {pyunits.get_units(strategic_model.p_gamma_TimePeriodDemand)}s demand)"
+            )
+
+    if len(capacity_feasibility_message) > 0:
+        error_message = ", ".join(capacity_feasibility_message)
+        raise DataInfeasibilityError(
+            "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: "
+            + error_message
+        )
+
+    if len(demand_feasibility_message) > 0:
+        error_message = ", ".join(demand_feasibility_message)
+        raise DataInfeasibilityError(
+            "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: "
+            + error_message
+        )
+
+    return strategic_model
+
+
+def _get_max_value_for_parameter(parameter):
+    return max([x.value for x in parameter.values()])
+
 
 # Custom error for Missing Data.
 class MissingDataError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+# Custom error for Data Infeasibility
+class DataInfeasibilityError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
