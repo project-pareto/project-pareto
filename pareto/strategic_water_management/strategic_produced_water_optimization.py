@@ -17,7 +17,7 @@ import math
 from cmath import nan
 import numpy as np
 import os
-import pandas as pd
+
 from pyomo.environ import (
     Var,
     Param,
@@ -41,12 +41,18 @@ from pyomo.environ import (
 from pyomo.core.base.constraint import simple_constraint_rule
 from pyomo.core.expr.current import identify_variables
 
-# from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
+
+from pareto.utilities.process_data import (
+    get_valid_piping_arc_list,
+    get_valid_trucking_arc_list,
+    check_required_data,
+    model_infeasibility_detection,
+)
 
 
 class Objectives(Enum):
@@ -161,6 +167,7 @@ CONFIG.declare(
     ),
 )
 
+
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -223,6 +230,11 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
+
+    # check that input data contains required data
+    model.df_sets, model.df_parameters = check_required_data(
+        model.df_sets, model.df_parameters, model.config
+    )
 
     try:
         # Check that currency is set to USD
@@ -424,30 +436,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
 
-    piping_arc_types = [
-        "PCA",
-        "PNA",
-        "PPA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NSA",
-        "NRA",
-        "NOA",
-        "FCA",
-        "RNA",
-        "RCA",
-        "RKA",
-        "RSA",
-        "SNA",
-        "SCA",
-        "SKA",
-        "SRA",
-        "SOA",
-        "ROA",
-    ]
+    piping_arc_types = get_valid_piping_arc_list()
 
     # Build dictionary of all specified piping arcs
     model.df_parameters["LLA"] = {}
@@ -458,24 +447,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
 
-    trucking_arc_types = [
-        "PCT",
-        "PKT",
-        "PST",
-        "PRT",
-        "POT",
-        "FCT",
-        "CKT",
-        "CST",
-        "CRT",
-        "CCT",
-        "SCT",
-        "SKT",
-        "SOT",
-        "RKT",
-        "RST",
-        "ROT",
-    ]
+    trucking_arc_types = get_valid_trucking_arc_list()
 
     # Build dictionary of all specified trucking arcs
     model.df_parameters["LLT"] = {}
@@ -804,6 +776,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        default=0,
         doc="Binary parameter designating the Completion Pads that are outside the system",
     )
     model.p_chi_DesalinationTechnology = Param(
@@ -2255,7 +2228,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_epsilon_DisposalOperatingCapacity = Param(
         model.s_K,
         model.s_T,
-        default=0,
+        default=1,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Operating capacity of disposal site [%]",
@@ -2446,7 +2419,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -3861,6 +3833,7 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
 
+    model = model_infeasibility_detection(model)
     return model
 
 
@@ -5108,7 +5081,7 @@ def discretize_water_quality(df_parameters, df_sets, discrete_qualities) -> dict
         for i, value in enumerate(
             np.linspace(min_quality, max_quality, len(discrete_qualities))
         ):
-            discrete_quality[(quality_component, discrete_qualities[i])] = value
+            discrete_quality[(quality_component, discrete_qualities[i])] = float(value)
     return discrete_quality
 
 
@@ -5357,7 +5330,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5394,7 +5366,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6399,7 +6370,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
