@@ -14,7 +14,6 @@ from importlib import resources
 from pareto.utilities.get_data import get_data
 from pareto.utilities.decomp_utils import solve_MILP, build_MIQCP
 from pareto.utilities.miqcp_decomposition import integer_cut_decomposition
-from pareto.utilities.cm_utils.run_utils import print_results_summary
 from pareto.utilities.results import (
     generate_report,
     PrintValues,
