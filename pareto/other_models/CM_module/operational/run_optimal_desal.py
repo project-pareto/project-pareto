@@ -36,8 +36,8 @@ from set_param_list import set_list, parameter_list
 # -------------------------Loading data and model------------------------------
 """
 Purpose of each of the files:
-large_case_study_Li: This file is the actual final case study with no TDS concentrations. 
-small_case_study_Li_Arsh: This file is the small case study with LI and TDS concentrations and a concentration requirement.
+large_case_study_Li.xlsx: This file is the large permian case study with no TDS concentrations.
+small_case_study_Li.xlsx: This file is the small permian case study with LI and TDS concentrations.
 """
 
 fname = "small_case_study"
