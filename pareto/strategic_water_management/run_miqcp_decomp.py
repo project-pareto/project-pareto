@@ -149,7 +149,7 @@ deco_model = integer_cut_decomposition(
     model,
     subproblem_warmstart=False,
     master_solver="gurobi",
-    subproblem_solver="gams:ipopt",
+    subproblem_solver="ipopt",
     time_limit=600,
     abs_gap=0.0,
     tee=False,
