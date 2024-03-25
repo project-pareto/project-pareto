@@ -25,6 +25,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     InfrastructureTiming,
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
+
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
@@ -113,6 +114,19 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Treatment",
                     "vb_y_Flow",
+                    "vb_y_MVCselected",
+                    "v_C_Treatment_site",
+                    "v_C_TreatmentCapEx_site_time",
+                    "v_C_TreatmentCapEx_site_time_ReLU",
+                    "v_C_TreatmentCapEx_site",
+                    "recovery",
+                    "treatment_energy",
+                    "inlet_salinity",
+                    "capex_bin1",
+                    "capex_bin2",
+                    "opex_bin1",
+                    "opex_bin2",
+                    "v_C_Treatment_site_ReLU",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
@@ -140,6 +154,16 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_MVCselected",
+                    "v_C_Treatment_site",
+                    "v_C_TreatmentCapEx_site_time",
+                    "v_C_TreatmentCapEx_site_time_ReLU",
+                    "v_C_TreatmentCapEx_site",
+                    "recovery",
+                    "treatment_energy",
+                    "inlet_salinity",
+                    "capex_bin1",
+                    "capex_bin2",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
@@ -223,6 +247,33 @@ def generate_report(
                     "Treatment Capacity",
                     "Treatment Expansion",
                 )
+            ],
+            "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
+            "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
+            "recovery_dict": [("Treatment site", "recovery")],
+            "inlet_salinity_dict": [("Treatment site", "salinity")],
+            "treatment_energy_dict": [("Treatment site", "energy")],
+            "v_C_TreatmentCapEx_site_time_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_TreatmentCapEx_site_time_ReLU_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment site", "surrogate cost")],
+            "capex_bin1_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "capex_bin2_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "opex_bin1_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "opex_bin2_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_Treatment_site_ReLU_dict": [
+                ("Treatment site", "Time", "surrogate cost")
             ],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
@@ -1139,7 +1190,31 @@ def generate_report(
                 if str(variable.name) == "v_DQ" and var_value > 0:
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
-                    headers[str(variable.name) + "_dict"].append((*i, var_value))
+                    if (
+                        variable.name != "v_C_Treatment_site"
+                        and variable.name != "inlet_salinity"
+                        and variable.name != "v_C_TreatmentCapEx_site"
+                        and variable.name != "v_C_TreatmentCapEx_site_time_ReLU"
+                        and variable.name != "capex_bin1"
+                        and variable.name != "capex_bin2"
+                        and variable.name != "opex_bin1"
+                        and variable.name != "opex_bin2"
+                        and variable.name != "v_C_Treatment_site_ReLU"
+                        and variable.name != "recovery"
+                        and variable.name != "treatment_energy"
+                        and variable.name != "v_C_TreatmentCapEx_site_time"
+                        and variable.name != "totalCapex"
+                        and variable.name != "v_T_Treatment_scaled"
+                    ):
+                        if len(str(variable.name)) >= 15:
+                            if str(variable.name)[:15] != "surrogate_costs":
+                                headers[str(variable.name) + "_dict"].append(
+                                    (*i, var_value)
+                                )
+                        else:
+                            headers[str(variable.name) + "_dict"].append(
+                                (*i, var_value)
+                            )
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
