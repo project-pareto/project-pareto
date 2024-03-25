@@ -30,8 +30,8 @@ from importlib import resources
 # -------------------------Loading data and model------------------------------
 """
 Purpose of each of the files:
-large_case_study_Li: This file is the actual final case study with no TDS concentrations. USE THIS CASE STUDY
-small_case_study_Li_Arsh: This file is the small case study with LI and TDS concentrations and a concentration requirement.
+large_case_study_Li.xlsx: This file is the large permian case study with no TDS concentrations.
+small_case_study_Li.xlsx: This file is the small permian case study with LI and TDS concentrations.
 """
 
 fname = "small_case_study_Li"
@@ -50,4 +50,4 @@ print(f"\nSolving case study: {fname}")
 model, _ = solving(model, tee=True)
 
 print("\nGenerating Report...")
-# report_results_to_excel(model, filename=f'{fname}_operational_results.xlsx', split_var={'s_A':3})
+report_results_to_excel(model, filename=f'{fname}_operational_results.xlsx', split_var={'s_A':3})
