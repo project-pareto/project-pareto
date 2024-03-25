@@ -148,14 +148,25 @@ class TestMIQCPDecomp:
     def test_decomp(self):
         df_sets, df_parameters = self.obtain_data()
 
-        model = solve_MILP(df_sets, df_parameters)  # must precursor to building the miqcp
+        model = solve_MILP(
+            df_sets, df_parameters
+        )  # must precursor to building the miqcp
 
-        model = build_MIQCP(model) 
+        model = build_MIQCP(model)
 
-        deco_model = integer_cut_decomposition(model, subproblem_warmstart=False, master_solver='gurobi', subproblem_solver='gams:ipopt', time_limit=600, 
-                                                abs_gap=0.0, tee=False, iter_limit=10, enable_status_outputs=True)
+        deco_model = integer_cut_decomposition(
+            model,
+            subproblem_warmstart=False,
+            master_solver="gurobi",
+            subproblem_solver="gams:ipopt",
+            time_limit=600,
+            abs_gap=0.0,
+            tee=False,
+            iter_limit=10,
+            enable_status_outputs=True,
+        )
 
         with nostdout():
             feasibility_status = is_feasible(deco_model)
-        
+
         assert feasibility_status

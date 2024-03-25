@@ -140,6 +140,7 @@ def _deactivate_slacks(model):
 
     return model
 
+
 def _add_MIQCP_cons_obj(model):
     def CostObjectiveFunctionRule2(model):
         return model.v_Z == (
