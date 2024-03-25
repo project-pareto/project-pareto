@@ -24,6 +24,7 @@ from pyomo.environ import (
     Set,
     ConcreteModel,
     Constraint,
+    ConstraintList,
     Objective,
     minimize,
     NonNegativeReals,
@@ -965,12 +966,20 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             units=model.model_units["currency_time"],
             doc="Cost of treating produced water at treatment site [currency]",
         )
+        model.v_C_Treatment_site_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency_time"],
+            doc="Cost of treating produced water at treatment site with flow consideration [currency]",
+        )
         model.v_C_TreatmentCapEx_site = Var(
             model.s_R,
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity [currency]",
+            doc="Capital cost of constructing or expanding treatment capacity for each site [currency]",
         )
         model.v_C_TreatmentCapEx_site_time = Var(
             model.s_R,
@@ -978,7 +987,15 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity [currency]",
+            doc="Capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
+        )
+        model.v_C_TreatmentCapEx_site_time_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital cost of constructing or expanding treatment capacity with flow consideration [currency]",
         )
         model.v_C_TreatmentCapEx_surrogate = Var(
             initialize=0,
@@ -1009,6 +1026,42 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             # units=units.W,
             doc="Energy required for each site for desalination",
         )
+        model.capex_bin1 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary for ReLU"
+        )
+        model.capex_bin2 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary for ReLU"
+        )
+        model.opex_bin1 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary for ReLU"
+        )
+        model.opex_bin2 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary for ReLU"
+        )
+        model.v_C_TreatmentOpex_surrogate = Var(
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital operating treatment capacity [currency]",
+        )
+        model.BigM1 = Param(initialize=1e10,mutable=True)
+        model.BigM2 = Param(initialize=1e10,mutable=True)
     # Pre-process Data #
     _preprocess_data(model)
 
@@ -2389,6 +2442,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
+                + model.v_C_TreatmentOpex_surrogate
                 + model.v_C_TreatmentCapEx_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
@@ -2422,7 +2476,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             within=NonNegativeReals,
             initialize=1 * 5 * conversion_factor,
         )
-
+        
         cap_lower_bound, cap_upper_bound = (
             0 * 7 * conversion_factor,
             1 * 7 * conversion_factor,
@@ -2456,8 +2510,10 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                 return Constraint.Skip
 
         model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
+       
         keras_surrogate = KerasSurrogate.load_from_folder("md_keras")
-
+        # model.CapexReLU = ConstraintList()
+        model.OpexReLU = ConstraintList()
         for i in model.s_R:
             for t in model.s_T:
                 if model.p_chi_DesalinationSites[i]:
@@ -2470,22 +2526,52 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                         output_vars=[
                             model.v_C_TreatmentCapEx_site_time[i, t],
                             model.v_C_Treatment_site[i, t],
-                            # model.treatment_energy[i],
                         ],
                     )
+                    # model.CapexReLU.add(model.v_C_TreatmentCapEx_site_time[i,t]>=model.v_C_TreatmentCapEx_site_time_ReLU[i,t])
+                    # model.CapexReLU.add(model.BigM1*cap>=model.v_C_TreatmentCapEx_site_time_ReLU[i,t])
+                    # model.CapexReLU.add(model.v_C_TreatmentCapEx_site_time[i,t]<=model.v_C_TreatmentCapEx_site_time_ReLU[i,t]+model.BigM2*(1-model.capex_bin1[i,t]))
+                    # model.CapexReLU.add(model.BigM1*cap<=model.v_C_TreatmentCapEx_site_time_ReLU[i,t]+model.BigM2*(1-model.capex_bin2[i,t]))
+                    # model.CapexReLU.add(model.capex_bin1[i,t]+model.capex_bin2[i,t]>=1)
+
+                    # model.OpexReLU.add(model.v_C_Treatment_site[i,t]>=model.v_C_Treatment_site_ReLU[i,t])
+                    # model.OpexReLU.add(model.BigM1*cap>=model.v_C_Treatment_site_ReLU[i,t])
+                    # model.OpexReLU.add(model.v_C_TreatmentCapEx_site_time[i,t]<=model.v_C_Treatment_site_ReLU[i,t]+model.BigM2*(1-model.opex_bin1[i,t]))
+                    # model.OpexReLU.add(model.BigM1*cap<=model.v_C_Treatment_site_ReLU[i,t]+model.BigM2*(1-model.opex_bin2[i,t]))
+                    # model.OpexReLU.add(model.opex_bin1[i,t]+model.opex_bin2[i,t]>=1)
                 else:
                     # If not a desalination site is zero, fix the outputs to zero
                     model.v_T_Treatment_scaled[i, t].fix(0)
                     model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
                     model.v_C_Treatment_site[i, t].fix(0)
+                    model.v_C_Treatment_site_ReLU[i, t].fix(0)
                     model.treatment_energy[i].fix(0)
                     model.v_C_TreatmentCapEx_site[i].fix(0)
+                    model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
+
+        def treatmentSiteBigM(model, r, t):
+            return model.v_C_Treatment_site_ReLU[r, t] <= model.v_C_Treatment_site[r, t]
+
+        model.treatmentMVC = Constraint(
+            model.s_R, model.s_T, rule=treatmentSiteBigM, doc="Treatment surrogate for MVC"
+        )
+
+        def treatmentSiteBigM2(model, r, t):
+            return model.v_C_Treatment_site_ReLU[r, t] >= model.v_C_Treatment_site[r, t] - 1e6 *(1-model.vb_y_MVCselected[r])
+
+        model.treatmentMVC2 = Constraint(
+            model.s_R, model.s_T, rule=treatmentSiteBigM2, doc="Treatment surrogate for MVC"
+        )
+
+        def treatmentCost(model,r,t):
+            return model.v_C_TreatmentOpex_surrogate==sum(
+            sum(model.v_C_Treatment_site_ReLU[r, t]/52 for r in model.s_R) for t in model.s_T
+        )
 
         def treatmentCapexSurrogate(model, i, t):
-            return (
-                model.v_C_TreatmentCapEx_site[i]
-                >= model.v_C_TreatmentCapEx_site_time[i, t]
-            )
+            return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[
+                i, t
+            ] - 1e6 *(1 - model.vb_y_MVCselected[i])
 
         model.max_cap = Constraint(
             model.s_R,
@@ -2493,6 +2579,15 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             rule=treatmentCapexSurrogate,
             doc="Max treated vol as capex",
         )
+
+        # def treatmentCapexBigM(model, i, t):
+        #     return model.v_C_TreatmentCapEx_site[i] <= model.v_C_TreatmentCapEx_site_time[
+        #         i, t
+        #     ] + 1e6 * (1-model.vb_y_MVCselected[r])
+
+        # model.capBigM = Constraint(
+        #     model.s_R, model.s_T, rule=treatmentCapexBigM, doc="Max treated vol as capex"
+        # )
 
         def capExSurrogate(model):
             return model.v_C_TreatmentCapEx_surrogate == sum(
@@ -3427,6 +3522,11 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
     )
 
     def TotalTreatmentCostRule(model):
+        # if model.config.objective==Objectives.cost_surrogate:
+        #     constraint = model.v_C_TotalTreatment == sum(
+        #         sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
+        #     )
+        # else:
         constraint = model.v_C_TotalTreatment == sum(
             sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
         )

@@ -31,7 +31,7 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
-
+import pyomo.environ as pyo
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
@@ -151,10 +151,11 @@ strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
 strategic_toy_case_study.xlsx
+strategic_treatment_demo_modified
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo.xlsx",
+    "strategic_treatment_demo_modified.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -195,6 +196,12 @@ options = {
 }
 
 results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
+strategic_model.v_C_TreatmentCapEx_site_time.display()
+strategic_model.v_T_Treatment_scaled.display()
+strategic_model.v_C_Treatment_site.display()
+strategic_model.v_C_Treatment_site_ReLU.display()
+strategic_model.v_C_TreatmentOpex_surrogate.display()
+strategic_model.v_C_TreatmentCapEx_site.display()
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
