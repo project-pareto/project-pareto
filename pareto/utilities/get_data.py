@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -20,6 +20,7 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import pandas as pd
 import requests
 import numpy as np
+import warnings
 
 
 def _read_data(_fname, _set_list, _parameter_list):
@@ -236,9 +237,44 @@ def get_data(fname, set_list, parameter_list, sum_repeated_indexes=False):
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
     """
+    # Check all names available in the input sheet
+    set_list_common = []
+    parameter_list_common = []
+    df = pd.ExcelFile(fname)
+    sheet_list = df.sheet_names
+    for name in sheet_list:
+        if name in set_list:
+            set_list_common.append(name)
+        elif name in parameter_list:
+            parameter_list_common.append(name)
+        # If the sheet name is unused (not a Set or Parameter tab, "Overview", or "Schematic"), raise a warning.
+        else:
+            if name != "Overview" and name != "Schematic":
+                warnings.warn(
+                    f"{name} is not found in defined sets or parameters but is parsed in the input data",
+                    UserWarning,
+                    stacklevel=2,
+                )
+    # Check that expected Set tabs are included in input sheet. If they are missing, raise a warning.
+    for sets in set_list:
+        if sets not in set_list_common:
+            warnings.warn(
+                f"{sets} is defined in set_list but not parsed in the input data",
+                UserWarning,
+                stacklevel=2,
+            )
+    # Check that expected Parameter tabs are included in input sheet. If they are missing, raise a warning.
+    for params in parameter_list:
+        if params not in parameter_list_common:
+            warnings.warn(
+                f"{params} is defined in parameter_list but not parsed in the input data",
+                UserWarning,
+                stacklevel=2,
+            )
     # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
+    # Pass only tab names that exist in the input file (rather than all expected tab names)
     [_df_sets, _df_parameters, data_column] = _read_data(
-        fname, set_list, parameter_list
+        fname, set_list_common, parameter_list_common
     )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
