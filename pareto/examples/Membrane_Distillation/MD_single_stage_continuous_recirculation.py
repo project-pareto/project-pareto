@@ -511,7 +511,7 @@ def optimize_set_up(m):
 
     m.fs.MD.length.unfix()
     m.fs.MD.length.setlb(0)
-    m.fs.MD.length.setub(150)
+    m.fs.MD.length.setub(1500)
 
     m.fs.hx.area.unfix()
     m.fs.hx.area.setlb(1)
