@@ -130,6 +130,7 @@ CONFIG.declare(
         **Hydraulics.false** - does not add hydraulics feature
         **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
         **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
+        **Hydraulics.co_optimize_linearized** - a linearized approximation of the co-optimization model,
         }""",
     ),
 )
