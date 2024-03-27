@@ -591,6 +591,7 @@ def display_system(m):
 
 
 def display_detailed_costs(m):
+    print("\n---detailed costs---")
     print(
         "total annualized capital cost: %.2f $/yr"
         % value(m.fs.costing.total_capital_cost * m.fs.costing.capital_recovery_factor)
