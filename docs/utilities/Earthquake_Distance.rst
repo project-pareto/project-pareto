@@ -72,17 +72,30 @@ The output of this method is a list of dictionaries containing the input SWD wel
 For example,::
 
     [
-        {"swd_id": 1, "eq_id": "tx2024fukh", "time": "2024-03-23 01:36:02", "distance_mi": 0.0, "magnitude": 3},
-        {"swd_id": 2, "eq_id": "tx2024emvg", "time": "2024-03-04 15:31:07", "distance_mi": 0.0, "magnitude": 3.3}
+        {
+            "swd_id": 1,
+            "eq_id": "tx2024fukh",
+            "time": "2024-03-23 01:36:02",
+            "distance_mi": 0.9231348790234829,
+            "magnitude": 3
+        },
+        {
+            "swd_id": 2,
+            "eq_id": "tx2024emvg",
+            "time": "2024-03-04 15:31:07",
+            "distance_mi": 2.200703681215228,
+            "magnitude": 3.3
+        }
     ]
+
 
 **How to Use**
 
 Example of how this method is used::
 
     swd_latlons = [
-        {"id": 1, "lat": 32.262, "lon": -101.931},
-        {"id": 2, "lat": 31.682, "lon": -104.401},
+        {"id": 1, "lat": 32.251, "lon": -101.940},
+        {"id": 2, "lat": 31.651, "lon": -104.410},
     ]
 
     earthquake_distances = calculate_earthquake_distances(

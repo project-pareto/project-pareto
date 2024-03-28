@@ -199,8 +199,8 @@ def calculate_earthquake_distances(
 if __name__ == "__main__":
     # Example
     swd_latlons = [
-        {"id": 1, "lat": 32.262, "lon": -101.931},
-        {"id": 2, "lat": 31.682, "lon": -104.401},
+        {"id": 1, "lat": 32.251, "lon": -101.940},
+        {"id": 2, "lat": 31.651, "lon": -104.410},
     ]
 
     earthquake_distances = calculate_earthquake_distances(
