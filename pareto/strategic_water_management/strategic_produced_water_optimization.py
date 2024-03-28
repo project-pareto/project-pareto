@@ -130,6 +130,7 @@ CONFIG.declare(
         **Hydraulics.false** - does not add hydraulics feature
         **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
         **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
+        **Hydraulics.co_optimize_linearized** - a linearized approximation of the co-optimization model,
         }""",
     ),
 )
@@ -4540,10 +4541,7 @@ def pipeline_hydraulics(model):
                         * 10 ** (-6)
                         * 3600
                     )
-                    - 20000
-                    * (
-                        1 -   mh.vb_z[l1, l2, t, i] 
-                    )
+                    - 20000 * (1 - mh.vb_z[l1, l2, t, i])
                 )
                 * cons_scaling_factor
             )
@@ -7465,14 +7463,14 @@ def solve_model(model, options=None):
     # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
     # these cases it's preferred to report a value of 0 to the user, so change
     # the value of vb_y_BeneficialReuse[o, t] as necessary.
-    # for t in model.s_T:
-    #     for o in model.s_O:
-    #         if (
-    #             value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
-    #             and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
-    #             and value(model.vb_y_BeneficialReuse[o, t] > 0)
-    #         ):
-    #             model.vb_y_BeneficialReuse[o, t].value = 0
+    for t in model.s_T:
+        for o in model.s_O:
+            if (
+                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+                and value(model.vb_y_BeneficialReuse[o, t] > 0)
+            ):
+                model.vb_y_BeneficialReuse[o, t].value = 0
 
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
@@ -7551,71 +7549,52 @@ def solve_model(model, options=None):
                         model_h, options={"limits/gap": 0.3}, tee=True
                     )
         elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
-            # Currently, this method is supported for only MINLP solvers accessed through GAMS.
-            # The default solver is Baron and is set to find the first feasible solution.
-            # If the user has SCIP, then the feasible solution from BARON is passed to SCIP, which is then solved to a gap of 0.3.
-            # If the user do not have these solvers installed then it limits the use of co_optimize method at this time.
-            # Ongoing work is geared to address this limitation and will soon be updated here.
-
             # Adding temporary variable bounds until the bounding method is implemented for the following Vars
             model_h.v_F_Piped.setub(1050)
             model_h.hydraulics.v_Pressure.setub(3.5e6)
-            # model_h.write("treatmentLinear.gms", io_options={'symbolic_solver_labels': True})
 
-            try:
-                # solver = SolverFactory("gams")
-                solver = SolverFactory("cbc")
-            except:
-                print(
-                    "Either GAMS or a license to BARON was not found. Please add GAMS to the path. If you do not have GAMS or BARON, \
-                      please continue to use the post-process method for hydraulics at this time"
-                )
+            results_2 = opt.solve(model_h, tee=True, keepfiles=True)
+
+            # Check the feasibility of the results with regards to max pressure and node pressures
+
+            # Navigate over all the times
+            flagV = 0
+            flagU = 0
+            for t in model.s_T:
+                Press_dict = {}
+                for p in model.s_PP:
+                    Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
+                    while True:
+                        pres_dict_keys = list(Press_dict.keys())
+                        for (l1, l2) in model.s_LLA:
+                            if l1 in Press_dict.keys():
+                                ps = Press_dict[l1]
+                                this_p = calc_new_pres(model_h, ps, l1, l2, t)
+                                Press_dict[l2] = this_p
+                                if (
+                                    this_p > value(model_h.hydraulics.p_xi_Max_AOP)
+                                    and l2 in model.s_N
+                                ):
+                                    flagV = 1
+                                    print(l2, "->", l2 in model.s_N)
+                                    print(
+                                        "\n\nThe Pressure is ",
+                                        this_p,
+                                        " and max is ",
+                                        value(model_h.hydraulics.p_xi_Max_AOP),
+                                    )
+                                if this_p < 0 and l2 in model.s_N:
+                                    flagU = 1
+                        pres_dict_keys2 = list(Press_dict.keys())
+                        if pres_dict_keys == pres_dict_keys2:
+                            break
+
+            if flagV:
+                print("Violation of maximum pressure")
+            elif flagU:
+                print("Violation of minimum pressure")
             else:
-                results_cbc = solver.solve(model_h, tee=True, keepfiles=True)
-                results_2 = results_cbc
-                # Check the feasibility of the results with regards to max pressure and node pressures
-
-                # Navigate over all the times
-                flagV = 0
-                flagU = 0
-                for t in model.s_T:
-                    Press_dict = {}
-                    for p in model.s_PP:
-                        # print("Currently doing iterations for : ",p)
-                        Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
-                        while True:
-                            pres_dict_keys = list(Press_dict.keys())
-                            for (l1, l2) in model.s_LLA:
-                                if l1 in Press_dict.keys():
-                                    # if l2 not in Press_dict.keys():
-                                    #     Press_dict[l2] = []
-                                    ps = Press_dict[l1]
-                                    this_p = calc_new_pres(model_h, ps, l1, l2, t)
-                                    Press_dict[l2] = this_p
-                                    if (
-                                        this_p > value(model_h.hydraulics.p_xi_Max_AOP)
-                                        and l2 in model.s_N
-                                    ):
-                                        flagV = 1
-                                        print(l2, "->", l2 in model.s_N)
-                                        print(
-                                            "\n\nThe Pressure is ",
-                                            this_p,
-                                            " and max is ",
-                                            value(model_h.hydraulics.p_xi_Max_AOP),
-                                        )
-                                    if this_p < 0 and l2 in model.s_N:
-                                        flagU = 1
-                            pres_dict_keys2 = list(Press_dict.keys())
-                            if pres_dict_keys == pres_dict_keys2:
-                                break
-
-                if flagV:
-                    print("Violation of maximum pressure")
-                elif flagU:
-                    print("Violation of minimum pressure")
-                else:
-                    print("All pressures satisfied ")
+                print("All pressures satisfied ")
 
         # Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()

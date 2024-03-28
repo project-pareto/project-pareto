@@ -191,7 +191,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     .. math::
 
-        \textcolor{blue}{\tilde{l},l \in LLA}
+        \textcolor{blue}{\tilde{l},l \in LLA}:
         \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
          = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
@@ -200,7 +200,7 @@ Allows pumping only if a pump exists in a pipeline.
          + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
     .. math::
-         \textcolor{blue}{\tilde{l},l \notin LLA}
+         \textcolor{blue}{\tilde{l},l \notin LLA}:
         \textcolor{red}{P_{l,t}} + \textcolor{green}{\zeta_{l}} \cdot \textcolor{green}{\rho.g}
          = \textcolor{red}{P_{\tilde{l},t}} + \textcolor{green}{\zeta_{\tilde{l}}} \cdot \textcolor{green}{\rho.g}
          + \textcolor{red}{H_{l,\tilde{l},t}^{Friction, HW}} \cdot \textcolor{green}{\rho.g}
@@ -225,7 +225,7 @@ Allows pumping only if a pump exists in a pipeline.
 
     **Binary Variables**
 
-    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,...,\{0,1,2,..., \lceil 70000/\textcolor{green}{\Delta_I}\rceil - 1}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
+    :math:`\textcolor{red}{z_{l,\tilde{l},t, i}},i\in \{0,1,2,..., \lceil 70000/\textcolor{green}{\Delta_I}\rceil - 1\}` =     Intermediate binary variables to determine the section of the piecewise linear graph.
 
 
     **Continuous Variables**
@@ -257,7 +257,7 @@ Allows pumping only if a pump exists in a pipeline.
     .. math::
 
         \textcolor{red}{term_{l,\tilde{l},t}}
-        = \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}}(1.84E-6 \cdot i \cdot \textcolor{green}{\Delta_I})^{1.85} \cdot \textcolor{red}{\lambda_{l,\tilde{l},t, i}}
+        = \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}}(1.84 \times 10^{-6} \cdot i \cdot \textcolor{green}{\Delta_I})^{1.85} \cdot \textcolor{red}{\lambda_{l,\tilde{l},t, i}}
 
     **Sum of convex multipliers is one** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}`
 
@@ -273,7 +273,7 @@ Allows pumping only if a pump exists in a pipeline.
 
        \sum_{i \in \{0,1,2,..,\lceil 70000/\textcolor{green}{\Delta_I} \rceil\}} \textcolor{red}{\lambda_{l,\tilde{l},t, i}} = 1
 
-    **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
+    **Only two convex multipliers are non-zero** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{t \in T}, \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
     .. math::
 
@@ -337,7 +337,7 @@ Allows pumping only if a pump exists in a pipeline.
          + \textcolor{red}{H_{l,\tilde{l},t}^{Valve}} \cdot \textcolor{green}{\rho.g}
 
     
-    **Electricity cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA} \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
+    **Electricity cost rule:** :math:`\forall \textcolor{blue}{l,\tilde{l} \in LLA}, \textcolor{blue}{j \in} \textcolor{blue}{\{0,1,2,..,\lceil 70000/\Delta_I \rceil-1\}}`
 
     Calculate electricity (variable) cost of pump at every time period.
 
