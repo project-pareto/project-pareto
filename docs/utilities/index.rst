@@ -11,4 +11,5 @@ PARETO project provides a set of user-friendly utility methods to display and an
 
     Get_Data
     Results
+    Earthquake_Distance
 
