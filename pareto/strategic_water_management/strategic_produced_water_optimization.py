@@ -956,112 +956,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         initialize=0,
         doc="Beneficial reuse option selection",
     )
-
-    if model.config.objective == Objectives.cost_surrogate:
-        model.v_C_Treatment_site = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency_time"],
-            doc="Cost of treating produced water at treatment site [currency]",
-        )
-        model.v_C_Treatment_site_ReLU = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency_time"],
-            doc="Cost of treating produced water at treatment site with flow consideration [currency]",
-        )
-        model.v_C_TreatmentCapEx_site = Var(
-            model.s_R,
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity for each site [currency]",
-        )
-        model.v_C_TreatmentCapEx_site_time = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
-        )
-        model.v_C_TreatmentCapEx_site_time_ReLU = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity with flow consideration [currency]",
-        )
-        model.v_C_TreatmentCapEx_surrogate = Var(
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity [currency]",
-        )
-        model.vb_y_MVCselected = Var(
-            model.s_R,
-            within=Binary,
-            initialize=0,
-            doc="MVC selection for each desalination site",
-        )
-        model.inlet_salinity = Var(
-            model.s_R,
-            within=Reals,
-            initialize=10,
-            units=pyunits.kg / pyunits.litre,
-            doc="Inlet salinity in the feed",
-        )
-        model.recovery = Var(
-            model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
-        )
-        model.treatment_energy = Var(
-            model.s_R,
-            within=Reals,
-            initialize=0,
-            # units=units.W,
-            doc="Energy required for each site for desalination",
-        )
-        model.capex_bin1 = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=Binary,
-            doc="Binary for ReLU"
-        )
-        model.capex_bin2 = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=Binary,
-            doc="Binary for ReLU"
-        )
-        model.opex_bin1 = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=Binary,
-            doc="Binary for ReLU"
-        )
-        model.opex_bin2 = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=Binary,
-            doc="Binary for ReLU"
-        )
-        model.v_C_TreatmentOpex_surrogate = Var(
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency"],
-            doc="Capital operating treatment capacity [currency]",
-        )
-        model.BigM1 = Param(initialize=1e10,mutable=True)
-        model.BigM2 = Param(initialize=1e10,mutable=True)
+        
     # Pre-process Data #
     _preprocess_data(model)
 
@@ -2432,7 +2327,124 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
     elif model.config.objective == Objectives.cost_surrogate:
         from idaes.core.surrogate.surrogate_block import SurrogateBlock
         from idaes.core.surrogate.keras_surrogate import KerasSurrogate
-
+        model.v_C_Treatment_site = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency_time"],
+            doc="Cost of treating produced water at treatment site [currency]",
+        )
+        model.v_C_Treatment_site_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency_time"],
+            doc="Cost of treating produced water at treatment site with flow consideration [currency]",
+        )
+        model.v_C_TreatmentCapEx_site = Var(
+            model.s_R,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital cost of constructing or expanding treatment capacity for each site [currency]",
+        )
+        model.v_C_TreatmentCapEx_site_time = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
+        )
+        model.v_C_TreatmentCapEx_site_time_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital cost of constructing or expanding treatment capacity with flow consideration [currency]",
+        )
+        model.v_C_TreatmentCapEx_surrogate = Var(
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital cost of constructing or expanding treatment capacity [currency]",
+        )
+        model.vb_y_MVCselected = Var(
+            model.s_R,
+            within=Binary,
+            initialize=0,
+            doc="MVC selection for each desalination site",
+        )
+        model.inlet_salinity = Var(
+            model.s_R,
+            within=Reals,
+            initialize=10,
+            units=pyunits.kg / pyunits.litre,
+            doc="Inlet salinity in the feed",
+        )
+        model.recovery = Var(
+            model.s_R, within=Reals, bounds=(0, 1), doc="Recovery of water"
+        )
+        model.treatment_energy = Var(
+            model.s_R,
+            within=Reals,
+            initialize=0,
+            # units=units.W,
+            doc="Energy required for each site for desalination",
+        )
+        model.vb_y_flow_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary for flow"
+        )
+        model.v_T_Treatment_scaled_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            doc='Auxilary for ReLU'
+        )
+        model.v_T_Treatment_scaled_ReLU_1 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            doc='Auxilary for ReLU'
+        )
+        model.v_T_Treatment_scaled_ReLU_2 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            doc='Auxilary for ReLU'
+        )
+        model.bin1 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc='Auxilary for ReLU'
+        )
+        model.bin2 = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc='Auxilary for ReLU'
+        )
+        model.v_C_TreatmentOpex_surrogate = Var(
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital operating treatment capacity [currency]",
+        )
+        model.BigM1 = Param(initialize=1e10,mutable=True)
+        model.BigM2 = Param(initialize=1e10,mutable=True)
         def CostSurrogateObjectiveFunctionRule(model):
             return model.v_Z == (
                 model.v_C_TotalSourced
@@ -2528,17 +2540,6 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                             model.v_C_Treatment_site[i, t],
                         ],
                     )
-                    # model.CapexReLU.add(model.v_C_TreatmentCapEx_site_time[i,t]>=model.v_C_TreatmentCapEx_site_time_ReLU[i,t])
-                    # model.CapexReLU.add(model.BigM1*cap>=model.v_C_TreatmentCapEx_site_time_ReLU[i,t])
-                    # model.CapexReLU.add(model.v_C_TreatmentCapEx_site_time[i,t]<=model.v_C_TreatmentCapEx_site_time_ReLU[i,t]+model.BigM2*(1-model.capex_bin1[i,t]))
-                    # model.CapexReLU.add(model.BigM1*cap<=model.v_C_TreatmentCapEx_site_time_ReLU[i,t]+model.BigM2*(1-model.capex_bin2[i,t]))
-                    # model.CapexReLU.add(model.capex_bin1[i,t]+model.capex_bin2[i,t]>=1)
-
-                    # model.OpexReLU.add(model.v_C_Treatment_site[i,t]>=model.v_C_Treatment_site_ReLU[i,t])
-                    # model.OpexReLU.add(model.BigM1*cap>=model.v_C_Treatment_site_ReLU[i,t])
-                    # model.OpexReLU.add(model.v_C_TreatmentCapEx_site_time[i,t]<=model.v_C_Treatment_site_ReLU[i,t]+model.BigM2*(1-model.opex_bin1[i,t]))
-                    # model.OpexReLU.add(model.BigM1*cap<=model.v_C_Treatment_site_ReLU[i,t]+model.BigM2*(1-model.opex_bin2[i,t]))
-                    # model.OpexReLU.add(model.opex_bin1[i,t]+model.opex_bin2[i,t]>=1)
                 else:
                     # If not a desalination site is zero, fix the outputs to zero
                     model.v_T_Treatment_scaled[i, t].fix(0)
@@ -2549,29 +2550,82 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                     model.v_C_TreatmentCapEx_site[i].fix(0)
                     model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
 
-        def treatmentSiteBigM(model, r, t):
-            return model.v_C_Treatment_site_ReLU[r, t] <= model.v_C_Treatment_site[r, t]
-
-        model.treatmentMVC = Constraint(
-            model.s_R, model.s_T, rule=treatmentSiteBigM, doc="Treatment surrogate for MVC"
+        def flowBinRule(model,r,t):
+            return model.v_T_Treatment_scaled_ReLU_1[r,t]>=model.v_T_Treatment_scaled[r,t]-1e3*model.bin1[r,t]
+        model.flowBin = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=flowBinRule,
+            doc='Flow binary to set to 0 is flow is 0 else 1'
+        )
+        def flowBinRule1(model,r,t):
+            return model.v_T_Treatment_scaled_ReLU_2[r,t]<=1-model.bin2[r,t]
+        model.flowBin1 = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=flowBinRule1,
+            doc='Flow binary to set to 0 is flow is 0 else 1'
+        )
+        def flowBinRule2(model,r,t):
+            return model.v_T_Treatment_scaled[r,t]<=model.v_T_Treatment_scaled_ReLU_2[r,t]+model.v_T_Treatment_scaled_ReLU_1[r,t]
+        model.flowBin2 = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=flowBinRule2,
+            doc='Flow binary to set to 0 is flow is 0 else 1'
+        )
+        def logicalBinRule(model,r,t):
+            return model.bin1[r,t]+model.bin2[r,t]==1
+        model.logicalBin = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=logicalBinRule,
+            doc='Flow binary logic'
+        )
+        def OpexTreatmentRule(model,r,t):
+            return model.v_C_Treatment_site_ReLU[r,t] >= model.v_C_Treatment_site[r,t]-1e6*(1-model.bin1[r,t])
+        model.OpexTreatment = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=OpexTreatmentRule,
+            doc='Opex based on binary'
         )
 
-        def treatmentSiteBigM2(model, r, t):
-            return model.v_C_Treatment_site_ReLU[r, t] >= model.v_C_Treatment_site[r, t] - 1e6 *(1-model.vb_y_MVCselected[r])
+        # def CapexTreatmentRule(model,r,t):
+        #     return model.v_C_TreatmentCapEx_site_ReLU[r,t] >= model.v_C_TreatmentCapEx_site[r,t]-1e6*(1-model.vb_y_flow_ReLU[r,t])
+        # model.CapexTreatment = Constraint(
+        #     model.s_R,
+        #     model.s_T,
+        #     rule=CapexTreatmentRule,
+        #     doc='Capex based on binary'
+        # )
 
-        model.treatmentMVC2 = Constraint(
-            model.s_R, model.s_T, rule=treatmentSiteBigM2, doc="Treatment surrogate for MVC"
-        )
+        # def treatmentSiteBigM(model, r, t):
+        #     return model.v_C_Treatment_site_ReLU[r, t] <= model.v_C_Treatment_site[r, t]
 
-        def treatmentCost(model,r,t):
+        # model.treatmentMVC = Constraint(
+        #     model.s_R, model.s_T, rule=treatmentSiteBigM, doc="Treatment surrogate for MVC"
+        # )
+
+        # def treatmentSiteBigM2(model, r, t):
+        #     return model.v_C_Treatment_site_ReLU[r, t] >= model.v_C_Treatment_site[r, t] - 1e6 *(1-model.vb_y_MVCselected[r])
+
+        # model.treatmentMVC2 = Constraint(
+        #     model.s_R, model.s_T, rule=treatmentSiteBigM2, doc="Treatment surrogate for MVC"
+        # )
+
+        def treatmentCost(model):
             return model.v_C_TreatmentOpex_surrogate==sum(
             sum(model.v_C_Treatment_site_ReLU[r, t]/52 for r in model.s_R) for t in model.s_T
         )
-
+        model.treatmentCost = Constraint(
+            rule=treatmentCost,
+            doc="Treatment Rule"
+        )
         def treatmentCapexSurrogate(model, i, t):
             return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[
                 i, t
-            ] - 1e6 *(1 - model.vb_y_MVCselected[i])
+            ] - 1e6*(1-model.bin1[r,t])
 
         model.max_cap = Constraint(
             model.s_R,
