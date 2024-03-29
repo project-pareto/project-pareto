@@ -2559,7 +2559,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
         def flowBinRule1(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_2[r,t]<=1-model.bin2[r,t]
+            return model.v_T_Treatment_scaled_ReLU_2[r,t]>=model.bin2[r,t]
         model.flowBin1 = Constraint(
             model.s_R,
             model.s_T,

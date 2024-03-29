@@ -155,7 +155,7 @@ strategic_treatment_demo_modified
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_modified.xlsx",
+    "strategic_treatment_demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -196,12 +196,20 @@ options = {
 }
 
 results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
-strategic_model.v_C_TreatmentCapEx_site_time.display()
+# strategic_model.v_C_TreatmentCapEx_site_time.display()
+# strategic_model.v_T_Treatment_scaled.display()
 strategic_model.v_T_Treatment_scaled.display()
 strategic_model.v_C_Treatment_site.display()
 strategic_model.v_C_Treatment_site_ReLU.display()
-strategic_model.v_C_TreatmentOpex_surrogate.display()
+# strategic_model.opex_bin1.display()
+strategic_model.bin1.display()
+strategic_model.bin2.display()
+strategic_model.v_T_Treatment_scaled_ReLU.display()
+# strategic_model.v_C_Treatment_site_ReLU.display()
 strategic_model.v_C_TreatmentCapEx_site.display()
+strategic_model.v_C_TreatmentOpex_surrogate.display()
+strategic_model.v_C_TreatmentCapEx_surrogate.display()
+# strategic_model.v_C_TreatmentCapEx_site_ReLU.display()
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 

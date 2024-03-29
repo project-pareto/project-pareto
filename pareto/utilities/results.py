@@ -115,6 +115,8 @@ def generate_report(
                     "vb_y_Treatment",
                     "vb_y_Flow",
                     "vb_y_MVCselected",
+                    "v_T_Treatment_scaled",
+                    "v_C_TreatmentCapEx_site_ReLU",
                     "v_C_Treatment_site",
                     "v_C_TreatmentCapEx_site_time",
                     "v_C_TreatmentCapEx_site_time_ReLU",
@@ -127,6 +129,7 @@ def generate_report(
                     "opex_bin1",
                     "opex_bin2",
                     "v_C_Treatment_site_ReLU",
+                    "v_C_Treatment_site_ReLU_1",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
@@ -155,9 +158,10 @@ def generate_report(
                     "vb_y_Flow",
                     "vb_y_Treatment",
                     "vb_y_MVCselected",
+                    "v_T_Treatment_scaled",
                     "v_C_Treatment_site",
                     "v_C_TreatmentCapEx_site_time",
-                    "v_C_TreatmentCapEx_site_time_ReLU",
+                    "v_C_TreatmentCapEx_site_ReLU",
                     "v_C_TreatmentCapEx_site",
                     "recovery",
                     "treatment_energy",
@@ -249,6 +253,8 @@ def generate_report(
                 )
             ],
             "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
+            "v_T_Treatment_scaled_dict":[("Treatment site", "Time", "surrogate cost")],
+
             "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
             "recovery_dict": [("Treatment site", "recovery")],
             "inlet_salinity_dict": [("Treatment site", "salinity")],
@@ -273,6 +279,9 @@ def generate_report(
                 ("Treatment site", "Time", "surrogate cost")
             ],
             "v_C_Treatment_site_ReLU_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_Treatment_site_ReLU_1_dict": [
                 ("Treatment site", "Time", "surrogate cost")
             ],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
@@ -1194,17 +1203,19 @@ def generate_report(
                         variable.name != "v_C_Treatment_site"
                         and variable.name != "inlet_salinity"
                         and variable.name != "v_C_TreatmentCapEx_site"
-                        and variable.name != "v_C_TreatmentCapEx_site_time_ReLU"
+                        and variable.name != "v_C_TreatmentCapEx_site_ReLU"
+                        and variable.name != "v_C_Treatment_site"
                         and variable.name != "capex_bin1"
                         and variable.name != "capex_bin2"
-                        and variable.name != "opex_bin1"
-                        and variable.name != "opex_bin2"
+                        # and variable.name != "opex_bin1"
+                        # and variable.name != "opex_bin2"
                         and variable.name != "v_C_Treatment_site_ReLU"
+                        and variable.name != "v_C_Treatment_site_ReLU_1"
                         and variable.name != "recovery"
                         and variable.name != "treatment_energy"
                         and variable.name != "v_C_TreatmentCapEx_site_time"
                         and variable.name != "totalCapex"
-                        and variable.name != "v_T_Treatment_scaled"
+                        # and variable.name != "v_T_Treatment_scaled"
                     ):
                         if len(str(variable.name)) >= 15:
                             if str(variable.name)[:15] != "surrogate_costs":
