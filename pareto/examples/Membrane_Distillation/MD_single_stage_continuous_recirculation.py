@@ -545,7 +545,7 @@ def optimize(m, solver=None):
 
 
 def display_system(m):
-    print("---system metrics---")
+    print("\n---system metrics---")
     feed_flow_mass = sum(
         m.fs.feed.flow_mass_phase_comp[0, "Liq", j].value for j in ["H2O", "NaCl"]
     )
@@ -636,7 +636,7 @@ def display_detailed_costs(m):
 
 
 def display_design(m):
-    print("---decision variables---")
+    print("\n---decision variables---")
     print("Membrane area %.1f m2" % (m.fs.MD.area.value))
     print("Membrane length %.1f m" % (m.fs.MD.length.value))
     print("Heat exchanger area %.1f m2" % (m.fs.hx.area.value))
