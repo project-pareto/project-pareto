@@ -2545,13 +2545,13 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                     model.v_T_Treatment_scaled[i, t].fix(0)
                     model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
                     model.v_C_Treatment_site[i, t].fix(0)
-                    model.v_C_Treatment_site_ReLU[i, t].fix(0)
+                    # model.v_C_Treatment_site_ReLU[i, t].fix(0)
                     model.treatment_energy[i].fix(0)
-                    model.v_C_TreatmentCapEx_site[i].fix(0)
-                    model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
+                    # model.v_C_TreatmentCapEx_site[i].fix(0)
+                    # model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
 
         def flowBinRule(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_1[r,t]>=model.v_T_Treatment_scaled[r,t]-1e3*model.bin1[r,t]
+            return model.v_T_Treatment_scaled_ReLU_1[r,t]>=model.v_T_Treatment_scaled[r,t]-1e6*model.bin1[r,t]+1e-3
         model.flowBin = Constraint(
             model.s_R,
             model.s_T,
@@ -2567,7 +2567,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
         def flowBinRule2(model,r,t):
-            return model.v_T_Treatment_scaled[r,t]<=model.v_T_Treatment_scaled_ReLU_2[r,t]+model.v_T_Treatment_scaled_ReLU_1[r,t]
+            return model.v_T_Treatment_scaled[r,t]>=model.v_T_Treatment_scaled_ReLU_2[r,t]+model.v_T_Treatment_scaled_ReLU_1[r,t]
         model.flowBin2 = Constraint(
             model.s_R,
             model.s_T,
