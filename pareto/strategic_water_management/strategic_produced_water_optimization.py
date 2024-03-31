@@ -2443,6 +2443,10 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             units=model.model_units["currency"],
             doc="Capital operating treatment capacity [currency]",
         )
+        model.vb_y_bin = Var(
+            within=NonNegativeReals,
+            doc='sum of binaries'
+        )
         model.BigM1 = Param(initialize=1e10,mutable=True)
         model.BigM2 = Param(initialize=1e10,mutable=True)
         def CostSurrogateObjectiveFunctionRule(model):
@@ -2465,6 +2469,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                 )
                 + model.v_C_Slack
                 - model.v_R_TotalStorage
+                + model.vb_y_bin
             )
 
         model.CostSurrogateObjectiveFunctionRule = Constraint(
@@ -2551,15 +2556,29 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                     # model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
 
         def flowBinRule(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_1[r,t]>=model.v_T_Treatment_scaled[r,t]-1e6*model.bin1[r,t]+1e-3
+            return model.v_T_Treatment_scaled_ReLU_1[r,t]>=1e-3
         model.flowBin = Constraint(
             model.s_R,
             model.s_T,
             rule=flowBinRule,
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
+        # def flowMaxRule(model,r,t):
+        #     return model.v_T_Treatment_scaled_ReLU_1[r,t]<=cap_upper_bound
+        # model.flowMax = Constraint(
+        #     model.s_R,
+        #     model.s_T,
+        #     rule=flowMaxRule,
+        #     doc='Flow binary to set to 0 is flow is 0 else 1'
+        # )
+        def SumBinRule(model):
+            return model.vb_y_bin==sum(sum(model.bin1[r,t] for r in model.s_R) for t in model.s_T)
+        model.sumBin = Constraint(
+            rule=SumBinRule,
+            doc='Sum of binaries'
+        )
         def flowBinRule1(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_2[r,t]>=model.bin2[r,t]
+            return model.v_T_Treatment_scaled_ReLU_2[r,t]==0
         model.flowBin1 = Constraint(
             model.s_R,
             model.s_T,
@@ -2567,23 +2586,23 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
         def flowBinRule2(model,r,t):
-            return model.v_T_Treatment_scaled[r,t]>=model.v_T_Treatment_scaled_ReLU_2[r,t]+model.v_T_Treatment_scaled_ReLU_1[r,t]
+            return model.v_T_Treatment_scaled[r,t]==model.v_T_Treatment_scaled_ReLU_1[r,t]-1e-3*model.bin1[r,t]
         model.flowBin2 = Constraint(
             model.s_R,
             model.s_T,
             rule=flowBinRule2,
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
-        def logicalBinRule(model,r,t):
-            return model.bin1[r,t]+model.bin2[r,t]==1
-        model.logicalBin = Constraint(
-            model.s_R,
-            model.s_T,
-            rule=logicalBinRule,
-            doc='Flow binary logic'
-        )
+        # def logicalBinRule(model,r,t):
+        #     return model.bin1[r,t]+model.bin2[r,t]==1
+        # model.logicalBin = Constraint(
+        #     model.s_R,
+        #     model.s_T,
+        #     rule=logicalBinRule,
+        #     doc='Flow binary logic'
+        # )
         def OpexTreatmentRule(model,r,t):
-            return model.v_C_Treatment_site_ReLU[r,t] >= model.v_C_Treatment_site[r,t]-1e6*(1-model.bin1[r,t])
+            return model.v_C_Treatment_site[r,t] >= model.v_C_Treatment_site_ReLU[r,t]-1e6*model.bin1[r,t]
         model.OpexTreatment = Constraint(
             model.s_R,
             model.s_T,
@@ -2625,7 +2644,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         def treatmentCapexSurrogate(model, i, t):
             return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[
                 i, t
-            ] - 1e6*(1-model.bin1[r,t])
+            ] - 1e6*model.bin1[r,t]
 
         model.max_cap = Constraint(
             model.s_R,
