@@ -20,7 +20,6 @@ import numpy as np
 import pyomo.environ as pyo
 from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 
-# from case_studies.Arshs_Test_Cases import test1, test2, test2a, test2b, test2c, test3
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.gen_utils import (
     report_results_to_excel,
@@ -28,8 +27,6 @@ from pareto.utilities.cm_utils.gen_utils import (
 )
 from pareto.utilities.cm_utils.data_parser import data_parser, _tolist
 
-# from pareto.utilities.cm_utils.data_checker import data_checker
-# from pareto.utilities.cm_utils.schematic_utils import plot_schematic
 from importlib import resources
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -42,8 +39,6 @@ from pareto.other_models.CM_module.operational.set_param_list import (
 
 
 def load_data(fpath):
-    # TODO: Can you be more specific? what "issues"?
-    # (set_list_found, set_list_empty), (param_list_found, param_list_empty) = data_checker(fpath, set_list, parameter_list)
 
     # importing data
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
@@ -275,16 +270,6 @@ def node_rerun(df_sets, df_parameters, treatment_site="R01", max_iterations=3000
             print_results_summary(model)
         else:
             print(f"... no feasible solution found in {max_iterations} iterations")
-    # #displays the data from each model
-    # for node_num in final_values:
-    #     print(f"\n----------------model using: {node_num}----------------\n")
-    #     if final_values[node_num] == None:
-    #         print("model is infeasible.")
-    #         continue
-    #     for value in final_values[node_num]:
-    #         print(f"{value}: {final_values[node_num][value]}")
-    #     #plots the final values using matplotlib
-    #     print("------------------------------------------------")
 
     # grabs total cost of every node
     total_costs = [
@@ -301,7 +286,6 @@ def node_rerun(df_sets, df_parameters, treatment_site="R01", max_iterations=3000
     plot_comparisons(final_values, sorted_costs)
 
     # plot schematic
-    # plot_schematic(df_parameters, total_costs)
 
     # print node with smallest total cost
     print(
@@ -343,8 +327,6 @@ def solving(
     # running linear flow model
     print("\nDeveloping an initialization...")
     opt = pyo.SolverFactory("ipopt")
-    # opt.options['NonConvex'] = 2
-    # opt.options['TimeLimit'] = 150
     status = opt.solve(model, tee=False)
     term_cond = pyo.check_optimal_termination(status)
     if not term_cond:
@@ -354,7 +336,6 @@ def solving(
         )
 
     # unfixing all the initialized variables
-    # model = obj_fix(model, [], deactivate=[], activate= conclist+flowlist)
     model = alter_nonlinear_cons(model, deactivate=False)
 
     # running bilinear model
