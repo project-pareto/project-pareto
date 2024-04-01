@@ -37,11 +37,12 @@ Subsurface risk calculation requires the following additional parameters (worksh
   * HP_threshold (:math:`p_h`) in psi/ft
   * LP_threshold (:math:`p_l`) in psi/ft
 
-+--------------------------------------+
-| Section                              |
-+======================================+
-| :ref:`normalization_of_risk_factors` |
-+--------------------------------------+
++---------------------------------------+
+| Section                               |
++=======================================+
+| :ref:`normalization_of_risk_factors`  |
+| :ref:`calculation_of_subsurface_risk` |
++---------------------------------------+
 
 .. _normalization_of_risk_factors:
 
@@ -65,6 +66,8 @@ The maximum risk factor for the lowest risk (:math:`\hat{r}`) is then calculated
 .. math::
 
     \hat{r}=\sum_{x\in\{o, i, e, f, p\}}r_{xd}\bar{r}_{xd}\bar{r}_xs}
+
+.. _calculation_of_subsurface_risk:
 
 Calculation of subsurface risk for individual SWD sites
 -------------------------------------------------------
