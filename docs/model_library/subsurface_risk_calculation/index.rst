@@ -24,6 +24,7 @@ Subsurface risk calculation requires the following additional parameters (worksh
   Two-column table with SWD sites and their proximity to high-pressure or low-pressure injection well in miles.
 - SWDRiskFactors:
   Two-column table with subsurface risk factor names and their values. These factors are
+
   * orphan_well_distance_risk_factor (:math:`r_{od}`)
   * orphan_well_severity_risk_factor (:math:`r_{os}`)
   * inactive_well_distance_risk_factor (:math:`r_{id}`)
@@ -65,7 +66,7 @@ The maximum risk factor for the lowest risk (:math:`\hat{r}`) is then calculated
 
 .. math::
 
-    \hat{r}=\sum_{x\in\{o, i, e, f, p\}}r_{xd}\bar{r}_{xd}\bar{r}_xs}
+    \hat{r}=\sum_{x\in\{o, i, e, f, p\}}r_{xd}\bar{r}_{xd}\bar{r}_xs
 
 .. _calculation_of_subsurface_risk:
 
