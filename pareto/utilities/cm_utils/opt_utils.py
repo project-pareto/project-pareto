@@ -95,7 +95,6 @@ def max_recovery_with_infrastructure(data, tee=False):
     ]
 
     # I think this fixes the concentration variables and removes the concentration constraints
-    # TODO: Why is this called obj_fix? what is "obj"?
     model = obj_fix(model, ["v_C"], activate=flowlist, deactivate=conclist)
 
     # Solve the linear flow model
