@@ -32,7 +32,6 @@ from set_param_list import set_list, parameter_list
 
 
 # load the case study
-# case_study_name = 'large_case_study_Li'
 case_study_name = "small_case_study_Li"
 
 with resources.path(
