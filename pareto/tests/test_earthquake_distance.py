@@ -13,10 +13,14 @@
 """
 Test the earthquake distance calculator
 """
-
+import pytest, sys
 from pareto.utilities.earthquake_distance import calculate_earthquake_distances
 
 
+# calculate_earthquake_distances uses pyproj package, which is only supported
+# for Python 3.9 and later
+@pytest.mark.skipif(sys.version_info < (3, 9))
+@pytest.mark.unit
 def test_earthquake_distance():
     swd_latlons = [
         {"id": 1, "lat": 32.251, "lon": -101.940},
