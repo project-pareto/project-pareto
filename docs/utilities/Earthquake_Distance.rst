@@ -25,7 +25,7 @@ The method accepts the following input arguments:
 
 - swd_latlons:
     REQUIRED. Defines a list of dictionaries with a SWD well ID (id), its decimal latitude (lat) and longitude (lon).
-    For example,::
+    For example::
 
      [
          {"id": 1, "lat": 32.262, "lon": -101.931},
@@ -37,8 +37,8 @@ The method accepts the following input arguments:
 - api:
     OPTIONAL. Specifies either the USGS or TexNet API.
 
-    * usgs: Use the USGS API (default)
-    * texnet: Use the TexNet API
+    * ``"usgs"``: Use the USGS API (default)
+    * ``"texnet"``: Use the TexNet API
 
 - max_radius_mi:
     OPTIONAL. Specifies the maximum radius in miles from a SWD well for earthquake data collection.
@@ -69,7 +69,7 @@ The method accepts the following input arguments:
     By default, it is False.
 
 The output of this method is a list of dictionaries containing the input SWD well ID (swd_id), earthquake ID (eq_id), event time (time), distance in miles to the SWD well (distance_mi), and its magnitude (magnitude).
-For example,::
+For example::
 
     [
         {
