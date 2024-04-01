@@ -27,18 +27,27 @@ from pareto.utilities.earthquake_distance import calculate_earthquake_distances
 @pytest.mark.unit
 def test_earthquake_distance():
     swd_latlons = [
-        {"id": 1, "lat": 32.251, "lon": -101.940},
-        {"id": 2, "lat": 31.651, "lon": -104.410},
+        {"swd_id": 1, "lat": 32.251, "lon": -101.940},
+        {"swd_id": 2, "lat": 31.651, "lon": -104.410},
     ]
 
     earthquake_distances = calculate_earthquake_distances(
-        swd_latlons, min_date="2024-03-23", max_date="2024-03-23"
+        swd_latlons,
+        min_date="2024-03-23",
+        max_date="2024-03-23",
+        save="eq_dist_usgs_results.csv",
+        overwrite=True,
     )
 
     assert len(earthquake_distances) == 1
 
     earthquake_distances = calculate_earthquake_distances(
-        swd_latlons, "texnet", min_date="2024-03-23", max_date="2024-03-23"
+        swd_latlons,
+        "texnet",
+        min_date="2024-03-23",
+        max_date="2024-03-23",
+        save="eq_dist_texnet_results.csv",
+        overwrite=True,
     )
 
     assert len(earthquake_distances) == 2
