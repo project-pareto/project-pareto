@@ -147,7 +147,7 @@ def data_parser(df_sets, df_parameters):
     }
 
     # TimeDiscretization
-    d["p_dt"] = 7  # TODO: Get get_data() to read this
+    d["p_dt"] = 7
 
     # Operating costs
     d["p_betaArc"] = {}
