@@ -54,13 +54,13 @@ The ten risk factors (:math:`r_\cdot`) are categorized by type of object---orpha
 
 .. math::
 
-    \bar{r}_{xd}=\frac{r_{xd}}{\sum_{y\in\{o, i, e, f, p\}}r_{yd}}\qquad\text{for}x\in\{o, i, e, f, p\}
+    \bar{r}_{xd}=\frac{r_{xd}}{\sum_{y\in\{o, i, e, f, p\}}r_{yd}}\qquad\text{for }x\in\{o, i, e, f, p\}
 
 Similarly, the five severity risk factors are divided by their sum.
 
 .. math::
 
-    \bar{r}_{xs}=\frac{r_{xs}}{\sum_{y\in\{o, i, e, f, p\}}r_{ys}}\qquad\text{for}x\in\{o, i, e, f, p\}
+    \bar{r}_{xs}=\frac{r_{xs}}{\sum_{y\in\{o, i, e, f, p\}}r_{ys}}\qquad\text{for }x\in\{o, i, e, f, p\}
 
 The maximum risk factor for the lowest risk (:math:`\hat{r}`) is then calculated for each type of object (orphan well, inactive well, earthquake, fault, and high-/low-pressure) by multiplying each distance-based risk factor and both normalized factors for that type of object.
 
