@@ -28,7 +28,7 @@ from pareto.utilities.cm_utils.run_utils import print_results_summary
 from pareto.utilities.cm_utils.data_parser import data_parser
 
 from importlib import resources
-from set_param_list import set_list, parameter_list
+from pareto.models_extra.CM_module.set_param_list import set_list, parameter_list
 
 
 # load the case study

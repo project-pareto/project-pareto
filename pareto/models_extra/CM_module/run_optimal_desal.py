@@ -13,19 +13,25 @@
 
 
 """
-Base Case Run
-Run file which runs any specific CM case study from the case_studies folder
-"""
+Determining Optimal Desalination Location Run
+This file looks to find the optimal location of the desalination facility within the network.
 
+This file runs the model in the following order:
+1. Run for treatment site attached for different nodes in the network
+2. Display cost results plots
+3. Display cost summary for best network
+"""
 import pyomo.environ as pyo
-from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
 from pareto.utilities.cm_utils.data_parser import data_parser
-from pareto.utilities.cm_utils.run_utils import solving
-from set_param_list import set_list, parameter_list
+from pareto.utilities.cm_utils.run_utils import (
+    node_rerun,
+    print_results_summary,
+)
 from importlib import resources
 
+from pareto.models_extra.CM_module.set_param_list import set_list, parameter_list
 
 # -------------------------Loading data and model------------------------------
 """
@@ -34,22 +40,34 @@ large_case_study_Li.xlsx: This file is the large permian case study with no TDS 
 small_case_study_Li.xlsx: This file is the small permian case study with LI and TDS concentrations.
 """
 
-fname = "small_case_study_Li"
+fname = "small_case_study"
 with resources.path(
     "pareto.case_studies",
     "small_case_study_Li.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
-data = data_parser(df_sets, df_parameters)
 
-# building model
-model = build_qcp_br(data)
 
-print(f"\nSolving case study: {fname}")
-model, _ = solving(model, tee=True)
+print(f"running case study {fname}.")
 
-print("\nGenerating Report...")
-report_results_to_excel(
-    model, filename=f"{fname}_operational_results.xlsx", split_var={"s_A": 3}
+# --------------Running treatment sites attached to different nodes-------------
+print("\n\nSolving for different nodes in the network\n\n")
+min_node, models = node_rerun(
+    df_sets, df_parameters, treatment_site="R01", max_iterations=5000
 )
+
+# -----------------------------Generating report---------------------------
+# generating final report of variables for the best model
+final_model = models[min_node]
+print("\n\nGenerating report\n\n")
+report_results_to_excel(
+    final_model, filename=f"{fname}_results.xlsx", split_var={"s_A": 3}
+)
+
+
+print()
+print(f"*** Lowest cost location for treatment ***")
+
+# Displaying specific broken down costs
+print_results_summary(final_model)
