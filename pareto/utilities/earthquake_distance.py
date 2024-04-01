@@ -133,7 +133,7 @@ def calculate_earthquake_distances(
     keys = ("swd_id", "eq_id", "time", "distance_mi", "magnitude")
 
     for swd_latlon in swd_latlons:
-        swd_id = swd_latlon["id"]
+        swd_id = swd_latlon["swd_id"]
         swd_lat = swd_latlon["lat"]
         swd_lon = swd_latlon["lon"]
         if api == "usgs":
@@ -185,7 +185,7 @@ def calculate_earthquake_distances(
             )
 
     if fmt == "csv":
-        with open(save, "w") as f:
+        with open(save, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(keys)
             for row in earthquake_distances:
@@ -199,8 +199,8 @@ def calculate_earthquake_distances(
 if __name__ == "__main__":
     # Example
     swd_latlons = [
-        {"id": 1, "lat": 32.251, "lon": -101.940},
-        {"id": 2, "lat": 31.651, "lon": -104.410},
+        {"swd_id": 1, "lat": 32.251, "lon": -101.940},
+        {"swd_id": 2, "lat": 31.651, "lon": -104.410},
     ]
 
     earthquake_distances = calculate_earthquake_distances(

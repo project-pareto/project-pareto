@@ -24,12 +24,12 @@ This method uses the `API <https://earthquake.usgs.gov/fdsnws/event/1/>`_ of the
 The method accepts the following input arguments:
 
 - swd_latlons:
-    REQUIRED. Defines a list of dictionaries with a SWD well ID (id), its decimal latitude (lat) and longitude (lon).
+    REQUIRED. Defines a list of dictionaries with a SWD well ID (swd_id), its decimal latitude (lat) and longitude (lon).
     For example::
 
      [
-         {"id": 1, "lat": 32.262, "lon": -101.931},
-         {"id": 2, "lat": 31.682, "lon": -104.401},
+         {"swd_id": 1, "lat": 32.262, "lon": -101.931},
+         {"swd_id": 2, "lat": 31.682, "lon": -104.401},
      ]
 
     The SWD well IDs will be reported in the output list.
@@ -94,8 +94,8 @@ For example::
 Example of how this method is used::
 
     swd_latlons = [
-        {"id": 1, "lat": 32.251, "lon": -101.940},
-        {"id": 2, "lat": 31.651, "lon": -104.410},
+        {"swd_id": 1, "lat": 32.251, "lon": -101.940},
+        {"swd_id": 2, "lat": 31.651, "lon": -104.410},
     ]
 
     earthquake_distances = calculate_earthquake_distances(
