@@ -198,7 +198,7 @@ def data_parser(df_sets, df_parameters):
                 d["p_Fbounds"][aIN, aOUT, aTP, t] = (
                     0,
                     max(list(df_parameters["InitialPipelineCapacity"].values())),
-                )  # TODO: Change this value
+                )
 
             # Flow from treatment unit to pseudo disposal is max piped flow
             elif aOUT.endswith("_TW") or aOUT.endswith("_CW"):
