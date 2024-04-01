@@ -161,8 +161,7 @@ def data_parser(df_sets, df_parameters):
                 (aIN, aOUT)
             ]
         else:  # trucking case
-            d["p_betaArc"][aIN, aOUT, aTP] = 0.01  # TODO: Change trucking case
-    # TODO: Trucking costs properly
+            d["p_betaArc"][aIN, aOUT, aTP] = 0.01
     d["p_betaD"] = df_parameters["DisposalOperationalCost"]
     d["p_betaW"] = df_parameters["FreshSourcingCost"]
     d["p_betaT"] = {
