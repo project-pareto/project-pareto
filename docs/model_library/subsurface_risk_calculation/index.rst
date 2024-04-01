@@ -63,7 +63,7 @@ Similarly, the five severity risk factors are divided by their sum.
 
     \bar{r}_{xs}=\frac{r_{xs}}{\sum_{y\in\{o, i, e, f, p\}}r_{ys}}\qquad\text{for }x\in\{o, i, e, f, p\}
 
-The maximum risk factor for the lowest risk (:math:`\hat{r}`) is then calculated for each type of object (orphan well, inactive well, earthquake, fault, and high-/low-pressure) by multiplying each distance-based risk factor and both normalized factors for that type of object.
+The maximum risk factor for the lowest risk (:math:`\hat{r}`) is then calculated by adding all multiplications of the distance-based risk factor and both normalized factors for each type of object.
 
 .. math::
 
