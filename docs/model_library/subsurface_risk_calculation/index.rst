@@ -67,7 +67,7 @@ The maximum risk factor for the lowest risk (:math:`\hat{r}`) is then calculated
 
 .. math::
 
-    \hat{r}=\sum_{x\in\{o, i, e, f, p\}}r_{xd}\bar{r}_{xd}\bar{r}_xs
+    \hat{r}=\sum_{x\in\{o, i, e, f, p\}}r_{xd}\bar{r}_{xd}\bar{r}_{xs}
 
 .. _calculation_of_subsurface_risk:
 
