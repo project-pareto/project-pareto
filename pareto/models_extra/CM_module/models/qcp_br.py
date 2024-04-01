@@ -231,11 +231,10 @@ def build_qcp_br(data):
     )
 
     # --------------------VARIABLES-----------------------------
-    # TODO: Do the bounds properly
     model.v_F = pyo.Var(
         model.s_A,
         model.s_T,
-        bounds=(data["p_Fbounds"]),
+        bounds=data["p_Fbounds"],
         doc="Flow in arc",
         initialize=1000,
     )
@@ -243,7 +242,7 @@ def build_qcp_br(data):
         model.s_N - model.s_ND,
         model.s_Q,
         model.s_T,
-        bounds=(0, 1000),
+        bounds=data["p_Cbounds"],
         doc="Composition in node",
         initialize=20,
     )
