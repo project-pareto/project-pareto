@@ -460,8 +460,6 @@ def build_qcp_br(data):
                     0 == sum(model.v_F[a, t] for a in model.s_Aout[n])
                 )  # flow constraint
 
-                # for q in model.s_Q:
-                #     model.Cconc.add(sum(model.v_F[a,t]*model.v_C[model.p_nodeUp[a],q,t] for a in model.s_Ain[n]) == model.p_FCons[n,t]*model.v_C[n,q,t])
 
             # condition where completion pad is neither producing nor consuming
             elif model.p_FGen[n, t] == 0 and model.p_FCons[n, t] == 0:
