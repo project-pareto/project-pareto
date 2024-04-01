@@ -48,7 +48,6 @@ with resources.path(
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 
-# checking for tabs in the excel sheet
 
 print(f"running case study {fname}.")
 
