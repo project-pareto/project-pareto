@@ -42,6 +42,7 @@ Subsurface risk calculation requires the following additional parameters (worksh
 | Section                               |
 +=======================================+
 | :ref:`normalization_of_risk_factors`  |
++---------------------------------------+
 | :ref:`calculation_of_subsurface_risk` |
 +---------------------------------------+
 
