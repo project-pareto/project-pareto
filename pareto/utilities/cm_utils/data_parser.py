@@ -32,7 +32,6 @@ def data_parser(df_sets, df_parameters):
     # ---------------SETS---------------------
     # nodes
     d["s_NMS"] = df_sets["NetworkNodes"].tolist()
-    # d['s_NMS'] = _tolist(df_sets["NetworkNodes"])   # mixers and splitters
     d["s_NP"] = df_sets["ProductionPads"].tolist()  # production pads
     d["s_NC"] = df_sets["CompletionsPads"].tolist()  # completion pads
     d["s_NS"] = df_sets["StorageSites"].tolist()  # storage
@@ -219,8 +218,3 @@ def data_parser(df_sets, df_parameters):
 
     return d
 
-
-#%%
-
-
-# %%
