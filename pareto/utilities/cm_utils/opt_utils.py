@@ -52,7 +52,6 @@ def max_theoretical_recovery_flow_opt(
     mm.quality_con = pyo.Constraint(
         expr=mm.total_li >= desired_li_conc * mm.cumulative_F
     )
-    # mm.overall_conc = pyo.Expression(expr = mm.total_li/sum(mm.F[t] for t in mm.S))
 
     status = pyo.SolverFactory("ipopt").solve(mm, tee=tee)
     pyo.assert_optimal_termination(status)
@@ -100,8 +99,6 @@ def max_recovery_with_infrastructure(data, tee=False):
     # Solve the linear flow model
     print("   ... running linear flow model")
     opt = pyo.SolverFactory("ipopt")
-    # opt.options['NonConvex'] = 2
-    # opt.options['TimeLimit'] = 150
     status = opt.solve(model, tee=tee)
 
     # terminating script early if optimal solution not found
@@ -166,14 +163,11 @@ def cost_optimal(data, tee=False):
     ]
 
     # I think this fixes the concentration variables and removes the concentration constraints
-    # TODO: Why is this called obj_fix? what is "obj"?
     model = obj_fix(model, ["v_C"], activate=flowlist, deactivate=conclist)
 
     # Solve the linear flow model
     print("   ... running linear flow model")
     opt = pyo.SolverFactory("ipopt")
-    # opt.options['NonConvex'] = 2
-    # opt.options['TimeLimit'] = 150
     status = opt.solve(model, tee=tee)
 
     # terminating script early if optimal solution not found
