@@ -264,7 +264,6 @@ def node_rerun(df_sets, df_parameters, treatment_site="R01", max_iterations=3000
     final_values = dict()
     for node_num in models:
         print(f"\n\nRunning {node_num}\n")
-        # models[node_num].v_F.display()
         # runs each model through and solves for optimal solution
         solved_model, values = solving(models[node_num], max_iterations)
         # appends final data to be displayed later
