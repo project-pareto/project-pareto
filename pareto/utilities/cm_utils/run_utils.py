@@ -425,7 +425,7 @@ def solving(
                 1. The minimum CM recovery concentration is too high given the existing infrastructure and parameters \n \
                 2. The produced water concentration is too low to meet minimum CM concentration requirements \n \
                 3. The treatment efficiency is not sufficient to meet the minimum CM concentration \n \
-                4. Installation of pipelines for direct transportation of water from high CM concentration production pads to desalination sites would aid feasibility \n \
+                Suggestion to improve feasibility: Allow installation of pipelines for direct transportation of water from high CM concentration production pads to desalination sites \n \
                 "
             )
 
