@@ -90,7 +90,7 @@ def convert_date_to_timestamp(date):
         if date_re.match(date):
             date_ts = datetime.strptime(date, "%Y-%m-%d").timestamp()
         else:
-            raise "date must be in YYYY-MM-DD"
+            raise Exception("date must be in YYYY-MM-DD")
     else:
         date_ts = None
     return date_ts
@@ -108,7 +108,7 @@ def calculate_earthquake_distances(
 ):
     # swd_latlons is a list of dicts with id, lat, and lon
     if api not in ("usgs", "texnet"):
-        raise "api must be either usgs or texnet"
+        raise Exception("api must be either usgs or texnet")
 
     min_date_ts = convert_date_to_timestamp(min_date)
     max_date_ts = convert_date_to_timestamp(max_date)
@@ -116,15 +116,15 @@ def calculate_earthquake_distances(
         max_date_ts += 24 * 60 * 60  # max date 24:00:00
 
     if min_date_ts and max_date_ts and min_date_ts > max_date_ts:
-        raise "min_date must be earlier than or equal to max_date"
+        raise Exception("min_date must be earlier than or equal to max_date")
 
     if save:
         m = save_re.match(save)
         if not m:
-            raise "save must be in *.csv or *.xlsx"
+            raise Exception("save must be in *.csv or *.xlsx")
         fmt = m[1].lower()
         if not overwrite and os.path.exists(save):
-            raise f"{save} already exists"
+            raise Exception(f"{save} already exists")
     else:
         fmt = None
 
@@ -157,7 +157,7 @@ def calculate_earthquake_distances(
             with urllib.request.urlopen(request) as f:
                 response = json.load(f)
         except:
-            raise
+            raise Exception("API error")
         for feat in response["features"]:
             eq_id = feat["id"]
             props = feat["properties"]
@@ -196,7 +196,7 @@ def calculate_earthquake_distances(
     return earthquake_distances
 
 
-if __name__ == "__main__":
+def main():
     # Example
     swd_latlons = [
         {"swd_id": 1, "lat": 32.251, "lon": -101.940},
@@ -228,3 +228,7 @@ if __name__ == "__main__":
         swd_latlons, min_date="2024-03-23", max_date="2024-03-23"
     )
     print("# USGS API\n", json.dumps(earthquake_distances, indent=1))
+
+
+if __name__ == "__main__":
+    main()

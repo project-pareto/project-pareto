@@ -19,7 +19,7 @@ import pytest
 # import it.
 pytest.importorskip("pyproj")
 
-from pareto.utilities.earthquake_distance import calculate_earthquake_distances
+from pareto.utilities.earthquake_distance import calculate_earthquake_distances, main
 
 
 # calculate_earthquake_distances uses pyproj package, which is only supported
@@ -31,6 +31,11 @@ def test_earthquake_distance():
         {"swd_id": 2, "lat": 31.651, "lon": -104.410},
     ]
 
+    # First, call calculate_earthquake_distances without any of the optional
+    # keyword arguments to make sure there are no exceptions
+    calculate_earthquake_distances(swd_latlons)
+
+    # Ensure that request to USGS database works
     earthquake_distances = calculate_earthquake_distances(
         swd_latlons,
         api="usgs",
@@ -39,9 +44,9 @@ def test_earthquake_distance():
         save="eq_dist_usgs_results.csv",
         overwrite=True,
     )
-
     assert len(earthquake_distances) == 1
 
+    # Ensure that request to TexNet database works
     earthquake_distances = calculate_earthquake_distances(
         swd_latlons,
         api="texnet",
@@ -50,9 +55,62 @@ def test_earthquake_distance():
         save="eq_dist_texnet_results.csv",
         overwrite=True,
     )
-
     assert len(earthquake_distances) == 2
 
+    # Ensure that xlsx save format works
+    earthquake_distances = calculate_earthquake_distances(
+        swd_latlons,
+        api="texnet",
+        min_date="2024-03-23",
+        max_date="2024-03-23",
+        save="eq_dist_texnet_results.xlsx",
+        overwrite=True,
+    )
 
-if __name__ == "__main__":
-    test_earthquake_distance()
+    # Ensure exception when incorrect date format is used
+    with pytest.raises(Exception):
+        calculate_earthquake_distances(
+            swd_latlons,
+            min_date="2024.03.23",
+            max_date="2024.03.23",
+        )
+
+    # Ensure exception when invalid API is used
+    with pytest.raises(Exception):
+        calculate_earthquake_distances(
+            swd_latlons,
+            api="usgss",
+        )
+
+    # Ensure exception when min_date is later than max_date
+    with pytest.raises(Exception):
+        calculate_earthquake_distances(
+            swd_latlons,
+            min_date="2024-03-25",
+            max_date="2024-03-23",
+        )
+
+    # Ensure exception when incorrect save format is used
+    with pytest.raises(Exception):
+        calculate_earthquake_distances(
+            swd_latlons,
+            api="usgs",
+            min_date="2024-03-23",
+            max_date="2024-03-23",
+            save="eq_dist_usgs_results.cs",
+            overwrite=True,
+        )
+
+    # Ensure exception when overwriting a file and overwrite option is False
+    with pytest.raises(Exception):
+        calculate_earthquake_distances(
+            swd_latlons,
+            api="usgs",
+            min_date="2024-03-23",
+            max_date="2024-03-23",
+            save="eq_dist_usgs_results.csv",
+            overwrite=False,
+        )
+
+    # Check that the main function runs without exception
+    main()
