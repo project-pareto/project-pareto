@@ -7725,7 +7725,7 @@
 #                     keepfiles=True,
 #                     solver=mathoptsolver,
 #                     tmpdir="temp",
-#                     add_options=["gams_model.optfile=1;"],
+#                     io_options=["gams_model.optfile=1;"],
 #                 )
 #                 try:
 #                     # second solve with SCIP
@@ -10211,8 +10211,8 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                 + model.v_C_TotalPiping
                 + model.v_C_TotalStorage
                 + model.v_C_TotalTrucking
-                # + model.v_C_TreatmentOpex_surrogate
-                # + model.v_C_TreatmentCapEx_surrogate
+                + model.v_C_TreatmentOpex_surrogate
+                + model.v_C_TreatmentCapEx_surrogate
                 + model.p_alpha_AnnualizationRate
                 * (
                     model.v_C_DisposalCapEx
@@ -10309,7 +10309,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                     # model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
 
         def flowBinRule(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_1[r,t]>=1
+            return model.v_T_Treatment_scaled[r,t]>=0+1e-6-cap_upper_bound*(1-model.bin1[r,t])
         model.flowBin = Constraint(
             model.s_R,
             model.s_T,
@@ -10317,35 +10317,35 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
         def flowMaxRule(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_1[r,t]<=cap_upper_bound
+            return model.v_T_Treatment_scaled[r,t]<=cap_upper_bound*model.bin1[r,t]
         model.flowMax = Constraint(
             model.s_R,
             model.s_T,
             rule=flowMaxRule,
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
-        def SumBinRule(model):
-            return model.vb_y_bin==sum(sum(model.bin1[r,t] for r in model.s_R) for t in model.s_T)
-        model.sumBin = Constraint(
-            rule=SumBinRule,
-            doc='Sum of binaries'
-        )
-        def flowBinRule1(model,r,t):
-            return model.v_T_Treatment_scaled_ReLU_2[r,t]==0
-        model.flowBin1 = Constraint(
-            model.s_R,
-            model.s_T,
-            rule=flowBinRule1,
-            doc='Flow binary to set to 0 is flow is 0 else 1'
-        )
-        def flowBinRule2(model,r,t):
-            return model.v_T_Treatment_scaled[r,t]==model.v_T_Treatment_scaled_ReLU_1[r,t]-model.bin1[r,t]
-        model.flowBin2 = Constraint(
-            model.s_R,
-            model.s_T,
-            rule=flowBinRule2,
-            doc='Flow binary to set to 0 is flow is 0 else 1'
-        )
+        # def SumBinRule(model):
+        #     return model.vb_y_bin==sum(sum(model.bin1[r,t] for r in model.s_R) for t in model.s_T)
+        # model.sumBin = Constraint(
+        #     rule=SumBinRule,
+        #     doc='Sum of binaries'
+        # )
+        # def flowBinRule1(model,r,t):
+        #     return model.v_T_Treatment_scaled_ReLU_2[r,t]==0
+        # model.flowBin1 = Constraint(
+        #     model.s_R,
+        #     model.s_T,
+        #     rule=flowBinRule1,
+        #     doc='Flow binary to set to 0 is flow is 0 else 1'
+        # )
+        # def flowBinRule2(model,r,t):
+        #     return model.v_T_Treatment_scaled[r,t]==model.v_T_Treatment_scaled_ReLU_1[r,t]-1e-6*model.bin1[r,t]
+        # model.flowBin2 = Constraint(
+        #     model.s_R,
+        #     model.s_T,
+        #     rule=flowBinRule2,
+        #     doc='Flow binary to set to 0 is flow is 0 else 1'
+        # )
         # def logicalBinRule(model,r,t):
         #     return model.bin1[r,t]+model.bin2[r,t]==1
         # model.logicalBin = Constraint(
@@ -10355,7 +10355,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         #     doc='Flow binary logic'
         # )
         def OpexTreatmentRule(model,r,t):
-            return model.v_C_Treatment_site_ReLU[r,t] >= model.v_C_Treatment_site[r,t]-1e6*(model.bin1[r,t])
+            return model.v_C_Treatment_site_ReLU[r,t] >= model.v_C_Treatment_site[r,t]-1e10*(1-model.bin1[r,t])
         model.OpexTreatment = Constraint(
             model.s_R,
             model.s_T,
@@ -10386,18 +10386,18 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         #     model.s_R, model.s_T, rule=treatmentSiteBigM2, doc="Treatment surrogate for MVC"
         # )
 
-        # def treatmentCost(model):
-        #     return model.v_C_TreatmentOpex_surrogate==sum(
-        #     sum(model.v_C_Treatment_site_ReLU[r, t]/52 for r in model.s_R) for t in model.s_T
-        # )
-        # model.treatmentCost = Constraint(
-        #     rule=treatmentCost,
-        #     doc="Treatment Rule"
-        # )
+        def treatmentCost(model):
+            return model.v_C_TreatmentOpex_surrogate==sum(
+            sum(model.v_C_Treatment_site_ReLU[r, t] for r in model.s_R) for t in model.s_T
+        )/52
+        model.treatmentCost = Constraint(
+            rule=treatmentCost,
+            doc="Treatment Rule"
+        )
         def treatmentCapexSurrogate(model, i, t):
             return model.v_C_TreatmentCapEx_site[i] >= model.v_C_TreatmentCapEx_site_time[
                 i, t
-            ] - 1e10*model.bin1[r,t]
+            ] - 1e10*(1-model.bin1[i,t])
 
         model.max_cap = Constraint(
             model.s_R,
@@ -10415,12 +10415,12 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
         #     model.s_R, model.s_T, rule=treatmentCapexBigM, doc="Max treated vol as capex"
         # )
 
-        # def capExSurrogate(model):
-        #     return model.v_C_TreatmentCapEx_surrogate == sum(
-        #         model.v_C_TreatmentCapEx_site[i] for i in model.s_R
-        #     )
+        def capExSurrogate(model):
+            return model.v_C_TreatmentCapEx_surrogate == sum(
+                model.v_C_TreatmentCapEx_site[i] for i in model.s_R
+            )
 
-        # model.CapEx_cost = Constraint(rule=capExSurrogate, doc="Treatment costs")
+        model.CapEx_cost = Constraint(rule=capExSurrogate, doc="Treatment costs")
     else:
         raise Exception("objective not supported")
 
@@ -15287,7 +15287,7 @@ def solve_discrete_water_quality(model, opt, scaled):
 def solve_model(model, solver=None, options=None):
     # default option values
     running_time = 60  # solver running time in seconds
-    gap = 0  # solver gap
+    gap = 1 # solver gap
     deactivate_slacks = True  # yes/no to deactivate slack variables
     use_scaling = False  # yes/no to scale the model
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
@@ -15318,6 +15318,10 @@ def solve_model(model, solver=None, options=None):
                 running_time = options["running_time"]
             if "gap" in options.keys():
                 gap = options["gap"]
+
+            with open(f"{opt.options['solver']}.opt", "w") as f:
+                f.write(f"$onecho > {opt.options['solver']}.opt\n optca={gap}\n running_time={running_time} $offecho")
+            # opts=dict('add_options':['GAMS_MODEL.optfile=1;'])
 
             # TODO: Add optcr and resLim options in GAMS.
             # opt.options["OPTCR"] = gap
@@ -15419,7 +15423,7 @@ def solve_model(model, solver=None, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 2.1:
-            results = opt.solve(model, tee=True)
+            results = opt.solve(model, tee=True, io_options={'add_options':['GAMS_MODEL.optFile=1;']})
 
     if results.solver.termination_condition == TerminationCondition.infeasible:
         print(
@@ -15501,7 +15505,7 @@ def solve_model(model, solver=None, options=None):
                     keepfiles=True,
                     solver=mathoptsolver,
                     tmpdir="temp",
-                    add_options=["gams_model.optfile=1;"],
+                    io_options=["gams_model.optfile=1;"],
                 )
                 try:
                     # second solve with SCIP
