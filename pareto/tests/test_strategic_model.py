@@ -628,6 +628,90 @@ def test_hydraulics_co_optimize_input(
 
 
 @pytest.mark.unit
+def test_hydraulics_co_optimize_linearized_input(
+    build_workshop_strategic_model,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.capacity_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.co_optimize_linearized,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    mh = pipeline_hydraulics(m)
+
+    assert isinstance(mh, pyo.ConcreteModel)
+    assert isinstance(mh.hydraulics, pyo.Block)
+    assert isinstance(mh.hydraulics.v_Pressure, pyo.Var)
+    assert isinstance(mh.hydraulics.v_PumpHead, pyo.Var)
+    assert isinstance(mh.hydraulics.v_ValveHead, pyo.Var)
+    assert isinstance(mh.hydraulics.v_PumpCost, pyo.Var)
+    assert isinstance(mh.hydraulics.v_term, pyo.Var)
+    assert isinstance(mh.hydraulics.v_lambdas, pyo.Var)
+    assert isinstance(mh.hydraulics.vb_z, pyo.Var)
+    assert isinstance(mh.hydraulics.vb_Y_Pump, pyo.Var)
+    assert isinstance(mh.hydraulics.p_iota_HW_material_factor_pipeline, pyo.Param)
+    assert isinstance(mh.hydraulics.p_rhog, pyo.Param)
+    assert isinstance(mh.hydraulics.p_nu_PumpFixedCost, pyo.Param)
+    assert isinstance(mh.hydraulics.p_nu_ElectricityCost, pyo.Param)
+    assert isinstance(mh.hydraulics.p_eta_PumpEfficiency, pyo.Param)
+    assert isinstance(mh.hydraulics.p_eta_MotorEfficiency, pyo.Param)
+    assert isinstance(mh.hydraulics.p_upsilon_WellPressure, pyo.Param)
+    assert isinstance(mh.hydraulics.p_xi_Min_AOP, pyo.Param)
+    assert isinstance(mh.hydraulics.p_xi_Max_AOP, pyo.Param)
+    assert isinstance(mh.hydraulics.v_HW_loss, pyo.Var)
+    assert isinstance(mh.hydraulics.v_variable_pump_cost, pyo.Var)
+    assert isinstance(mh.objective, pyo.Objective)
+    assert isinstance(mh.hydraulics.HW_loss_equaltion, pyo.Constraint)
+    assert isinstance(mh.hydraulics.FlowEquationConv, pyo.Constraint)
+    assert isinstance(mh.hydraulics.termEquationConv, pyo.Constraint)
+    assert isinstance(mh.hydraulics.EnforceZero, pyo.Constraint)
+    assert isinstance(mh.hydraulics.SumOne, pyo.Constraint)
+    assert isinstance(mh.hydraulics.HW_loss_equaltion, pyo.Constraint)
+    assert isinstance(mh.hydraulics.NodePressure1, pyo.Constraint)
+    assert isinstance(mh.hydraulics.NodePressure2, pyo.Constraint)
+    assert isinstance(mh.hydraulics.VariablePumpCost, pyo.Constraint)
+    assert isinstance(mh.hydraulics.MAOPressure, pyo.Constraint)
+    assert isinstance(mh.hydraulics.PumpCostEq, pyo.Constraint)
+    assert isinstance(mh.hydraulics.HydraulicsCostEq, pyo.Constraint)
+    assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_hydraulics_co_optimize_linearized_reduced_strategic_model(
+    build_workshop_strategic_model,
+):
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.co_optimize_linearized,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "solver": "cbc",
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+
+
+@pytest.mark.unit
 def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     build_reduced_strategic_model,
 ):
