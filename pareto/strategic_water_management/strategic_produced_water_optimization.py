@@ -4435,8 +4435,11 @@ def pipeline_hydraulics(model):
         the cost of pumps.
         """
         # In the co_optimize method the objective should include the cost of pumps. So,
-        # delete the original objective to add a modified objective in this method.
-        del model.objective
+        # delete the original objectives to add a modified objective in this method.
+        del model.objective_Cost
+        del model.objective_Reuse
+        if model.do_subsurface_risk_calcs:
+            del model.objective_SubsurfaceRisk
 
         # Define sets for the piecewise linear approximation
         model.s_lamset = Set(initialize=list(range(n_sections + 1)))
