@@ -148,7 +148,7 @@ print("Solving MIQCP decomposition")
 deco_model = integer_cut_decomposition(
     model,
     subproblem_warmstart=False,
-    master_solver="gurobi",
+    master_solver="cbc",
     subproblem_solver="ipopt",
     time_limit=600,
     abs_gap=0.0,

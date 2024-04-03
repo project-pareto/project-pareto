@@ -17,7 +17,7 @@ import re
 import math
 import contextlib
 from pyomo.common.timing import TicTocTimer
-
+from pareto.utilities.solvers import get_solver
 
 def solve_model(
     model,
@@ -36,7 +36,7 @@ def solve_model(
     if len(disjunctions) >= 1:
         pyo.TransformationFactory("gdp.bigm").apply_to(model)
 
-    opt = pyo.SolverFactory(solver)
+    opt = get_solver(solver)
 
     if solver == "gurobi":
         opt.options["TimeLimit"] = time_limit
