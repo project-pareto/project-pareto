@@ -217,4 +217,3 @@ def data_parser(df_sets, df_parameters):
     d = parameter_processing(d, df_parameters)
 
     return d
-

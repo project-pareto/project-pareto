@@ -165,20 +165,20 @@ def parameter_processing(d, df_parameters):
                 ] * df_parameters["TruckingTime"][aIN, aOUT] / 110
 
     # Concentration bounds
-    alphaW_max = max(list(d['p_alphaW'].values()))
-    alpha_max = max(list(d['p_alpha'].values()))
-    Cin_max = max(list(d['p_CGen'].values()))
-    Cmax = Cin_max * (1-alphaW_max+alpha_max) / (1-alphaW_max)
-    d['p_C0_seg_bounds'] = (0,Cin_max)
-    assert all(Cmax >= d['p_Cmin'][n,q] for n in d['s_NTCW'] for q in d['s_Q'])
+    alphaW_max = max(list(d["p_alphaW"].values()))
+    alpha_max = max(list(d["p_alpha"].values()))
+    Cin_max = max(list(d["p_CGen"].values()))
+    Cmax = Cin_max * (1 - alphaW_max + alpha_max) / (1 - alphaW_max)
+    d["p_C0_seg_bounds"] = (0, Cin_max)
+    assert all(Cmax >= d["p_Cmin"][n, q] for n in d["s_NTCW"] for q in d["s_Q"])
 
-    d['p_Cbounds'] = {}
-    for n in list(set(d['s_N']) - set(d['s_ND'])):
-        for q in d['s_Q']:
-            for t in d['s_T']:
-                if n in d['s_NTCW']:
-                    d['p_Cbounds'][n,q,t] = (0,Cmax)
+    d["p_Cbounds"] = {}
+    for n in list(set(d["s_N"]) - set(d["s_ND"])):
+        for q in d["s_Q"]:
+            for t in d["s_T"]:
+                if n in d["s_NTCW"]:
+                    d["p_Cbounds"][n, q, t] = (0, Cmax)
                 else:
-                    d['p_Cbounds'][n,q,t] = (0,Cin_max)
+                    d["p_Cbounds"][n, q, t] = (0, Cin_max)
 
     return d

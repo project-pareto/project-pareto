@@ -48,7 +48,6 @@ with resources.path(
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 
-
 print(f"running case study {fname}.")
 
 # --------------Running treatment sites attached to different nodes-------------

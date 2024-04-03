@@ -272,9 +272,7 @@ def node_rerun(df_sets, df_parameters, treatment_site="R01", max_iterations=3000
             print(f"... no feasible solution found in {max_iterations} iterations")
 
     # grabs total cost of every node
-    total_costs = [
-        (value, final_values[value]["\nNet cost"]) for value in final_values
-    ]
+    total_costs = [(value, final_values[value]["\nNet cost"]) for value in final_values]
     sorted_costs = sorted(total_costs, key=lambda x: x[1])
 
     sorted_costs_nozero = [
