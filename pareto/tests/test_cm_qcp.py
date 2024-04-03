@@ -31,6 +31,7 @@ from pareto.utilities.cm_utils.data_parser import data_parser
 from pareto.utilities.get_data import get_data
 from pareto.utilities.cm_utils.run_utils import node_rerun
 from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
+from pareto.utilities.solvers import get_solver
 
 
 class TestCMqcpModel:
@@ -67,7 +68,7 @@ class TestCMqcpModel:
         model = self.build_cm_qcp_model()
 
         solver = "ipopt"
-        opt = pyo.SolverFactory(solver)
+        opt = get_solver("ipopt")
         assert opt.available()
 
         status = opt.solve(model, tee=False)

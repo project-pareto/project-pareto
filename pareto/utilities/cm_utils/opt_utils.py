@@ -17,6 +17,7 @@ Functions used in run_infrastructure_analysis.py
 from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
 import pyomo.environ as pyo
 from pareto.utilities.cm_utils.gen_utils import obj_fix
+from pareto.utilities.solvers import get_solver
 
 
 def max_theoretical_recovery_flow_opt(
@@ -48,7 +49,7 @@ def max_theoretical_recovery_flow_opt(
         expr=mm.total_li >= desired_li_conc * mm.cumulative_F
     )
 
-    status = pyo.SolverFactory("ipopt").solve(mm, tee=tee)
+    status = get_solver("ipopt").solve(mm, tee=tee)
     pyo.assert_optimal_termination(status)
     return pyo.value(mm.cumulative_F) * (1 - alphaW)
 
@@ -92,7 +93,7 @@ def max_recovery_with_infrastructure(data, tee=False):
 
     # Solve the linear flow model
     print("   ... running linear flow model")
-    opt = pyo.SolverFactory("ipopt")
+    opt = get_solver("ipopt")
     status = opt.solve(model, tee=tee)
 
     # terminating script early if optimal solution not found
@@ -113,7 +114,7 @@ def max_recovery_with_infrastructure(data, tee=False):
 
     # running bilinear model
     print("   ... running bilinear model")
-    opt = pyo.SolverFactory("ipopt")
+    opt = get_solver("ipopt")
     opt.options["ma27_pivtol"] = 1e-2
     opt.options["tol"] = 1e-6
     status = opt.solve(model, tee=tee)
@@ -160,7 +161,7 @@ def cost_optimal(data, tee=False):
 
     # Solve the linear flow model
     print("   ... running linear flow model")
-    opt = pyo.SolverFactory("ipopt")
+    opt = get_solver("ipopt")
     status = opt.solve(model, tee=tee)
 
     # terminating script early if optimal solution not found
@@ -175,7 +176,7 @@ def cost_optimal(data, tee=False):
 
     # running bilinear model
     print("   ... running bilinear model")
-    opt = pyo.SolverFactory("ipopt")
+    opt = get_solver("ipopt")
     opt.options["max_iter"] = 10000
     status = opt.solve(model, tee=tee)
     pyo.assert_optimal_termination(status)

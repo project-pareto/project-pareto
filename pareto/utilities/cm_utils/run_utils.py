@@ -36,6 +36,7 @@ from pareto.models_extra.CM_module.set_param_list import (
     set_list,
     parameter_list,
 )
+from pareto.utilities.solvers import get_solver
 
 
 def load_data(fpath):
@@ -324,7 +325,7 @@ def solving(
 
     # running linear flow model
     print("\nDeveloping an initialization...")
-    opt = pyo.SolverFactory("ipopt")
+    opt = get_solver("ipopt")
     status = opt.solve(model, tee=False)
     term_cond = pyo.check_optimal_termination(status)
     if not term_cond:
@@ -338,7 +339,7 @@ def solving(
 
     # running bilinear model
     print("\nSolving bilinear problem...")
-    opt = pyo.SolverFactory("ipopt")
+    opt = get_solver("ipopt")
 
     opt.options["max_iter"] = max_iterations
     status = opt.solve(model, tee=tee)
