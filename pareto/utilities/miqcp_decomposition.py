@@ -19,6 +19,7 @@ import contextlib
 from pyomo.common.timing import TicTocTimer
 from pareto.utilities.solvers import get_solver
 
+
 def solve_model(
     model,
     solver="gurobi",
