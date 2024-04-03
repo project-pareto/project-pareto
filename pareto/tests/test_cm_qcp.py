@@ -100,7 +100,7 @@ class TestAddFeatures:
 
         print("--- Runnning max theoretical treatment revenue ---")
         max_recovery = max_theoretical_recovery_flow_opt(
-            model, treatment_unit="R01_IN", desired_li_conc=100
+            model, desal_unit="R01_IN", desired_cm_conc=100, cm_name="Li"
         )
 
         max_w_infra = pyo.value(max_inf_model.treat_rev)
