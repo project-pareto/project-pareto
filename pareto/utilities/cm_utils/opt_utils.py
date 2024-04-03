@@ -21,7 +21,7 @@ from pareto.utilities.solvers import get_solver
 
 
 def max_theoretical_recovery_flow_opt(
-    model, desal_unit:str, cm_name:str, desired_cm_conc, tee=False
+    model, desal_unit: str, cm_name: str, desired_cm_conc, tee=False
 ):
     """
     This function computes the largest flow possible to
@@ -34,9 +34,11 @@ def max_theoretical_recovery_flow_opt(
     cm_name: name of critical mineral to be assessed
     desired_cm_conc: minimum CM concentration requirement
     """
-    assert cm_name in model.s_Q, f'{cm_name} is not a valid component to the base model'
-    assert model.p_alpha[desal_unit, cm_name] > 0.999, 'to use this tool you need to have perfect separation of the critical mineral'
-    
+    assert cm_name in model.s_Q, f"{cm_name} is not a valid component to the base model"
+    assert (
+        model.p_alpha[desal_unit, cm_name] > 0.999
+    ), "to use this tool you need to have perfect separation of the critical mineral"
+
     alphaW = model.p_alphaW[desal_unit]
     # desired concentration at the inlet - this will be corrected at the end
     desired_cm_conc = desired_cm_conc * (1 - alphaW)
@@ -94,7 +96,7 @@ def max_recovery_with_infrastructure(data, tee=False):
     # solve for the maximum possible recovery revenue given this infrastructure
     model.TINflow.deactivate()
     for k in model.Dflow:
-        if k[0].endswith('TW') or k[0].endswith('CW'):
+        if k[0].endswith("TW") or k[0].endswith("CW"):
             model.Dflow[k].deactivate()
 
     # running bilinear model
@@ -105,7 +107,8 @@ def max_recovery_with_infrastructure(data, tee=False):
     status = opt.solve(model, tee=tee)
     pyo.assert_optimal_termination(status)
     print(
-        "Max critical mineral revenue with existing infrastructure:", pyo.value(model.treat_rev)
+        "Max critical mineral revenue with existing infrastructure:",
+        pyo.value(model.treat_rev),
     )
     return model
 
