@@ -22,15 +22,10 @@ from pareto.utilities.cm_utils.gen_utils import obj_fix
 def max_theoretical_recovery_flow_opt(
     model, treatment_unit, desired_li_conc, tee=False
 ):
-    """This function computes the largest flow possible to
+    """
+    This function computes the largest flow possible to
     the treatment unit while still keeping the Li
     concentration above the desired level.
-
-    This function ignores all infrastructure - this is only
-    based on mass balance along.
-
-    This function differs from max_theoretical_recovery_flow
-    since this function uses an LP and Gurobi to find the value
     """
     assert model.p_alpha[treatment_unit, "Li"] > 0.999
     alphaW = model.p_alphaW[treatment_unit]
