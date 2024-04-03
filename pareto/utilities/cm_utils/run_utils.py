@@ -126,8 +126,8 @@ def plot_comparisons(values, sorted_total_costs):
         "Treatment cost",
         "Storage cost",
         "Storage revenue",
-        "Treatment revenue",
-        "\nTotal cost",
+        "Critical Mineral revenue",
+        "\nNet cost",
     ]
 
     sorted_total_costs_dict = {x[0]: x[1] for x in sorted_total_costs}
@@ -273,7 +273,7 @@ def node_rerun(df_sets, df_parameters, treatment_site="R01", max_iterations=3000
 
     # grabs total cost of every node
     total_costs = [
-        (value, final_values[value]["\nTotal cost"]) for value in final_values
+        (value, final_values[value]["\nNet cost"]) for value in final_values
     ]
     sorted_costs = sorted(total_costs, key=lambda x: x[1])
 
@@ -364,8 +364,8 @@ def solving(
             "Treatment cost",
             "Storage cost",
             "Storage revenue",
-            "Treatment revenue",
-            "\nTotal cost",
+            "Critical Mineral revenue",
+            "\nNet cost",
         ]
 
         values = [
@@ -376,7 +376,7 @@ def solving(
             model.stor_cost,
             model.stor_rev,
             model.treat_rev,
-            model.obj() * 1000,
+            model.br_obj() * 1000,
         ]
         values = [pyo.value(x) for x in values]
         values = {name: value for name, value in zip(value_strings, values)}
@@ -392,8 +392,8 @@ def solving(
             "Treatment cost",
             "Storage cost",
             "Storage revenue",
-            "Treatment revenue",
-            "\nTotal cost",
+            "Critical Mineral revenue",
+            "\nNet cost",
         ]
 
         values = [0, 0, 0, 0, 0, 0, 0, 0 * 1000]

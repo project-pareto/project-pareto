@@ -88,7 +88,6 @@ def max_recovery_with_infrastructure(data, tee=False):
         model.NTCWflow,
     ]
 
-    # I think this fixes the concentration variables and removes the concentration constraints
     model = obj_fix(model, ["v_C"], activate=flowlist, deactivate=conclist)
 
     # Solve the linear flow model
@@ -157,7 +156,6 @@ def cost_optimal(data, tee=False):
         model.NTCWflow,
     ]
 
-    # I think this fixes the concentration variables and removes the concentration constraints
     model = obj_fix(model, ["v_C"], activate=flowlist, deactivate=conclist)
 
     # Solve the linear flow model
