@@ -80,6 +80,7 @@ class Hydraulics(Enum):
     false = 0
     post_process = 1
     co_optimize = 2
+    co_optimize_linearized = 3
 
 
 class RemovalEfficiencyMethod(Enum):
@@ -135,6 +136,7 @@ CONFIG.declare(
         **Hydraulics.false** - does not add hydraulics feature
         **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
         **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
+        **Hydraulics.co_optimize_linearized** - a linearized approximation of the co-optimization model,
         }""",
     ),
 )
@@ -220,6 +222,9 @@ CONFIG.declare(
         }""",
     ),
 )
+
+n_sections = 3
+Del_I = 70000 / n_sections
 
 
 def create_model(df_sets, df_parameters, default={}):
@@ -437,6 +442,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     piping_arc_types = get_valid_piping_arc_list()
+
+    # Define sets for the piecewise linear approximation
+    model.s_lamset = Set(initialize=list(range(n_sections + 1)))
+    model.s_lamset2 = Set(initialize=list(range(n_sections)))
+    model.s_zset = Set(initialize=list(range(n_sections)))
 
     # Build dictionary of all specified piping arcs
     model.df_parameters["LLA"] = {}
@@ -3942,6 +3952,36 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"],
         doc="Well pressure at production or completions pad [pressure]",
     )
+    # ------
+    # The folllowing decision variables are intermediate variables that allow piecewise linearization of Hazen-William Equations
+
+    mh.v_term = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Produced water quantity piped from location l to location l [volume/time] raised to 1.85",
+    )
+
+    mh.v_lambdas = Var(
+        model.s_LLA,
+        model.s_T,
+        model.s_lamset,
+        within=NonNegativeReals,
+        initialize=0,
+        doc="Convex combination multipliers",
+    )
+    mh.vb_z = Var(
+        model.s_LLA,
+        model.s_T,
+        model.s_zset,
+        within=Binary,
+        initialize=0,
+        doc="Convex combination binaries",
+    )
+    # ---------------
+
     mh.vb_Y_Pump = Var(
         model.s_LLA,
         within=Binary,
@@ -4279,6 +4319,238 @@ def pipeline_hydraulics(model):
             doc="Objective function",
         )
 
+    elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
+        """
+        For the co-optimize method, the hydraulics block is solved along with
+        the network model to optimize the network in the presence of
+        hydraulics constraints. The objective is to minimize total cost including
+        the cost of pumps.
+        """
+        # In the co_optimize method the objective should include the cost of pumps. So,
+        # delete the original objective to add a modified objective in this method.
+        del model.objective
+
+        # add necessary variables and constraints
+        mh.v_HW_loss = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+
+        mh.v_variable_pump_cost = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+        )
+
+        # Add the constraints, starting with the constraints that linearize (piecewise)
+        # non-linear flow term in Hazen-William Equation
+
+        def FlowEquationConvRule(b, l1, l2, t1):
+            constraint = (
+                model.v_F_Piped[l1, l2, t1] * cons_scaling_factor
+                == sum(mh.v_lambdas[l1, l2, t1, k] * Del_I * k for k in model.s_lamset)
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.FlowEquationConv = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=FlowEquationConvRule,
+            doc="Flow at an arc at a time",
+        )
+
+        def termEquationConvRule(b, l1, l2, t1):
+            constraint = mh.v_term[l1, l2, t1] == sum(
+                mh.v_lambdas[l1, l2, t1, k] * (k * Del_I * 1.84 * 10 ** (-6)) ** 1.85
+                for k in model.s_lamset
+            )
+            return process_constraint(constraint)
+
+        mh.termEquationConv = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=termEquationConvRule,
+            doc="Value of flow to the power 1.85 at the selected flow",
+        )
+
+        def EnforceZeroRule(b, i, l1, l2, t1):
+            if i == 0:
+                constraint = mh.v_lambdas[l1, l2, t1, i] <= mh.vb_z[l1, l2, t1, i]
+            elif i == len(model.s_lamset) - 1:
+                constraint = mh.v_lambdas[l1, l2, t1, i] <= mh.vb_z[l1, l2, t1, i - 1]
+            else:
+                constraint = (
+                    mh.v_lambdas[l1, l2, t1, i]
+                    <= mh.vb_z[l1, l2, t1, i] + mh.vb_z[l1, l2, t1, i - 1]
+                )
+            return process_constraint(constraint)
+
+        mh.EnforceZero = Constraint(
+            model.s_lamset,
+            model.s_LLA,
+            model.s_T,
+            rule=EnforceZeroRule,
+            doc="Put appropriate lambda to zero",
+        )
+
+        def SumOneRule(b, l1, l2, t1):
+            constraint = (
+                sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset)
+                * cons_scaling_factor
+                == 1 * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.SumOne = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=SumOneRule,
+            doc="Lambdas add up to 1",
+        )
+
+        def SumOne2Rule(b, l1, l2, t1):
+            constraint = (
+                sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset) * cons_scaling_factor
+                == 1 * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.SumOne2 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=SumOne2Rule,
+            doc="Lambdas add up to 1",
+        )
+
+        # Now define the Hazen William equation in terms of the intermediate variables.
+        # v_term2(defined below) gives the product friction pressure drop with binary variable selecting pipe dia
+
+        def HazenWilliamsRule(b, l1, l2, t1):
+            # if (l2, l1) in model.s_LLA:
+            constraint = (
+                (6 * 0.0254) ** 4.87 * b.v_HW_loss[l1, l2, t1]
+            ) * cons_scaling_factor == (
+                10.704
+                * (
+                    mh.v_term[l1, l2, t1]
+                    / (mh.p_iota_HW_material_factor_pipeline) ** 1.85
+                )
+                * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
+            ) * cons_scaling_factor
+
+            return process_constraint(constraint)
+
+        mh.HW_loss_equaltion = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=HazenWilliamsRule,
+            doc="Pressure at Node L",
+        )
+
+        M_1 = 10**8
+
+        def NodePressure1Rule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1] + model.p_zeta_Elevation[l1] * mh.p_rhog
+            ) * cons_scaling_factor >= (
+                b.v_Pressure[l2, t1]
+                + model.p_zeta_Elevation[l2] * mh.p_rhog
+                + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                - M_1 * (1 - model.vb_y_Flow[l1, l2, t1]) * mh.p_rhog
+            ) * cons_scaling_factor
+            return process_constraint(constraint)
+
+        mh.NodePressure1 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressure1Rule,
+            doc="Pressure at Node L",
+        )
+
+        def NodePressure2Rule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1]
+                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                <= (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                    + M_1 * (1 - model.vb_y_Flow[l1, l2, t1]) * mh.p_rhog
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.NodePressure2 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressure2Rule,
+            doc="Pressure at Node L",
+        )
+
+        def VariablePumpCostRule(b, l1, l2, t, i):
+            binary_string = bin(i)[2:].zfill(len(model.s_zset))
+            binary_list = [int(bit) for bit in binary_string]
+            constraint = (
+                b.v_variable_pump_cost[l1, l2, t] * cons_scaling_factor
+                >= (
+                    (
+                        (mh.p_nu_ElectricityCost / 3.6e6)
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
+                        * b.v_PumpHead[l1, l2, t]
+                        * Del_I
+                        * i
+                        * 1.84
+                        * 10 ** (-6)
+                        * 3600
+                    )
+                    - 20000 * (1 - mh.vb_z[l1, l2, t, i])
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.VariablePumpCost = Constraint(
+            model.s_LLA,
+            model.s_T,
+            model.s_lamset2,
+            rule=VariablePumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        def PumpCostRule(b, l1, l2):
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                >= (
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + sum(mh.v_variable_pump_cost[l1, l2, t] for t in model.s_T)
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        model.objective = Objective(
+            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
+            sense=minimize,
+            doc="Objective function",
+        )
     return model
 
 
@@ -6983,6 +7255,53 @@ def solve_discrete_water_quality(model, opt, scaled):
     return results
 
 
+def calc_new_pres(model_h, ps, l1, l2, t):
+    D_eff = value(model_h.hydraulics.p_Initial_Pipeline_Diameter[l1, l2]) + sum(
+        value(model_h.vb_y_Pipeline[l1, l2, d])
+        * value(model_h.df_parameters["PipelineDiameterValues"][d])
+        for d in model_h.s_D
+    )
+    if value(model_h.v_F_Piped[(l1, l2), t]) > 0.01:
+        if D_eff > 0.1:
+            HW_loss = (
+                10.704
+                * (
+                    (
+                        value(
+                            pyunits.convert(
+                                model_h.v_F_Piped[l1, l2, t],
+                                to_units=pyunits.m**3 / pyunits.s,
+                            )
+                        )
+                        / value(model_h.hydraulics.p_iota_HW_material_factor_pipeline)
+                    )
+                    ** 1.85
+                )
+                * value(
+                    pyunits.convert(
+                        model_h.p_lambda_Pipeline[l1, l2], to_units=pyunits.m
+                    )
+                )
+            ) / ((D_eff * 0.0254) ** 4.87)
+        else:
+            HW_loss = 0
+    else:
+        HW_loss = 0
+    P2 = ps
+    (
+        +value(model_h.p_zeta_Elevation[l1]) * value(model_h.hydraulics.p_rhog)
+        - value(model_h.p_zeta_Elevation[l2]) * value(model_h.hydraulics.p_rhog)
+        - value(model_h.hydraulics.v_HW_loss[l1, l2, t])
+        * value(model_h.hydraulics.p_rhog)
+        + value(model_h.hydraulics.v_PumpHead[l1, l2, t])
+        * value(model_h.hydraulics.p_rhog)
+        - value(model_h.hydraulics.v_ValveHead[l1, l2, t])
+        * value(model_h.hydraulics.p_rhog)
+    )
+
+    return P2
+
+
 def solve_model(model, options=None):
     # default option values
     running_time = 60  # solver running time in seconds
@@ -7200,6 +7519,53 @@ def solve_model(model, options=None):
                     results_2 = solver2.solve(
                         model_h, options={"limits/gap": 0.3}, tee=True
                     )
+        elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
+            # Adding temporary variable bounds until the bounding method is implemented for the following Vars
+            model_h.v_F_Piped.setub(1050)
+            model_h.hydraulics.v_Pressure.setub(3.5e6)
+
+            results_2 = opt.solve(model_h, tee=True, keepfiles=True)
+
+            # Check the feasibility of the results with regards to max pressure and node pressures
+
+            # Navigate over all the times
+            flagV = 0
+            flagU = 0
+            for t in model.s_T:
+                Press_dict = {}
+                for p in model.s_PP:
+                    Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
+                    while True:
+                        pres_dict_keys = list(Press_dict.keys())
+                        for (l1, l2) in model.s_LLA:
+                            if l1 in Press_dict.keys():
+                                ps = Press_dict[l1]
+                                this_p = calc_new_pres(model_h, ps, l1, l2, t)
+                                Press_dict[l2] = this_p
+                                if (
+                                    this_p > value(model_h.hydraulics.p_xi_Max_AOP)
+                                    and l2 in model.s_N
+                                ):
+                                    flagV = 1
+                                    print(l2, "->", l2 in model.s_N)
+                                    print(
+                                        "\n\nThe Pressure is ",
+                                        this_p,
+                                        " and max is ",
+                                        value(model_h.hydraulics.p_xi_Max_AOP),
+                                    )
+                                if this_p < 0 and l2 in model.s_N:
+                                    flagU = 1
+                        pres_dict_keys2 = list(Press_dict.keys())
+                        if pres_dict_keys == pres_dict_keys2:
+                            break
+
+            if flagV:
+                print("Violation of maximum pressure")
+            elif flagU:
+                print("Violation of minimum pressure")
+            else:
+                print("All pressures satisfied ")
 
         # Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()

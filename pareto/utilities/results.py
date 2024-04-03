@@ -649,105 +649,90 @@ def generate_report(
                         lead_time,
                     )
                 )
-        if model.config.hydraulics == Hydraulics.post_process:
-            headers.update(
-                {
-                    "hydraulics.v_PumpHead_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Time",
-                            "Pump Head",
-                        )
-                    ],
-                    "hydraulics.vb_Y_Pump_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Binary Pump Indicator",
-                        )
-                    ],
-                    "hydraulics.v_ValveHead_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Time",
-                            "Valve Head",
-                        )
-                    ],
-                    "hydraulics.v_PumpCost_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Pump Cost",
-                        )
-                    ],
-                    "hydraulics.v_Pressure_dict": [
-                        (
-                            "Location",
-                            "Time",
-                            "Pressure at a Location",
-                        )
-                    ],
-                }
-            )
-        elif model.config.hydraulics == Hydraulics.co_optimize:
-            headers.update(
-                {
-                    "hydraulics.v_PumpHead_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Time",
-                            "Pump Head",
-                        )
-                    ],
-                    "hydraulics.vb_Y_Pump_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Binary Pump Indicator",
-                        )
-                    ],
-                    "hydraulics.v_ValveHead_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Time",
-                            "Valve Head",
-                        )
-                    ],
-                    "hydraulics.v_PumpCost_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Pump Cost",
-                        )
-                    ],
-                    "hydraulics.v_Pressure_dict": [
-                        (
-                            "Location",
-                            "Time",
-                            "Pressure at a Location",
-                        )
-                    ],
-                    "hydraulics.v_HW_loss_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Time",
-                            "Hazen-Williams head loss",
-                        )
-                    ],
-                    "hydraulics.v_effective_Pipeline_diameter_dict": [
-                        (
-                            "Location",
-                            "Location",
-                            "Effective Pipeline Diameter",
-                        )
-                    ],
-                }
-            )
+
+        # Hydraulics variables
+        headers.update(
+            {
+                "hydraulics.v_term_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Time",
+                        "Term Value",
+                    )
+                ],
+                "hydraulics.v_lambdas_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Time",
+                        "Piecewise Linear Approximation",
+                        "Convex conmination multiplier",
+                    )
+                ],
+                "hydraulics.vb_z_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Time",
+                        "Piecewise Linear Approximation",
+                        "Convex conmination binary",
+                    )
+                ],
+                "hydraulics.v_PumpHead_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Time",
+                        "Pump Head",
+                    )
+                ],
+                "hydraulics.vb_Y_Pump_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Binary Pump Indicator",
+                    )
+                ],
+                "hydraulics.v_ValveHead_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Time",
+                        "Valve Head",
+                    )
+                ],
+                "hydraulics.v_PumpCost_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Pump Cost",
+                    )
+                ],
+                "hydraulics.v_Pressure_dict": [
+                    (
+                        "Location",
+                        "Time",
+                        "Pressure at a Location",
+                    )
+                ],
+                "hydraulics.v_HW_loss_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Time",
+                        "Hazen-Williams head loss",
+                    )
+                ],
+                "hydraulics.v_effective_Pipeline_diameter_dict": [
+                    (
+                        "Location",
+                        "Location",
+                        "Effective Pipeline Diameter",
+                    )
+                ],
+            }
+        )
 
     elif model.type == "operational":
         if is_print is None:
