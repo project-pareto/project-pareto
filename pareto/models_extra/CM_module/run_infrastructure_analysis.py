@@ -50,7 +50,7 @@ max_inf_model = max_recovery_with_infrastructure(data)
 
 print("--- Runnning max theoretical treatment revenue ---")
 max_recovery = max_theoretical_recovery_flow_opt(
-    model, treatment_unit="R01_IN", desired_li_conc=100
+    model, desal_unit="R01_IN", cm_name='Li', desired_cm_conc=100
 )
 
 print()
@@ -66,12 +66,13 @@ print("--- Results Summary: Maximum treatment revenue ---")
 print_results_summary(max_inf_model)
 print()
 print(
-    f"Max. treatment revenue with\n existing infrastructure:  "
+    f"Max. critical mineral revenue with\n existing infrastructure:  "
     f"{pyo.value(max_inf_model.treat_rev):>8.0f}"
 )
 print()
+cm_name = 'Li'
 print(
-    f"Max theoretical treatment revenue\n (ignoring infrastructure): "
+    f"Max theoretical {cm_name} revenue\n (ignoring infrastructure): "
     f"{max_recovery:>8.0f}"
 )
 print()

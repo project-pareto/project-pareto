@@ -55,7 +55,7 @@ def print_results_summary(model):
     print(f"Treatment cost:                 {pyo.value(model.treat_cost):>12.0f}")
     print(f"Storage cost:                   {pyo.value(model.stor_cost):>12.0f}")
     print(f"Storage revenue:                {pyo.value(model.stor_rev):>12.0f}")
-    print(f"Lithium revenue:                {pyo.value(model.treat_rev):>12.0f}")
+    print(f"Critical Mineral revenue:       {pyo.value(model.treat_rev):>12.0f}")
     print(
         f"Beneficial Reuse Revenue:       {(pyo.value(model.ben_reuse_net_cost)*(-1)):>12.0f}"
     )

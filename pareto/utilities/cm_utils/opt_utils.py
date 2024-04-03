@@ -16,22 +16,30 @@ Functions used in run_infrastructure_analysis.py
 
 from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
 import pyomo.environ as pyo
-from pareto.utilities.cm_utils.gen_utils import obj_fix
+from pareto.utilities.cm_utils.gen_utils import obj_fix, alter_nonlinear_cons
 from pareto.utilities.solvers import get_solver
 
 
 def max_theoretical_recovery_flow_opt(
-    model, treatment_unit, desired_li_conc, tee=False
+    model, desal_unit:str, cm_name:str, desired_cm_conc, tee=False
 ):
     """
     This function computes the largest flow possible to
     the treatment unit while still keeping the Li
     concentration above the desired level.
+
+    Arguments:
+    model: pyomo qcp base model
+    treatment_unit: name of desalination unit
+    cm_name: name of critical mineral to be assessed
+    desired_cm_conc: minimum CM concentration requirement
     """
-    assert model.p_alpha[treatment_unit, "Li"] > 0.999
-    alphaW = model.p_alphaW[treatment_unit]
+    assert cm_name in model.s_Q, f'{cm_name} is not a valid component to the base model'
+    assert model.p_alpha[desal_unit, cm_name] > 0.999, 'to use this tool you need to have perfect separation of the critical mineral'
+    
+    alphaW = model.p_alphaW[desal_unit]
     # desired concentration at the inlet - this will be corrected at the end
-    desired_li_conc = desired_li_conc * (1 - alphaW)
+    desired_cm_conc = desired_cm_conc * (1 - alphaW)
 
     mm = pyo.ConcreteModel()
     mm.S = list(model.p_FGen.index_set())
@@ -43,10 +51,10 @@ def max_theoretical_recovery_flow_opt(
     )
     mm.obj = pyo.Objective(expr=mm.cumulative_F, sense=pyo.maximize)
     mm.total_li = pyo.Expression(
-        expr=sum(mm.F[t] * model.p_CGen[t[0], "Li", t[1]] for t in mm.S)
+        expr=sum(mm.F[t] * model.p_CGen[t[0], cm_name, t[1]] for t in mm.S)
     )
     mm.quality_con = pyo.Constraint(
-        expr=mm.total_li >= desired_li_conc * mm.cumulative_F
+        expr=mm.total_li >= desired_cm_conc * mm.cumulative_F
     )
 
     status = get_solver("ipopt").solve(mm, tee=tee)
@@ -66,30 +74,7 @@ def max_recovery_with_infrastructure(data, tee=False):
     model.treatment_only_obj.activate()
 
     # create lists of constraints involving concentrations and all flow / inventory variables
-    conclist = [
-        model.MSconc,
-        model.Pconc,
-        model.Cconc,
-        model.Sconc,
-        model.Wconc,
-        model.TINconc,
-        model.NTTWconc,
-        model.NTCWconc,
-        model.NTSrcconc,
-        model.minconccon,
-    ]
-    flowlist = [
-        model.Cflow,
-        model.noinvflow,
-        model.Sinv,
-        model.Dflow,
-        model.Wflow,
-        model.TINflow,
-        model.NTTWflow,
-        model.NTCWflow,
-    ]
-
-    model = obj_fix(model, ["v_C"], activate=flowlist, deactivate=conclist)
+    model = alter_nonlinear_cons(model, deactivate=True)
 
     # Solve the linear flow model
     print("   ... running linear flow model")
@@ -104,12 +89,12 @@ def max_recovery_with_infrastructure(data, tee=False):
     ###
 
     # unfixing all the initialized variables
-    model = obj_fix(model, [], deactivate=[], activate=conclist + flowlist)
+    model = alter_nonlinear_cons(model, deactivate=False)
 
     # solve for the maximum possible recovery revenue given this infrastructure
     model.TINflow.deactivate()
     for k in model.Dflow:
-        if k[0] == "K1_TW" or k[0] == "K1_CW":
+        if k[0].endswith('TW') or k[0].endswith('CW'):
             model.Dflow[k].deactivate()
 
     # running bilinear model
@@ -120,7 +105,7 @@ def max_recovery_with_infrastructure(data, tee=False):
     status = opt.solve(model, tee=tee)
     pyo.assert_optimal_termination(status)
     print(
-        "Max lithium revenue with existing infrastructure:", pyo.value(model.treat_rev)
+        "Max critical mineral revenue with existing infrastructure:", pyo.value(model.treat_rev)
     )
     return model
 
@@ -134,30 +119,8 @@ def cost_optimal(data, tee=False):
     ###
 
     # create lists of constraints involving concentrations and all flow / inventory variables
-    conclist = [
-        model.MSconc,
-        model.Pconc,
-        model.Cconc,
-        model.Sconc,
-        model.Wconc,
-        model.TINconc,
-        model.NTTWconc,
-        model.NTCWconc,
-        model.NTSrcconc,
-        model.minconccon,
-    ]
-    flowlist = [
-        model.Cflow,
-        model.noinvflow,
-        model.Sinv,
-        model.Dflow,
-        model.Wflow,
-        model.TINflow,
-        model.NTTWflow,
-        model.NTCWflow,
-    ]
 
-    model = obj_fix(model, ["v_C"], activate=flowlist, deactivate=conclist)
+    model = alter_nonlinear_cons(model, deactivate=True)
 
     # Solve the linear flow model
     print("   ... running linear flow model")
@@ -172,7 +135,7 @@ def cost_optimal(data, tee=False):
     ###
 
     # unfixing all the initialized variables
-    model = obj_fix(model, [], deactivate=[], activate=conclist + flowlist)
+    model = alter_nonlinear_cons(model, deactivate=False)
 
     # running bilinear model
     print("   ... running bilinear model")
