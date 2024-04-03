@@ -32,11 +32,11 @@ from pareto.models_extra.CM_module.set_param_list import set_list, parameter_lis
 
 
 # load the case study
-case_study_name = "small_case_study_Li"
+case_study_name = "CM_small_permian"
 
 with resources.path(
     "pareto.case_studies",
-    "small_case_study_Li.xlsx",
+    "CM_small_permian.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 

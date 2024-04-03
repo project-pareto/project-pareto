@@ -36,14 +36,14 @@ from pareto.models_extra.CM_module.set_param_list import set_list, parameter_lis
 # -------------------------Loading data and model------------------------------
 """
 Purpose of each of the files:
-large_case_study_Li.xlsx: This file is the large permian case study with no TDS concentrations.
-small_case_study_Li.xlsx: This file is the small permian case study with LI and TDS concentrations.
+CM_large_permian.xlsx: This file is the large permian case study with no TDS concentrations.
+CM_small_permian.xlsx: This file is the small permian case study with LI and TDS concentrations.
 """
 
-fname = "small_case_study"
+fname = "CM_small_permian"
 with resources.path(
     "pareto.case_studies",
-    "small_case_study_Li.xlsx",
+    "CM_small_permian.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
