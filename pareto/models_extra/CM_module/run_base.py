@@ -36,7 +36,7 @@ CM_small_permian.xlsx: This file is the small permian case study with LI and TDS
 
 fname = "CM_small_permian"
 with resources.path(
-    "pareto.case_studies",
+    "pareto.models_extra.CM_module.case_studies",
     "CM_small_permian.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
