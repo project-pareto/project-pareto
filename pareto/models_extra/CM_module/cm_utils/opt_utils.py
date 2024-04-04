@@ -16,7 +16,10 @@ Functions used in run_infrastructure_analysis.py
 
 from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
 import pyomo.environ as pyo
-from pareto.models_extra.CM_module.cm_utils.gen_utils import obj_fix, alter_nonlinear_cons
+from pareto.models_extra.CM_module.cm_utils.gen_utils import (
+    obj_fix,
+    alter_nonlinear_cons,
+)
 from pareto.utilities.solvers import get_solver
 
 
