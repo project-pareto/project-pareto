@@ -12,6 +12,9 @@
 #####################################################################################################
 
 from importlib import resources
+import pyomo.environ as pyo
+import pytest
+
 from pareto.utilities.get_data import get_data
 from pareto.utilities.decomp_utils import solve_MILP, build_MIQCP
 from pareto.utilities.miqcp_decomposition import integer_cut_decomposition
@@ -19,6 +22,8 @@ from pareto.utilities.results import (
     is_feasible,
     nostdout,
 )
+
+gurobi_avail = pyo.SolverFactory("gurobi").available()
 
 
 class TestMIQCPDecomp:
@@ -145,6 +150,7 @@ class TestMIQCPDecomp:
 
         return df_sets, df_parameters
 
+    @pytest.mark.skipif(not gurobi_avail, reason="gurobi is not available")
     def test_decomp(self):
         df_sets, df_parameters = self.obtain_data()
 
@@ -157,7 +163,7 @@ class TestMIQCPDecomp:
         deco_model = integer_cut_decomposition(
             model,
             subproblem_warmstart=False,
-            master_solver="cbc",
+            master_solver="gurobi",
             subproblem_solver="ipopt",
             time_limit=600,
             abs_gap=0.0,
