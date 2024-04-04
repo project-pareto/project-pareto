@@ -82,7 +82,7 @@ class TestCMqcpModel:
 class TestAddFeatures:
     def obtain_data(self):
         with resources.path(
-            "pareto.case_studies",
+            "pareto.models_extra.CM_module.case_studies",
             "CM_small_permian.xlsx",
         ) as fpath:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
