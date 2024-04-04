@@ -330,8 +330,7 @@ def solving(
     term_cond = pyo.check_optimal_termination(status)
     if not term_cond:
         print(
-            "Linear model is infeasibility. This likely means the production flow \
-              exceeds the disposal and treatment capacities"
+            "Linear model is infeasible. This likely means the production flow exceeds the disposal and treatment capacities."
         )
 
     # unfixing all the initialized variables
@@ -399,13 +398,11 @@ def solving(
 
         if inf_recs:
             print(
-                "\
-                The model is infeasible. Some possible reasons for infeasibility: \n \
-                1. The minimum CM recovery concentration is too high given the existing infrastructure and parameters \n \
-                2. The produced water concentration is too low to meet minimum CM concentration requirements \n \
-                3. The treatment efficiency is not sufficient to meet the minimum CM concentration \n \
-                Suggestion to improve feasibility: Allow installation of pipelines for direct transportation of water from high CM concentration production pads to desalination sites \n \
-                "
+                "The model is infeasible. Some possible reasons for infeasibility:\n"
+                "1. The minimum CM recovery concentration is too high given the existing infrastructure and parameters\n"
+                "2. The produced water concentration is too low to meet minimum CM concentration requirements\n"
+                "3. The treatment efficiency is not sufficient to meet the minimum CM concentration\n"
+                "Suggestion to improve feasibility: Allow installation of pipelines for direct transportation of water from high CM concentration production pads to desalination sites\n"
             )
 
         return model, {name: value for name, value in zip(value_strings, values)}
