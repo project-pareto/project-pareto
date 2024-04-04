@@ -146,6 +146,7 @@ def check_required_data(df_sets, df_parameters, config):
             Hydraulics.false: [],
             Hydraulics.post_process: [],
             Hydraulics.co_optimize: [],
+            Hydraulics.co_optimize_linearized: [],
         },
         config_required_params={
             Hydraulics.false: [],
@@ -157,6 +158,13 @@ def check_required_data(df_sets, df_parameters, config):
                 "PipelineDiameterValues",
             ],
             Hydraulics.co_optimize: [
+                "Hydraulics",
+                "Elevation",
+                "WellPressure",
+                "InitialPipelineDiameters",
+                "PipelineDiameterValues",
+            ],
+            Hydraulics.co_optimize_linearized: [
                 "Hydraulics",
                 "Elevation",
                 "WellPressure",
