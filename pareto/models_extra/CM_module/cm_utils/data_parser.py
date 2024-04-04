@@ -15,7 +15,7 @@ This file parses data retreived by the get_data() function to align with the qcp
 """
 
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.spec_utils import set_processing, parameter_processing
+from pareto.models_extra.CM_module.cm_utils.spec_utils import set_processing, parameter_processing
 
 
 def _tolist(d):

@@ -21,16 +21,16 @@ from pareto.models_extra.CM_module.set_param_list import (
     set_list,
     parameter_list,
 )
-from pareto.utilities.cm_utils.opt_utils import (
+from pareto.models_extra.CM_module.cm_utils.opt_utils import (
     max_theoretical_recovery_flow_opt,
     cost_optimal,
     max_recovery_with_infrastructure,
 )
 
-from pareto.utilities.cm_utils.data_parser import data_parser
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.run_utils import node_rerun
-from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
+from pareto.models_extra.CM_module.cm_utils.run_utils import node_rerun
+from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel
 from pareto.utilities.solvers import get_solver
 
 
@@ -41,7 +41,7 @@ class TestCMqcpModel:
         """
 
         with resources.path(
-            "pareto.case_studies",
+            "pareto.models_extra.CM_module.case_studies",
             "CM_small_permian.xlsx",
         ) as fpath:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)

@@ -18,14 +18,14 @@ Runs and reports cost optimal operation and lithium revenue recovery opportuniti
 
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
-from pareto.utilities.cm_utils.opt_utils import (
+from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel
+from pareto.models_extra.CM_module.cm_utils.opt_utils import (
     max_theoretical_recovery_flow_opt,
     cost_optimal,
     max_recovery_with_infrastructure,
 )
-from pareto.utilities.cm_utils.run_utils import print_results_summary
-from pareto.utilities.cm_utils.data_parser import data_parser
+from pareto.models_extra.CM_module.cm_utils.run_utils import print_results_summary
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 
 from importlib import resources
 from pareto.models_extra.CM_module.set_param_list import set_list, parameter_list
@@ -35,7 +35,7 @@ from pareto.models_extra.CM_module.set_param_list import set_list, parameter_lis
 case_study_name = "CM_small_permian"
 
 with resources.path(
-    "pareto.case_studies",
+    "pareto.models_extra.CM_module.case_studies",
     "CM_small_permian.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)

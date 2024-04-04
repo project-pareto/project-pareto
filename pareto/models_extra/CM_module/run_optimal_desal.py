@@ -23,9 +23,9 @@ This file runs the model in the following order:
 """
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
-from pareto.utilities.cm_utils.data_parser import data_parser
-from pareto.utilities.cm_utils.run_utils import (
+from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
+from pareto.models_extra.CM_module.cm_utils.run_utils import (
     node_rerun,
     print_results_summary,
 )
@@ -42,7 +42,7 @@ CM_small_permian.xlsx: This file is the small permian case study with LI and TDS
 
 fname = "CM_small_permian"
 with resources.path(
-    "pareto.case_studies",
+    "pareto.models_extra.CM_module.case_studies",
     "CM_small_permian.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)

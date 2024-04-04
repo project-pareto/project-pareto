@@ -21,11 +21,11 @@ import pyomo.environ as pyo
 from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
 
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.gen_utils import (
+from pareto.models_extra.CM_module.cm_utils.gen_utils import (
     report_results_to_excel,
     alter_nonlinear_cons,
 )
-from pareto.utilities.cm_utils.data_parser import data_parser, _tolist
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser, _tolist
 
 from importlib import resources
 import matplotlib.pyplot as plt

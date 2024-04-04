@@ -20,9 +20,9 @@ Run file which runs any specific CM case study from the case_studies folder
 import pyomo.environ as pyo
 from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
-from pareto.utilities.cm_utils.data_parser import data_parser
-from pareto.utilities.cm_utils.run_utils import solving
+from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
+from pareto.models_extra.CM_module.cm_utils.run_utils import solving
 from pareto.models_extra.CM_module.set_param_list import set_list, parameter_list
 from importlib import resources
 
