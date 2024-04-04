@@ -192,26 +192,11 @@ options = {
     "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 10000,
-    "gap": 0,
+    "gap": 1,
 }
 
 results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
-# strategic_model.v_C_TreatmentCapEx_site_time.display()
-# strategic_model.v_T_Treatment_scaled.display()
-strategic_model.v_T_Treatment_scaled.display()
-strategic_model.v_T_Treatment_scaled_ReLU_1.display()
-strategic_model.v_T_Treatment_scaled_ReLU_2.display()
-# strategic_model.v_C_Treatment_site.display()
-# strategic_model.v_C_Treatment_site_ReLU.display()
-# strategic_model.opex_bin1.display()
-strategic_model.bin1.display()
-strategic_model.bin2.display()
-# strategic_model.v_T_Treatment_scaled_ReLU.display()
-strategic_model.v_C_Treatment_site_ReLU.display()
-strategic_model.v_C_TreatmentCapEx_site.display()
-strategic_model.v_C_TreatmentOpex_surrogate.display()
-strategic_model.v_C_TreatmentCapEx_surrogate.display()
-# strategic_model.v_C_TreatmentCapEx_site_ReLU.display()
+
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -231,11 +216,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="strategic_optimization_results.xlsx",
+    fname="MD_surrogate_01.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
+fname = "MD_surrogate_01.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
