@@ -2358,14 +2358,14 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             units=model.model_units["currency"],
             doc="Capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
         )
-        model.v_C_TreatmentCapEx_site_time_ReLU = Var(
-            model.s_R,
-            model.s_T,
-            initialize=0,
-            within=NonNegativeReals,
-            units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity with flow consideration [currency]",
-        )
+        # model.v_C_TreatmentCapEx_site_time_ReLU = Var(
+        #     model.s_R,
+        #     model.s_T,
+        #     initialize=0,
+        #     within=NonNegativeReals,
+        #     units=model.model_units["currency"],
+        #     doc="Capital cost of constructing or expanding treatment capacity with flow consideration [currency]",
+        # )
         model.v_C_TreatmentCapEx_surrogate = Var(
             initialize=0,
             within=NonNegativeReals,
@@ -2494,16 +2494,17 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             initialize=1 * 5 * conversion_factor,
         )
         
-        cap_lower_bound, cap_upper_bound = (
-            0 * 7 * conversion_factor,
-            1 * 7 * conversion_factor,
-        )
+        # cap_lower_bound, cap_upper_bound = (
+        #     0 * 7 * conversion_factor,
+        #     1 * 7 * conversion_factor,
+        # )
 
         for i in model.s_R:
             for t in model.s_T:
                 if model.p_chi_DesalinationSites[i]:
-                    model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
-                    model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
+                    pass
+                    # model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
+                    # model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
 
                 else:
 
@@ -2556,7 +2557,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                     # model.v_C_TreatmentCapEx_site_time_ReLU[i,t].fix(0)
 
         def flowBinRule(model,r,t):
-            return model.v_T_Treatment_scaled[r,t]>=0+1e-6-cap_upper_bound*(1-model.bin1[r,t])
+            return model.v_T_Treatment_scaled[r,t]>=0+1e-6-1e6*(1-model.bin1[r,t])
         model.flowBin = Constraint(
             model.s_R,
             model.s_T,
@@ -2564,43 +2565,13 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
         def flowMaxRule(model,r,t):
-            return model.v_T_Treatment_scaled[r,t]<=cap_upper_bound*model.bin1[r,t]
+            return model.v_T_Treatment_scaled[r,t]<=1e6*model.bin1[r,t]
         model.flowMax = Constraint(
             model.s_R,
             model.s_T,
             rule=flowMaxRule,
             doc='Flow binary to set to 0 is flow is 0 else 1'
         )
-        # def SumBinRule(model):
-        #     return model.vb_y_bin==sum(sum(model.bin1[r,t] for r in model.s_R) for t in model.s_T)
-        # model.sumBin = Constraint(
-        #     rule=SumBinRule,
-        #     doc='Sum of binaries'
-        # )
-        # def flowBinRule1(model,r,t):
-        #     return model.v_T_Treatment_scaled_ReLU_2[r,t]==0
-        # model.flowBin1 = Constraint(
-        #     model.s_R,
-        #     model.s_T,
-        #     rule=flowBinRule1,
-        #     doc='Flow binary to set to 0 is flow is 0 else 1'
-        # )
-        # def flowBinRule2(model,r,t):
-        #     return model.v_T_Treatment_scaled[r,t]==model.v_T_Treatment_scaled_ReLU_1[r,t]-1e-6*model.bin1[r,t]
-        # model.flowBin2 = Constraint(
-        #     model.s_R,
-        #     model.s_T,
-        #     rule=flowBinRule2,
-        #     doc='Flow binary to set to 0 is flow is 0 else 1'
-        # )
-        # def logicalBinRule(model,r,t):
-        #     return model.bin1[r,t]+model.bin2[r,t]==1
-        # model.logicalBin = Constraint(
-        #     model.s_R,
-        #     model.s_T,
-        #     rule=logicalBinRule,
-        #     doc='Flow binary logic'
-        # )
         def OpexTreatmentRule(model,r,t):
             return model.v_C_Treatment_site_ReLU[r,t] >= model.v_C_Treatment_site[r,t]-1e10*(1-model.bin1[r,t])
         model.OpexTreatment = Constraint(
@@ -2609,30 +2580,6 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             rule=OpexTreatmentRule,
             doc='Opex based on binary'
         )
-
-        # def CapexTreatmentRule(model,r,t):
-        #     return model.v_C_TreatmentCapEx_site_ReLU[r,t] >= model.v_C_TreatmentCapEx_site[r,t]-1e6*(1-model.vb_y_flow_ReLU[r,t])
-        # model.CapexTreatment = Constraint(
-        #     model.s_R,
-        #     model.s_T,
-        #     rule=CapexTreatmentRule,
-        #     doc='Capex based on binary'
-        # )
-
-        # def treatmentSiteBigM(model, r, t):
-        #     return model.v_C_Treatment_site_ReLU[r, t] <= model.v_C_Treatment_site[r, t]
-
-        # model.treatmentMVC = Constraint(
-        #     model.s_R, model.s_T, rule=treatmentSiteBigM, doc="Treatment surrogate for MVC"
-        # )
-
-        # def treatmentSiteBigM2(model, r, t):
-        #     return model.v_C_Treatment_site_ReLU[r, t] >= model.v_C_Treatment_site[r, t] - 1e6 *(1-model.vb_y_MVCselected[r])
-
-        # model.treatmentMVC2 = Constraint(
-        #     model.s_R, model.s_T, rule=treatmentSiteBigM2, doc="Treatment surrogate for MVC"
-        # )
-
         def treatmentCost(model):
             return model.v_C_TreatmentOpex_surrogate==sum(
             sum(model.v_C_Treatment_site_ReLU[r, t] for r in model.s_R) for t in model.s_T
@@ -2652,16 +2599,6 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             rule=treatmentCapexSurrogate,
             doc="Max treated vol as capex",
         )
-
-        # def treatmentCapexBigM(model, i, t):
-        #     return model.v_C_TreatmentCapEx_site[i] <= model.v_C_TreatmentCapEx_site_time[
-        #         i, t
-        #     ] + 1e6 * (1-model.vb_y_MVCselected[r])
-
-        # model.capBigM = Constraint(
-        #     model.s_R, model.s_T, rule=treatmentCapexBigM, doc="Max treated vol as capex"
-        # )
-
         def capExSurrogate(model):
             return model.v_C_TreatmentCapEx_surrogate == sum(
                 model.v_C_TreatmentCapEx_site[i] for i in model.s_R
@@ -3153,7 +3090,7 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
                     for wt in model.s_WT
                 )
                 + pyunits.convert_value(
-                    10000,
+                    100000,
                     from_units=pyunits.oil_bbl / pyunits.day,
                     to_units=model.model_units["volume_time"],
                 )
@@ -7539,7 +7476,7 @@ def solve_discrete_water_quality(model, opt, scaled):
 def solve_model(model, solver=None, options=None):
     # default option values
     running_time = 60  # solver running time in seconds
-    gap = 1 # solver gap
+    gap = 100 # solver gap
     deactivate_slacks = True  # yes/no to deactivate slack variables
     use_scaling = False  # yes/no to scale the model
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
@@ -7572,7 +7509,7 @@ def solve_model(model, solver=None, options=None):
                 gap = options["gap"]
 
             with open(f"{opt.options['solver']}.opt", "w") as f:
-                f.write(f"$onecho > {opt.options['solver']}.opt\n optca={gap}\n optcr={gap}\n running_time={running_time} $offecho")
+                f.write(f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho")
             # opts=dict('add_options':['GAMS_MODEL.optfile=1;'])
 
             # TODO: Add optcr and resLim options in GAMS.
