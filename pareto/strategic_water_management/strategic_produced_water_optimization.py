@@ -2494,17 +2494,16 @@ def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
             initialize=1 * 5 * conversion_factor,
         )
         
-        # cap_lower_bound, cap_upper_bound = (
-        #     0 * 7 * conversion_factor,
-        #     1 * 7 * conversion_factor,
-        # )
+        cap_lower_bound, cap_upper_bound = (
+            0 * 7 * conversion_factor,
+            100 * 7 * conversion_factor,
+        )
 
         for i in model.s_R:
             for t in model.s_T:
                 if model.p_chi_DesalinationSites[i]:
-                    pass
-                    # model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
-                    # model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
+                    model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
+                    model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
 
                 else:
 
