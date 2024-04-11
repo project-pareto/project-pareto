@@ -173,7 +173,7 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
             optimize_set_up(m.m_treatment[site, t])
             m.m_treatment[site, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "H2O"].unfix()
             m.m_treatment[site, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "NaCl"].unfix()
-            print("############# Initialized %s timeperiod####################"%t)
+            print("############# Initialized desalination unit in  %s timeperiod ####################"%t)
     
     # Global capacity variables
     #MD module
