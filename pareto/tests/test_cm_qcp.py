@@ -1,6 +1,10 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+<<<<<<< HEAD
 # Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+=======
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
+>>>>>>> main
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -16,21 +20,24 @@ import pyomo.environ as pyo
 from importlib import resources
 import pytest
 
-from pareto.other_models.CM_module.models.qcp_br import build_qcp_br
-from pareto.other_models.CM_module.operational.set_param_list import (
+
+from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
+from pareto.models_extra.CM_module.set_param_list import (
     set_list,
     parameter_list,
 )
-from pareto.utilities.cm_utils.opt_utils import (
+from pareto.models_extra.CM_module.cm_utils.opt_utils import (
     max_theoretical_recovery_flow_opt,
     cost_optimal,
     max_recovery_with_infrastructure,
 )
 
-from pareto.utilities.cm_utils.data_parser import data_parser
+
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 from pareto.utilities.get_data import get_data
-from pareto.utilities.cm_utils.run_utils import node_rerun
-from pareto.utilities.cm_utils.gen_utils import report_results_to_excel
+from pareto.models_extra.CM_module.cm_utils.run_utils import node_rerun
+from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel
+from pareto.utilities.solvers import get_solver
 
 
 class TestCMqcpModel:
@@ -40,8 +47,10 @@ class TestCMqcpModel:
         """
 
         with resources.path(
-            "pareto.case_studies",
-            "small_case_study_Li.xlsx",
+
+            "pareto.models_extra.CM_module.case_studies",
+            "CM_small_permian.xlsx",
+
         ) as fpath:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -67,7 +76,9 @@ class TestCMqcpModel:
         model = self.build_cm_qcp_model()
 
         solver = "ipopt"
-        opt = pyo.SolverFactory(solver)
+
+        opt = get_solver("ipopt")
+
         assert opt.available()
 
         status = opt.solve(model, tee=False)
@@ -81,8 +92,10 @@ class TestCMqcpModel:
 class TestAddFeatures:
     def obtain_data(self):
         with resources.path(
-            "pareto.case_studies",
-            "small_case_study_Li.xlsx",
+
+            "pareto.models_extra.CM_module.case_studies",
+            "CM_small_permian.xlsx",
+
         ) as fpath:
             [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -99,7 +112,9 @@ class TestAddFeatures:
 
         print("--- Runnning max theoretical treatment revenue ---")
         max_recovery = max_theoretical_recovery_flow_opt(
-            model, treatment_unit="R01_IN", desired_li_conc=100
+
+            model, desal_unit="R01_IN", desired_cm_conc=100, cm_name="Li"
+
         )
 
         max_w_infra = pyo.value(max_inf_model.treat_rev)
