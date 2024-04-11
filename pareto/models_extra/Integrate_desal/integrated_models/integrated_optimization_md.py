@@ -11,18 +11,18 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 import pyomo.environ as pyo
-from pareto.other_models.Integrate_desal.models.qcp_desal import build_network
+from pareto.models_extra.Integrate_desal.models.qcp_desal import build_network
 from pareto.examples.Membrane_Distillation.MD_single_stage_continuous_recirculation import (build, 
                                                                                             set_operating_conditions, 
                                                                                             initialize_system,
                                                                                             optimize_set_up)
 from importlib import resources
 from pareto.utilities.get_data import get_data
-from pareto.other_models.CM_module.operational.set_param_list import (
+from pareto.models_extra.CM_module.set_param_list import (
     set_list,
     parameter_list,
 )
-from pareto.utilities.cm_utils.data_parser import data_parser
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 
 def add_desalination_cons(m, treatment_dict):
     m.desalination_nodes = pyo.Set(initialize=treatment_dict.keys())
