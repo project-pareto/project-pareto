@@ -20,7 +20,7 @@ from pareto.models_extra.CM_module.set_param_list import (
     parameter_list,
 )
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
-from pareto.other_models.Integrate_desal.integrated_models.integrated_optimization_mvr import (
+from pareto.models_extra.Integrate_desal.integrated_models.integrated_optimization_mvr import (
     integrated_model_build,
 )
 
@@ -60,4 +60,3 @@ class TestIntegratedOptimizationMvr:
 
 if __name__ == "__main__":
     pytest.main()
-    
