@@ -15,11 +15,11 @@ import pytest
 import pyomo.environ as pyo
 from importlib import resources
 from pareto.utilities.get_data import get_data
-from pareto.other_models.CM_module.operational.set_param_list import (
+from pareto.models_extra.CM_module.set_param_list import (
     set_list,
     parameter_list,
 )
-from pareto.utilities.cm_utils.data_parser import data_parser
+from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 from pareto.other_models.Integrate_desal.integrated_models.integrated_optimization_mvr import (
     integrated_model_build,
 )
