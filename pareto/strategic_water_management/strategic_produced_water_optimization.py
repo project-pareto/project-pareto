@@ -222,8 +222,9 @@ n_sections = 3
 Del_I = 70000 / n_sections
 
 
-def create_model(df_sets, df_parameters, salinity_dict={}, default={}):
+def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
+    salinity_dict={}
 
     # import config dictionary
     model.config = CONFIG(default)
