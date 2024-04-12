@@ -257,10 +257,13 @@ def generate_report(
                 )
             ],
             "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
-            "v_T_Treatment_scaled_dict":[("Treatment site", "Time", "surrogate cost")],
-            
-            "v_T_Treatment_scaled_ReLU_1_dict":[("Treatment site", "Time", "surrogate cost")],
-            "v_T_Treatment_scaled_ReLU_2_dict":[("Treatment site", "Time", "surrogate cost")],
+            "v_T_Treatment_scaled_dict": [("Treatment site", "Time", "surrogate cost")],
+            "v_T_Treatment_scaled_ReLU_1_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_T_Treatment_scaled_ReLU_2_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
             "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
             "recovery_dict": [("Treatment site", "recovery")],
             "inlet_salinity_dict": [("Treatment site", "salinity")],
@@ -272,18 +275,10 @@ def generate_report(
                 ("Treatment site", "Time", "surrogate cost")
             ],
             "v_C_TreatmentCapEx_site_dict": [("Treatment site", "surrogate cost")],
-            "capex_bin1_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
-            "capex_bin2_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
-            "bin1_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
-            "bin2_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
+            "capex_bin1_dict": [("Treatment site", "Time", "surrogate cost")],
+            "capex_bin2_dict": [("Treatment site", "Time", "surrogate cost")],
+            "bin1_dict": [("Treatment site", "Time", "surrogate cost")],
+            "bin2_dict": [("Treatment site", "Time", "surrogate cost")],
             "v_C_Treatment_site_ReLU_dict": [
                 ("Treatment site", "Time", "surrogate cost")
             ],

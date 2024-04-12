@@ -32,6 +32,7 @@ from pareto.utilities.results import (
 )
 from importlib import resources
 import pyomo.environ as pyo
+
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
