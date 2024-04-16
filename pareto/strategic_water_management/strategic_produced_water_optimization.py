@@ -40,7 +40,7 @@ from pyomo.environ import (
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
-from pyomo.core.expr.current import identify_variables
+from pyomo.core.expr import identify_variables
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
@@ -224,7 +224,7 @@ Del_I = 70000 / n_sections
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
-    salinity_dict = {}
+    salinity_dict = {"inlet_salinity": 200, "recovery": 0.573333,}
 
     # import config dictionary
     model.config = CONFIG(default)
@@ -7933,9 +7933,15 @@ def solve_model(model, solver=None, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 2.1:
-            results = opt.solve(
-                model, tee=True, io_options={"add_options": ["GAMS_MODEL.optFile=1;"]}
-            )
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    model, tee=True, io_options={"add_options": ["GAMS_MODEL.optFile=1;"]}
+                )
+            else:
+                results = opt.solve(
+                    model, tee=True
+                )
+
 
     if results.solver.termination_condition == TerminationCondition.infeasible:
         print(

@@ -156,7 +156,8 @@ strategic_treatment_demo_modified
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_modified.xlsx",
+    "strategic_toy_case_study.xlsx"
+    # "strategic_treatment_demo_modified.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -175,7 +176,6 @@ with resources.path(
 strategic_model = create_model(
     df_sets,
     df_parameters,
-    salinity_dict={"inlet_salinity": 200, "recovery": 0.573333},
     default={
         "objective": Objectives.cost_surrogate,
         "pipeline_cost": PipelineCost.distance_based,
@@ -198,8 +198,6 @@ options = {
 
 results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
 
-strategic_model.v_C_TreatmentOpex_surrogate.display()
-strategic_model.v_C_TreatmentCapex_surrogate.display()
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
