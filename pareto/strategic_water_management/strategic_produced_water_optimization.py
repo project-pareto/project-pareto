@@ -165,6 +165,7 @@ CONFIG.declare(
     ),
 )
 
+
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -2503,7 +2504,6 @@ def create_model(df_sets, df_parameters, default={}):
                     model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
 
                 else:
-
                     model.v_T_Treatment_scaled[i, t].fix(0)
 
         def scalingTreatment(model, r, t):
@@ -2738,7 +2738,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -6087,7 +6086,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -6124,7 +6122,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -7120,7 +7117,11 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    if opt.type == "gurobi_direct":
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(
+            water_quality_model.quality, tee=True, io_options=["gams_model.optfile=1;"]
+        )
+    elif opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
         opt.solve(water_quality_model.quality, tee=True)
@@ -7129,7 +7130,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
@@ -7673,7 +7673,10 @@ def solve_discrete_water_quality(model, opt, scaled):
     # Step 1a - fix discrete water quality variables
     v_DQ.fix()
     # Step 1b - solve model, obtain optimal flows without considering quality
-    opt.solve(model, tee=True)
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(model, tee=True, io_options=["gams_model.optfile=1;"])
+    else:
+        opt.solve(model, tee=True)
     # Step 1c - fix or bound all non quality variables
     prefix = "scaled_" if scaled else ""
     discrete_variables_names = {
@@ -7714,7 +7717,10 @@ def solve_discrete_water_quality(model, opt, scaled):
     print("*" * 50)
     print(" " * 15, "Solving non-discrete water quality model")
     print("*" * 50)
-    opt.solve(model, tee=True, warmstart=True)
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(model, tee=True, io_options=["gams_model.optfile=1;"])
+    else:
+        opt.solve(model, tee=True, warmstart=True)
 
     # Step 2 - solve full discrete water quality
     # Step 2a - free or remove bounds for all non quality variables
@@ -7737,7 +7743,12 @@ def solve_discrete_water_quality(model, opt, scaled):
     print("*" * 50)
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
-    results = opt.solve(model, tee=True, warmstart=True)
+    if opt.options["solver"] == "CPLEX":
+        results = opt.solve(
+            model, tee=True, warmstart=True, io_options=["gams_model.optfile=1;"]
+        )
+    else:
+        results = opt.solve(model, tee=True, warmstart=True)
 
     # Step 3 - Return solution
     return results
@@ -7895,7 +7906,12 @@ def solve_model(model, solver=None, options=None):
             results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
         elif model.config.water_quality is WaterQuality.post_process:
             # option 3.2:
-            results = opt.solve(scaled_model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    scaled_model, tee=True, io_options=["gams_model.optfile=1;"]
+                )
+            else:
+                results = opt.solve(scaled_model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
                 TransformationFactory("core.scale_model").propagate_solution(
                     scaled_model, model
@@ -7903,7 +7919,12 @@ def solve_model(model, solver=None, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 3.1:
-            results = opt.solve(scaled_model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    scaled_model, tee=True, io_options=["gams_model.optfile=1;"]
+                )
+            else:
+                results = opt.solve(scaled_model, tee=True)
 
         # Step 4: propagate scaled model results to original model
         if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7926,14 +7947,22 @@ def solve_model(model, solver=None, options=None):
             results = solve_discrete_water_quality(model, opt, scaled=False)
         elif model.config.water_quality is WaterQuality.post_process:
             # option 2.2:
-            results = opt.solve(model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    model, tee=True, io_options=["gams_model.optfile=1;"]
+                )
+            else:
+                results = opt.solve(model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 2.1:
-            results = opt.solve(
-                model, tee=True
-            )
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    model, tee=True, io_options=["gams_model.optfile=1;"]
+                )
+            else:
+                results = opt.solve(model, tee=True)
 
     if results.solver.termination_condition == TerminationCondition.infeasible:
         print(
@@ -7973,7 +8002,11 @@ def solve_model(model, solver=None, options=None):
             mh = model_h.hydraulics
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
-            if opt.type == "gurobi_direct":
+            if opt.options["solver"] == "CPLEX":
+                results_2 = opt.solve(
+                    mh, tee=True, io_options=["gams_model.optfile=1;"]
+                )
+            elif opt.type == "gurobi_direct":
                 results_2 = opt.solve(mh, tee=True, save_results=False)
             else:
                 results_2 = opt.solve(mh, tee=True)
@@ -8038,8 +8071,15 @@ def solve_model(model, solver=None, options=None):
             # Adding temporary variable bounds until the bounding method is implemented for the following Vars
             model_h.v_F_Piped.setub(1050)
             model_h.hydraulics.v_Pressure.setub(3.5e6)
-
-            results_2 = opt.solve(model_h, tee=True, keepfiles=True)
+            if opt.options["solver"] == "CPLEX":
+                results_2 = opt.solve(
+                    model_h,
+                    tee=True,
+                    keepfiles=True,
+                    io_options=["gams_model.optfile=1;"],
+                )
+            else:
+                results_2 = opt.solve(model_h, tee=True, keepfiles=True)
 
             # Check the feasibility of the results with regards to max pressure and node pressures
 
@@ -8052,7 +8092,7 @@ def solve_model(model, solver=None, options=None):
                     Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
                     while True:
                         pres_dict_keys = list(Press_dict.keys())
-                        for (l1, l2) in model.s_LLA:
+                        for l1, l2 in model.s_LLA:
                             if l1 in Press_dict.keys():
                                 ps = Press_dict[l1]
                                 this_p = calc_new_pres(model_h, ps, l1, l2, t)

@@ -2684,6 +2684,7 @@ def water_quality(model, df_sets, df_parameters):
         rule=StorageSiteWaterQualityRule,
         doc="Storage site water quality rule",
     )
+
     # Treatment Facility
     def TreatmentWaterQualityRule(model, r, w, t):
         return model.p_epsilon_Treatment[r, w] * (
@@ -3020,7 +3021,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -3056,7 +3056,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
