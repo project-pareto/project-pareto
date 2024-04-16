@@ -40,7 +40,7 @@ from pyomo.environ import (
 )
 
 from pyomo.core.base.constraint import simple_constraint_rule
-from pyomo.core.expr.current import identify_variables
+from pyomo.core.expr import identify_variables
 
 # from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
@@ -7120,9 +7120,7 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    if opt.options["solver"] == "CPLEX":
-        opt.solve(water_quality_model.quality, tee=True)
-    elif opt.type == "gurobi_direct":
+    if opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
         opt.solve(water_quality_model.quality, tee=True)
@@ -7934,7 +7932,7 @@ def solve_model(model, solver=None, options=None):
         else:
             # option 2.1:
             results = opt.solve(
-                model, tee=True, io_options={"add_options": ["GAMS_MODEL.optFile=1;"]}
+                model, tee=True
             )
 
     if results.solver.termination_condition == TerminationCondition.infeasible:
@@ -7975,9 +7973,7 @@ def solve_model(model, solver=None, options=None):
             mh = model_h.hydraulics
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
-            if opt.options["solver"] == "CPLEX":
-                results_2 = opt.solve(mh, tee=True)
-            elif opt.type == "gurobi_direct":
+            if opt.type == "gurobi_direct":
                 results_2 = opt.solve(mh, tee=True, save_results=False)
             else:
                 results_2 = opt.solve(mh, tee=True)
