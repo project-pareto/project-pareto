@@ -106,7 +106,7 @@ def check_required_data(df_sets, df_parameters, config):
     # Tab names for parameters. For each list in the list, at least one Parameter tab is required.
     set_list_require_at_least_one = [
         ["ProductionPads", "CompletionsPads", "ExternalWaterSources"],
-        ["CompletionsPads", "SWDSites", "BeneficialReuse", "StorageSites"],
+        ["CompletionsPads", "SWDSites", "ReuseOptions", "StorageSites"],
     ]
 
     # Tab names for parameters. For each tuple in the list, at least one Parameter tab is required.

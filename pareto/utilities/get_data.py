@@ -69,6 +69,7 @@ def get_valid_input_parameter_tab_names():
         "CST",
         "CCT",
         "CKT",
+        "CRT",
         "RST",
         "ROT",
         "SOT",
