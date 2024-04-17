@@ -64,6 +64,7 @@ def get_valid_piping_arc_list():
         "NRA",
         "NOA",
         "FCA",
+        "FNA",
         "RNA",
         "RCA",
         "RKA",
@@ -454,6 +455,9 @@ def check_required_data(df_sets, df_parameters, config):
         required_sets_with_option={},
         required_parameters_with_option={
             "InitialStorageCapacity",
+            "InitialStorageLevel",
+            "StorageCost",
+            "StorageWithdrawalRevenue",
         },
         requires_at_least_one=[["SOA", "SOT", "SNA", "SCA"], ["RSA"]],
     )

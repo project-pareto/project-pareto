@@ -32,17 +32,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 import sys
-from pareto.models_extra.CM_module.set_param_list import (
-    set_list,
-    parameter_list,
-)
 from pareto.utilities.solvers import get_solver
 
 
 def load_data(fpath):
 
     # importing data
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    [df_sets, df_parameters] = get_data(fpath)
 
     data = data_parser(df_sets, df_parameters)
     return data

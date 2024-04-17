@@ -31,8 +31,6 @@ from pareto.models_extra.CM_module.cm_utils.run_utils import (
 )
 from importlib import resources
 
-from pareto.models_extra.CM_module.set_param_list import set_list, parameter_list
-
 # -------------------------Loading data and model------------------------------
 """
 Purpose of each of the files:
@@ -45,7 +43,7 @@ with resources.path(
     "pareto.models_extra.CM_module.case_studies",
     "CM_small_permian.xlsx",
 ) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    [df_sets, df_parameters] = get_data(fpath)
 
 
 print(f"running case study {fname}.")

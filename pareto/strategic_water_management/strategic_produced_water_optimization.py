@@ -1032,6 +1032,13 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=init_arc_param("FCA"),
         doc="Valid externally sourced water-to-completions pipeline arcs [-]",
     )
+    model.p_FNA = Param(
+        model.s_F,
+        model.s_N,
+        default=0,
+        initialize=init_arc_param("FNA"),
+        doc="Valid externally sourced water-to-node pipeline arcs [-]",
+    )
     model.p_RNA = Param(
         model.s_R,
         model.s_N,
@@ -1661,6 +1668,14 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         default=0,
         units=model.model_units["volume"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["InitialStorageLevel"].items()
+        },
         doc="Initial storage level at storage site [volume]",
     )
     model.p_lambda_PadStorage = Param(
@@ -1952,7 +1967,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["StorageCost"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Storage deposit operational cost [currency/volume]",
@@ -1970,7 +1985,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["StorageWithdrawalRevenue"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",

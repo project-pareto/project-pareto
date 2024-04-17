@@ -54,6 +54,7 @@ def get_valid_input_parameter_tab_names():
         "NRA",
         "NSA",
         "FCA",
+        "FNA",
         "RCA",
         "RNA",
         "RSA",
@@ -92,6 +93,9 @@ def get_valid_input_parameter_tab_names():
         "InitialTreatmentCapacity",
         "ReuseMinimum",
         "ReuseCapacity",
+        "InitialStorageLevel",
+        "StorageCost",
+        "StorageWithdrawalRevenue",
         "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
@@ -135,6 +139,8 @@ def get_valid_input_parameter_tab_names():
         "SWDProxFault",
         "SWDProxHpOrLpWell",
         "SWDRiskFactors",
+        "ComponentPrice",
+        "ComponentTreatment",
     ]
 
 

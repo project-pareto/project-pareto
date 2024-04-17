@@ -17,10 +17,6 @@ from importlib import resources
 import pytest
 
 from pareto.models_extra.CM_module.models.qcp_br import build_qcp_br
-from pareto.models_extra.CM_module.set_param_list import (
-    set_list,
-    parameter_list,
-)
 from pareto.models_extra.CM_module.cm_utils.opt_utils import (
     max_theoretical_recovery_flow_opt,
     cost_optimal,
@@ -44,7 +40,7 @@ class TestCMqcpModel:
             "pareto.models_extra.CM_module.case_studies",
             "CM_small_permian.xlsx",
         ) as fpath:
-            [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+            [df_sets, df_parameters] = get_data(fpath)
 
             data = data_parser(df_sets, df_parameters)
 
@@ -85,7 +81,7 @@ class TestAddFeatures:
             "pareto.models_extra.CM_module.case_studies",
             "CM_small_permian.xlsx",
         ) as fpath:
-            [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+            [df_sets, df_parameters] = get_data(fpath)
 
         data = data_parser(df_sets, df_parameters)
         return data, df_sets, df_parameters
