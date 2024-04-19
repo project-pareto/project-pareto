@@ -21,7 +21,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
-    DesalinationModel
+    DesalinationModel,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -198,6 +198,7 @@ options = {
     "gap": 1,
 }
 from idaes.core.util.model_statistics import degrees_of_freedom
+
 print(degrees_of_freedom(strategic_model))
 print(len(strategic_model.config))
 quit()

@@ -94,10 +94,12 @@ class InfrastructureTiming(Enum):
     false = 0
     true = 1
 
+
 class DesalinationModel(Enum):
     false = 0
     mvc = 1
     md = 2
+
 
 # create config dictionary
 CONFIG = ConfigBlock()
@@ -242,7 +244,7 @@ n_sections = 3
 Del_I = 70000 / n_sections
 
 
-def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
+def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
 
     # import config dictionary
@@ -2354,8 +2356,10 @@ def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
             rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
         )
     elif model.config.objective == Objectives.cost_surrogate:
-        if model.config.desalination_model==DesalinationModel.false:
-            raise Warning('Cannot create a surrogate objective with Desalination Model being selected')
+        if model.config.desalination_model == DesalinationModel.false:
+            raise Warning(
+                "Cannot create a surrogate objective with Desalination Model being selected"
+            )
         from idaes.core.surrogate.surrogate_block import SurrogateBlock
         from idaes.core.surrogate.keras_surrogate import KerasSurrogate
 
@@ -2410,11 +2414,11 @@ def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
             doc="Inlet salinity in the feed",
         )
         model.recovery = Var(
-            model.s_R, 
+            model.s_R,
             initialize=model.df_parameters["DesalinationSurrogate"]["recovery"],
-            within=Reals, 
-            bounds=(0, 1), 
-            doc="Recovery of water"
+            within=Reals,
+            bounds=(0, 1),
+            doc="Recovery of water",
         )
         model.vb_y_flow_ReLU = Var(
             model.s_R, model.s_T, initialize=0, within=Binary, doc="Binary for flow"
@@ -2511,9 +2515,9 @@ def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
 
         model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
 
-        if model.config.desalination_model==DesalinationModel.mvc:
+        if model.config.desalination_model == DesalinationModel.mvc:
             keras_surrogate = KerasSurrogate.load_from_folder("mvc_keras")
-        elif model.config.desalination_model==DesalinationModel.md:
+        elif model.config.desalination_model == DesalinationModel.md:
             keras_surrogate = KerasSurrogate.load_from_folder("md_keras")
 
         for i in model.s_R:
@@ -2549,7 +2553,10 @@ def create_model(df_sets, df_parameters,salinity_dict={}, default={}):
         )
 
         def flowMaxRule(model, r, t):
-            return model.v_T_Treatment_scaled[r, t] <= model.BigM * model.vb_y_flow_ReLU[r, t]
+            return (
+                model.v_T_Treatment_scaled[r, t]
+                <= model.BigM * model.vb_y_flow_ReLU[r, t]
+            )
 
         model.flowMax = Constraint(
             model.s_R,
@@ -7102,9 +7109,7 @@ def postprocess_water_quality_calculation(model, opt):
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
     if opt.options["solver"] == "CPLEX":
-        opt.solve(
-            water_quality_model.quality, tee=True
-        )
+        opt.solve(water_quality_model.quality, tee=True)
     elif opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
@@ -7728,9 +7733,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
     if opt.options["solver"] == "CPLEX":
-        results = opt.solve(
-            model, tee=True, warmstart=True
-        )
+        results = opt.solve(model, tee=True, warmstart=True)
     else:
         results = opt.solve(model, tee=True, warmstart=True)
 
@@ -7891,9 +7894,7 @@ def solve_model(model, solver=None, options=None):
         elif model.config.water_quality is WaterQuality.post_process:
             # option 3.2:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(
-                    scaled_model, tee=True
-                )
+                results = opt.solve(scaled_model, tee=True)
             else:
                 results = opt.solve(scaled_model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7904,11 +7905,9 @@ def solve_model(model, solver=None, options=None):
         else:
             # option 3.1:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(
-                    scaled_model, tee=True
-                )
+                results = opt.solve(scaled_model, tee=True)
             else:
-                opt.options['DualReductions']=0
+                opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)
 
         # Step 4: propagate scaled model results to original model
@@ -7933,9 +7932,7 @@ def solve_model(model, solver=None, options=None):
         elif model.config.water_quality is WaterQuality.post_process:
             # option 2.2:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(
-                    model, tee=True
-                )
+                results = opt.solve(model, tee=True)
             else:
                 results = opt.solve(model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7944,10 +7941,12 @@ def solve_model(model, solver=None, options=None):
             # option 2.1:
             if opt.options["solver"] == "CPLEX":
                 results = opt.solve(
-                    model, tee=True,add_options=["gams_model.optfile=1;"],
+                    model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
                 )
             else:
-                opt.options['DualReductions']=0
+                opt.options["DualReductions"] = 0
                 results = opt.solve(model, tee=True)
 
     if results.solver.termination_condition == TerminationCondition.infeasible:
@@ -7989,9 +7988,7 @@ def solve_model(model, solver=None, options=None):
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
             if opt.options["solver"] == "CPLEX":
-                results_2 = opt.solve(
-                    mh, tee=True
-                )
+                results_2 = opt.solve(mh, tee=True)
             elif opt.type == "gurobi_direct":
                 results_2 = opt.solve(mh, tee=True, save_results=False)
             else:

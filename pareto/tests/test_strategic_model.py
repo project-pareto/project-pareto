@@ -1462,6 +1462,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
     with nostdout():
         assert is_feasible(m)
 
+
 @pytest.fixture(scope="module")
 def build_permian_demo_strategic_model():
     # This emulates what the pyomo command-line tools does
@@ -1628,6 +1629,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
         fname="test_strategic_print_results.xlsx",
     )
 
+
 @pytest.fixture(scope="module")
 def build_treatment_demo_strategic_model():
     # This emulates what the pyomo command-line tools does
@@ -1777,7 +1779,9 @@ def test_basic_treatment_demo_build_with_MD(build_treatment_demo_strategic_model
 
 # if solver cbc exists @solver
 @pytest.mark.component
-def test_run_treatment_demo_strategic_model_with_MD(build_treatment_demo_strategic_model):
+def test_run_treatment_demo_strategic_model_with_MD(
+    build_treatment_demo_strategic_model,
+):
     m = build_treatment_demo_strategic_model(
         config_dict={
             "objective": Objectives.cost_surrogate,
@@ -1804,6 +1808,7 @@ def test_run_treatment_demo_strategic_model_with_MD(build_treatment_demo_strateg
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
+
 
 @pytest.mark.unit
 def test_basic_treatment_demo_build_with_MVC(build_treatment_demo_strategic_model):
@@ -1834,7 +1839,9 @@ def test_basic_treatment_demo_build_with_MVC(build_treatment_demo_strategic_mode
 
 # if solver cbc exists @solver
 @pytest.mark.component
-def test_run_treatment_demo_strategic_model_with_MVC(build_treatment_demo_strategic_model):
+def test_run_treatment_demo_strategic_model_with_MVC(
+    build_treatment_demo_strategic_model,
+):
     m = build_treatment_demo_strategic_model(
         config_dict={
             "objective": Objectives.cost_surrogate,
@@ -1848,7 +1855,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(build_treatment_demo_strate
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    
+
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
