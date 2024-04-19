@@ -21,6 +21,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
+    DesalinationModel
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -124,6 +125,7 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "DesalinationSurrogate",
     "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
@@ -152,12 +154,11 @@ strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
 strategic_toy_case_study.xlsx
-strategic_treatment_demo_modified
+strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_toy_case_study.xlsx"
-    # "strategic_treatment_demo_modified.xlsx",
+    "strategic_treatment_demo_surrogates.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -177,10 +178,11 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost,
+        "objective": Objectives.cost_surrogate,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
+        "desalination_model": DesalinationModel.md,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
@@ -193,13 +195,14 @@ options = {
     "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 10000,
-    "gap": 100,
+    "gap": 1,
 }
+from idaes.core.util.model_statistics import degrees_of_freedom
+print(degrees_of_freedom(strategic_model))
+print(len(strategic_model.config))
+quit()
+results = solve_model(model=strategic_model, solver="gurobi", options=options)
 
-results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
-
-# strategic_model.v_C_TreatmentOpex_surrogate.display()
-# strategic_model.v_C_TreatmentCapex_surrogate.display()
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -219,11 +222,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="MD_surrogate_UB_100.xlsx",
+    fname="MD_surrogate_UB.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "MD_surrogate_UB_100.xlsx"
+fname = "MD_surrogate_UB.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

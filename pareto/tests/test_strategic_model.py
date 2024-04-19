@@ -1462,7 +1462,6 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
     with nostdout():
         assert is_feasible(m)
 
-
 @pytest.fixture(scope="module")
 def build_permian_demo_strategic_model():
     # This emulates what the pyomo command-line tools does
@@ -1620,6 +1619,240 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
     assert degrees_of_freedom(m) == 20955
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+@pytest.fixture(scope="module")
+def build_treatment_demo_strategic_model():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "CompletionsPads",
+        "SWDSites",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "ROA",
+        "SOA",
+        "NOA",
+        "RKA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
+        "Elevation",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "WellPressure",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "ExternalSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "RemovalEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "DesalinationSurrogate",
+        "ExternalWaterQuality",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
+    ]
+
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_treatment_demo_surrogates.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            treatment_demo_model = create_model(df_sets, df_parameters, config_dict)
+            return treatment_demo_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_basic_treatment_demo_build_with_MD(build_treatment_demo_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_treatment_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    assert degrees_of_freedom(m) == 34599
+    # Check unit config arguments
+    assert len(m.config) == 9
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_treatment_demo_strategic_model_with_MD(build_treatment_demo_strategic_model):
+    m = build_treatment_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    solver = get_solver("cbc")
+    solver.options["seconds"] = 60
+    results = solver.solve(m, tee=False)
+    assert degrees_of_freedom(m) == 34599
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+@pytest.mark.unit
+def test_basic_treatment_demo_build_with_MVC(build_treatment_demo_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_treatment_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.mvc,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    assert degrees_of_freedom(m) == 34599
+    # Check unit config arguments
+    assert len(m.config) == 9
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_treatment_demo_strategic_model_with_MVC(build_treatment_demo_strategic_model):
+    m = build_treatment_demo_strategic_model(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.mvc,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    
+    solver = get_solver("cbc")
+    solver.options["seconds"] = 60
+    results = solver.solve(m, tee=False)
+    assert degrees_of_freedom(m) == 34599
 
     # Test report building
     [model, results_dict] = generate_report(

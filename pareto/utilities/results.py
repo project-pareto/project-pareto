@@ -114,24 +114,16 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Treatment",
                     "vb_y_Flow",
-                    "vb_y_MVCselected",
+                    "vb_y_DesalSelected",
                     "v_T_Treatment_scaled",
-                    "v_T_Treatment_scaled_ReLU_1",
-                    "v_T_Treatment_scaled_ReLU_2",
-                    "v_C_TreatmentCapEx_site_ReLU",
                     "v_C_Treatment_site",
                     "v_C_TreatmentCapEx_site_time",
-                    "v_C_TreatmentCapEx_site_time_ReLU",
                     "v_C_TreatmentCapEx_site",
                     "recovery",
                     "treatment_energy",
                     "inlet_salinity",
-                    "capex_bin1",
-                    "capex_bin2",
-                    "bin1",
-                    "bin2",
+                    "vb_y_flow_ReLU",
                     "v_C_Treatment_site_ReLU",
-                    "v_C_Treatment_site_ReLU_1",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
@@ -159,19 +151,14 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
-                    "vb_y_MVCselected",
+                    "vb_y_DesalSelected",
+                    "vb_y_flow_ReLU",
                     "v_T_Treatment_scaled",
-                    "v_T_Treatment_scaled_ReLU_1",
-                    "v_T_Treatment_scaled_ReLU_2",
                     "v_C_Treatment_site",
                     "v_C_TreatmentCapEx_site_time",
-                    "v_C_TreatmentCapEx_site_ReLU",
                     "v_C_TreatmentCapEx_site",
                     "recovery",
-                    "treatment_energy",
                     "inlet_salinity",
-                    "capex_bin1",
-                    "capex_bin2",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
@@ -256,33 +243,17 @@ def generate_report(
                     "Treatment Expansion",
                 )
             ],
-            "vb_y_MVCselected_dict": [("Treatment Site", "MVC selection")],
+            "vb_y_DesalSelected_dict": [("Treatment Site", "MVC selection")],
             "v_T_Treatment_scaled_dict": [("Treatment site", "Time", "surrogate cost")],
-            "v_T_Treatment_scaled_ReLU_1_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
-            "v_T_Treatment_scaled_ReLU_2_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
             "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
             "recovery_dict": [("Treatment site", "recovery")],
             "inlet_salinity_dict": [("Treatment site", "salinity")],
-            "treatment_energy_dict": [("Treatment site", "energy")],
             "v_C_TreatmentCapEx_site_time_dict": [
                 ("Treatment site", "Time", "surrogate cost")
             ],
-            "v_C_TreatmentCapEx_site_time_ReLU_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
             "v_C_TreatmentCapEx_site_dict": [("Treatment site", "surrogate cost")],
-            "capex_bin1_dict": [("Treatment site", "Time", "surrogate cost")],
-            "capex_bin2_dict": [("Treatment site", "Time", "surrogate cost")],
-            "bin1_dict": [("Treatment site", "Time", "surrogate cost")],
-            "bin2_dict": [("Treatment site", "Time", "surrogate cost")],
+            "vb_y_flow_ReLU_dict": [("Treatment site", "Time", "Flow")],
             "v_C_Treatment_site_ReLU_dict": [
-                ("Treatment site", "Time", "surrogate cost")
-            ],
-            "v_C_Treatment_site_ReLU_1_dict": [
                 ("Treatment site", "Time", "surrogate cost")
             ],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
@@ -1186,22 +1157,14 @@ def generate_report(
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
                     if (
-                        # variable.name != "v_C_Treatment_site"
                         variable.name != "inlet_salinity"
-                        # and variable.name != "v_C_TreatmentCapEx_site"
-                        # and variable.name != "v_C_TreatmentCapEx_site_ReLU"
-                        # and variable.name != "v_C_Treatment_site"
-                        and variable.name != "capex_bin1"
-                        and variable.name != "capex_bin2"
-                        # and variable.name != "bin1"
-                        # and variable.name != "bin2"
-                        # and variable.name != "v_C_Treatment_site_ReLU"
-                        and variable.name != "v_C_Treatment_site_ReLU_1"
+                        and variable.name != "v_C_TreatmentCapEx_site"
+                        and variable.name != "v_C_Treatment_site"
+                        and variable.name != "v_C_Treatment_site_ReLU"
                         and variable.name != "recovery"
-                        and variable.name != "treatment_energy"
-                        # and variable.name != "v_C_TreatmentCapEx_site_time"
+                        and variable.name != "v_C_TreatmentCapEx_site_time"
                         and variable.name != "totalCapex"
-                        # and variable.name != "v_T_Treatment_scaled"
+                        and variable.name != "v_T_Treatment_scaled"
                     ):
                         if len(str(variable.name)) >= 15:
                             if str(variable.name)[:15] != "surrogate_costs":
