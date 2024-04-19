@@ -30,6 +30,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     Hydraulics,
+    DesalinationModel,
     PipelineCapacity,
     pipeline_hydraulics,
     RemovalEfficiencyMethod,
