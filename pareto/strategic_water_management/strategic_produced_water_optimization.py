@@ -38,6 +38,7 @@ from pyomo.environ import (
     value,
     SolverFactory,
 )
+from pyomo.common.fileutils import this_file_dir
 
 from pyomo.core.base.constraint import simple_constraint_rule
 from pyomo.core.expr import identify_variables
@@ -48,6 +49,7 @@ from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
+from pathlib import Path
 
 
 class Objectives(Enum):
@@ -2514,11 +2516,11 @@ def create_model(df_sets, df_parameters, default={}):
                 return Constraint.Skip
 
         model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
-
+        base_dir = Path(this_file_dir())
         if model.config.desalination_model == DesalinationModel.mvc:
-            keras_surrogate = KerasSurrogate.load_from_folder("mvc_keras")
+            keras_surrogate = KerasSurrogate.load_from_folder(str(base_dir / "mvc_keras"))
         elif model.config.desalination_model == DesalinationModel.md:
-            keras_surrogate = KerasSurrogate.load_from_folder("md_keras")
+            keras_surrogate = KerasSurrogate.load_from_folder(str(base_dir / "md_keras"))
 
         for i in model.s_R:
             for t in model.s_T:
