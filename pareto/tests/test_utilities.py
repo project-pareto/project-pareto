@@ -392,7 +392,7 @@ def test_data_check():
     )
     assert (
         "The following parameters were missing and default values were substituted:['Economics', 'ComponentPrice', 'ComponentTreatment']"
-         in warning_record[4].message.args[0]
+        in warning_record[4].message.args[0]
     )
 
 

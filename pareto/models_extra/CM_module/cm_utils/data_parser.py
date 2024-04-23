@@ -19,7 +19,11 @@ from pareto.models_extra.CM_module.cm_utils.spec_utils import (
     set_processing,
     parameter_processing,
 )
-from pareto.utilities.process_data import get_valid_piping_arc_list, get_valid_trucking_arc_list
+from pareto.utilities.process_data import (
+    get_valid_piping_arc_list,
+    get_valid_trucking_arc_list,
+)
+
 
 def _tolist(d):
     print(d)
