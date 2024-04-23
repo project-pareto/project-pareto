@@ -773,7 +773,7 @@ def _check_optional_data(
             _missing_tabs = _missing_sets
             _missing_tabs.update(_missing_parameters)
             warning_message = (
-                f"{optional_set_name} are given, but {optional_set_name} data is missing. The following tabs have been assumed empty:"
+                f"{optional_set_name} are given, but {optional_set_name} data is missing. The following tabs have been set to default values:"
                 + str(_missing_tabs)
             )
             warnings.warn(warning_message)

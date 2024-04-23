@@ -372,23 +372,27 @@ def test_data_check():
         }
         check_required_data(df_sets, df_parameters, CONFIG(default))
     # check that only one warning was raised
-    assert len(warning_record) == 4
+    assert len(warning_record) == 5
     # check that the message matches
     assert (
         warning_record[0].message.args[0]
-        == "CompletionsPads are given, but CompletionsPads data is missing. The following tabs have been assumed empty:{'CompletionsDemand'}"
+        == "CompletionsPads are given, but CompletionsPads data is missing. The following tabs have been set to default values:{'CompletionsDemand'}"
     )
     assert (
         warning_record[1].message.args[0]
         == "CompletionsPads are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:['CNA', 'CCA', 'CST', 'CCT', 'CKT', 'CRT']"
     )
     assert (
-        warning_record[2].message.args[0]
-        == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:{'TruckingTime'}"
+        "StorageSites are given, but StorageSites data is missing. The following tabs have been set to default values:"
+        in warning_record[2].message.args[0]
     )
     assert (
         warning_record[3].message.args[0]
-        == "The following parameters were missing and default values were substituted:['Economics']"
+        == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:{'TruckingTime'}"
+    )
+    assert (
+        "The following parameters were missing and default values were substituted:['Economics', 'ComponentPrice', 'ComponentTreatment']"
+         in warning_record[4].message.args[0]
     )
 
 
