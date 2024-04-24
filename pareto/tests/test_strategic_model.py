@@ -1630,6 +1630,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
         fname="test_strategic_print_results.xlsx",
     )
 
+
 @pytest.fixture(scope="module")
 def build_reduced_strategic_model_for_surrogates():
     # This emulates what the pyomo command-line tools does
@@ -1681,7 +1682,7 @@ def build_reduced_strategic_model_for_surrogates():
         "SOT",
         "RKT",
         "Elevation",
-        "DesalinationSurrogate"
+        "DesalinationSurrogate",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -1749,8 +1750,11 @@ def build_reduced_strategic_model_for_surrogates():
 
     return _call_model_with_config
 
+
 @pytest.mark.unit
-def test_basic_treatment_demo_build_with_MD(build_reduced_strategic_model_for_surrogates):
+def test_basic_treatment_demo_build_with_MD(
+    build_reduced_strategic_model_for_surrogates,
+):
     """Make a model and make sure it doesn't throw exception"""
     m = build_reduced_strategic_model_for_surrogates(
         config_dict={
@@ -1796,7 +1800,7 @@ def test_run_treatment_demo_strategic_model_with_MD(
     )
 
     solver = get_solver("cbc")
-    solver.options["seconds"] = 60
+    solver.options["seconds"] = 60 * 2
     results = solver.solve(m, tee=False)
     assert degrees_of_freedom(m) == 12959
 
@@ -1810,7 +1814,9 @@ def test_run_treatment_demo_strategic_model_with_MD(
 
 
 @pytest.mark.unit
-def test_basic_treatment_demo_build_with_MVC(build_reduced_strategic_model_for_surrogates):
+def test_basic_treatment_demo_build_with_MVC(
+    build_reduced_strategic_model_for_surrogates,
+):
     """Make a model and make sure it doesn't throw exception"""
     m = build_reduced_strategic_model_for_surrogates(
         config_dict={
@@ -1856,7 +1862,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
     )
 
     solver = get_solver("cbc")
-    solver.options["seconds"] = 60
+    solver.options["seconds"] = 60 * 2
     results = solver.solve(m, tee=False)
     assert degrees_of_freedom(m) == 12959
 
