@@ -219,11 +219,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="MD_surrogate_UB.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "MD_surrogate_UB.xlsx"
+fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
