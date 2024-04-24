@@ -17,7 +17,7 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-
+from pyomo.environ import Constraint, units
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver

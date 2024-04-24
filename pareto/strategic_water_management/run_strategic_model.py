@@ -158,7 +158,7 @@ strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo_surrogates.xlsx",
+    "strategic_treatment_demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -178,11 +178,11 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost_surrogate,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
-        "desalination_model": DesalinationModel.md,
+        "desalination_model": DesalinationModel.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
@@ -197,11 +197,7 @@ options = {
     "running_time": 10000,
     "gap": 1,
 }
-from idaes.core.util.model_statistics import degrees_of_freedom
 
-print(degrees_of_freedom(strategic_model))
-print(len(strategic_model.config))
-quit()
 results = solve_model(model=strategic_model, solver="gurobi", options=options)
 
 with nostdout():

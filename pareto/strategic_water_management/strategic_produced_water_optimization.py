@@ -2518,9 +2518,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
         base_dir = Path(this_file_dir())
         if model.config.desalination_model == DesalinationModel.mvc:
-            keras_surrogate = KerasSurrogate.load_from_folder(str(base_dir / "mvc_keras"))
+            keras_surrogate = KerasSurrogate.load_from_folder(
+                str(base_dir / "mvc_keras")
+            )
         elif model.config.desalination_model == DesalinationModel.md:
-            keras_surrogate = KerasSurrogate.load_from_folder(str(base_dir / "md_keras"))
+            keras_surrogate = KerasSurrogate.load_from_folder(
+                str(base_dir / "md_keras")
+            )
 
         for i in model.s_R:
             for t in model.s_T:

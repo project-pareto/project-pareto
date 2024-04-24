@@ -78,6 +78,7 @@ setup(
         "kaleido",
         "ipywidgets>=8.0.0",
         "tensorflow==2.13.0",
+        "omlt==1.1",
         # pyproj requires python >= 3.9
         "pyproj ; python_version >= '3.9'",
     ],
