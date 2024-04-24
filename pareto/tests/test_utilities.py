@@ -391,7 +391,7 @@ def test_data_check():
         == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:{'TruckingTime'}"
     )
     assert (
-        "The following parameters were missing and default values were substituted:['Economics', 'ComponentPrice', 'ComponentTreatment']"
+        "The following parameters were missing and default values were substituted:['Economics', 'ComponentPrice', 'ComponentTreatment', 'MinTreatmentFlow', 'MinResidualQuality']"
         in warning_record[4].message.args[0]
     )
 

@@ -39,12 +39,12 @@ def test_earthquake_distance():
     earthquake_distances = calculate_earthquake_distances(
         swd_latlons,
         api="usgs",
-        min_date="2024-04-14",
-        max_date="2024-04-14",
+        min_date="2023-11-14",
+        max_date="2024-04-14", # 5 months
         save="eq_dist_usgs_results.csv",
         overwrite=True,
     )
-    assert len(earthquake_distances) == 1
+    assert len(earthquake_distances) >= 1
 
     # Ensure that request to TexNet database works
     earthquake_distances = calculate_earthquake_distances(
