@@ -142,7 +142,7 @@ def get_valid_input_parameter_tab_names():
         "ComponentPrice",
         "ComponentTreatment",
         "MinTreatmentFlow",
-        "MinResidualQuality"
+        "MinResidualQuality",
     ]
 
 
@@ -522,7 +522,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "SCA": "",
         "SNA": "",
         "ROA": "",
-        "RKA":"",
+        "RKA": "",
         "SOA": "",
         "NOA": "",
         "PCT": "",
@@ -553,9 +553,9 @@ def get_display_units(input_sheet_name_list, user_units):
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
         "ReuseMinimum": user_units["volume"] + "/" + user_units["time"],
         "ReuseCapacity": user_units["volume"] + "/" + user_units["time"],
-        "InitialStorageLevel":user_units["volume"],
-        "StorageCost":user_units["currency"] + "/" + user_units["volume"],
-        "StorageWithdrawalRevenue":user_units["currency"] + "/" + user_units["volume"],
+        "InitialStorageLevel": user_units["volume"],
+        "StorageCost": user_units["currency"] + "/" + user_units["volume"],
+        "StorageWithdrawalRevenue": user_units["currency"] + "/" + user_units["volume"],
         "ExtWaterSourcingAvailability": user_units["volume"] + "/" + user_units["time"],
         "PadOffloadingCapacity": user_units["volume"] + "/" + user_units["time"],
         "CompletionsPadStorage": user_units["volume"],
@@ -630,10 +630,10 @@ def get_display_units(input_sheet_name_list, user_units):
         "SWDProxFault": user_units["distance"],
         "SWDProxHpOrLpWell": user_units["distance"],
         "SWDRiskFactors": "",
-        "ComponentPrice":user_units["currency"] + "/" + user_units["volume"],
-        "ComponentTreatment":"",
+        "ComponentPrice": user_units["currency"] + "/" + user_units["volume"],
+        "ComponentTreatment": "",
         "MinTreatmentFlow": user_units["volume"],
-        "MinResidualQuality":"",
+        "MinResidualQuality": "",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
