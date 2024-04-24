@@ -51,7 +51,7 @@ def data_parser(df_sets, df_parameters):
     d["s_A"] = []
 
     arcs = get_valid_piping_arc_list()
-    arcs.append(get_valid_trucking_arc_list())
+    arcs.extend(get_valid_trucking_arc_list())
 
     # Creating the unified arc set and appending 'Piped' or 'Trucked' to the arc tuple
     for arc_name in arcs:

@@ -141,6 +141,8 @@ def get_valid_input_parameter_tab_names():
         "SWDRiskFactors",
         "ComponentPrice",
         "ComponentTreatment",
+        "MinTreatmentFlow",
+        "MinResidualQuality"
     ]
 
 
