@@ -40,7 +40,7 @@ def test_earthquake_distance():
         swd_latlons,
         api="usgs",
         min_date="2023-11-14",
-        max_date="2024-04-14", # 5 months
+        max_date="2024-04-14",  # 5 months
         save="eq_dist_usgs_results.csv",
         overwrite=True,
     )
