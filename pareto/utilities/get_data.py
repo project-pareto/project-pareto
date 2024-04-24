@@ -241,7 +241,7 @@ def _read_data(_fname, _set_list, _parameter_list):
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
-    # If valid_set_tab_names is empty, it is assumed that a parameter is column format is being read.
+    # If valid_set_tab_names is empty, it is assumed that a parameter in column format is being read.
     # and valid_set_tab_names is created based on the DataFrame column names, except for the last name,
     # which is used as the data column name.
     if len(_df_sets.keys()) == 0:
