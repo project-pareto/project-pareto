@@ -1817,12 +1817,9 @@ def test_basic_treatment_demo_build_with_MVC(
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "hydraulics": Hydraulics.false,
             "desalination_model": DesalinationModel.mvc,
             "node_capacity": True,
-            "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
     assert degrees_of_freedom(m) == 12959
@@ -1846,12 +1843,9 @@ def test_run_treatment_demo_strategic_model_with_MVC(
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "hydraulics": Hydraulics.false,
             "desalination_model": DesalinationModel.mvc,
             "node_capacity": True,
-            "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
