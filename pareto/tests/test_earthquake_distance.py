@@ -39,8 +39,8 @@ def test_earthquake_distance():
     earthquake_distances = calculate_earthquake_distances(
         swd_latlons,
         api="usgs",
-        min_date="2024-03-23",
-        max_date="2024-03-23",
+        min_date="2024-04-14",
+        max_date="2024-04-14",
         save="eq_dist_usgs_results.csv",
         overwrite=True,
     )
