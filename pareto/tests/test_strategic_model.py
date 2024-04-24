@@ -1681,6 +1681,7 @@ def build_reduced_strategic_model_for_surrogates():
         "SOT",
         "RKT",
         "Elevation",
+        "DesalinationSurrogate"
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
