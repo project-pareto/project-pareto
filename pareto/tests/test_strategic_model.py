@@ -1630,9 +1630,8 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
         fname="test_strategic_print_results.xlsx",
     )
 
-
 @pytest.fixture(scope="module")
-def build_treatment_demo_strategic_model():
+def build_reduced_strategic_model_for_surrogates():
     # This emulates what the pyomo command-line tools does
     # Tabs in the input Excel spreadsheet
     set_list = [
@@ -1724,7 +1723,6 @@ def build_treatment_demo_strategic_model():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
-        "DesalinationSurrogate",
         "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
@@ -1739,22 +1737,21 @@ def build_treatment_demo_strategic_model():
 
     with resources.path(
         "pareto.case_studies",
-        "strategic_treatment_demo_surrogates.xlsx",
+        "strategic_small_case_study_modified.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
         # create mathematical model
         def _call_model_with_config(config_dict):
-            treatment_demo_model = create_model(df_sets, df_parameters, config_dict)
-            return treatment_demo_model
+            reduced_strategic_model = create_model(df_sets, df_parameters, config_dict)
+            return reduced_strategic_model
 
     return _call_model_with_config
 
-
 @pytest.mark.unit
-def test_basic_treatment_demo_build_with_MD(build_treatment_demo_strategic_model):
+def test_basic_treatment_demo_build_with_MD(build_reduced_strategic_model_for_surrogates):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_treatment_demo_strategic_model(
+    m = build_reduced_strategic_model_for_surrogates(
         config_dict={
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
@@ -1767,7 +1764,7 @@ def test_basic_treatment_demo_build_with_MD(build_treatment_demo_strategic_model
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 12959
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1781,9 +1778,9 @@ def test_basic_treatment_demo_build_with_MD(build_treatment_demo_strategic_model
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_treatment_demo_strategic_model_with_MD(
-    build_treatment_demo_strategic_model,
+    build_reduced_strategic_model_for_surrogates,
 ):
-    m = build_treatment_demo_strategic_model(
+    m = build_reduced_strategic_model_for_surrogates(
         config_dict={
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
@@ -1800,7 +1797,7 @@ def test_run_treatment_demo_strategic_model_with_MD(
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 12959
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1812,9 +1809,9 @@ def test_run_treatment_demo_strategic_model_with_MD(
 
 
 @pytest.mark.unit
-def test_basic_treatment_demo_build_with_MVC(build_treatment_demo_strategic_model):
+def test_basic_treatment_demo_build_with_MVC(build_reduced_strategic_model_for_surrogates):
     """Make a model and make sure it doesn't throw exception"""
-    m = build_treatment_demo_strategic_model(
+    m = build_reduced_strategic_model_for_surrogates(
         config_dict={
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
@@ -1827,7 +1824,7 @@ def test_basic_treatment_demo_build_with_MVC(build_treatment_demo_strategic_mode
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 12959
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1841,9 +1838,9 @@ def test_basic_treatment_demo_build_with_MVC(build_treatment_demo_strategic_mode
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_treatment_demo_strategic_model_with_MVC(
-    build_treatment_demo_strategic_model,
+    build_reduced_strategic_model_for_surrogates,
 ):
-    m = build_treatment_demo_strategic_model(
+    m = build_reduced_strategic_model_for_surrogates(
         config_dict={
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
@@ -1860,7 +1857,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 12959
 
     # Test report building
     [model, results_dict] = generate_report(
