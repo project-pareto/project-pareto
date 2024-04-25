@@ -2488,14 +2488,14 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=29,
             mutable=True,
             units=model.model_units["L_per_s"],
-            doc='Upper bound of flow for trained surrogate'
+            doc="Upper bound of flow for trained surrogate",
         )
 
         model.cap_lower_bound = Param(
             initialize=0,
             mutable=True,
             units=model.model_units["L_per_s"],
-            doc='Lower bound of flow for trained surrogate'
+            doc="Lower bound of flow for trained surrogate",
         )
 
         for i in model.s_R:
@@ -3104,8 +3104,7 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     for wt in model.s_WT
                 )
-                + 
-                    model.cap_upper_bound  * model.vb_y_DesalSelected[r]
+                + model.cap_upper_bound * model.vb_y_DesalSelected[r]
             )
         else:
             return model.v_T_Capacity[r] == sum(
