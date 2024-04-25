@@ -2484,16 +2484,25 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=1 * 5 * conversion_factor,
         )
 
-        cap_lower_bound, cap_upper_bound = (
-            0 * 7 * conversion_factor,
-            10 * 7 * conversion_factor,
+        model.cap_upper_bound = Param(
+            initialize=29,
+            mutable=True,
+            units=model.model_units["L_per_s"],
+            doc='Upper bound of flow for trained surrogate'
+        )
+
+        model.cap_lower_bound = Param(
+            initialize=0,
+            mutable=True,
+            units=model.model_units["L_per_s"],
+            doc='Lower bound of flow for trained surrogate'
         )
 
         for i in model.s_R:
             for t in model.s_T:
                 if model.p_chi_DesalinationSites[i]:
-                    model.v_T_Treatment_scaled[i, t].setlb(cap_lower_bound)
-                    model.v_T_Treatment_scaled[i, t].setub(cap_upper_bound)
+                    model.v_T_Treatment_scaled[i, t].setlb(model.cap_lower_bound)
+                    model.v_T_Treatment_scaled[i, t].setub(model.cap_upper_bound)
 
                 else:
                     model.v_T_Treatment_scaled[i, t].fix(0)
@@ -3095,12 +3104,8 @@ def create_model(df_sets, df_parameters, default={}):
                     )
                     for wt in model.s_WT
                 )
-                + pyunits.convert_value(
-                    24000,
-                    from_units=pyunits.oil_bbl / pyunits.day,
-                    to_units=model.model_units["volume_time"],
-                )
-                * model.vb_y_DesalSelected[r]
+                + 
+                    model.cap_upper_bound  * model.vb_y_DesalSelected[r]
             )
         else:
             return model.v_T_Capacity[r] == sum(
