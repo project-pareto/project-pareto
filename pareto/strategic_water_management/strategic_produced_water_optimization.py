@@ -3907,7 +3907,7 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.subsurface_risk == SubsurfaceRisk.exclude_risky_wells:
 
         def ExcludeRiskyDisposalWellsRule(model, k):
-            if model.subsurface_risk_sites_included[k]:
+            if value(model.subsurface._sites_included[k]):
                 # Disposal is allowed at SWD k - skip
                 return Constraint.Skip
             else:
@@ -7470,6 +7470,7 @@ def subsurface_risk(model):
         )
 
     m.risk_metrics = Expression(m.SWDSites, rule=risk_metric_rule)
+    m.risk_metrics.display()
 
     def sites_included_rule(m, site):
         if (
@@ -7483,6 +7484,7 @@ def subsurface_risk(model):
             return m._sites_included[site]
 
     m.sites_included = Expression(m.SWDSites, rule=sites_included_rule)
+
     return model
 
 
