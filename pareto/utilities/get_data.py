@@ -386,8 +386,8 @@ def get_data(fname, set_list=None, parameter_list=None, sum_repeated_indexes=Fal
       Column format: Does not require a header. Each set should be placed in one column,
       starting from column A and row 3. Data should be provided in the last column.
     - set_list and parameter_list are optional parameters. When they are not given, tabs with
-      valid PARETO labels are read. Otherwise, only the specified tabs in set_list and
-      parameter_list are read.
+      valid PARETO labels are read. Otherwise, the specified tabs in set_list and
+      parameter_list are read in addition to valid PARETO input tabs.
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
