@@ -2360,7 +2360,7 @@ def create_model(df_sets, df_parameters, default={}):
     elif model.config.objective == Objectives.cost_surrogate:
         if model.config.desalination_model == DesalinationModel.false:
             raise Warning(
-                "Cannot create a surrogate objective with Desalination Model being selected"
+                "Cannot create a surrogate objective without a Desalination Model being selected"
             )
         from idaes.core.surrogate.surrogate_block import SurrogateBlock
         from idaes.core.surrogate.keras_surrogate import KerasSurrogate
