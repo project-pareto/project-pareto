@@ -411,6 +411,7 @@ def generate_report(
             "v_S_BeneficialReuseCapacity_dict": [
                 ("Reuse site", "Slack Reuse Capacity")
             ],
+            "subsurface.y_dist_dict": [("Sites", "Proximity", "distance risk metric")],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
@@ -872,6 +873,8 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            ### TODO: Write decent description of the variables.
+            "subsurface.y_dist_dict": [("Sites", "Proximity", "distance risk metric")],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
@@ -1251,7 +1254,6 @@ def generate_report(
 
 
 def plot_sankey(input_data={}, args=None):
-
     """
     This method receives data in the form of 3 separate lists (origin, destination, value lists), generate_report dictionary
     output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
@@ -1291,7 +1293,6 @@ def plot_sankey(input_data={}, args=None):
                 destination[n] = "{0}{1}".format(destination[n], "_TILDE")
 
     elif input_data["type_of_data"] is None and isinstance(variable, list):
-
         source = []
         destination = []
         value = []
@@ -1859,7 +1860,6 @@ def plot_bars(input_data, args):
                     )
                 )
     else:
-
         # Create dataframe for use in the method
         df_new = pd.DataFrame(formatted_variable, columns=i)
 
@@ -1933,7 +1933,6 @@ def plot_bars(input_data, args):
 
 
 def plot_scatter(input_data, args):
-
     """
     The plot_scatter method creates a scatter plot based on two variables that are assigned to x and y,
     and a dictionary of arguments including labels, size specifications, group by and chart title. The variables
@@ -2135,7 +2134,6 @@ def plot_scatter(input_data, args):
         )
 
     if indexed_by_time:
-
         # Creating dataframe based on the passed in variable and rounding the values
         df_new_x = pd.DataFrame(formatted_variable_x, columns=i)
         df_new_x = df_new_x.round(0)
@@ -2671,7 +2669,6 @@ def plot_scatter(input_data, args):
 
 
 def is_binary_value(value, tol):
-
     """
     Verifies that a value is acceptable for a binary variable (0 or 1)
     """
@@ -2679,7 +2676,6 @@ def is_binary_value(value, tol):
 
 
 def is_integer_value(value, tol):
-
     """
     Verifies that a value is acceptable for an integer variable
     """
@@ -2713,7 +2709,6 @@ def _check_infeasible(obj, val, tol):
 
 
 def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
-
     """
     Verifies the solution contained in a pyomo model object is feasible. This requires iterating
     through all variables and constraints and ensuring that the constraint and variable bounds are

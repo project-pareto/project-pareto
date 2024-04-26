@@ -173,6 +173,7 @@ CONFIG.declare(
     ),
 )
 
+
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -2360,7 +2361,7 @@ def create_model(df_sets, df_parameters, default={}):
             expr=model.v_Z_SubsurfaceRisk
             == sum(
                 sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
-                * model.subsurface_risk_metrics[k]
+                * model.subsurface.risk_metrics[k]
                 for k in model.s_K
             ),
             doc="Objective function constraint - minimize subsurface risk",
@@ -2498,7 +2499,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -5738,7 +5738,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5775,7 +5774,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6796,7 +6794,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
@@ -7327,125 +7324,165 @@ def infrastructure_timing(model):
 
 
 def subsurface_risk(model):
-    model.subsurface=Block()
-    m=model.subsurface
-    m.SWDSites=model.df_sets["SWDSites"]
-    
-    maxmin=['max','min']
-    risk=['risk']
-    prox=["orphan","inactive","EQ","fault","HP_LP"]
-    prox_params=["SWDProxPAWell","SWDProxInactiveWell","SWDProxEQ","SWDProxFault","SWDProxHpOrLpWell"]
-    prox_init={}
-    k=0
+    model.subsurface = Block()
+    m = model.subsurface
+    m.SWDSites = model.df_sets["SWDSites"]
+
+    maxmin = ["max", "min"]
+    risk = ["risk"]
+    prox = ["orphan", "inactive", "EQ", "fault", "HP_LP"]
+    prox_params = [
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+    ]
+    prox_init = {}
+    k = 0
     for i in prox_params:
         for j in m.SWDSites:
-            prox_init[prox[k],j]=model.df_parameters[i][j]
-        k+=1
+            prox_init[prox[k], j] = model.df_parameters[i][j]
+        k += 1
 
-    
-    m.deep=model.df_parameters["SWDDeep"]
-    m.pressure=model.df_parameters["SWDAveragePressure"]
-    m.prox=Param(prox,m.SWDSites,initialize=prox_init)
+    m.deep = model.df_parameters["SWDDeep"]
+    m.pressure = model.df_parameters["SWDAveragePressure"]
+    m.prox = Param(prox, m.SWDSites, initialize=prox_init)
 
     risk_factors = model.df_parameters["SWDRiskFactors"]
-    risk_factor_set=['distance','severity']
-    dist_init={}
-    severity_init={}
+    risk_factor_set = ["distance", "severity"]
+    dist_init = {}
+    severity_init = {}
     for i in risk_factors.keys():
-        match = re.search('dist', i)
+        match = re.search("dist", i)
         if match:
             for j in prox:
-                match = re.search(j,i)
+                match = re.search(j, i)
                 if match:
-                    dist_init[j]=risk_factors[i]
+                    dist_init[j] = risk_factors[i]
                     break
-        match = re.search('severity', i)
+        match = re.search("severity", i)
         if match:
             for j in prox:
-                match = re.search(j,i)
+                match = re.search(j, i)
                 if match:
-                    severity_init[j]=risk_factors[i]
+                    severity_init[j] = risk_factors[i]
                     break
-    pres_init={"max": risk_factors["HP_threshold"],
-        "min": risk_factors["LP_threshold"],}
+    pres_init = {
+        "max": risk_factors["HP_threshold"],
+        "min": risk_factors["LP_threshold"],
+    }
 
-    m.distance_risk_factors=Param(prox,initialize=dist_init,mutable=True)
-    m.severity_risk_factors=Param(prox,initialize=severity_init,mutable=True)
-    m.norm_distance_risk_factors=Param(prox,initialize=dist_init,mutable=True)
-    m.norm_severity_risk_factors=Param(prox,initialize=severity_init,mutable=True)
+    m.distance_risk_factors = Param(prox, initialize=dist_init, mutable=True)
+    m.severity_risk_factors = Param(prox, initialize=severity_init, mutable=True)
+    m.norm_distance_risk_factors = Param(prox, initialize=dist_init, mutable=True)
+    m.norm_severity_risk_factors = Param(prox, initialize=severity_init, mutable=True)
 
-    m.sum_risk_factor=Param(risk_factor_set,initialize=0,mutable=True)
+    m.sum_risk_factor = Param(risk_factor_set, initialize=0, mutable=True)
 
-    m.pressure_thresholds=Param(maxmin,initialize=pres_init)
+    m.pressure_thresholds = Param(maxmin, initialize=pres_init)
 
-    m.max_risk_factor_for_lowest_risk = Param(risk,initialize=0,mutable=True)
+    m.max_risk_factor_for_lowest_risk = Param(risk, initialize=0, mutable=True)
 
-    m.site_risk_factor=Param(m.SWDSites,prox,initialize=0,mutable=True)
-    m.y_dist=Var(m.SWDSites,prox,initialize=0,within=Binary)
-    m.inverse_weighted_site_risk_factor=Param(m.SWDSites,initialize=0,mutable=True)
-    m.risk_metric=Param(m.SWDSites,initialize=0,mutable=True)
-    m._sites_included=Param(m.SWDSites,initialize=0,mutable=True)
+    m.site_risk_factor = Param(m.SWDSites, prox, initialize=0, mutable=True)
+    m.y_dist = Var(m.SWDSites, prox, initialize=0, within=Binary)
+    m.inverse_weighted_site_risk_factor = Param(m.SWDSites, initialize=0, mutable=True)
+    m.risk_metric = Param(m.SWDSites, initialize=0, mutable=True)
+    m._sites_included = Param(m.SWDSites, initialize=0, mutable=True)
 
-    m.weighted_site_risk_factor = Param(m.SWDSites,initialize=0,mutable=True)
+    m.weighted_site_risk_factor = Param(m.SWDSites, initialize=0, mutable=True)
 
     for site in m.SWDSites:
         for factor in prox:
-            if factor in ('orphan', 'inactive') and m.deep[site]:
-                m.y_dist[site,factor].fix(1)
+            if factor in ("orphan", "inactive") and m.deep[site]:
+                m.y_dist[site, factor].fix(1)
 
-    # Defining expressions 
+    # Defining expressions
     def sum_risk_dist_rule(m):
         for i in prox:
-            m.sum_risk_factor['distance']+=m.distance_risk_factors[i]
-        return m.sum_risk_factor['distance']
-    m.sum_risk_dist=Expression(rule=sum_risk_dist_rule)
+            m.sum_risk_factor["distance"] += m.distance_risk_factors[i]
+        return m.sum_risk_factor["distance"]
+
+    m.sum_risk_dist = Expression(rule=sum_risk_dist_rule)
 
     def sum_risk_severity_rule(m):
         for i in prox:
-            m.sum_risk_factor['severity']+=m.severity_risk_factors[i]
-        return m.sum_risk_factor['severity']
-    m.sum_risk_severity==Expression(rule=sum_risk_severity_rule)
+            m.sum_risk_factor["severity"] += m.severity_risk_factors[i]
+        return m.sum_risk_factor["severity"]
 
-    def norm_risk_dist_rule(m,prox):
-        return m.distance_risk_factors[prox]/m.sum_risk_factor['distance']
-    m.norm_risk_dist=Expression(prox,rule=norm_risk_dist_rule)
+    m.sum_risk_severity = Expression(rule=sum_risk_severity_rule)
 
-    def norm_risk_severity_rule(m,prox):
-        return m.severity_risk_factors[prox]/m.sum_risk_factor['severity']
-    m.norm_risk_severity=Expression(prox,rule=norm_risk_severity_rule)
+    def norm_risk_dist_rule(m, prox):
+        return m.distance_risk_factors[prox] / m.sum_risk_factor["distance"]
+
+    m.norm_risk_dist = Expression(prox, rule=norm_risk_dist_rule)
+
+    def norm_risk_severity_rule(m, prox):
+        return m.severity_risk_factors[prox] / m.sum_risk_factor["severity"]
+
+    m.norm_risk_severity = Expression(prox, rule=norm_risk_severity_rule)
 
     def max_risk_fact_min_risk_rule(m):
-        return sum(m.distance_risk_factors[i]*m.norm_risk_dist[i]*m.norm_risk_severity[i] for i in prox)
+        return sum(
+            m.distance_risk_factors[i] * m.norm_risk_dist[i] * m.norm_risk_severity[i]
+            for i in prox
+        )
 
-    m.max_risk_fact_min_risk=Expression(rule=max_risk_fact_min_risk_rule)
-    
-    def site_rule_constraints(m,site,factor):
-        if factor in ('orphan', 'inactive') and m.deep[site]:
+    m.max_risk_fact_min_risk = Expression(rule=max_risk_fact_min_risk_rule)
+
+    def site_rule_constraints(m, site, factor):
+        if factor in ("orphan", "inactive") and m.deep[site]:
             return Constraint.Skip
         else:
-            return m.distance_risk_factors[factor]*m.y_dist[site,factor]<=m.prox[factor,site]
-    m.site_constraint=Constraint(m.SWDSites,prox,rule=site_rule_constraints)
-    
-    def site_risk_factor_rule(m,site,factor):
-        if factor in ('orphan', 'inactive') and m.deep[site]:
-            m.site_risk_factor[site,factor]=m.distance_risk_factors[factor]
-        else:
-            m.site_risk_factor[site,factor]=m.distance_risk_factors[factor]*m.y_dist[site,factor]+m.prox[factor,site]*(1-m.y_dist[site,factor])
-        return m.site_risk_factor[site,factor]
-    m.site_risk_factors=Expression(m.SWDSites,prox,rule=site_risk_factor_rule)
-    
-    def risk_metric_rule(m,site):
-        return 1-sum((m.distance_risk_factors[factor]*m.y_dist[site,factor]+m.prox[factor,site]*(1-m.y_dist[site,factor]))*m.norm_risk_dist[factor]*m.norm_risk_severity[factor] for factor in prox)/m.max_risk_fact_min_risk
-    m.risk_metrics=Expression(m.SWDSites,rule=risk_metric_rule)
+            return (
+                m.distance_risk_factors[factor] * m.y_dist[site, factor]
+                <= m.prox[factor, site]
+            )
 
-    def sites_included_rule(m,site):
-        if m.pressure[site]>=m.pressure_thresholds["min"] and m.pressure[site]<=m.pressure_thresholds["max"]:
-            m._sites_included[site]=True
+    m.site_constraint = Constraint(m.SWDSites, prox, rule=site_rule_constraints)
+
+    def site_risk_factor_rule(m, site, factor):
+        if factor in ("orphan", "inactive") and m.deep[site]:
+            m.site_risk_factor[site, factor] = m.distance_risk_factors[factor]
+        else:
+            m.site_risk_factor[site, factor] = m.distance_risk_factors[
+                factor
+            ] * m.y_dist[site, factor] + m.prox[factor, site] * (
+                1 - m.y_dist[site, factor]
+            )
+        return m.site_risk_factor[site, factor]
+
+    m.site_risk_factors = Expression(m.SWDSites, prox, rule=site_risk_factor_rule)
+
+    def risk_metric_rule(m, site):
+        return (
+            1
+            - sum(
+                (
+                    m.distance_risk_factors[factor] * m.y_dist[site, factor]
+                    + m.prox[factor, site] * (1 - m.y_dist[site, factor])
+                )
+                * m.norm_risk_dist[factor]
+                * m.norm_risk_severity[factor]
+                for factor in prox
+            )
+            / m.max_risk_fact_min_risk
+        )
+
+    m.risk_metrics = Expression(m.SWDSites, rule=risk_metric_rule)
+
+    def sites_included_rule(m, site):
+        if (
+            m.pressure[site] >= m.pressure_thresholds["min"]
+            and m.pressure[site] <= m.pressure_thresholds["max"]
+        ):
+            m._sites_included[site] = True
             return m._sites_included[site]
         else:
-            m._sites_included[site]=False
+            m._sites_included[site] = False
             return m._sites_included[site]
-    m.sites_included=Expression(m.SWDSites,rule=sites_included_rule)
+
+    m.sites_included = Expression(m.SWDSites, rule=sites_included_rule)
     return model
 
 
@@ -7819,7 +7856,7 @@ def solve_model(model, options=None):
                     Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
                     while True:
                         pres_dict_keys = list(Press_dict.keys())
-                        for (l1, l2) in model.s_LLA:
+                        for l1, l2 in model.s_LLA:
                             if l1 in Press_dict.keys():
                                 ps = Press_dict[l1]
                                 this_p = calc_new_pres(model_h, ps, l1, l2, t)

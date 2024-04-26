@@ -185,7 +185,7 @@ strategic_model = create_model(
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         "infrastructure_timing": InfrastructureTiming.true,
-        "subsurface_risk": SubsurfaceRisk.false,
+        "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
     },
 )
 

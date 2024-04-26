@@ -21,6 +21,5 @@ _MARKERS = {
 
 
 def pytest_configure(config: Config):
-
     for name, descr in _MARKERS.items():
         config.addinivalue_line("markers", f"{name}: {descr}")
