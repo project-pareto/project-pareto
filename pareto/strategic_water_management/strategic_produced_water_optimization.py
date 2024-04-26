@@ -2423,11 +2423,11 @@ def create_model(df_sets, df_parameters, default={}):
             doc="Recovery fraction of water",
         )
         model.vb_y_flow_ReLU = Var(
-            model.s_R, 
-            model.s_T, 
-            initialize=0, 
-            within=Binary, 
-            doc="Binary indicating flow greater than 0"
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary indicating flow greater than 0",
         )
         model.v_T_Treatment_scaled_ReLU = Var(
             model.s_R,
@@ -7113,7 +7113,11 @@ def postprocess_water_quality_calculation(model, opt):
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
     if opt.options["solver"] == "CPLEX":
-        opt.solve(water_quality_model.quality, tee=True,add_options=["gams_model.optfile=1;"],)
+        opt.solve(
+            water_quality_model.quality,
+            tee=True,
+            add_options=["gams_model.optfile=1;"],
+        )
     elif opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
@@ -7667,7 +7671,11 @@ def solve_discrete_water_quality(model, opt, scaled):
     v_DQ.fix()
     # Step 1b - solve model, obtain optimal flows without considering quality
     if opt.options["solver"] == "CPLEX":
-        opt.solve(model, tee=True,add_options=["gams_model.optfile=1;"],)
+        opt.solve(
+            model,
+            tee=True,
+            add_options=["gams_model.optfile=1;"],
+        )
     else:
         opt.solve(model, tee=True)
     # Step 1c - fix or bound all non quality variables
@@ -7711,7 +7719,11 @@ def solve_discrete_water_quality(model, opt, scaled):
     print(" " * 15, "Solving non-discrete water quality model")
     print("*" * 50)
     if opt.options["solver"] == "CPLEX":
-        opt.solve(model, tee=True, add_options=["gams_model.optfile=1;"],)
+        opt.solve(
+            model,
+            tee=True,
+            add_options=["gams_model.optfile=1;"],
+        )
     else:
         opt.solve(model, tee=True, warmstart=True)
 
@@ -7737,7 +7749,12 @@ def solve_discrete_water_quality(model, opt, scaled):
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
     if opt.options["solver"] == "CPLEX":
-        results = opt.solve(model, tee=True, warmstart=True, add_options=["gams_model.optfile=1;"],)
+        results = opt.solve(
+            model,
+            tee=True,
+            warmstart=True,
+            add_options=["gams_model.optfile=1;"],
+        )
     else:
         results = opt.solve(model, tee=True, warmstart=True)
 
@@ -7893,7 +7910,11 @@ def solve_model(model, solver=None, options=None):
         elif model.config.water_quality is WaterQuality.post_process:
             # option 3.2:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(scaled_model, tee=True, add_options=["gams_model.optfile=1;"],)
+                results = opt.solve(
+                    scaled_model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
             else:
                 results = opt.solve(scaled_model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7904,7 +7925,11 @@ def solve_model(model, solver=None, options=None):
         else:
             # option 3.1:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(scaled_model, tee=True, add_options=["gams_model.optfile=1;"],)
+                results = opt.solve(
+                    scaled_model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
             else:
                 opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)
@@ -7931,7 +7956,11 @@ def solve_model(model, solver=None, options=None):
         elif model.config.water_quality is WaterQuality.post_process:
             # option 2.2:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(model, tee=True, add_options=["gams_model.optfile=1;"],)
+                results = opt.solve(
+                    model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
             else:
                 results = opt.solve(model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7987,7 +8016,9 @@ def solve_model(model, solver=None, options=None):
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
             if opt.options["solver"] == "CPLEX":
-                results_2 = opt.solve(mh, tee=True, add_options=["gams_model.optfile=1;"])
+                results_2 = opt.solve(
+                    mh, tee=True, add_options=["gams_model.optfile=1;"]
+                )
             elif opt.type == "gurobi_direct":
                 results_2 = opt.solve(mh, tee=True, save_results=False)
             else:
