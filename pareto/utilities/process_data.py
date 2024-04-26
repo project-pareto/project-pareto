@@ -396,7 +396,9 @@ def check_required_data(df_sets, df_parameters, config):
         optional_set_name="ProductionPads",
         required_sets_with_option={},
         required_parameters_with_option={"PadRates"},
-        requires_at_least_one=[["PCA", "PNA", "PPA", "PCT", "PKT", "PST", "PRT", "POT"]],
+        requires_at_least_one=[
+            ["PCA", "PNA", "PPA", "PCT", "PKT", "PST", "PRT", "POT"]
+        ],
     )
 
     # SWDs
@@ -411,7 +413,7 @@ def check_required_data(df_sets, df_parameters, config):
             "DisposalOperatingCapacity",
             "CompletionsPadStorage",
         },
-        requires_at_least_one=[["NKA", "SKA", "RKA", "PKT","CKT","SKT", "RKT"]],
+        requires_at_least_one=[["NKA", "SKA", "RKA", "PKT", "CKT", "SKT", "RKT"]],
     )
 
     # Treatment Sites.
@@ -428,7 +430,10 @@ def check_required_data(df_sets, df_parameters, config):
             "TreatmentEfficiency",
             "RemovalEfficiency",
         },
-        requires_at_least_one=[["RNA", "RSA", "RKA", "ROA", "RCA", "RST","ROT", "RKT"], ["PRT", "CRT", "NRA", "SRA"]],
+        requires_at_least_one=[
+            ["RNA", "RSA", "RKA", "ROA", "RCA", "RST", "ROT", "RKT"],
+            ["PRT", "CRT", "NRA", "SRA"],
+        ],
     )
 
     # Beneficial Reuse
@@ -459,7 +464,10 @@ def check_required_data(df_sets, df_parameters, config):
             "StorageCost",
             "StorageWithdrawalRevenue",
         },
-        requires_at_least_one=[["SOA", "SNA", "SCA", "SKA", "SRA", "SCT", "SKT", "SOT"], ["NSA", "RSA", "CST", "RST", "PST"]],
+        requires_at_least_one=[
+            ["SOA", "SNA", "SCA", "SKA", "SRA", "SCT", "SKT", "SOT"],
+            ["NSA", "RSA", "CST", "RST", "PST"],
+        ],
     )
 
     # FreshwaterSources
