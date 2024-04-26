@@ -45,7 +45,9 @@ def get_valid_input_set_tab_names():
 def get_valid_input_parameter_tab_names():
     return [
         "Units",
+        "PCA",
         "PNA",
+        "PPA",
         "CNA",
         "CCA",
         "NNA",
@@ -60,17 +62,24 @@ def get_valid_input_parameter_tab_names():
         "RSA",
         "SCA",
         "SNA",
+        "SKA",
+        "SRA",
         "ROA",
         "RKA",
         "SOA",
         "NOA",
         "PCT",
         "PKT",
+        "PST",
+        "PRT",
+        "POT",
         "FCT",
         "CST",
         "CCT",
         "CKT",
         "CRT",
+        "SCT",
+        "SKT",
         "RST",
         "ROT",
         "SOT",
@@ -158,11 +167,15 @@ def _read_data(_fname, _set_list, _parameter_list):
     if _set_list is not None:
         valid_set_tab_names = pareto_input_set_tab_names
         valid_set_tab_names.extend(_set_list)
+        # De-duplicate
+        valid_set_tab_names = list(set(valid_set_tab_names))
     else:
         valid_set_tab_names = pareto_input_set_tab_names
     if _parameter_list is not None:
         valid_parameter_tab_names = pareto_input_parameter_tab_names
         valid_parameter_tab_names.extend(_parameter_list)
+        # De-duplicate
+        valid_parameter_tab_names = list(set(valid_parameter_tab_names))
     else:
         valid_parameter_tab_names = pareto_input_parameter_tab_names
 
@@ -182,7 +195,7 @@ def _read_data(_fname, _set_list, _parameter_list):
 
     if len(unused_tab_list) > 0:
         warning_message = (
-            f"Invalid PARETO input has been provided and has NOT been parsed. Check that input tab names match valid PARETO input. If you'd like to read custom tabs, please include as input to get_data(). The following tabs are NOT parsed: "
+            f"Invalid PARETO input has been provided and has NOT been parsed. Check that the input tab names match valid PARETO input. If you'd like to read custom tabs (e.g., PARETO output files), please pass a list of the custom tab names to get_data(). The following tabs are NOT parsed: "
             + str(unused_tab_list)
         )
         warnings.warn(
@@ -506,7 +519,9 @@ def get_display_units(input_sheet_name_list, user_units):
     # Display units are dependent on which units the user decides to use
     unit_dict = {
         "Units": "",
+        "PCA": "",
         "PNA": "",
+        "PPA": "",
         "CNA": "",
         "CCA": "",
         "NNA": "",
@@ -521,16 +536,23 @@ def get_display_units(input_sheet_name_list, user_units):
         "RSA": "",
         "SCA": "",
         "SNA": "",
+        "SKA": "",
+        "SRA": "",
         "ROA": "",
         "RKA": "",
         "SOA": "",
         "NOA": "",
         "PCT": "",
         "PKT": "",
+        "PST": "",
+        "PRT": "",
+        "POT": "",
         "FCT": "",
         "CST": "",
         "CCT": "",
         "CKT": "",
+        "SCT": "",
+        "SKT": "",
         "RST": "",
         "ROT": "",
         "SOT": "",

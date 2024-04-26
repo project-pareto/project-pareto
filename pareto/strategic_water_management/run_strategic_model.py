@@ -35,7 +35,7 @@ from importlib import resources
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-"""By default, PARETO comes with the following 4 strategic case studies:
+"""By default, PARETO comes with the following 5 strategic case studies:
 strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx

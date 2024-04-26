@@ -69,12 +69,12 @@ def get_valid_piping_arc_list():
         "RCA",
         "RKA",
         "RSA",
+        "ROA",
         "SNA",
         "SCA",
         "SKA",
         "SRA",
         "SOA",
-        "ROA",
     ]
 
 
@@ -817,7 +817,7 @@ def _check_config_dependent_data(
     # Error message
     error_message = []
 
-    # Data error is raised if
+    # Data error is raised if the input tabs required for the configuration option are not provided
     _df_sets_set = set(df_sets)
     _df_params_set = set(df_parameters)
 
