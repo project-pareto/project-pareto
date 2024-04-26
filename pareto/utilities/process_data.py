@@ -106,8 +106,8 @@ def check_required_data(df_sets, df_parameters, config):
 
     # Tab names for parameters. For each list in the list, at least one Parameter tab is required.
     set_list_require_at_least_one = [
-        ["ProductionPads", "CompletionsPads", "ExternalWaterSources"],
-        ["CompletionsPads", "SWDSites", "ReuseOptions", "StorageSites"],
+        ["ProductionPads", "CompletionsPads", "ExternalWaterSources"],  # water sources
+        ["CompletionsPads", "SWDSites", "ReuseOptions", "StorageSites"],  # water sinks
     ]
 
     # Tab names for parameters. For each tuple in the list, at least one Parameter tab is required.
@@ -351,8 +351,8 @@ def check_required_data(df_sets, df_parameters, config):
     # Optional Data: If data is not given, create empty dictionaries and raise a warning to the user
 
     # CompletionsPads. If given, check for additional data required to consider CompletionsPads in the model.
-    # Call check optional function. This returns modified df_sets and df_parameters that
-    # includes empty dictionaries for missing data, so the parameters can be defined without error
+    # Call _check_optional_data function. This returns modified df_sets and df_parameters that
+    # include empty dictionaries for missing data, so the parameters can be defined without error
     # when building the PARETO model.
     (df_sets, df_parameters) = _check_optional_data(
         df_sets,
@@ -600,9 +600,9 @@ def model_infeasibility_detection(strategic_model):
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
 
-    # # Get the maximum capacity of sink nodes for each time period
-    # # Sink nodes: CompletionsDemand, (InitialDisposalCapacity + max(disposalCapacityIncrements)) * DisposalOperatingCapacity,
-    # # StorageEvaporation, ReuseCapacity, InitialStorageCapacity + Storage CapacityIncrements,
+    # Get the maximum capacity of sink nodes for each time period
+    # Sink nodes: CompletionsDemand, (InitialDisposalCapacity + max(disposalCapacityIncrements)) * DisposalOperatingCapacity,
+    # StorageEvaporation, ReuseCapacity, InitialStorageCapacity + Storage CapacityIncrements,
     # (InitialTreatmentCapacity+TreatmentCapacityIncrements)*TreatmentResidual
     strategic_model.p_sigma_MaxPWCapacity = Param(
         strategic_model.s_T,

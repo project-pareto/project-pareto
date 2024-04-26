@@ -291,11 +291,11 @@ def test_fix_vars():
 
 ############################
 def test_data_check():
-    # This emulates what the pyomo command-line tools does
     # Check that MissingDataError is correctly raised
-    # This input sheet is missing: 'Units',
-    # All of tabs ['ProductionPads', 'CompletionsPads', 'ExternalWaterSources'],
-    # and 'PipelineCapexCapacityBased' which is required for PipelineCost.capacity_based:{}
+    # This input sheet is missing the following tabs:
+    # 'Units', 'ProductionPads', 'CompletionsPads',
+    # 'ExternalWaterSources', and 'PipelineCapexCapacityBased'
+    # (the latter of which is required for the PipelineCost.capacity_based option)
     with resources.path(
         "pareto.tests",
         "strategic_toy_case_study_data_error.xlsx",
@@ -325,7 +325,7 @@ def test_data_check():
     )
 
     # Check a secondary case that MissingDataError is correctly raised
-    # This input sheet is missing: "CompletionsPads", while still including subsequent tabs that depend on this Set
+    # This input sheet is missing the tab "CompletionsPads", while still including subsequent tabs that depend on this Set
     with resources.path(
         "pareto.tests",
         "strategic_toy_case_study_data_error2.xlsx",
@@ -350,8 +350,8 @@ def test_data_check():
         in str(error2_record.value)
     )
 
-    # Check that a Warnings are correctly raised
-    # This input sheet is missing: 'TruckingTime', 'CompletionsDemand', ["CNA", "CCA", "CST", "CCT","CKT","CRT"], "Economics"
+    # Check that warnings are correctly raised
+    # This input sheet is missing the tabs "TruckingTime", "CompletionsDemand", "CNA", "CCA", "CST", "CCT","CKT","CRT", and "Economics"
     # Three warnings should be raised
     with resources.path(
         "pareto.tests",
@@ -398,7 +398,6 @@ def test_data_check():
 
 ############################
 def test_infeasibility_check():
-    # This emulates what the pyomo command-line tools does
     # Check that DataInfeasibilityError is correctly raised for system capacity and demand infeasibilities
     # This input sheet has a very high volume of flowback water in T01
     with resources.path(
@@ -457,6 +456,5 @@ def test_infeasibility_check():
 
     assert (
         "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand)"
-        == str(error_record.value)
         == str(error_record.value)
     )
