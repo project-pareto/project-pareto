@@ -167,7 +167,7 @@ def _read_data(_fname, _set_list, _parameter_list):
         valid_parameter_tab_names = pareto_input_parameter_tab_names
 
     # Check all names available in the input sheet
-    # If the sheet name is unused (not a  valid Set or Parameter tab, not "Overview", and not "Schematic"), raise a warning.
+    # If the sheet name is unused (not a valid Set or Parameter tab, not "Overview", and not "Schematic"), raise a warning.
     unused_tab_list = []
     df = pd.ExcelFile(_fname)
     sheet_list = df.sheet_names
