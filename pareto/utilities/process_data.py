@@ -692,7 +692,8 @@ def model_infeasibility_detection(strategic_model):
         # Note: if completions pad is outside system, demand is not required to be met
         strategic_model.p_gamma_TimePeriodDemand[t] = sum(
             strategic_model.p_gamma_Completions[cp, t]
-            if strategic_model.p_chi_OutsideCompletionsPad[cp] == 0 else 0
+            if strategic_model.p_chi_OutsideCompletionsPad[cp] == 0
+            else 0
             for cp in strategic_model.s_CP
         )
 
