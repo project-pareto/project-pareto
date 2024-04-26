@@ -1739,7 +1739,7 @@ def build_reduced_strategic_model_for_surrogates():
 
     with resources.path(
         "pareto.case_studies",
-        "strategic_small_case_study_modified.xlsx",
+        "strategic_small_case_study_surrogates.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 

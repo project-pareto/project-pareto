@@ -149,16 +149,17 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-"""By default, PARETO comes with the following 4 strategic case studies:
+"""By default, PARETO comes with the following 6 strategic case studies:
 strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
+strategic_small_case_study_surrogates.xlsx
 strategic_toy_case_study.xlsx
 strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_toy_case_study.xlsx",
+    "strategic_treatment_demo.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -168,6 +169,7 @@ with resources.path(
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]
+ desalination_model: [DesalinationModel.false, DesalinationModel.mvc, DesalinationModel.md]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
@@ -178,11 +180,11 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost_surrogate,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
-        "desalination_model": DesalinationModel.mvc,
+        "desalination_model": DesalinationModel.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
@@ -195,27 +197,11 @@ options = {
     "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 10000,
-    "gap": 10,
+    "gap": 0,
 }
 
 results = solve_model(model=strategic_model, solver="gurobi", options=options)
-# strategic_model.surrogate_costs['R03','T14'].nn.inputs[2].display()
-from pyomo.environ import units as pyunits
 
-conversion_factor = pyunits.convert_value(
-    1,
-    from_units=strategic_model.model_units["volume_time"],
-    to_units=strategic_model.model_units["L_per_s"],
-)
-import os
-
-filename = os.path.join(os.path.dirname(__file__), "model.lp")
-strategic_model.write(filename, io_options={"symbolic_solver_labels": True})
-print(conversion_factor)
-strategic_model.surrogate_costs["R01", "T14"].nn.inputs[2].pprint()
-strategic_model.cap_upper_bound.pprint()
-# strategic_model.surrogate_costs.pprint()
-quit()
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 

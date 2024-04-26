@@ -2406,7 +2406,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_R,
             within=Binary,
             initialize=0,
-            doc="MVC selection for each desalination site",
+            doc="Selection for each desalination site",
         )
         model.inlet_salinity = Var(
             model.s_R,
@@ -2420,10 +2420,14 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=model.df_parameters["DesalinationSurrogate"]["recovery"],
             within=Reals,
             bounds=(0, 1),
-            doc="Recovery of water",
+            doc="Recovery fraction of water",
         )
         model.vb_y_flow_ReLU = Var(
-            model.s_R, model.s_T, initialize=0, within=Binary, doc="Binary for flow"
+            model.s_R, 
+            model.s_T, 
+            initialize=0, 
+            within=Binary, 
+            doc="Binary indicating flow greater than 0"
         )
         model.v_T_Treatment_scaled_ReLU = Var(
             model.s_R,
@@ -2550,13 +2554,13 @@ def create_model(df_sets, df_parameters, default={}):
                         ],
                     )
                 else:
-                    # If not a desalination site is zero, fix the outputs to zero
+                    # If not a desalination site, fix the outputs to zero
                     model.v_T_Treatment_scaled[i, t].fix(0)
                     model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
                     model.v_C_Treatment_site[i, t].fix(0)
 
         def flowBinRule(model, r, t):
-            return model.v_T_Treatment_scaled[r, t] >= 0 + 1e-6 - 1e6 * (
+            return model.v_T_Treatment_scaled[r, t] >= 0 + 1e-6 - model.BigM * (
                 1 - model.vb_y_flow_ReLU[r, t]
             )
 
@@ -2564,7 +2568,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_R,
             model.s_T,
             rule=flowBinRule,
-            doc="Flow binary to set to 0 is flow is 0 else 1",
+            doc="Flow binary to set to 0 if flow is 0, else 1",
         )
 
         def flowMaxRule(model, r, t):
@@ -2577,7 +2581,7 @@ def create_model(df_sets, df_parameters, default={}):
             model.s_R,
             model.s_T,
             rule=flowMaxRule,
-            doc="Flow binary to set to 0 is flow is 0 else 1",
+            doc="Flow binary to set to 0 if flow is 0 else 1",
         )
 
         def OpexTreatmentRule(model, r, t):
@@ -3542,11 +3546,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalTreatmentCostRule(model):
-        # if model.config.objective==Objectives.cost_surrogate:
-        #     constraint = model.v_C_TotalTreatment == sum(
-        #         sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
-        #     )
-        # else:
         constraint = model.v_C_TotalTreatment == sum(
             sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
         )
@@ -4477,11 +4476,6 @@ def pipeline_hydraulics(model):
         Hazen-Williams equation in a separate stand alone method "_hazen_williams_head". In this method,
         the hydraulics block is solved alone for the objective of minimizing total cost of pumps.
         """
-        print("################")
-        print("################")
-        print("This is happening")
-        print("################")
-        print("################")
         mh.p_effective_Pipeline_diameter = Param(
             model.s_LLA,
             default=0,
@@ -7119,7 +7113,7 @@ def postprocess_water_quality_calculation(model, opt):
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
     if opt.options["solver"] == "CPLEX":
-        opt.solve(water_quality_model.quality, tee=True)
+        opt.solve(water_quality_model.quality, tee=True,add_options=["gams_model.optfile=1;"],)
     elif opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
@@ -7673,7 +7667,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     v_DQ.fix()
     # Step 1b - solve model, obtain optimal flows without considering quality
     if opt.options["solver"] == "CPLEX":
-        opt.solve(model, tee=True)
+        opt.solve(model, tee=True,add_options=["gams_model.optfile=1;"],)
     else:
         opt.solve(model, tee=True)
     # Step 1c - fix or bound all non quality variables
@@ -7717,7 +7711,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     print(" " * 15, "Solving non-discrete water quality model")
     print("*" * 50)
     if opt.options["solver"] == "CPLEX":
-        opt.solve(model, tee=True)
+        opt.solve(model, tee=True, add_options=["gams_model.optfile=1;"],)
     else:
         opt.solve(model, tee=True, warmstart=True)
 
@@ -7743,7 +7737,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
     if opt.options["solver"] == "CPLEX":
-        results = opt.solve(model, tee=True, warmstart=True)
+        results = opt.solve(model, tee=True, warmstart=True, add_options=["gams_model.optfile=1;"],)
     else:
         results = opt.solve(model, tee=True, warmstart=True)
 
@@ -7837,11 +7831,6 @@ def solve_model(model, solver=None, options=None):
                 f.write(
                     f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
                 )
-            # opts=dict('add_options':['GAMS_MODEL.optfile=1;'])
-
-            # TODO: Add optcr and resLim options in GAMS.
-            # opt.options["OPTCR"] = gap
-            # opt.options["resLim"] = running_time
 
     # Checks for gurobi, gurobi direct, cbc.
     elif opt.type == "gurobi_direct" or opt.type == "gurobi" or opt.type == "cbc":
@@ -7904,7 +7893,7 @@ def solve_model(model, solver=None, options=None):
         elif model.config.water_quality is WaterQuality.post_process:
             # option 3.2:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(scaled_model, tee=True)
+                results = opt.solve(scaled_model, tee=True, add_options=["gams_model.optfile=1;"],)
             else:
                 results = opt.solve(scaled_model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7915,7 +7904,7 @@ def solve_model(model, solver=None, options=None):
         else:
             # option 3.1:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(scaled_model, tee=True)
+                results = opt.solve(scaled_model, tee=True, add_options=["gams_model.optfile=1;"],)
             else:
                 opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)
@@ -7942,7 +7931,7 @@ def solve_model(model, solver=None, options=None):
         elif model.config.water_quality is WaterQuality.post_process:
             # option 2.2:
             if opt.options["solver"] == "CPLEX":
-                results = opt.solve(model, tee=True)
+                results = opt.solve(model, tee=True, add_options=["gams_model.optfile=1;"],)
             else:
                 results = opt.solve(model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7973,14 +7962,14 @@ def solve_model(model, solver=None, options=None):
     # the binary variable vb_y_BeneficialReuse[o, t] takes a value of 0 or 1. In
     # these cases it's preferred to report a value of 0 to the user, so change
     # the value of vb_y_BeneficialReuse[o, t] as necessary.
-    # for t in model.s_T:
-    #     for o in model.s_O:
-    #         if (
-    #             value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
-    #             and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
-    #             and value(model.vb_y_BeneficialReuse[o, t] > 0)
-    #         ):
-    #             model.vb_y_BeneficialReuse[o, t].value = 0
+    for t in model.s_T:
+        for o in model.s_O:
+            if (
+                value(model.p_sigma_BeneficialReuseMinimum[o, t]) < 1e-6
+                and value(model.v_F_BeneficialReuseDestination[o, t]) < 1e-6
+                and value(model.vb_y_BeneficialReuse[o, t] > 0)
+            ):
+                model.vb_y_BeneficialReuse[o, t].value = 0
 
     # post-process infrastructure buildout
     if model.config.infrastructure_timing == InfrastructureTiming.true:
@@ -7998,7 +7987,7 @@ def solve_model(model, solver=None, options=None):
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
             if opt.options["solver"] == "CPLEX":
-                results_2 = opt.solve(mh, tee=True)
+                results_2 = opt.solve(mh, tee=True, add_options=["gams_model.optfile=1;"])
             elif opt.type == "gurobi_direct":
                 results_2 = opt.solve(mh, tee=True, save_results=False)
             else:
