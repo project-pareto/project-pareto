@@ -31,6 +31,8 @@ from pareto.utilities.results import (
     is_feasible,
     nostdout,
 )
+import pyomo.environ as pyo
+from idaes.core.util.model_statistics import degrees_of_freedom
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -177,15 +179,15 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost,
+        "objective": Objectives.subsurface_risk,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-        "infrastructure_timing": InfrastructureTiming.true,
-        "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+        "infrastructure_timing": InfrastructureTiming.false,
+        "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
     },
 )
 
@@ -198,6 +200,7 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
