@@ -7482,15 +7482,12 @@ def subsurface_risk(model):
             return m._sites_included[site]
 
     m.sites_included = Expression(m.SWDSites, rule=sites_included_rule)
-
-    def obj(m):
-        return -sum(m.y_dist[i, j] for i in m.SWDSites for j in prox)
-
-    m.objective = Objective(rule=obj)
-    return m
-
+    m.objective = Objective(
+            expr=(-sum(m.y_dist[i,j] for i in m.SWDSites for j in prox)),
+            sense=minimize,
+            doc="Objective function",
+        )
     return model
-
 
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:

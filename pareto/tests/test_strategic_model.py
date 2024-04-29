@@ -1935,7 +1935,7 @@ def test_subsurface_risk_build(build_toy_strategic_model):
             "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
         }
     )
-    assert degrees_of_freedom(m) == 7245
+    assert degrees_of_freedom(m) == 7237
     assert len(m.config) == 9
     assert m.do_subsurface_risk_calcs
     assert m.config.objective
