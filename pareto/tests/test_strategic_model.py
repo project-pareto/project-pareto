@@ -1808,14 +1808,14 @@ def test_run_treatment_demo_strategic_model_with_MD(
         }
     )
 
-    options={
+    options = {
         "deactivate_slacks": True,
         "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 2,
         "gap": 0,
     }
-    results = solve_model(model=m,solver='cbc',options=options)
+    results = solve_model(model=m, solver="cbc", options=options)
     assert degrees_of_freedom(m) == 33448
 
     # Test report building
@@ -1882,7 +1882,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
         "running_time": 60 * 2,
         "gap": 0,
     }
-    results = solve_model(model=m,solver='cbc',options=options)
+    results = solve_model(model=m, solver="cbc", options=options)
     assert degrees_of_freedom(m) == 33448
 
     # Test report building
