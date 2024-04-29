@@ -1778,7 +1778,7 @@ def test_basic_treatment_demo_build_with_MD(
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 33448
+    assert degrees_of_freedom(m) == 34599
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1845,7 +1845,7 @@ def test_basic_treatment_demo_build_with_MVC(
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 33448
+    assert degrees_of_freedom(m) == 34599
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
