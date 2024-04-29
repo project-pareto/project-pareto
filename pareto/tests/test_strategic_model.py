@@ -1651,6 +1651,7 @@ def build_reduced_strategic_model_for_surrogates():
         "TreatmentCapacities",
         "TreatmentTechnologies",
     ]
+
     parameter_list = [
         "Units",
         "PNA",
@@ -1668,9 +1669,9 @@ def build_reduced_strategic_model_for_surrogates():
         "SCA",
         "SNA",
         "ROA",
+        "RKA",
         "SOA",
         "NOA",
-        "RKA",
         "PCT",
         "PKT",
         "FCT",
@@ -1682,7 +1683,6 @@ def build_reduced_strategic_model_for_surrogates():
         "SOT",
         "RKT",
         "Elevation",
-        "DesalinationSurrogate",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
@@ -1725,6 +1725,7 @@ def build_reduced_strategic_model_for_surrogates():
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "DesalinationSurrogate",
         "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
@@ -1735,6 +1736,14 @@ def build_reduced_strategic_model_for_surrogates():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1761,12 +1770,15 @@ def test_basic_treatment_demo_build_with_MD(
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
             "desalination_model": DesalinationModel.md,
             "node_capacity": True,
+            "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 33448
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1787,16 +1799,24 @@ def test_run_treatment_demo_strategic_model_with_MD(
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
             "desalination_model": DesalinationModel.md,
             "node_capacity": True,
+            "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
-    solver = get_solver("cbc")
-    solver.options["seconds"] = 60 * 2
-    results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 34599
+    options={
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 2,
+        "gap": 0,
+    }
+    results = solve_model(model=m,solver='cbc',options=options)
+    assert degrees_of_freedom(m) == 33448
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1817,12 +1837,15 @@ def test_basic_treatment_demo_build_with_MVC(
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "desalination_model": DesalinationModel.mvc,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
             "node_capacity": True,
+            "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 33448
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1843,16 +1866,24 @@ def test_run_treatment_demo_strategic_model_with_MVC(
             "objective": Objectives.cost_surrogate,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
-            "desalination_model": DesalinationModel.mvc,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
             "node_capacity": True,
+            "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
-    solver = get_solver("cbc")
-    solver.options["seconds"] = 60 * 2
-    results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 34599
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 2,
+        "gap": 0,
+    }
+    results = solve_model(model=m,solver='cbc',options=options)
+    assert degrees_of_freedom(m) == 33448
 
     # Test report building
     [model, results_dict] = generate_report(
