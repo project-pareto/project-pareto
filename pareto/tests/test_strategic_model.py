@@ -1739,7 +1739,7 @@ def build_reduced_strategic_model_for_surrogates():
 
     with resources.path(
         "pareto.case_studies",
-        "strategic_small_case_study_surrogates.xlsx",
+        "strategic_treatment_demo_surrogates.xlsx",
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -1766,7 +1766,7 @@ def test_basic_treatment_demo_build_with_MD(
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         }
     )
-    assert degrees_of_freedom(m) == 12959
+    assert degrees_of_freedom(m) == 34599
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1796,7 +1796,7 @@ def test_run_treatment_demo_strategic_model_with_MD(
     solver = get_solver("cbc")
     solver.options["seconds"] = 60 * 2
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 12959
+    assert degrees_of_freedom(m) == 34599
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1822,7 +1822,7 @@ def test_basic_treatment_demo_build_with_MVC(
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         }
     )
-    assert degrees_of_freedom(m) == 12959
+    assert degrees_of_freedom(m) == 34599
     # Check unit config arguments
     assert len(m.config) == 9
     assert m.config.objective
@@ -1852,7 +1852,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
     solver = get_solver("cbc")
     solver.options["seconds"] = 60 * 2
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 12959
+    assert degrees_of_freedom(m) == 34599
 
     # Test report building
     [model, results_dict] = generate_report(
