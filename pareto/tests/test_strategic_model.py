@@ -1812,10 +1812,11 @@ def test_run_treatment_demo_strategic_model_with_MD(
         "deactivate_slacks": True,
         "scale_model": False,
         "scaling_factor": 1000,
+        "solver": "cbc",
         "running_time": 60 * 2,
         "gap": 0,
     }
-    results = solve_model(model=m, solver="cbc", options=options)
+    results = solve_model(model=m, options=options)
     assert degrees_of_freedom(m) == 33448
 
     # Test report building
@@ -1867,7 +1868,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "hydraulics": Hydraulics.false,
-            "desalination_model": DesalinationModel.md,
+            "desalination_model": DesalinationModel.mvc,
             "node_capacity": True,
             "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
@@ -1880,9 +1881,10 @@ def test_run_treatment_demo_strategic_model_with_MVC(
         "scale_model": False,
         "scaling_factor": 1000,
         "running_time": 60 * 2,
+        "solver": "cbc",
         "gap": 0,
     }
-    results = solve_model(model=m, solver="cbc", options=options)
+    results = solve_model(model=m, options=options)
     assert degrees_of_freedom(m) == 33448
 
     # Test report building

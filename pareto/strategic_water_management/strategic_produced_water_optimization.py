@@ -7825,6 +7825,7 @@ def solve_model(model, options=None):
         )  # solvers to try and load in order
         opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
     else:
+        solver = options["solver"]
         opt = get_solver(solver)
 
     gurobi_numeric_focus = 1
