@@ -12,10 +12,12 @@
 #####################################################################################################
 import pyomo.environ as pyo
 from pareto.models_extra.Integrate_desal.models.qcp_desal import build_network
-from pareto.examples.Membrane_Distillation.MD_single_stage_continuous_recirculation import (build, 
-                                                                                            set_operating_conditions, 
-                                                                                            initialize_system,
-                                                                                            optimize_set_up)
+from pareto.examples.Membrane_Distillation.MD_single_stage_continuous_recirculation import (
+    build,
+    set_operating_conditions,
+    initialize_system,
+    optimize_set_up,
+)
 from importlib import resources
 from pareto.utilities.get_data import get_data
 from pareto.models_extra.CM_module.set_param_list import (
@@ -23,6 +25,7 @@ from pareto.models_extra.CM_module.set_param_list import (
     parameter_list,
 )
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
+
 
 def add_desalination_cons(m, treatment_dict):
     m.desalination_nodes = pyo.Set(initialize=treatment_dict.keys())
@@ -44,18 +47,19 @@ def add_desalination_cons(m, treatment_dict):
     @m.Constraint(m.desalination_nodes, m.s_T)
     def min_flow_required_at_treatment(m, n, t):
         return sum(m.v_F[a, t] for a in m.s_Ain[n]) >= 0.1 / 0.0013
-    
+
     @m.Constraint(m.desalination_nodes, m.s_T)
     def max_flow_required_at_treatment(m, n, t):
         return sum(m.v_F[a, t] for a in m.s_Ain[n]) <= 1 / 0.0013
-    
-    #In the case of MD, we need to increase the disposal capacity since 
-    #the water that can be sent to desal is limited
+
+    # In the case of MD, we need to increase the disposal capacity since
+    # the water that can be sent to desal is limited
     m.del_component(m.Dflow)
+
     @m.Constraint(m.s_ND, m.s_T, doc="Disposal flow restriction")
     def Dflow(m, n, t):
         return sum(m.v_F[a, t] for a in m.s_Ain[n]) <= 20000
-    
+
 
 def manipulate_network_vars_and_cons(m):
     # Unfix recovery fraction for desalination nodes
@@ -79,49 +83,91 @@ def manipulate_network_vars_and_cons(m):
             * m.p_dt
         )
 
+
 def initialize_capacity_variables(m):
     for site in m.m_network.desalination_nodes:
-        m.global_md_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.MD.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_hx_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.hx.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_heater_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.heater.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_chiller_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.chiller.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_pump_brine_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.pump_brine.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_pump_permeate_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.pump_permeate.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_pump_feed_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.pump_feed.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.global_mixer_capex[site] = max(pyo.value(m.m_treatment[site, i].fs.mixer.costing.capital_cost 
-                                                * m.m_treatment[site, i].fs.costing.capital_recovery_factor) 
-                                      for i in m.m_network.s_T)
-        
-        m.CAPEX[site] = pyo.value(m.global_md_capex[site] + m.global_hx_capex[site] + m.global_heater_capex[site]
-                                  + m.global_chiller_capex[site] + m.global_pump_brine_capex[site] + m.global_pump_permeate_capex[site]
-                                  + m.global_pump_feed_capex[site] + m.global_mixer_capex[site])
-        
-        for t in m.m_network.s_T:
-            m.OPEX[site, t] = pyo.value(m.m_treatment[site, t].fs.costing.total_operating_cost)
-        
+        m.global_md_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.MD.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
 
-def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
+        m.global_hx_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.hx.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.global_heater_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.heater.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.global_chiller_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.chiller.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.global_pump_brine_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.pump_brine.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.global_pump_permeate_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.pump_permeate.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.global_pump_feed_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.pump_feed.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.global_mixer_capex[site] = max(
+            pyo.value(
+                m.m_treatment[site, i].fs.mixer.costing.capital_cost
+                * m.m_treatment[site, i].fs.costing.capital_recovery_factor
+            )
+            for i in m.m_network.s_T
+        )
+
+        m.CAPEX[site] = pyo.value(
+            m.global_md_capex[site]
+            + m.global_hx_capex[site]
+            + m.global_heater_capex[site]
+            + m.global_chiller_capex[site]
+            + m.global_pump_brine_capex[site]
+            + m.global_pump_permeate_capex[site]
+            + m.global_pump_feed_capex[site]
+            + m.global_mixer_capex[site]
+        )
+
+        for t in m.m_network.s_T:
+            m.OPEX[site, t] = pyo.value(
+                m.m_treatment[site, t].fs.costing.total_operating_cost
+            )
+
+
+def integrated_model_build(network_data, treatment_dict={"R01_IN": "MD"}):
     """
     Inputs
     -------
@@ -133,17 +179,17 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
     m.m_network = build_network(network_data)
 
     add_desalination_cons(m.m_network, treatment_dict)
-    
+
     # Solve network model
     m.m_network.br_obj.deactivate()
     m.m_network.obj.activate()
     ipopt = pyo.SolverFactory("ipopt")
 
     print("#### Initializing network ####")
-    ipopt.solve(m.m_network, tee= True)
-    
+    ipopt.solve(m.m_network, tee=True)
+
     manipulate_network_vars_and_cons(m.m_network)
-    
+
     # Treatment models in each period
     treatment_models = {}
     for site in treatment_dict.keys():
@@ -156,74 +202,112 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
     print("#### Initializing desalination unit ####")
     for site in treatment_dict.keys():
         for t in m.m_network.s_T:
-            #total mass flow rate in kg/s
+            # total mass flow rate in kg/s
             feed_flow_mass = pyo.value(sum(m.m_network.v_F[:, site, :, t]) * 0.0013)
-            
-            #Total concentration in g/kg
+
+            # Total concentration in g/kg
             conc = pyo.value(m.m_network.v_Ctreatin[site, t])
-            
-            #feed mass frac of solids
-            feed_mass_frac_solids = conc/1000 
-            
-            #Initialize the model
-            set_operating_conditions(m.m_treatment[site, t], feed_flow_mass = feed_flow_mass, feed_mass_frac_TDS=feed_mass_frac_solids)
-            
+
+            # feed mass frac of solids
+            feed_mass_frac_solids = conc / 1000
+
+            # Initialize the model
+            set_operating_conditions(
+                m.m_treatment[site, t],
+                feed_flow_mass=feed_flow_mass,
+                feed_mass_frac_TDS=feed_mass_frac_solids,
+            )
+
             initialize_system(m.m_treatment[site, t], solver=ipopt)
-            
+
             optimize_set_up(m.m_treatment[site, t])
-            m.m_treatment[site, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "H2O"].unfix()
-            m.m_treatment[site, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "NaCl"].unfix()
-            print("############# Initialized desalination unit in  %s timeperiod ####################"%t)
-    
+            m.m_treatment[site, t].fs.feed.properties[0].flow_mass_phase_comp[
+                "Liq", "H2O"
+            ].unfix()
+            m.m_treatment[site, t].fs.feed.properties[0].flow_mass_phase_comp[
+                "Liq", "NaCl"
+            ].unfix()
+            print(
+                "############# Initialized desalination unit in  %s timeperiod ####################"
+                % t
+            )
+
     # Global capacity variables
-    #MD module
-    m.global_md_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Heat exchanger module
-    m.global_hx_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Heater module 
-    m.global_heater_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Chiller module
-    m.global_chiller_capex =  pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Brine pump 
-    m.global_pump_brine_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Permeate pump
-    m.global_pump_permeate_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Feed pump
-    m.global_pump_feed_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Mixer 
-    m.global_mixer_capex = pyo.Var(m.m_network.desalination_nodes, domain = pyo.NonNegativeReals, initialize = 100)
-    
-    #Total CAPEX
-    m.CAPEX = pyo.Var(m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize = 100)
-    
-    #OPEX
-    m.OPEX = pyo.Var(m.m_network.desalination_nodes, m.m_network.s_T, domain=pyo.NonNegativeReals, initialize = 100)
- 
-    #Initialize capacity variables
+    # MD module
+    m.global_md_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Heat exchanger module
+    m.global_hx_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Heater module
+    m.global_heater_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Chiller module
+    m.global_chiller_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Brine pump
+    m.global_pump_brine_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Permeate pump
+    m.global_pump_permeate_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Feed pump
+    m.global_pump_feed_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Mixer
+    m.global_mixer_capex = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # Total CAPEX
+    m.CAPEX = pyo.Var(
+        m.m_network.desalination_nodes, domain=pyo.NonNegativeReals, initialize=100
+    )
+
+    # OPEX
+    m.OPEX = pyo.Var(
+        m.m_network.desalination_nodes,
+        m.m_network.s_T,
+        domain=pyo.NonNegativeReals,
+        initialize=100,
+    )
+
+    # Initialize capacity variables
     initialize_capacity_variables(m)
-    
+
     # Linking constraints
     def _feed_flow_link(m, s, t):
-        #total mass flow rate in kg/s
-        feed_flow_mass = sum(m.m_network.v_F[a, t] for a in m.m_network.s_Ain[s])* 0.0013
-        
-        #Total concentration in g/kg
+        # total mass flow rate in kg/s
+        feed_flow_mass = (
+            sum(m.m_network.v_F[a, t] for a in m.m_network.s_Ain[s]) * 0.0013
+        )
+
+        # Total concentration in g/kg
         conc = m.m_network.v_Ctreatin[s, t]
-        
-        #feed flow rate of solids (kg/s)
-        feed_flow_solids = feed_flow_mass*conc/1000 
-        
-        #Feed flowrate of water
-        feed_flow_water  = feed_flow_mass - feed_flow_solids
-        return m.m_treatment[s, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "H2O"] == feed_flow_water
-        
+
+        # feed flow rate of solids (kg/s)
+        feed_flow_solids = feed_flow_mass * conc / 1000
+
+        # Feed flowrate of water
+        feed_flow_water = feed_flow_mass - feed_flow_solids
+        return (
+            m.m_treatment[s, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "H2O"]
+            == feed_flow_water
+        )
 
     m.feed_flow_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_feed_flow_link
@@ -231,16 +315,23 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
 
     # Link feed composition to treatment feed composition
     def _feed_conc_link(m, s, t):
-        #total mass flow rate in kg/s
-        feed_flow_mass = sum(m.m_network.v_F[a, t] for a in m.m_network.s_Ain[s])* 0.0013
-        
-        #Total concentration in g/kg
+        # total mass flow rate in kg/s
+        feed_flow_mass = (
+            sum(m.m_network.v_F[a, t] for a in m.m_network.s_Ain[s]) * 0.0013
+        )
+
+        # Total concentration in g/kg
         conc = m.m_network.v_Ctreatin[s, t]
-        
-        #feed flow rate of solids (kg/s)
-        feed_flow_solids = feed_flow_mass*conc/1000 
-        
-        return m.m_treatment[s, t].fs.feed.properties[0].flow_mass_phase_comp["Liq", "NaCl"] == feed_flow_solids
+
+        # feed flow rate of solids (kg/s)
+        feed_flow_solids = feed_flow_mass * conc / 1000
+
+        return (
+            m.m_treatment[s, t]
+            .fs.feed.properties[0]
+            .flow_mass_phase_comp["Liq", "NaCl"]
+            == feed_flow_solids
+        )
 
     m.feed_conc_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_feed_conc_link
@@ -256,56 +347,94 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
 
     # Global capacity constraints
     def _global_md_capex_link(m, s, t):
-        return m.global_md_capex[s] >= m.m_treatment[s, t].fs.MD.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_md_capex[s]
+            >= m.m_treatment[s, t].fs.MD.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_md_capex_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_md_capex_link
     )
-    
+
     def _global_hx_capex_link(m, s, t):
-        return m.global_hx_capex[s] >= m.m_treatment[s, t].fs.hx.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_hx_capex[s]
+            >= m.m_treatment[s, t].fs.hx.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_hx_capex_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_hx_capex_link
     )
-    
+
     def _global_heater_capex_link(m, s, t):
-        return m.global_heater_capex[s] >= m.m_treatment[s, t].fs.heater.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_heater_capex[s]
+            >= m.m_treatment[s, t].fs.heater.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_heater_capex_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_heater_capex_link
     )
-    
+
     def _global_chiller_capex_link(m, s, t):
-        return m.global_chiller_capex[s] >= m.m_treatment[s, t].fs.chiller.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_chiller_capex[s]
+            >= m.m_treatment[s, t].fs.chiller.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_chiller_capex_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_chiller_capex_link
     )
-    
+
     def _global_pump_brine_capex_link(m, s, t):
-        return m.global_pump_brine_capex[s] >= m.m_treatment[s, t].fs.pump_brine.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_pump_brine_capex[s]
+            >= m.m_treatment[s, t].fs.pump_brine.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_pump_brine_capex_link = pyo.Constraint(
-        m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_pump_brine_capex_link
+        m.m_network.desalination_nodes,
+        m.m_network.s_T,
+        rule=_global_pump_brine_capex_link,
     )
-    
+
     def _global_pump_permeate_capex_link(m, s, t):
-        return m.global_pump_permeate_capex[s] >= m.m_treatment[s, t].fs.pump_permeate.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_pump_permeate_capex[s]
+            >= m.m_treatment[s, t].fs.pump_permeate.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_pump_permeate_capex_link = pyo.Constraint(
-        m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_pump_permeate_capex_link
+        m.m_network.desalination_nodes,
+        m.m_network.s_T,
+        rule=_global_pump_permeate_capex_link,
     )
-    
+
     def _global_pump_feed_capex_link(m, s, t):
-        return m.global_pump_feed_capex[s] >= m.m_treatment[s, t].fs.pump_feed.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_pump_feed_capex[s]
+            >= m.m_treatment[s, t].fs.pump_feed.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_pump_feed_capex_link = pyo.Constraint(
-        m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_pump_feed_capex_link
+        m.m_network.desalination_nodes,
+        m.m_network.s_T,
+        rule=_global_pump_feed_capex_link,
     )
-    
+
     def _global_mixer_capex_link(m, s, t):
-        return m.global_mixer_capex[s] >= m.m_treatment[s, t].fs.mixer.costing.capital_cost * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        return (
+            m.global_mixer_capex[s]
+            >= m.m_treatment[s, t].fs.mixer.costing.capital_cost
+            * m.m_treatment[s, t].fs.costing.capital_recovery_factor
+        )
 
     m.global_mixer_capex_link = pyo.Constraint(
         m.m_network.desalination_nodes, m.m_network.s_T, rule=_global_mixer_capex_link
@@ -313,10 +442,17 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
 
     # Calculating CAPEX based on the global variables
     def _capex_cal(m, s):
-        return m.CAPEX[s] == (m.global_md_capex[s] + m.global_hx_capex[s] + m.global_heater_capex[s]
-                              + m.global_chiller_capex[s] + m.global_pump_brine_capex[s] + m.global_pump_permeate_capex[s]
-                              + m.global_pump_feed_capex[s] + m.global_mixer_capex[s])
-    
+        return m.CAPEX[s] == (
+            m.global_md_capex[s]
+            + m.global_hx_capex[s]
+            + m.global_heater_capex[s]
+            + m.global_chiller_capex[s]
+            + m.global_pump_brine_capex[s]
+            + m.global_pump_permeate_capex[s]
+            + m.global_pump_feed_capex[s]
+            + m.global_mixer_capex[s]
+        )
+
     m.capex_con = pyo.Constraint(m.m_network.desalination_nodes, rule=_capex_cal)
 
     # Opex calculation
@@ -330,16 +466,21 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN":"MD"}):
     # Objective function
     m.m_network.obj.deactivate()
     m.m_treatment[:, :].fs.objective.deactivate()
-    
+
     m.objective = pyo.Objective(
-        expr=1e-3*(
+        expr=1e-3
+        * (
             m.m_network.obj
-            + sum(m.CAPEX[s] for s in m.m_network.desalination_nodes)/1000
+            + sum(m.CAPEX[s] for s in m.m_network.desalination_nodes)
+            / 1000
             / 365
             * m.m_network.p_dt
             * len(m.m_network.s_T)
             + sum(
-                sum(m.OPEX[s, t]/1000 / 365 * m.m_network.p_dt for t in m.m_network.s_T)
+                sum(
+                    m.OPEX[s, t] / 1000 / 365 * m.m_network.p_dt
+                    for t in m.m_network.s_T
+                )
                 for s in m.m_network.desalination_nodes
             )
         )

@@ -163,6 +163,7 @@ CONFIG.declare(
     ),
 )
 
+
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -2455,7 +2456,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -5628,7 +5628,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5665,7 +5664,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6670,7 +6668,6 @@ def postprocess_water_quality_calculation(model, opt):
 
 
 def scale_model(model, scaling_factor=None):
-
     if scaling_factor is None:
         scaling_factor = 1000000
 
@@ -7566,7 +7563,7 @@ def solve_model(model, options=None):
                     Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
                     while True:
                         pres_dict_keys = list(Press_dict.keys())
-                        for (l1, l2) in model.s_LLA:
+                        for l1, l2 in model.s_LLA:
                             if l1 in Press_dict.keys():
                                 ps = Press_dict[l1]
                                 this_p = calc_new_pres(model_h, ps, l1, l2, t)

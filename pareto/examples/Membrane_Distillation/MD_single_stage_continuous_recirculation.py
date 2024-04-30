@@ -82,7 +82,6 @@ def main():
 
 
 def build():
-
     # flowsheet set up
     m = ConcreteModel()
     m.fs = FlowsheetBlock(dynamic=False)
