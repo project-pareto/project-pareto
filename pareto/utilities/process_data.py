@@ -686,7 +686,7 @@ def model_infeasibility_detection(strategic_model):
                 )
                 for r in strategic_model.s_R
             )  # Treatment residual: for each treatment site - treatment technology that yields the
-            # maximum value for: (initial treatment + max treatment expansion) * treatment efficiency
+            # maximum value for: (initial treatment + max treatment expansion)
         )
         # Note: if completions pad is outside system, demand is not required to be met
         strategic_model.p_gamma_TimePeriodDemand[t] = sum(
