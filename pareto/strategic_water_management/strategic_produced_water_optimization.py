@@ -2362,7 +2362,11 @@ def create_model(df_sets, df_parameters, default={}):
             == sum(
                 sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
                 * value(model.subsurface.risk_metrics[k])
-                -sum(model.subsurface.y_dist[i,j] for i in model.subsurface.SWDSites for j in prox)
+                - sum(
+                    model.subsurface.y_dist[i, j]
+                    for i in model.subsurface.SWDSites
+                    for j in prox
+                )
                 for k in model.s_K
             ),
             doc="Objective function constraint - minimize subsurface risk",
@@ -7490,6 +7494,7 @@ def subsurface_risk(model):
     #     )
     # m.objective.deactivate()
     return model
+
 
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:
