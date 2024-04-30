@@ -106,10 +106,3 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )
-
-# This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
-# When set_list and parameter_list is specified to get_data(), custom (non-PARETO input data) can be read
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
