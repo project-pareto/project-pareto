@@ -2356,12 +2356,13 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["volume_time"],
             doc="Objective function variable - minimize subsurface risk [volume/time]",
         )
-
+        prox = ["orphan", "inactive", "EQ", "fault", "HP_LP"]
         model.ObjectiveFunctionSubsurfaceRisk = Constraint(
             expr=model.v_Z_SubsurfaceRisk
             == sum(
                 sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
                 * value(model.subsurface.risk_metrics[k])
+                -sum(model.subsurface.y_dist[i,j] for i in model.subsurface.SWDSites for j in prox)
                 for k in model.s_K
             ),
             doc="Objective function constraint - minimize subsurface risk",
@@ -7482,11 +7483,12 @@ def subsurface_risk(model):
             return m._sites_included[site]
 
     m.sites_included = Expression(m.SWDSites, rule=sites_included_rule)
-    m.objective = Objective(
-            expr=(-sum(m.y_dist[i,j] for i in m.SWDSites for j in prox)),
-            sense=minimize,
-            doc="Objective function",
-        )
+    # m.objective = Objective(
+    #         expr=(-sum(m.y_dist[i,j] for i in m.SWDSites for j in prox)),
+    #         sense=minimize,
+    #         doc="Objective function",
+    #     )
+    # m.objective.deactivate()
     return model
 
 def solve_discrete_water_quality(model, opt, scaled):
