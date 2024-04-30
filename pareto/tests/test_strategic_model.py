@@ -1838,7 +1838,7 @@ def test_basic_treatment_demo_build_with_MVC(
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "hydraulics": Hydraulics.false,
-            "desalination_model": DesalinationModel.md,
+            "desalination_model": DesalinationModel.mvc,
             "node_capacity": True,
             "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
