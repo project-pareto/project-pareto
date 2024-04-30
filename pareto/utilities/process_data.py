@@ -681,7 +681,6 @@ def model_infeasibility_detection(strategic_model):
                                 ]
                             )
                         )
-                        * (1 - strategic_model.p_epsilon_Treatment[r, wt].value)
                         for wt in strategic_model.s_WT
                     ]
                 )
