@@ -7487,12 +7487,12 @@ def subsurface_risk(model):
             return m._sites_included[site]
 
     m.sites_included = Expression(m.SWDSites, rule=sites_included_rule)
-    # m.objective = Objective(
-    #         expr=(-sum(m.y_dist[i,j] for i in m.SWDSites for j in prox)),
-    #         sense=minimize,
-    #         doc="Objective function",
-    #     )
-    # m.objective.deactivate()
+    m.objective = Objective(
+        expr=(-sum(m.y_dist[i, j] for i in m.SWDSites for j in prox)),
+        sense=minimize,
+        doc="Objective function",
+    )
+    m.objective.deactivate()
     return model
 
 
