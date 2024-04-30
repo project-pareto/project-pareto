@@ -550,7 +550,7 @@ def check_required_data(df_sets, df_parameters, config):
                 "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:"
                 + str(missing_trucking_data)
             )
-            warnings.warn(warning_message)
+            warnings.warn(warning_message, stacklevel=3)
 
     # Set Default Data
     # Iterate through all expected input. For all input left without data, fill with empty dictionary or default data.
@@ -587,7 +587,7 @@ def check_required_data(df_sets, df_parameters, config):
             f"The following parameters were missing and default values were substituted:"
             + str(default_used)
         )
-        warnings.warn(warning_message)
+        warnings.warn(warning_message, stacklevel=3)
     return (df_sets, df_parameters)
 
 
@@ -785,7 +785,7 @@ def _check_optional_data(
                 f"{optional_set_name} are given, but {optional_set_name} data is missing. The following tabs have been set to default values:"
                 + str(_missing_tabs)
             )
-            warnings.warn(warning_message)
+            warnings.warn(warning_message, stacklevel=3)
         # For each group in requires_at_least_one, check that at least one parameter exists in the input
         for requires_list in requires_at_least_one:
             _included_params = set(requires_list) & _df_parameters_set
@@ -794,7 +794,7 @@ def _check_optional_data(
                     f"{optional_set_name} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:"
                     + str(requires_list)
                 )
-                warnings.warn(warning_message)
+                warnings.warn(warning_message, stacklevel=3)
             # Check missing sets, add empty sets
             for param in requires_list:
                 if param not in df_parameters:
