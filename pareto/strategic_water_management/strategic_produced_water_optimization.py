@@ -7809,14 +7809,14 @@ def calc_new_pres(model_h, ps, l1, l2, t):
     return P2
 
 
-def solve_model(model, solver=None, options=None):
+def solve_model(model, options=None):
     # default option values
     running_time = 60  # solver running time in seconds
-    gap = 100  # solver gap
+    gap = 0  # solver gap
     deactivate_slacks = True  # yes/no to deactivate slack variables
     use_scaling = False  # yes/no to scale the model
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
-    if solver is None:
+    if "solver" not in options.keys():
         solver = (
             "gurobi_direct",
             "gurobi",

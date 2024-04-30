@@ -34,6 +34,8 @@ from pareto.utilities.results import (
 from importlib import resources
 import pyomo.environ as pyo
 
+from idaes.core.util.model_statistics import degrees_of_freedom
+
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
@@ -150,11 +152,10 @@ parameter_list = [
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-"""By default, PARETO comes with the following 6 strategic case studies:
+"""By default, PARETO comes with the following 5 strategic case studies:
 strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
-strategic_small_case_study_surrogates.xlsx
 strategic_toy_case_study.xlsx
 strategic_treatment_demo_surrogates.xlsx
 """
@@ -198,10 +199,10 @@ options = {
     "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 10000,
-    "gap": 0,
+    "gap": 100,
 }
 
-results = solve_model(model=strategic_model, solver="gurobi", options=options)
+results = solve_model(model=strategic_model, options=options)
 
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
