@@ -1895,6 +1895,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
         fname="test_strategic_print_results.xlsx",
     )
 
+
 # if solver cbc exists @solver
 @pytest.mark.unit
 def test_build_water_quality_with_MVC(
@@ -1922,6 +1923,40 @@ def test_build_water_quality_with_MVC(
     assert isinstance(m.p_pi_Trucking, pyo.Param)
     assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.unit
+def test_run_water_quality_with_MD(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
+            "node_capacity": True,
+            "water_quality": WaterQuality.post_process,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 1,
+        "solver": "cbc",
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+    assert degrees_of_freedom(m.quality) == 1040
+    assert isinstance(m.p_epsilon_TreatmentRemoval, pyo.Param)
+    assert (
+        len(m.p_epsilon_TreatmentRemoval) > 1
+    )  # Check if multiple components have removal efficiency values
 
 
 # if solver cbc exists @solver
