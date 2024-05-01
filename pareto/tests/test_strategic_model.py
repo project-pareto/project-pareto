@@ -1895,6 +1895,34 @@ def test_run_treatment_demo_strategic_model_with_MVC(
         fname="test_strategic_print_results.xlsx",
     )
 
+# if solver cbc exists @solver
+@pytest.mark.unit
+def test_build_water_quality_with_MVC(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.mvc,
+            "node_capacity": True,
+            "water_quality": WaterQuality.post_process,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    assert degrees_of_freedom(m) == 34599
+    # Check unit config arguments
+    assert len(m.config) == 9
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
 
 # if solver cbc exists @solver
 @pytest.mark.component
