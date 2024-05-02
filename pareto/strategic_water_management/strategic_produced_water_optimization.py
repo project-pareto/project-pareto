@@ -2388,14 +2388,14 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency_time"],
-            doc="Annualized Cost of treating produced water at treatment site with flow consideration [currency_time]",
+            doc="Annualized cost of treating produced water at treatment site with flow consideration [currency_time]",
         )
         model.v_C_TreatmentCapEx_site = Var(
             model.s_R,
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency"],
-            doc="Annualized Capital cost of constructing or expanding treatment capacity for each site [currency]",
+            doc="Annualized capital cost of constructing or expanding treatment capacity for each site [currency]",
         )
         model.v_C_TreatmentCapEx_site_time = Var(
             model.s_R,
@@ -2403,13 +2403,13 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
+            doc="Annualized capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
         )
         model.v_C_TreatmentCapEx_surrogate = Var(
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity [currency]",
+            doc="Annualized capital cost of constructing or expanding treatment capacity [currency]",
         )
         model.vb_y_DesalSelected = Var(
             model.s_R,
