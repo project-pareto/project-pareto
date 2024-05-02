@@ -69,7 +69,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
         initialize=250, units=pyo.units.g / pyo.units.kg, mutable=True
     )
 
-    # Water recovery
+    # Water recovery fraction
     m.water_recovery_fraction = pyo.Var(initialize=0.3, bounds=(1e-20, 1))
 
     # Temperature constraint parameters

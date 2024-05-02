@@ -2395,7 +2395,7 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency"],
-            doc="Capital cost of constructing or expanding treatment capacity for each site [currency]",
+            doc="Annualized Capital cost of constructing or expanding treatment capacity for each site [currency]",
         )
         model.v_C_TreatmentCapEx_site_time = Var(
             model.s_R,
