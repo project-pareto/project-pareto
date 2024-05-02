@@ -369,10 +369,9 @@ def create_model(df_sets, df_parameters, default={}):
         model.unscaled_model_display_units["diameter"]
         * model.unscaled_model_display_units["distance"]
     )
-    model.unscaled_model_display_units[
-        "pipe_cost_capacity"
-    ] = model.unscaled_model_display_units["currency"] / (
-        model.unscaled_model_display_units["volume"] / model.decision_period
+    model.unscaled_model_display_units["pipe_cost_capacity"] = (
+        model.unscaled_model_display_units["currency"]
+        / (model.unscaled_model_display_units["volume"] / model.decision_period)
     )
     model.unscaled_model_display_units["currency_volume"] = (
         model.unscaled_model_display_units["currency"]
@@ -1744,10 +1743,12 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_lambda_Pipeline = Param(
         model.s_L,
         model.s_L,
-        default=max(PipelineExpansionDistance_convert_to_model.values()) * 100
-        if PipelineExpansionDistance_convert_to_model
-        else pyunits.convert_value(
-            10000, from_units=pyunits.miles, to_units=model.model_units["distance"]
+        default=(
+            max(PipelineExpansionDistance_convert_to_model.values()) * 100
+            if PipelineExpansionDistance_convert_to_model
+            else pyunits.convert_value(
+                10000, from_units=pyunits.miles, to_units=model.model_units["distance"]
+            )
         ),
         initialize=PipelineExpansionDistance_convert_to_model,
         units=model.model_units["distance"],
@@ -1944,12 +1945,14 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_pi_Disposal = Param(
         model.s_K,
-        default=max(DisposalOperationalCost_convert_to_model.values()) * 100
-        if DisposalOperationalCost_convert_to_model
-        else pyunits.convert_value(
-            25,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(DisposalOperationalCost_convert_to_model.values()) * 100
+            if DisposalOperationalCost_convert_to_model
+            else pyunits.convert_value(
+                25,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=DisposalOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -1980,12 +1983,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Reuse = Param(
         model.s_CP,
-        default=max(ReuseOperationalCost_convert_to_model.values()) * 100
-        if ReuseOperationalCost_convert_to_model
-        else pyunits.convert_value(
-            25,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(ReuseOperationalCost_convert_to_model.values()) * 100
+            if ReuseOperationalCost_convert_to_model
+            else pyunits.convert_value(
+                25,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=ReuseOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -2148,12 +2153,14 @@ def create_model(df_sets, df_parameters, default={}):
     # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=max(TruckingHourlyCost_convert_to_model.values()) * 100
-        if TruckingHourlyCost_convert_to_model
-        else pyunits.convert_value(
-            15000,
-            from_units=pyunits.USD,
-            to_units=model.model_units["currency"],
+        default=(
+            max(TruckingHourlyCost_convert_to_model.values()) * 100
+            if TruckingHourlyCost_convert_to_model
+            else pyunits.convert_value(
+                15000,
+                from_units=pyunits.USD,
+                to_units=model.model_units["currency"],
+            )
         ),
         initialize=TruckingHourlyCost_convert_to_model,
         units=model.model_units["currency"],
@@ -2169,12 +2176,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=max(ExternalSourcingCost_convert_to_model.values()) * 100
-        if ExternalSourcingCost_convert_to_model
-        else pyunits.convert_value(
-            150,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(ExternalSourcingCost_convert_to_model.values()) * 100
+            if ExternalSourcingCost_convert_to_model
+            else pyunits.convert_value(
+                150,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=ExternalSourcingCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -2359,7 +2368,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
     elif model.config.objective == Objectives.cost_surrogate:
         if model.config.desalination_model == DesalinationModel.false:
-            raise Warning(
+            raise Exception(
                 "Cannot create a surrogate objective without a Desalination Model being selected"
             )
         from idaes.core.surrogate.surrogate_block import SurrogateBlock
@@ -2371,7 +2380,7 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency_time"],
-            doc="Cost of treating produced water at treatment site [currency]",
+            doc="Cost of treating produced water at treatment site [currency_time]",
         )
         model.v_C_Treatment_site_ReLU = Var(
             model.s_R,
@@ -2379,7 +2388,7 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=0,
             within=NonNegativeReals,
             units=model.model_units["currency_time"],
-            doc="Cost of treating produced water at treatment site with flow consideration [currency]",
+            doc="Annualized Cost of treating produced water at treatment site with flow consideration [currency_time]",
         )
         model.v_C_TreatmentCapEx_site = Var(
             model.s_R,
@@ -2413,14 +2422,14 @@ def create_model(df_sets, df_parameters, default={}):
             within=Reals,
             initialize=model.df_parameters["DesalinationSurrogate"]["inlet_salinity"],
             units=pyunits.kg / pyunits.litre,
-            doc="Inlet salinity in the feed",
+            doc="Inlet salinity in the feed [kg/L]",
         )
         model.recovery = Var(
             model.s_R,
             initialize=model.df_parameters["DesalinationSurrogate"]["recovery"],
             within=Reals,
             bounds=(0, 1),
-            doc="Recovery fraction of water",
+            doc="Volumetric recovery fraction of water",
         )
         model.vb_y_flow_ReLU = Var(
             model.s_R,
@@ -2492,14 +2501,14 @@ def create_model(df_sets, df_parameters, default={}):
             initialize=29,
             mutable=True,
             units=model.model_units["L_per_s"],
-            doc="Upper bound of flow for trained surrogate",
+            doc="Upper bound of flow for trained surrogate [L/s]",
         )
 
         model.cap_lower_bound = Param(
             initialize=0,
             mutable=True,
             units=model.model_units["L_per_s"],
-            doc="Lower bound of flow for trained surrogate",
+            doc="Lower bound of flow for trained surrogate [L/s]",
         )
 
         for i in model.s_R:
@@ -2594,13 +2603,21 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
         def treatmentCost(model):
+            if model.decision_period == pyunits.day:
+                annual_factor = 365
+            elif model.decision_period == pyunits.week:
+                annual_factor = 52
+            elif model.decision_period == pyunits.fortnight:
+                annual_factor = 26
+            elif model.decision_period == pyunits.month:
+                annual_factor = 12
             return (
                 model.v_C_TreatmentOpex_surrogate
                 == sum(
                     sum(model.v_C_Treatment_site_ReLU[r, t] for r in model.s_R)
                     for t in model.s_T
                 )
-                / 52
+                / annual_factor  # model.v_C_Treatment_site_ReLU yeilds an annualized opex and thus needs to be divided by annual_factor which gives opex for period t
             )
 
         model.treatmentCost = Constraint(rule=treatmentCost, doc="Treatment Rule")
@@ -7823,10 +7840,10 @@ def solve_model(model, options=None):
             "gams:CPLEX",
             "cbc",
         )  # solvers to try and load in order
-        opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
+        opt = get_solver(*solver)
     else:
         solver = options["solver"]
-        opt = get_solver(solver)
+        opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
 
     gurobi_numeric_focus = 1
 

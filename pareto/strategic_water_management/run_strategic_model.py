@@ -161,7 +161,7 @@ strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_treatment_demo.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -198,8 +198,8 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 10000,
-    "gap": 100,
+    "running_time": 200,
+    "gap": 0,
 }
 
 results = solve_model(model=strategic_model, options=options)
