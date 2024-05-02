@@ -1895,6 +1895,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
         fname="test_strategic_print_results.xlsx",
     )
 
+
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_water_quality_with_MVC(
@@ -1939,8 +1940,6 @@ def test_run_water_quality_with_MVC(
 
 
 # if solver cbc exists @solver
-<<<<<<< HEAD
-<<<<<<< HEAD
 @pytest.mark.unit
 def test_run_water_quality_with_MD(
     build_reduced_strategic_model_for_surrogates,
@@ -1975,10 +1974,6 @@ def test_run_water_quality_with_MD(
 
 
 # if solver cbc exists @solver
-=======
->>>>>>> parent of 66db999 (apply black)
-=======
->>>>>>> parent of 66db999 (apply black)
 @pytest.mark.component
 def test_infrastructure_buildout(build_toy_strategic_model):
     # Build model: Test with capacity based pipeline config option
