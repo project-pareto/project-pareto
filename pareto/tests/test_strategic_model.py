@@ -1940,6 +1940,7 @@ def test_run_water_quality_with_MVC(
 
 # if solver cbc exists @solver
 <<<<<<< HEAD
+<<<<<<< HEAD
 @pytest.mark.unit
 def test_run_water_quality_with_MD(
     build_reduced_strategic_model_for_surrogates,
@@ -1974,6 +1975,8 @@ def test_run_water_quality_with_MD(
 
 
 # if solver cbc exists @solver
+=======
+>>>>>>> parent of 66db999 (apply black)
 =======
 >>>>>>> parent of 66db999 (apply black)
 @pytest.mark.component
