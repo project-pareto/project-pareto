@@ -9,19 +9,19 @@ Subsurface risk calculation requires the following additional parameters (worksh
 - SWDSites (:math:`s`):
   List of all SWD site IDs in column A.
 - SWDDeep (:math:`d`):
-  Two-column table with SWD sites and their depths (0 for shallow and 1 for deep).
+  Two-column table with SWD sites and for each, the depth category (0 for shallow and 1 for deep). Typically, "deep" is defined as deeper than the Wolfcamp formation in the Permian basin. For Texas SWDs, the top of the injection interval (to determine depth) and well locations can be found in Texas Railroad Commission (RRC) databases.
 - SWDAveragePressure (:math:`p`):
-  Two-column table with SWD sites and their average pressure/depth in vicinity of well in psi/ft.
+  Two-column table with SWD sites and for each, the average bottomhole pressure/depth of surrounding wells in the immediate vicinity in units of psi/ft as determined for the top of the injection zone. Sources of bottomhole data include industry engineering firms and oil company records.
 - SWDProxPAWell (:math:`D_o`):
-  Two-column table with SWD sites and their proximity to orphaned or abandoned well in miles.
+  Two-column table with SWD sites and for each, its proximity to the closest orphaned or abandoned well, in miles. A list of "currently" orphaned or abandoned wells can be downloaded from the Texas RRC website and GIS software can be used to determine distances from SWD sites.
 - SWDProxInactiveWell (:math:`D_i`):
-  Two-column table with SWD sites and their proximity to inactive/temporarily abandoned formerly producing well completed prior to 2000 in miles.
+  Two-column table with SWD sites and for each, its proximity to the closest inactive/temporarily abandoned formerly producing well completed prior to 2000, in miles. A list of qualifying wells can be obtained by downloading and querying Texas RRC well file databases and GIS software can be used to determine distances from SWD sites.
 - SWDProxEQ (:math:`D_e`):
-  Two-column table with SWD sites and their proximity to earthquakes greater than or equal to a magnitude of 3 in miles.
+  Two-column table with SWD sites and for each, their proximity in miles to the closest earthquake (as measured in terms of 2D surface location, not reflective of depth) with a Richter Local magnitude (ML) of 3.0 or greater. PARETO includes an API which can be used to extract necessary earthquake data (including latitude and longitude) from both the TexNet and USGS earthquake databases. See :doc:`/utilities/Earthquake_Distance`.
 - SWDProxFault (:math:`D_f`):
-  Two-column table with SWD sites and their proximity to fault in miles.
+  Two-column table with SWD sites and for each, their proximity to the closest part of the closest known fault (as determined from surface locations, not reflective of depth) in miles. Fault locations can be obtained from the Texas Railroad Commission as shapefiles. Basement faults need not be distinguished from shallow faults (basement faults are well known and publicly available, whereas shallow faults are usually held as proprietary and not generally available). Oil companies typically have their own proprietary fault databases which could also be used.
 - SWDProxHpOrLpWell (:math:`P`):
-  Two-column table with SWD sites and their proximity to high-pressure or low-pressure injection well in miles.
+  Two-column table with SWD sites and for each, its proximity in miles to the closest high-bottomhole pressure (over 0.7 psi/ft) or low-bottomhole pressure (under 0.5 psi/ft), as defined by the top of the injection interval.
 - SWDRiskFactors:
   Two-column table with subsurface risk factor names and their values. These factors are
 
@@ -37,6 +37,16 @@ Subsurface risk calculation requires the following additional parameters (worksh
   * HP_LP_severity_risk_factor (:math:`r_{pd}`)
   * HP_threshold (:math:`p_h`) in psi/ft
   * LP_threshold (:math:`p_l`) in psi/ft
+
+These inputs give the user flexibility in customizing risk thresholds and weighting factors, should they so desire.
+
+Each SWD well location is assessed for the above ten risk factors. Input risk values are normalized, and the distance and severity risk factors are multiplied with input actual values for each considered location, resulting in a weighted total aggregate risk factor for each SWD, with a high value equating to low risk, and a low value equating to high risk. The values are reversed to make them more intuitive (i.e., a high number corresponds to high risk). The final risk metric is between 0 (essentially no risk) and 1 (highest possible risk). The final risk factor for a given well is obtained by multiplying its risk factor by the injection rate for the well. That is, greater injection in any given SWD results in proportionally more overall risk.
+
+The algorithm recognizes orphan and abandoned well risk is acute for shallow wells, but negligible for deep wells.
+
+The distance risk factors (1.86 miles and 5.59 miles by default) should be interpreted as generally safe distances from potential risk factors: (i.e. at this distance or greater, risk from this particular concern is minimal). These distance values (input in linear miles) were taken from Texas RRC policies which publish “safe” distances from earthquakes and faults used in Texas RRC seismic risk grading algorithms, available on their web site.
+
+The specific calculations are described below.
 
 +---------------------------------------+
 | Section                               |
