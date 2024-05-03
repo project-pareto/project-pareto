@@ -1940,7 +1940,7 @@ def test_run_water_quality_with_MVC(
 
 
 # if solver cbc exists @solver
-@pytest.mark.unit
+@pytest.mark.component
 def test_run_water_quality_with_MD(
     build_reduced_strategic_model_for_surrogates,
 ):
