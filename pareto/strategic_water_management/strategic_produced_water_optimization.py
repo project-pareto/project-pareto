@@ -369,10 +369,9 @@ def create_model(df_sets, df_parameters, default={}):
         model.unscaled_model_display_units["diameter"]
         * model.unscaled_model_display_units["distance"]
     )
-    model.unscaled_model_display_units[
-        "pipe_cost_capacity"
-    ] = model.unscaled_model_display_units["currency"] / (
-        model.unscaled_model_display_units["volume"] / model.decision_period
+    model.unscaled_model_display_units["pipe_cost_capacity"] = (
+        model.unscaled_model_display_units["currency"]
+        / (model.unscaled_model_display_units["volume"] / model.decision_period)
     )
     model.unscaled_model_display_units["currency_volume"] = (
         model.unscaled_model_display_units["currency"]
@@ -2613,7 +2612,9 @@ def create_model(df_sets, df_parameters, default={}):
             elif model.decision_period == pyunits.month:
                 annual_factor = 12
             else:
-                raise Exception('Decision Period should be day, week, fortnight or month')
+                raise Exception(
+                    "Decision Period should be day, week, fortnight or month"
+                )
             return (
                 model.v_C_TreatmentOpex_surrogate
                 == sum(
