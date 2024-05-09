@@ -1932,7 +1932,7 @@ def test_subsurface_risk_build(build_toy_strategic_model):
             "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
             "infrastructure_timing": InfrastructureTiming.false,
-            "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
+            "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
         }
     )
     assert degrees_of_freedom(m) == 7245
@@ -1941,7 +1941,7 @@ def test_subsurface_risk_build(build_toy_strategic_model):
     assert m.config.objective
     assert isinstance(m.v_Z_SubsurfaceRisk, pyo.Var)
     assert isinstance(m.ObjectiveFunctionSubsurfaceRisk, pyo.Constraint)
-    assert isinstance(m.ExcludeRiskyDisposalWells, pyo.Constraint)
+    assert isinstance(m.ExcludeUnderAndOverPressuredDisposalWells, pyo.Constraint)
 
 
 # if solver cbc exists @solver
@@ -1957,7 +1957,7 @@ def test_run_subsurface_risk_model(build_workshop_strategic_model):
             "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
             "infrastructure_timing": InfrastructureTiming.false,
-            "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
+            "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
         }
     )
 

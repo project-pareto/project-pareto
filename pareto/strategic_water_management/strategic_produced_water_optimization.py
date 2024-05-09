@@ -99,7 +99,7 @@ class InfrastructureTiming(Enum):
 
 class SubsurfaceRisk(Enum):
     false = 0
-    exclude_risky_wells = 1
+    exclude_over_and_under_pressured_wells = 1
     calculate_risk_metrics = 2
 
 
@@ -237,7 +237,7 @@ CONFIG.declare(
         ***default*** - SubsurfaceRisk.false
         **Valid Values:** - {
         **SubsurfaceRisk.false** - Exclude subsurface risk from model (unless the subsurface risk objective function is selected),
-        **SubsurfaceRisk.exclude_risky_wells** - Calculate subsurface risk metrics and disallow disposal to sufficiently risky wells,
+        **SubsurfaceRisk.exclude_over_and_under_pressured_wells** - Calculate subsurface risk metrics and disallow disposal to overpressured and underpressured wells,
         **SubsurfaceRisk.calculate_risk_metrics** - Calcuulate subsurface risk metrics for the user to view, but don't change the optimization model
         }""",
     ),
@@ -252,14 +252,6 @@ def create_model(df_sets, df_parameters, default={}):
     model.type = "strategic"
     model.df_sets = df_sets
     model.df_parameters = df_parameters
-
-    # Calculate subsurface risk metrics if necessary
-    model.do_subsurface_risk_calcs = (
-        model.config.subsurface_risk != SubsurfaceRisk.false
-        or model.config.objective == Objectives.subsurface_risk
-    )
-    if model.do_subsurface_risk_calcs:
-        subsurface_risk(model)
 
     try:
         # Check that currency is set to USD
@@ -2293,6 +2285,14 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Operating capacity of disposal site [%]",
     )
 
+    # Calculate subsurface risk metrics if necessary
+    model.do_subsurface_risk_calcs = (
+        model.config.subsurface_risk != SubsurfaceRisk.false
+        or model.config.objective == Objectives.subsurface_risk
+    )
+    if model.do_subsurface_risk_calcs:
+        subsurface_risk(model)
+
     # For each possible objective function, create a corresponding variable and constrain it with the correct expression #
 
     ####### Minimum cost objective #######
@@ -2356,17 +2356,11 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["volume_time"],
             doc="Objective function variable - minimize subsurface risk [volume/time]",
         )
-        prox = ["orphan", "inactive", "EQ", "fault", "HP_LP"]
         model.ObjectiveFunctionSubsurfaceRisk = Constraint(
             expr=model.v_Z_SubsurfaceRisk
             == sum(
                 sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
-                * value(model.subsurface.risk_metrics[k])
-                - sum(
-                    model.subsurface.y_dist[i, j]
-                    for i in model.subsurface.SWDSites
-                    for j in prox
-                )
+                * model.subsurface.risk_metrics[k]
                 for k in model.s_K
             ),
             doc="Objective function constraint - minimize subsurface risk",
@@ -3909,10 +3903,13 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Restrict flow within a seismic response area",
     )
 
-    if model.config.subsurface_risk == SubsurfaceRisk.exclude_risky_wells:
+    if (
+        model.config.subsurface_risk
+        == SubsurfaceRisk.exclude_over_and_under_pressured_wells
+    ):
 
-        def ExcludeRiskyDisposalWellsRule(model, k):
-            if value(model.subsurface._sites_included[k]):
+        def ExcludeUnderAndOverPressuredDisposalWellsRule(model, k):
+            if model.subsurface.sites_included[k]:
                 # Disposal is allowed at SWD k - skip
                 return Constraint.Skip
             else:
@@ -3923,10 +3920,10 @@ def create_model(df_sets, df_parameters, default={}):
 
             return process_constraint(constraint)
 
-        model.ExcludeRiskyDisposalWells = Constraint(
+        model.ExcludeUnderAndOverPressuredDisposalWells = Constraint(
             model.s_K,
-            rule=ExcludeRiskyDisposalWellsRule,
-            doc="Disallow disposal in sufficiently risky wells",
+            rule=ExcludeUnderAndOverPressuredDisposalWellsRule,
+            doc="Disallow disposal in over and under pressured wells",
         )
 
     if model.config.water_quality is WaterQuality.discrete:
@@ -4297,11 +4294,11 @@ def pipeline_hydraulics(model):
         the cost of pumps.
         """
         # In the co_optimize method the objective should include the cost of pumps. So,
-        # delete the original objectives to add a modified objective in this method.
-        del model.objective_Cost
-        del model.objective_Reuse
+        # deactivate the original objectives to add a modified objective in this method.
+        model.objective_Cost.deactivate()
+        model.objective_Reuse.deactivate()
         if model.do_subsurface_risk_calcs:
-            del model.objective_SubsurfaceRisk
+            model.objective_SubsurfaceRisk.deactivate()
 
         # add necessary variables and constraints
         mh.v_HW_loss = Var(
@@ -4442,11 +4439,11 @@ def pipeline_hydraulics(model):
         the cost of pumps.
         """
         # In the co_optimize method the objective should include the cost of pumps. So,
-        # delete the original objectives to add a modified objective in this method.
-        del model.objective_Cost
-        del model.objective_Reuse
+        # deactivate the original objectives to add a modified objective in this method.
+        model.objective_Cost.deactivate()
+        model.objective_Reuse.deactivate()
         if model.do_subsurface_risk_calcs:
-            del model.objective_SubsurfaceRisk
+            model.objective_SubsurfaceRisk.deactivate()
 
         # Define sets for the piecewise linear approximation
         model.s_lamset = Set(initialize=list(range(n_sections + 1)))
@@ -6979,8 +6976,13 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
-    if model.config.subsurface_risk == SubsurfaceRisk.exclude_risky_wells:
-        model.scaling_factor[model.ExcludeRiskyDisposalWells] = 1 / scaling_factor
+    if (
+        model.config.subsurface_risk
+        == SubsurfaceRisk.exclude_over_and_under_pressured_wells
+    ):
+        model.scaling_factor[model.ExcludeUnderAndOverPressuredDisposalWells] = (
+            1 / scaling_factor
+        )
 
     if model.config.node_capacity == True:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
@@ -7331,10 +7333,8 @@ def infrastructure_timing(model):
 def subsurface_risk(model):
     model.subsurface = Block()
     m = model.subsurface
-    m.SWDSites = model.df_sets["SWDSites"]
 
     maxmin = ["max", "min"]
-    risk = ["risk"]
     prox = ["orphan", "inactive", "EQ", "fault", "HP_LP"]
     prox_params = [
         "SWDProxPAWell",
@@ -7346,20 +7346,20 @@ def subsurface_risk(model):
     prox_init = {}
     k = 0
     for i in prox_params:
-        for j in m.SWDSites:
+        for j in model.s_K:
             prox_init[prox[k], j] = model.df_parameters[i][j]
         k += 1
 
     m.deep = model.df_parameters["SWDDeep"]
     m.pressure = model.df_parameters["SWDAveragePressure"]
-    m.prox = Param(prox, m.SWDSites, initialize=prox_init)
+    m.prox = Param(prox, model.s_K, initialize=prox_init)
 
     risk_factors = model.df_parameters["SWDRiskFactors"]
     risk_factor_set = ["distance", "severity"]
     dist_init = {}
     severity_init = {}
     for i in risk_factors.keys():
-        match = re.search("dist", i)
+        match = re.search("distance", i)
         if match:
             for j in prox:
                 match = re.search(j, i)
@@ -7380,26 +7380,16 @@ def subsurface_risk(model):
 
     m.distance_risk_factors = Param(prox, initialize=dist_init, mutable=True)
     m.severity_risk_factors = Param(prox, initialize=severity_init, mutable=True)
-    m.norm_distance_risk_factors = Param(prox, initialize=dist_init, mutable=True)
-    m.norm_severity_risk_factors = Param(prox, initialize=severity_init, mutable=True)
-
     m.sum_risk_factor = Param(risk_factor_set, initialize=0, mutable=True)
-
     m.pressure_thresholds = Param(maxmin, initialize=pres_init)
+    m.site_risk_factor = Param(model.s_K, prox, initialize=0, mutable=True)
 
-    m.max_risk_factor_for_lowest_risk = Param(risk, initialize=0, mutable=True)
-
-    m.site_risk_factor = Param(m.SWDSites, prox, initialize=0, mutable=True)
-    m.y_dist = Var(m.SWDSites, prox, initialize=0, within=Binary)
-    m.inverse_weighted_site_risk_factor = Param(m.SWDSites, initialize=0, mutable=True)
-    m._sites_included = Param(m.SWDSites, initialize=0, mutable=True)
-
-    m.weighted_site_risk_factor = Param(m.SWDSites, initialize=0, mutable=True)
-
-    for site in m.SWDSites:
+    for site in model.s_K:
         for factor in prox:
             if factor in ("orphan", "inactive") and m.deep[site]:
                 m.y_dist[site, factor].fix(1)
+
+    m.y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
 
     # Defining expressions
     def sum_risk_dist_rule(m):
@@ -7417,12 +7407,12 @@ def subsurface_risk(model):
     m.sum_risk_severity = Expression(rule=sum_risk_severity_rule)
 
     def norm_risk_dist_rule(m, prox):
-        return m.distance_risk_factors[prox] / m.sum_risk_factor["distance"]
+        return m.distance_risk_factors[prox] / m.sum_risk_dist
 
     m.norm_risk_dist = Expression(prox, rule=norm_risk_dist_rule)
 
     def norm_risk_severity_rule(m, prox):
-        return m.severity_risk_factors[prox] / m.sum_risk_factor["severity"]
+        return m.severity_risk_factors[prox] / m.sum_risk_severity
 
     m.norm_risk_severity = Expression(prox, rule=norm_risk_severity_rule)
 
@@ -7443,7 +7433,7 @@ def subsurface_risk(model):
                 <= m.prox[factor, site]
             )
 
-    m.site_constraint = Constraint(m.SWDSites, prox, rule=site_rule_constraints)
+    m.site_constraint = Constraint(model.s_K, prox, rule=site_rule_constraints)
 
     def site_risk_factor_rule(m, site, factor):
         if factor in ("orphan", "inactive") and m.deep[site]:
@@ -7456,7 +7446,7 @@ def subsurface_risk(model):
             )
         return m.site_risk_factor[site, factor]
 
-    m.site_risk_factors = Expression(m.SWDSites, prox, rule=site_risk_factor_rule)
+    m.site_risk_factors = Expression(model.s_K, prox, rule=site_risk_factor_rule)
 
     def risk_metric_rule(m, site):
         return (
@@ -7473,26 +7463,24 @@ def subsurface_risk(model):
             / m.max_risk_fact_min_risk
         )
 
-    m.risk_metrics = Expression(m.SWDSites, rule=risk_metric_rule)
+    m.risk_metrics = Expression(model.s_K, rule=risk_metric_rule)
 
-    def sites_included_rule(m, site):
-        if (
-            m.pressure[site] >= m.pressure_thresholds["min"]
-            and m.pressure[site] <= m.pressure_thresholds["max"]
-        ):
-            m._sites_included[site] = True
-            return m._sites_included[site]
-        else:
-            m._sites_included[site] = False
-            return m._sites_included[site]
+    m.sites_included = Param(
+        model.s_K,
+        initialize={
+            k: m.pressure[k] >= m.pressure_thresholds["min"]
+            and m.pressure[k] <= m.pressure_thresholds["max"]
+            for k in model.s_K
+        },
+    )
 
-    m.sites_included = Expression(m.SWDSites, rule=sites_included_rule)
     m.objective = Objective(
-        expr=(-sum(m.y_dist[i, j] for i in m.SWDSites for j in prox)),
-        sense=minimize,
+        expr=sum(m.y_dist[i, j] for i in model.s_K for j in prox),
+        sense=maximize,
         doc="Objective function",
     )
     m.objective.deactivate()
+
     return model
 
 
@@ -7640,6 +7628,7 @@ def solve_model(model, options=None):
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
     solver = ("gurobi_direct", "gurobi", "cbc")  # solvers to try and load in order
     gurobi_numeric_focus = 1
+    only_subsurface_block = False  # yes/no to only solve the subsurface risk block
 
     # raise an exception if options is neither None nor a user-provided dictionary
     if options is not None and not isinstance(options, dict):
@@ -7664,6 +7653,8 @@ def solve_model(model, options=None):
             solver = options["solver"]
         if "gurobi_numeric_focus" in options.keys():
             gurobi_numeric_focus = options["gurobi_numeric_focus"]
+        if "only_subsurface_block" in options.keys():
+            only_subsurface_block = options["only_subsurface_block"]
 
     # load pyomo solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
@@ -7693,6 +7684,36 @@ def solve_model(model, options=None):
         model.v_S_DisposalCapacity.fix(0)
         model.v_S_TreatmentCapacity.fix(0)
         model.v_S_BeneficialReuseCapacity.fix(0)
+
+    if model.do_subsurface_risk_calcs:
+        print("\n")
+        print("*" * 50)
+        print(" " * 6, "Calculating subsurface risk metrics")
+        print("*" * 50)
+
+        # Certain indexes of model.subsurface.y_dist need to be fixed to 1 for
+        # the subsurface risk block to work properly
+        for site in model.s_K:
+            for factor in ["orphan", "inactive", "EQ", "fault", "HP_LP"]:
+                model.subsurface.y_dist[site, factor].unfix()
+                if factor in ("orphan", "inactive") and model.subsurface.deep[site]:
+                    model.subsurface.y_dist[site, factor].fix(1)
+
+        # Solve just the subsurface risk block
+        model.subsurface.objective.activate()
+        results_subsurface = opt.solve(model.subsurface, tee=True)
+        model.subsurface.objective.deactivate()
+
+        # Fix all indexes of y_dist before proceeding with solving the rest of
+        # the model
+        for site in model.s_K:
+            for factor in ["orphan", "inactive", "EQ", "fault", "HP_LP"]:
+                model.subsurface.y_dist[site, factor].fix()
+        results_subsurface.write()
+
+        # Return now if the user only wants to solve the subsurface risk block
+        if only_subsurface_block:
+            return results_subsurface
 
     if use_scaling:
         # Step 1: scale model

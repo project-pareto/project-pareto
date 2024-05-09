@@ -31,8 +31,6 @@ from pareto.utilities.results import (
     is_feasible,
     nostdout,
 )
-import pyomo.environ as pyo
-from idaes.core.util.model_statistics import degrees_of_freedom
 from importlib import resources
 
 # This emulates what the pyomo command-line tools does
@@ -172,22 +170,22 @@ with resources.path(
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
  infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
- subsurface_risk: [SubsurfaceRisk.false, SubsurfaceRisk.exclude_risky_wells, SubsurfaceRisk.calculate_risk_metrics]
+ subsurface_risk: [SubsurfaceRisk.false, SubsurfaceRisk.exclude_over_and_under_pressured_wells, SubsurfaceRisk.calculate_risk_metrics]
  """
 
 strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.subsurface_risk,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-        "infrastructure_timing": InfrastructureTiming.false,
-        "subsurface_risk": SubsurfaceRisk.exclude_risky_wells,
+        "infrastructure_timing": InfrastructureTiming.true,
+        "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
     },
 )
 
