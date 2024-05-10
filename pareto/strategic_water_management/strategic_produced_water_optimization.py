@@ -7384,12 +7384,12 @@ def subsurface_risk(model):
     m.pressure_thresholds = Param(maxmin, initialize=pres_init)
     m.site_risk_factor = Param(model.s_K, prox, initialize=0, mutable=True)
 
+    m.y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
+
     for site in model.s_K:
         for factor in prox:
             if factor in ("orphan", "inactive") and m.deep[site]:
                 m.y_dist[site, factor].fix(1)
-
-    m.y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
 
     # Defining expressions
     def sum_risk_dist_rule(m):
