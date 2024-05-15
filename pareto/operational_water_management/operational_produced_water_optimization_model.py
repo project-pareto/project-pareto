@@ -929,12 +929,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Disposal = Param(
         model.s_K,
-        default=max(DisposalOperationalCost_convert_to_model.values()) * 100
-        if DisposalOperationalCost_convert_to_model
-        else pyunits.convert_value(
-            25,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(DisposalOperationalCost_convert_to_model.values()) * 100
+            if DisposalOperationalCost_convert_to_model
+            else pyunits.convert_value(
+                25,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=DisposalOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -964,12 +966,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Reuse = Param(
         model.s_CP,
-        default=max(ReuseOperationalCost_convert_to_model.values()) * 100
-        if ReuseOperationalCost_convert_to_model
-        else pyunits.convert_value(
-            25,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(ReuseOperationalCost_convert_to_model.values()) * 100
+            if ReuseOperationalCost_convert_to_model
+            else pyunits.convert_value(
+                25,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=ReuseOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -1050,12 +1054,14 @@ def create_model(df_sets, df_parameters, default={}):
     # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=max(model.df_parameters["TruckingHourlyCost"].values()) * 100
-        if model.df_parameters["TruckingHourlyCost"]
-        else pyunits.convert_value(
-            15000,
-            from_units=model.user_units["currency"],
-            to_units=model.model_units["currency"],
+        default=(
+            max(model.df_parameters["TruckingHourlyCost"].values()) * 100
+            if model.df_parameters["TruckingHourlyCost"]
+            else pyunits.convert_value(
+                15000,
+                from_units=model.user_units["currency"],
+                to_units=model.model_units["currency"],
+            )
         ),
         initialize={
             key: pyunits.convert_value(
@@ -1078,12 +1084,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=max(ExternalSourcingCost_convert_to_model.values()) * 100
-        if ExternalSourcingCost_convert_to_model
-        else pyunits.convert_value(
-            150,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(ExternalSourcingCost_convert_to_model.values()) * 100
+            if ExternalSourcingCost_convert_to_model
+            else pyunits.convert_value(
+                150,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=ExternalSourcingCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -2902,12 +2910,14 @@ def water_quality_discrete(model, df_parameters, df_sets):
     model.p_xi_StorageSite = Param(
         model.s_S,
         model.s_W,
-        default=max(StorageInitialWaterQuality_convert_to_model.values()) * 100
-        if StorageInitialWaterQuality_convert_to_model
-        else pyunits.convert_value(
-            0,
-            from_units=model.user_units["concentration"],
-            to_units=model.model_units["concentration"],
+        default=(
+            max(StorageInitialWaterQuality_convert_to_model.values()) * 100
+            if StorageInitialWaterQuality_convert_to_model
+            else pyunits.convert_value(
+                0,
+                from_units=model.user_units["concentration"],
+                to_units=model.model_units["concentration"],
+            )
         ),
         initialize=StorageInitialWaterQuality_convert_to_model,
         units=model.model_units["concentration"],
