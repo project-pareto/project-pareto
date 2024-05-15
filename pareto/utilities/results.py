@@ -25,6 +25,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     InfrastructureTiming,
 )
 from pyomo.environ import Constraint, Var, units as pyunits, value
+
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
@@ -113,6 +114,16 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Treatment",
                     "vb_y_Flow",
+                    "vb_y_DesalSelected",
+                    "v_T_Treatment_scaled",
+                    "v_C_Treatment_site",
+                    "v_C_TreatmentCapEx_site_time",
+                    "v_C_TreatmentCapEx_site",
+                    "recovery",
+                    "treatment_energy",
+                    "inlet_salinity",
+                    "vb_y_flow_ReLU",
+                    "v_C_Treatment_site_ReLU",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                     "v_S_FracDemand",
@@ -140,6 +151,14 @@ def generate_report(
                     "vb_y_Storage",
                     "vb_y_Flow",
                     "vb_y_Treatment",
+                    "vb_y_DesalSelected",
+                    "vb_y_flow_ReLU",
+                    "v_T_Treatment_scaled",
+                    "v_C_Treatment_site",
+                    "v_C_TreatmentCapEx_site_time",
+                    "v_C_TreatmentCapEx_site",
+                    "recovery",
+                    "inlet_salinity",
                     "vb_y_BeneficialReuse",
                     "v_F_Overview",
                 ]
@@ -223,6 +242,19 @@ def generate_report(
                     "Treatment Capacity",
                     "Treatment Expansion",
                 )
+            ],
+            "vb_y_DesalSelected_dict": [("Treatment Site", "MVC selection")],
+            "v_T_Treatment_scaled_dict": [("Treatment site", "Time", "surrogate cost")],
+            "v_C_Treatment_site_dict": [("Treatment site", "Time", "surrogate cost")],
+            "recovery_dict": [("Treatment site", "recovery")],
+            "inlet_salinity_dict": [("Treatment site", "salinity")],
+            "v_C_TreatmentCapEx_site_time_dict": [
+                ("Treatment site", "Time", "surrogate cost")
+            ],
+            "v_C_TreatmentCapEx_site_dict": [("Treatment site", "surrogate cost")],
+            "vb_y_flow_ReLU_dict": [("Treatment site", "Time", "Flow")],
+            "v_C_Treatment_site_ReLU_dict": [
+                ("Treatment site", "Time", "surrogate cost")
             ],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
@@ -480,7 +512,10 @@ def generate_report(
                     from_units=model.p_delta_Treatment.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and i[0] in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[i[0]]
                     build_start = model.infrastructure_buildStart[i[0]]
                     lead_time = model.infrastructure_leadTime[i[0]]
@@ -526,7 +561,10 @@ def generate_report(
                     from_units=model.p_delta_Disposal.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and disposal_site in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[disposal_site]
                     build_start = model.infrastructure_buildStart[disposal_site]
                     lead_time = model.infrastructure_leadTime[disposal_site]
@@ -569,7 +607,10 @@ def generate_report(
                     from_units=model.p_delta_Storage.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and i[0] in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[i[0]]
                     build_start = model.infrastructure_buildStart[i[0]]
                     lead_time = model.infrastructure_leadTime[i[0]]
@@ -616,7 +657,10 @@ def generate_report(
                     from_units=capacity_variable.get_units(),
                     to_units=to_unit,
                 )
-                if model.config.infrastructure_timing == InfrastructureTiming.true:
+                if (
+                    model.config.infrastructure_timing == InfrastructureTiming.true
+                    and (i[0], i[1]) in model.infrastructure_firstUse
+                ):
                     first_use = model.infrastructure_firstUse[(i[0], i[1])]
                     build_start = model.infrastructure_buildStart[(i[0], i[1])]
                     lead_time = model.infrastructure_leadTime[(i[0], i[1])]
@@ -1124,7 +1168,25 @@ def generate_report(
                 if str(variable.name) == "v_DQ" and var_value > 0:
                     var_value = model.p_discrete_quality[i[2], i[3]].value
                 if i is not None and var_value is not None and var_value > 0:
-                    headers[str(variable.name) + "_dict"].append((*i, var_value))
+                    if (
+                        variable.name != "inlet_salinity"
+                        and variable.name != "v_C_TreatmentCapEx_site"
+                        and variable.name != "v_C_Treatment_site"
+                        and variable.name != "v_C_Treatment_site_ReLU"
+                        and variable.name != "recovery"
+                        and variable.name != "v_C_TreatmentCapEx_site_time"
+                        and variable.name != "totalCapex"
+                        and variable.name != "v_T_Treatment_scaled"
+                    ):
+                        if len(str(variable.name)) >= 15:
+                            if str(variable.name)[:15] != "surrogate_costs":
+                                headers[str(variable.name) + "_dict"].append(
+                                    (*i, var_value)
+                                )
+                        else:
+                            headers[str(variable.name) + "_dict"].append(
+                                (*i, var_value)
+                            )
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
@@ -1238,7 +1300,6 @@ def generate_report(
 
 
 def plot_sankey(input_data={}, args=None):
-
     """
     This method receives data in the form of 3 separate lists (origin, destination, value lists), generate_report dictionary
     output format, or get_data dictionary output format. It then places this data into 4 lists of unique elements so that
@@ -1278,7 +1339,6 @@ def plot_sankey(input_data={}, args=None):
                 destination[n] = "{0}{1}".format(destination[n], "_TILDE")
 
     elif input_data["type_of_data"] is None and isinstance(variable, list):
-
         source = []
         destination = []
         value = []
@@ -1846,7 +1906,6 @@ def plot_bars(input_data, args):
                     )
                 )
     else:
-
         # Create dataframe for use in the method
         df_new = pd.DataFrame(formatted_variable, columns=i)
 
@@ -1920,7 +1979,6 @@ def plot_bars(input_data, args):
 
 
 def plot_scatter(input_data, args):
-
     """
     The plot_scatter method creates a scatter plot based on two variables that are assigned to x and y,
     and a dictionary of arguments including labels, size specifications, group by and chart title. The variables
@@ -2122,7 +2180,6 @@ def plot_scatter(input_data, args):
         )
 
     if indexed_by_time:
-
         # Creating dataframe based on the passed in variable and rounding the values
         df_new_x = pd.DataFrame(formatted_variable_x, columns=i)
         df_new_x = df_new_x.round(0)
@@ -2658,7 +2715,6 @@ def plot_scatter(input_data, args):
 
 
 def is_binary_value(value, tol):
-
     """
     Verifies that a value is acceptable for a binary variable (0 or 1)
     """
@@ -2666,7 +2722,6 @@ def is_binary_value(value, tol):
 
 
 def is_integer_value(value, tol):
-
     """
     Verifies that a value is acceptable for an integer variable
     """
@@ -2700,7 +2755,6 @@ def _check_infeasible(obj, val, tol):
 
 
 def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
-
     """
     Verifies the solution contained in a pyomo model object is feasible. This requires iterating
     through all variables and constraints and ensuring that the constraint and variable bounds are

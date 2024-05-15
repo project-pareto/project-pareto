@@ -159,7 +159,6 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     _df_parameters = {}
     _temp_df_parameters = {}
     for i in data_frame:
-
         # If the data frame is empty, that is, no input data was provided in the Excel
         # file then an empty parameter is created:
         if data_frame[i].empty:
@@ -495,7 +494,6 @@ def get_display_units(input_sheet_name_list, user_units):
 
 
 def od_matrix(inputs):
-
     """
     This method allows the user to request drive distances and drive times using Bing maps API and
     Open Street Maps API.
@@ -672,7 +670,6 @@ def od_matrix(inputs):
         if response_json["code"].lower() == "ok":
             for index_i, o_name in enumerate(origin):
                 for index_j, d_name in enumerate(destination):
-
                     output_times[(o_name, d_name)] = (
                         response_json["durations"][index_i][index_j] / 3600
                     )

@@ -60,7 +60,6 @@ def set_processing(d, df_parameters):
 
 
 def parameter_processing(d, df_parameters):
-
     # FCons for production pads
     for n in d["s_NP"]:
         for t in d["s_T"]:
@@ -95,7 +94,7 @@ def parameter_processing(d, df_parameters):
 
     # replacing NT with NTIN or NTTW
     d["s_A_int"] = []
-    for (aIN, aOUT, aTP) in d["s_A"]:
+    for aIN, aOUT, aTP in d["s_A"]:
         # replacing NT with NTIN
         if aOUT in d["s_NT"]:
             # correcting betaArc
@@ -157,7 +156,7 @@ def parameter_processing(d, df_parameters):
             d["p_betaD"][n] = 0
 
     # Trucking costs
-    for (aIN, aOUT, aTP) in d["s_A"]:
+    for aIN, aOUT, aTP in d["s_A"]:
         if aTP == "Trucked":
             if (aIN, aOUT) in list(df_parameters["TruckingTime"].keys()):
                 d["p_betaArc"][aIN, aOUT, aTP] == df_parameters["TruckingHourlyCost"][
