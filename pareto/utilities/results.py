@@ -443,7 +443,9 @@ def generate_report(
             "v_S_BeneficialReuseCapacity_dict": [
                 ("Reuse site", "Slack Reuse Capacity")
             ],
-            "subsurface.y_dist_dict": [("Sites", "Proximity", "distance risk metric")],
+            "subsurface.vb_y_dist_dict": [
+                ("Sites", "Proximity", "distance risk metric")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
@@ -906,7 +908,9 @@ def generate_report(
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
             ### TODO: Write decent description of the variables.
-            "subsurface.y_dist_dict": [("Sites", "Proximity", "distance risk metric")],
+            "subsurface.vb_y_dist_dict": [
+                ("Sites", "Proximity", "distance risk metric")
+            ],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:

@@ -17,7 +17,7 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-from pyomo.environ import Constraint, units
+from pyomo.environ import Constraint
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
@@ -37,6 +37,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     InfrastructureTiming,
     infrastructure_timing,
     SubsurfaceRisk,
+    set_objective,
+    water_quality_discrete,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -565,6 +567,7 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
             "node_capacity": True,
             "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "gurobi_numeric_focus": 1,
         }
     )
 
@@ -685,6 +688,45 @@ def test_hydraulics_co_optimize_linearized_input(
     assert isinstance(mh.hydraulics.PumpCostEq, pyo.Constraint)
     assert isinstance(mh.hydraulics.HydraulicsCostEq, pyo.Constraint)
     assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
+
+
+@pytest.mark.unit
+def test_hydraulics_configurations(
+    build_reduced_strategic_model_for_surrogates,
+):
+    """Test hydraulics configurations - build models with various objective functions and hydraulics options"""
+    for ho in [Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]:
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={
+                "objective": Objectives.reuse,
+                "hydraulics": ho,
+                "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+            }
+        )
+        pipeline_hydraulics(m)
+
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={
+                "objective": Objectives.cost_surrogate,
+                "desalination_model": DesalinationModel.md,
+                "hydraulics": ho,
+                "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+            }
+        )
+        pipeline_hydraulics(m)
+
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={
+                "objective": Objectives.subsurface_risk,
+                "hydraulics": ho,
+            }
+        )
+        pipeline_hydraulics(m)
+
+    with pytest.raises(Exception) as excinfo:
+        m.config.objective = -1
+        pipeline_hydraulics(m)
+        assert "Objective not supported" in str(excinfo.value)
 
 
 # if solver cbc exists @solver
@@ -855,6 +897,50 @@ def test_basic_reduced_build_discrete_water_quality_input(
     assert isinstance(m.CompletionsPadStorageWaterQuality, pyo.Constraint)
 
 
+@pytest.mark.unit
+def test_discrete_water_quality_configurations(
+    build_reduced_strategic_model_for_surrogates,
+):
+    """Test configurations with various objective functions and discrete water quality"""
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+    scale_model(m)
+
+    build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.reuse,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+
+    build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "desalination_model": DesalinationModel.md,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+
+    build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.subsurface_risk,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={"objective": Objectives.cost}
+        )
+        m.config.objective = -1
+        water_quality_discrete(m, m.df_parameters, m.df_sets)
+        assert "Objective not supported" in str(excinfo.value)
+
+
 @pytest.mark.component
 def test_strategic_model_scaling(build_reduced_strategic_model):
     m = build_reduced_strategic_model(
@@ -862,6 +948,7 @@ def test_strategic_model_scaling(build_reduced_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
         }
     )
     scaled_m = scale_model(m, scaling_factor=100000)
@@ -875,20 +962,52 @@ def test_strategic_model_scaling(build_reduced_strategic_model):
     # Checking for scaled and unscaled variables
     for v in m.component_objects(ctype=pyo.Var):
         if "vb_y" not in v.name:
-            if str("scaled_" + v.name) in scaled_components:
-                scaled_vars.append(v.name)
+            i = v.name.rfind(".")
+            if i > 0:
+                # There's a dot in the name, so the variable must be part of a
+                # block
+                if str(v.name[:i] + ".scaled_" + v.name[i + 1 :]) in scaled_components:
+                    scaled_vars.append(v.name)
+                else:
+                    unscaled_vars.append(v.name)
             else:
-                unscaled_vars.append(v.name)
+                if str("scaled_" + v.name) in scaled_components:
+                    scaled_vars.append(v.name)
+                else:
+                    unscaled_vars.append(v.name)
 
     # Checking for scaled and unscaled constraints
     for c in m.component_objects(ctype=pyo.Constraint):
-        if str("scaled_" + c.name) in scaled_components:
-            scaled_constraints.append(c.name)
+        i = c.name.rfind(".")
+        if i > 0:
+            # There's a dot in the name, so the constraint must be part of a
+            # block
+            if str(c.name[:i] + ".scaled_" + c.name[i + 1 :]) in scaled_components:
+                scaled_constraints.append(c.name)
+            else:
+                unscaled_constraints.append(c.name)
         else:
-            unscaled_constraints.append(c.name)
+            if str("scaled_" + c.name) in scaled_components:
+                scaled_constraints.append(c.name)
+            else:
+                unscaled_constraints.append(c.name)
 
     assert len(unscaled_vars) == 0
     assert len(unscaled_constraints) == 0
+
+
+@pytest.mark.component
+def test_strategic_model_scaling_with_surrogate(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "desalination_model": DesalinationModel.md,
+            "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+        }
+    )
+    scale_model(m, scaling_factor=100000)
 
 
 # if solver cbc exists @solver
@@ -2220,13 +2339,13 @@ def test_workshop_build(build_workshop_strategic_model):
     """Make a model and make sure it doesn't throw exception"""
     m = build_workshop_strategic_model(
         config_dict={
-            "objective": Objectives.cost,
+            "objective": Objectives.reuse,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 3973
+    assert degrees_of_freedom(m) == 4312
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -2262,7 +2381,7 @@ def test_run_workshop_model(build_workshop_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 3851
+    assert degrees_of_freedom(m) == 4188
     assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
@@ -2316,13 +2435,35 @@ def test_run_subsurface_risk_model(build_workshop_strategic_model):
         "scaling_factor": 1000,
         "running_time": 60 * 5,
         "gap": 0,
+        "only_subsurface_block": True,
     }
 
+    solve_model(model=m, options=options)
+
+    options["only_subsurface_block"] = False
     results = solve_model(model=m, options=options)
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 3851
+    assert degrees_of_freedom(m) == 4187
     assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z_SubsurfaceRisk)
     with nostdout():
         assert is_feasible(m)
+
+
+@pytest.mark.unit
+def test_exceptions(build_toy_strategic_model):
+    """Check for certain exceptions when building or modifying models"""
+    with pytest.raises(Exception) as excinfo:
+        build_toy_strategic_model(config_dict={"objective": -1})
+        assert "Objective not supported" in str(excinfo.value)
+
+    with pytest.raises(Exception) as excinfo:
+        m = build_toy_strategic_model(
+            config_dict={
+                "objective": Objectives.cost,
+                "subsurface_risk": SubsurfaceRisk.false,
+            }
+        )
+        set_objective(m, Objectives.subsurface_risk)
+        assert "Subsurface risk objective has not been created" in str(excinfo.value)

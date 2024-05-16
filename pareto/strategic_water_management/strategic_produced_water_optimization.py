@@ -7280,6 +7280,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.objective_Cost.set_value(expr=model.v_ObjectiveWithQuality)
     elif model.config.objective == Objectives.reuse:
         model.objective_Reuse.set_value(expr=model.v_ObjectiveWithQuality)
+    elif model.config.objective == Objectives.cost_surrogate:
+        model.objective_CostSurrogate.set_value(expr=model.v_ObjectiveWithQuality)
     elif model.config.objective == Objectives.subsurface_risk:
         model.objective_SubsurfaceRisk.set_value(expr=model.v_ObjectiveWithQuality)
     else:
@@ -7317,10 +7319,7 @@ def postprocess_water_quality_calculation(model, opt):
     return water_quality_model
 
 
-def scale_model(model, scaling_factor=None):
-    if scaling_factor is None:
-        scaling_factor = 1000000
-
+def scale_model(model, scaling_factor=1000000):
     model.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
     # Scaling variables
@@ -7507,6 +7506,9 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.ExcludeUnderAndOverPressuredDisposalWells] = (
             1 / scaling_factor
         )
+
+    if model.do_subsurface_risk_calcs:
+        model.scaling_factor[model.subsurface.site_constraint] = 1
 
     if model.config.node_capacity == True:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
@@ -7908,12 +7910,12 @@ def subsurface_risk(model):
     m.pressure_thresholds = Param(maxmin, initialize=pres_init)
     m.site_risk_factor = Param(model.s_K, prox, initialize=0, mutable=True)
 
-    m.y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
+    m.vb_y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
 
     for site in model.s_K:
         for factor in prox:
             if factor in ("orphan", "inactive") and m.deep[site]:
-                m.y_dist[site, factor].fix(1)
+                m.vb_y_dist[site, factor].fix(1)
 
     # Defining expressions
     def sum_risk_dist_rule(m):
@@ -7953,7 +7955,7 @@ def subsurface_risk(model):
             return Constraint.Skip
         else:
             return (
-                m.distance_risk_factors[factor] * m.y_dist[site, factor]
+                m.distance_risk_factors[factor] * m.vb_y_dist[site, factor]
                 <= m.prox[factor, site]
             )
 
@@ -7965,8 +7967,8 @@ def subsurface_risk(model):
         else:
             m.site_risk_factor[site, factor] = m.distance_risk_factors[
                 factor
-            ] * m.y_dist[site, factor] + m.prox[factor, site] * (
-                1 - m.y_dist[site, factor]
+            ] * m.vb_y_dist[site, factor] + m.prox[factor, site] * (
+                1 - m.vb_y_dist[site, factor]
             )
         return m.site_risk_factor[site, factor]
 
@@ -7977,8 +7979,8 @@ def subsurface_risk(model):
             1
             - sum(
                 (
-                    m.distance_risk_factors[factor] * m.y_dist[site, factor]
-                    + m.prox[factor, site] * (1 - m.y_dist[site, factor])
+                    m.distance_risk_factors[factor] * m.vb_y_dist[site, factor]
+                    + m.prox[factor, site] * (1 - m.vb_y_dist[site, factor])
                 )
                 * m.norm_risk_dist[factor]
                 * m.norm_risk_severity[factor]
@@ -7999,7 +8001,7 @@ def subsurface_risk(model):
     )
 
     m.objective = Objective(
-        expr=sum(m.y_dist[i, j] for i in model.s_K for j in prox),
+        expr=sum(m.vb_y_dist[i, j] for i in model.s_K for j in prox),
         sense=maximize,
         doc="Objective function",
     )
@@ -8248,24 +8250,24 @@ def solve_model(model, options=None):
         print(" " * 6, "Calculating subsurface risk metrics")
         print("*" * 50)
 
-        # Certain indexes of model.subsurface.y_dist need to be fixed to 1 for
+        # Certain indexes of model.subsurface.vb_y_dist need to be fixed to 1 for
         # the subsurface risk block to work properly
         for site in model.s_K:
             for factor in ["orphan", "inactive", "EQ", "fault", "HP_LP"]:
-                model.subsurface.y_dist[site, factor].unfix()
+                model.subsurface.vb_y_dist[site, factor].unfix()
                 if factor in ("orphan", "inactive") and model.subsurface.deep[site]:
-                    model.subsurface.y_dist[site, factor].fix(1)
+                    model.subsurface.vb_y_dist[site, factor].fix(1)
 
         # Solve just the subsurface risk block
         model.subsurface.objective.activate()
         results_subsurface = opt.solve(model.subsurface, tee=True)
         model.subsurface.objective.deactivate()
 
-        # Fix all indexes of y_dist before proceeding with solving the rest of
+        # Fix all indexes of vb_y_dist before proceeding with solving the rest of
         # the model
         for site in model.s_K:
             for factor in ["orphan", "inactive", "EQ", "fault", "HP_LP"]:
-                model.subsurface.y_dist[site, factor].fix()
+                model.subsurface.vb_y_dist[site, factor].fix()
         results_subsurface.write()
 
         # Return now if the user only wants to solve the subsurface risk block
