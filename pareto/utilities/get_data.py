@@ -152,6 +152,7 @@ def get_valid_input_parameter_tab_names():
         "ComponentTreatment",
         "MinTreatmentFlow",
         "MinResidualQuality",
+        "DesalinationSurrogate",
     ]
 
 
@@ -349,7 +350,6 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     _df_parameters = {}
     _temp_df_parameters = {}
     for i in data_frame:
-
         # If the data frame is empty, that is, no input data was provided in the Excel
         # file then an empty parameter is created:
         if data_frame[i].empty:
@@ -646,16 +646,17 @@ def get_display_units(input_sheet_name_list, user_units):
         "PipelineExpansionLeadTime_Capac": user_units["decision period"],
         "SWDDeep": "",
         "SWDAveragePressure": "psi/ft",
-        "SWDProxPAWell": user_units["distance"],
-        "SWDProxInactiveWell": user_units["distance"],
-        "SWDProxEQ": user_units["distance"],
-        "SWDProxFault": user_units["distance"],
-        "SWDProxHpOrLpWell": user_units["distance"],
+        "SWDProxPAWell": "miles",
+        "SWDProxInactiveWell": "miles",
+        "SWDProxEQ": "miles",
+        "SWDProxFault": "miles",
+        "SWDProxHpOrLpWell": "miles",
         "SWDRiskFactors": "",
         "ComponentPrice": user_units["currency"] + "/" + user_units["volume"],
         "ComponentTreatment": "",
         "MinTreatmentFlow": user_units["volume"],
         "MinResidualQuality": "",
+        "DesalinationSurrogate": "kg/s",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
@@ -678,7 +679,6 @@ def get_display_units(input_sheet_name_list, user_units):
 
 
 def od_matrix(inputs):
-
     """
     This method allows the user to request drive distances and drive times using Bing maps API and
     Open Street Maps API.
@@ -855,7 +855,6 @@ def od_matrix(inputs):
         if response_json["code"].lower() == "ok":
             for index_i, o_name in enumerate(origin):
                 for index_j, d_name in enumerate(destination):
-
                     output_times[(o_name, d_name)] = (
                         response_json["durations"][index_i][index_j] / 3600
                     )

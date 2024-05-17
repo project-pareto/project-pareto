@@ -26,7 +26,6 @@ def report_results_to_excel(
 ) -> None:
     counter = 0
     for var_name, var in model.component_map(pyo.Var, active=True).items():
-
         # creating the columns for the excel file
         set_names = []
         for index_set in var.index_set().subsets(expand_all_set_operators=False):
@@ -59,7 +58,6 @@ def report_results_to_excel(
 
 # Function to turn off certain variables and constraints
 def obj_fix(model: pyo.ConcreteModel, vars=[], activate=[], deactivate=[]):
-
     # Fixing and unfixing specified variables
     for var_name, var in model.component_map(pyo.Var, active=True).items():
         # fixing variables if they are specified by user

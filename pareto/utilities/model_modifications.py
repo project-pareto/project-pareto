@@ -21,6 +21,7 @@ import logging
 
 _log = logging.getLogger(__name__)
 
+
 ###--- Functions ---###
 # free variables function
 def free_variables(model, exception_list=None, time_period=None):

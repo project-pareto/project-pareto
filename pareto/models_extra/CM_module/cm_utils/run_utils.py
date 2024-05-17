@@ -36,7 +36,6 @@ from pareto.utilities.solvers import get_solver
 
 
 def load_data(fpath):
-
     # importing data
     [df_sets, df_parameters] = get_data(fpath)
 
@@ -345,7 +344,6 @@ def solving(
     # showing results
     term_cond = pyo.check_optimal_termination(status)
     if term_cond == True:
-
         print("\n Successfully solved model")
         # Displaying specific broken down costs
         print_results_summary(model)
