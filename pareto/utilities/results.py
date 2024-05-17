@@ -443,6 +443,9 @@ def generate_report(
             "v_S_BeneficialReuseCapacity_dict": [
                 ("Reuse site", "Slack Reuse Capacity")
             ],
+            "subsurface.vb_y_dist_dict": [
+                ("Sites", "Proximity", "distance risk metric")
+            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
 
@@ -904,6 +907,10 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
+            ### TODO: Write decent description of the variables.
+            "subsurface.vb_y_dist_dict": [
+                ("Sites", "Proximity", "distance risk metric")
+            ],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
@@ -1104,7 +1111,10 @@ def generate_report(
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
-        units_true = variable.get_units() is not None
+        units_true = (
+            variable.get_units() is not None
+            and variable.get_units().to_string() != "dimensionless"
+        )
         # If units are used, determine what the display units should be based off user input
         if units_true:
             from_unit_string = variable.get_units().to_string()
@@ -1126,8 +1136,6 @@ def generate_report(
                 )
                 headers[str(variable.name) + "_dict"][0] = tuple(header)
 
-        elif variable.get_units() is not None:
-            to_unit = variable.get_units()
         else:
             to_unit = None
         if variable._data is not None:
