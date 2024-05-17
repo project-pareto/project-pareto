@@ -263,7 +263,7 @@ CONFIG.declare(
         **Valid Values:** - {
         **SubsurfaceRisk.false** - Exclude subsurface risk from model (unless the subsurface risk objective function is selected),
         **SubsurfaceRisk.exclude_over_and_under_pressured_wells** - Calculate subsurface risk metrics and disallow disposal to overpressured and underpressured wells,
-        **SubsurfaceRisk.calculate_risk_metrics** - Calcuulate subsurface risk metrics for the user to view, but don't change the optimization model
+        **SubsurfaceRisk.calculate_risk_metrics** - Calculate subsurface risk metrics for the user to view, but don't change the optimization model
         }""",
     ),
 )
@@ -8168,6 +8168,27 @@ def calc_new_pres(model_h, ps, l1, l2, t):
 
 
 def solve_model(model, options=None):
+    """
+    Solve the optimization model. options is a dictionary with the following options:
+
+    `solver`: Either a string with solver name or a tuple of strings with several solvers to try and load in order. PARETO currently supports Gurobi (commercial), CPLEX (commercial) and CBC (free) solvers, but it might be possible to use other MILP solvers as well. Default = ("gurobi_direct", "gurobi", "gams:CPLEX", "cbc")
+
+    `running_time`: Maximum solver running time in seconds. Default = 60
+
+    `gap`: Solver gap. Default = 0
+
+    `deactivate_slacks`: `True` to deactivate slack variables, `False` to use slack variables. Default = `True`
+
+    `scale_model`: `True` to apply scaling to the model, `False` to not apply scaling. Default = `False`
+
+    `scaling_factor`: Scaling factor to apply to the model (only relevant if `scale_model` is `True`). Default = 1000000
+
+    `gurobi_numeric_focus`: The `NumericFocus` parameter to pass to the Gurobi solver. This parameter can be 1, 2, or 3, and per Gurobi, "settings 1-3 increasingly shift the focus towards more care in numerical computations, which can impact performance." This option is ignored if a solver other than Gurobi is used. Default = 1
+
+    `only_subsurface_block`: If `True`, solve only the subsurface risk block and then return without solving the parent model. This option only has an affect if the subsurface risk block has been created. Default = `False`
+
+    Returns the solver results object.
+    """
     # default option values
     running_time = 60  # solver running time in seconds
     gap = 0  # solver gap
@@ -8273,6 +8294,11 @@ def solve_model(model, options=None):
         # Return now if the user only wants to solve the subsurface risk block
         if only_subsurface_block:
             return results_subsurface
+    else:
+        if only_subsurface_block:
+            print(
+                "Subsurface risk block has not been created. Proceeding with solving network model."
+            )
 
     if use_scaling:
         # Step 1: scale model
