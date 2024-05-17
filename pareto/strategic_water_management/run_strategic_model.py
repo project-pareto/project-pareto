@@ -35,7 +35,6 @@ from pareto.utilities.results import (
 from importlib import resources
 
 
-
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference

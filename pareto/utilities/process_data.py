@@ -88,6 +88,9 @@ def check_required_data(df_sets, df_parameters, config):
         Hydraulics,
         PipelineCapacity,
         InfrastructureTiming,
+        DesalinationModel,
+        SubsurfaceRisk,
+        Objectives,
     )
 
     # Create a list to hold all missing data that causes an error
@@ -176,6 +179,24 @@ def check_required_data(df_sets, df_parameters, config):
     )
     data_error_items.extend(hydraulics_config_errors)
 
+    # Desalination model config - check needed data
+    desalination_config_errors = _check_config_dependent_data(
+        df_sets,
+        df_parameters,
+        config.pipeline_cost,
+        config_required_sets={
+            DesalinationModel.false: [],
+            DesalinationModel.mvc: [],
+            DesalinationModel.md: [],
+        },
+        config_required_params={
+            DesalinationModel.false: [],
+            DesalinationModel.mvc: ["DesalinationSurrogate"],
+            DesalinationModel.md: ["DesalinationSurrogate"],
+        },
+    )
+    data_error_items.extend(desalination_config_errors)
+
     # Pipeline cost config - check needed data
     pipeline_cost_config_errors = _check_config_dependent_data(
         df_sets,
@@ -227,6 +248,69 @@ def check_required_data(df_sets, df_parameters, config):
         },
     )
     data_error_items.extend(node_capacity_config_errors)
+
+    # Subsurface Risk config - check needed data
+    subsurface_risk_config_errors = _check_config_dependent_data(
+        df_sets,
+        df_parameters,
+        config.pipeline_cost,
+        config_required_sets={
+            SubsurfaceRisk.false: [],
+            SubsurfaceRisk.exclude_over_and_under_pressured_wells: [],
+            SubsurfaceRisk.calculate_risk_metrics: [],
+        },
+        config_required_params={
+            SubsurfaceRisk.false: [],
+            SubsurfaceRisk.exclude_over_and_under_pressured_wells: [
+                "SWDProxPAWell",
+                "SWDProxInactiveWell",
+                "SWDProxEQ",
+                "SWDProxFault",
+                "SWDProxHpOrLpWell",
+                "SWDDeep",
+                "SWDAveragePressure",
+                "SWDRiskFactors",
+            ],
+            SubsurfaceRisk.calculate_risk_metrics: [
+                "SWDProxPAWell",
+                "SWDProxInactiveWell",
+                "SWDProxEQ",
+                "SWDProxFault",
+                "SWDProxHpOrLpWell",
+                "SWDDeep",
+                "SWDAveragePressure",
+                "SWDRiskFactors",
+            ],
+        },
+    )
+    data_error_items.extend(subsurface_risk_config_errors)
+
+    # Objective config - check needed data
+    objectives_config_errors = _check_config_dependent_data(
+        df_sets,
+        df_parameters,
+        config.pipeline_cost,
+        config_required_sets={
+            Objectives.cost: [],
+            Objectives.reuse: [],
+            Objectives.subsurface_risk: [],
+        },
+        config_required_params={
+            Objectives.cost: [],
+            Objectives.reuse: [],
+            Objectives.subsurface_risk: [
+                "SWDProxPAWell",
+                "SWDProxInactiveWell",
+                "SWDProxEQ",
+                "SWDProxFault",
+                "SWDProxHpOrLpWell",
+                "SWDDeep",
+                "SWDAveragePressure",
+                "SWDRiskFactors",
+            ],
+        },
+    )
+    data_error_items.extend(objectives_config_errors)
 
     # Water Quality config - check needed data.
     water_quality_config_errors = _check_config_dependent_data(

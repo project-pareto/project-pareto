@@ -205,7 +205,6 @@ CONFIG.declare(
 )
 
 
-
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -7306,7 +7305,6 @@ def postprocess_water_quality_calculation(model, opt):
         opt.solve(water_quality_model.quality, tee=True)
 
     return water_quality_model
-
 
 
 def scale_model(model, scaling_factor=1000000):
