@@ -1159,7 +1159,7 @@ def build_reduced_strategic_model_for_surrogates():
         "pareto.case_studies",
         "strategic_treatment_demo_surrogates.xlsx",
     ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(fpath)
 
         # create mathematical model
         def _call_model_with_config(config_dict):

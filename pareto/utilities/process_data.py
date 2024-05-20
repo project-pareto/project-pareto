@@ -183,7 +183,7 @@ def check_required_data(df_sets, df_parameters, config):
     desalination_config_errors = _check_config_dependent_data(
         df_sets,
         df_parameters,
-        config.pipeline_cost,
+        config.desalination_model,
         config_required_sets={
             DesalinationModel.false: [],
             DesalinationModel.mvc: [],
@@ -253,7 +253,7 @@ def check_required_data(df_sets, df_parameters, config):
     subsurface_risk_config_errors = _check_config_dependent_data(
         df_sets,
         df_parameters,
-        config.pipeline_cost,
+        config.subsurface_risk,
         config_required_sets={
             SubsurfaceRisk.false: [],
             SubsurfaceRisk.exclude_over_and_under_pressured_wells: [],
@@ -289,7 +289,7 @@ def check_required_data(df_sets, df_parameters, config):
     objectives_config_errors = _check_config_dependent_data(
         df_sets,
         df_parameters,
-        config.pipeline_cost,
+        config.objective,
         config_required_sets={
             Objectives.cost: [],
             Objectives.reuse: [],
