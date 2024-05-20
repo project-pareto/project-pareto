@@ -17,7 +17,7 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-from pyomo.environ import Constraint, units
+from pyomo.environ import Constraint
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
@@ -30,11 +30,15 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     scale_model,
     PipelineCost,
     Hydraulics,
+    DesalinationModel,
     PipelineCapacity,
     pipeline_hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
     infrastructure_timing,
+    SubsurfaceRisk,
+    set_objective,
+    water_quality_discrete,
 )
 from pareto.utilities.get_data import get_data, get_display_units
 from pareto.utilities.units_support import (
@@ -163,6 +167,14 @@ def build_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -193,7 +205,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -216,7 +228,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -239,7 +251,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -262,7 +274,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     )
     assert degrees_of_freedom(m) == 29595
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -469,6 +481,14 @@ def build_reduced_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -527,7 +547,13 @@ def test_hydraulics_post_process_input(
     assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
 
 
+# This test gives a different value for the hydraulics objective function
+# (m.hydraulics.v_Z_HydrualicsCost) when solving with CBC vs. Gurobi. The value
+# that is checked for in the test is the solution from CBC (so that it passes on
+# GitHub). Mark the test as xfail so that it doesn't fail when running it
+# locally with Gurobi.
 # if solver cbc exists @solver
+@pytest.mark.xfail
 @pytest.mark.component
 def test_run_hydraulics_post_process_reduced_strategic_model(
     build_reduced_strategic_model,
@@ -541,6 +567,7 @@ def test_run_hydraulics_post_process_reduced_strategic_model(
             "node_capacity": True,
             "water_quality": WaterQuality.false,
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "gurobi_numeric_focus": 1,
         }
     )
 
@@ -663,6 +690,45 @@ def test_hydraulics_co_optimize_linearized_input(
     assert isinstance(mh.hydraulics.PumpHeadCons, pyo.Constraint)
 
 
+@pytest.mark.unit
+def test_hydraulics_configurations(
+    build_reduced_strategic_model_for_surrogates,
+):
+    """Test hydraulics configurations - build models with various objective functions and hydraulics options"""
+    for ho in [Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]:
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={
+                "objective": Objectives.reuse,
+                "hydraulics": ho,
+                "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+            }
+        )
+        pipeline_hydraulics(m)
+
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={
+                "objective": Objectives.cost_surrogate,
+                "desalination_model": DesalinationModel.md,
+                "hydraulics": ho,
+                "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+            }
+        )
+        pipeline_hydraulics(m)
+
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={
+                "objective": Objectives.subsurface_risk,
+                "hydraulics": ho,
+            }
+        )
+        pipeline_hydraulics(m)
+
+    with pytest.raises(Exception) as excinfo:
+        m.config.objective = -1
+        pipeline_hydraulics(m)
+        assert "Objective not supported" in str(excinfo.value)
+
+
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_run_hydraulics_co_optimize_linearized_reduced_strategic_model(
@@ -709,7 +775,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -733,7 +799,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -757,7 +823,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
     )
     assert degrees_of_freedom(m) == 12851
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -781,7 +847,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
     )
     assert degrees_of_freedom(m) == 103331
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -831,6 +897,50 @@ def test_basic_reduced_build_discrete_water_quality_input(
     assert isinstance(m.CompletionsPadStorageWaterQuality, pyo.Constraint)
 
 
+@pytest.mark.unit
+def test_discrete_water_quality_configurations(
+    build_reduced_strategic_model_for_surrogates,
+):
+    """Test configurations with various objective functions and discrete water quality"""
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+    scale_model(m)
+
+    build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.reuse,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+
+    build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "desalination_model": DesalinationModel.md,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+
+    build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.subsurface_risk,
+            "water_quality": WaterQuality.discrete,
+        }
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        m = build_reduced_strategic_model_for_surrogates(
+            config_dict={"objective": Objectives.cost}
+        )
+        m.config.objective = -1
+        water_quality_discrete(m, m.df_parameters, m.df_sets)
+        assert "Objective not supported" in str(excinfo.value)
+
+
 @pytest.mark.component
 def test_strategic_model_scaling(build_reduced_strategic_model):
     m = build_reduced_strategic_model(
@@ -838,6 +948,7 @@ def test_strategic_model_scaling(build_reduced_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.input,
+            "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
         }
     )
     scaled_m = scale_model(m, scaling_factor=100000)
@@ -851,20 +962,52 @@ def test_strategic_model_scaling(build_reduced_strategic_model):
     # Checking for scaled and unscaled variables
     for v in m.component_objects(ctype=pyo.Var):
         if "vb_y" not in v.name:
-            if str("scaled_" + v.name) in scaled_components:
-                scaled_vars.append(v.name)
+            i = v.name.rfind(".")
+            if i > 0:
+                # There's a dot in the name, so the variable must be part of a
+                # block
+                if str(v.name[:i] + ".scaled_" + v.name[i + 1 :]) in scaled_components:
+                    scaled_vars.append(v.name)
+                else:
+                    unscaled_vars.append(v.name)
             else:
-                unscaled_vars.append(v.name)
+                if str("scaled_" + v.name) in scaled_components:
+                    scaled_vars.append(v.name)
+                else:
+                    unscaled_vars.append(v.name)
 
     # Checking for scaled and unscaled constraints
     for c in m.component_objects(ctype=pyo.Constraint):
-        if str("scaled_" + c.name) in scaled_components:
-            scaled_constraints.append(c.name)
+        i = c.name.rfind(".")
+        if i > 0:
+            # There's a dot in the name, so the constraint must be part of a
+            # block
+            if str(c.name[:i] + ".scaled_" + c.name[i + 1 :]) in scaled_components:
+                scaled_constraints.append(c.name)
+            else:
+                unscaled_constraints.append(c.name)
         else:
-            unscaled_constraints.append(c.name)
+            if str("scaled_" + c.name) in scaled_components:
+                scaled_constraints.append(c.name)
+            else:
+                unscaled_constraints.append(c.name)
 
     assert len(unscaled_vars) == 0
     assert len(unscaled_constraints) == 0
+
+
+@pytest.mark.component
+def test_strategic_model_scaling_with_surrogate(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "desalination_model": DesalinationModel.md,
+            "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
+        }
+    )
+    scale_model(m, scaling_factor=100000)
 
 
 # if solver cbc exists @solver
@@ -1057,6 +1200,14 @@ def build_modified_reduced_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1278,6 +1429,14 @@ def test_strategic_model_UI_display_units():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1394,6 +1553,14 @@ def build_toy_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1423,7 +1590,7 @@ def test_basic_toy_build(build_toy_strategic_model):
     )
     assert degrees_of_freedom(m) == 7237
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1566,6 +1733,14 @@ def build_permian_demo_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1597,7 +1772,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
     )
     assert degrees_of_freedom(m) == 20955
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1630,6 +1805,348 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     )
 
 
+@pytest.fixture(scope="module")
+def build_reduced_strategic_model_for_surrogates():
+    # This emulates what the pyomo command-line tools does
+    # Tabs in the input Excel spreadsheet
+    set_list = [
+        "ProductionPads",
+        "CompletionsPads",
+        "SWDSites",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
+        "StorageSites",
+        "TreatmentSites",
+        "ReuseOptions",
+        "NetworkNodes",
+        "PipelineDiameters",
+        "StorageCapacities",
+        "InjectionCapacities",
+        "TreatmentCapacities",
+        "TreatmentTechnologies",
+    ]
+
+    parameter_list = [
+        "Units",
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "FCA",
+        "RCA",
+        "RNA",
+        "RSA",
+        "SCA",
+        "SNA",
+        "ROA",
+        "RKA",
+        "SOA",
+        "NOA",
+        "PCT",
+        "PKT",
+        "FCT",
+        "CST",
+        "CCT",
+        "CKT",
+        "RST",
+        "ROT",
+        "SOT",
+        "RKT",
+        "Elevation",
+        "CompletionsPadOutsideSystem",
+        "DesalinationTechnologies",
+        "DesalinationSites",
+        "BeneficialReuseCost",
+        "BeneficialReuseCredit",
+        "TruckingTime",
+        "CompletionsDemand",
+        "PadRates",
+        "FlowbackRates",
+        "WellPressure",
+        "NodeCapacities",
+        "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
+        "InitialDisposalCapacity",
+        "InitialTreatmentCapacity",
+        "ReuseMinimum",
+        "ReuseCapacity",
+        "ExtWaterSourcingAvailability",
+        "PadOffloadingCapacity",
+        "CompletionsPadStorage",
+        "DisposalOperationalCost",
+        "TreatmentOperationalCost",
+        "ReuseOperationalCost",
+        "PipelineOperationalCost",
+        "ExternalSourcingCost",
+        "TruckingHourlyCost",
+        "PipelineDiameterValues",
+        "DisposalCapacityIncrements",
+        "InitialStorageCapacity",
+        "StorageCapacityIncrements",
+        "TreatmentCapacityIncrements",
+        "TreatmentEfficiency",
+        "RemovalEfficiency",
+        "DisposalExpansionCost",
+        "StorageExpansionCost",
+        "TreatmentExpansionCost",
+        "PipelineCapexDistanceBased",
+        "PipelineCapexCapacityBased",
+        "PipelineCapacityIncrements",
+        "PipelineExpansionDistance",
+        "Hydraulics",
+        "Economics",
+        "DesalinationSurrogate",
+        "ExternalWaterQuality",
+        "PadWaterQuality",
+        "StorageInitialWaterQuality",
+        "PadStorageInitialWaterQuality",
+        "DisposalOperatingCapacity",
+        "TreatmentExpansionLeadTime",
+        "DisposalExpansionLeadTime",
+        "StorageExpansionLeadTime",
+        "PipelineExpansionLeadTime_Dist",
+        "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
+    ]
+
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_treatment_demo_surrogates.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+
+        # create mathematical model
+        def _call_model_with_config(config_dict):
+            reduced_strategic_model = create_model(df_sets, df_parameters, config_dict)
+            return reduced_strategic_model
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_basic_treatment_demo_build_with_MD(
+    build_reduced_strategic_model_for_surrogates,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    assert degrees_of_freedom(m) == 34599
+    # Check unit config arguments
+    assert len(m.config) == 10
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_treatment_demo_strategic_model_with_MD(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "solver": "cbc",
+        "running_time": 60 * 2,
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+    assert degrees_of_freedom(m) == 33448
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+@pytest.mark.unit
+def test_basic_treatment_demo_build_with_MVC(
+    build_reduced_strategic_model_for_surrogates,
+):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.mvc,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    assert degrees_of_freedom(m) == 34599
+    # Check unit config arguments
+    assert len(m.config) == 10
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_treatment_demo_strategic_model_with_MVC(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.mvc,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 2,
+        "solver": "cbc",
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+    assert degrees_of_freedom(m) == 33448
+
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_water_quality_with_MVC(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.mvc,
+            "node_capacity": True,
+            "water_quality": WaterQuality.post_process,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    assert degrees_of_freedom(m) == 34599
+    # Check unit config arguments
+    assert len(m.config) == 10
+    assert m.config.objective
+    assert isinstance(m.s_T, pyo.Set)
+    assert isinstance(m.v_F_Piped, pyo.Var)
+    assert isinstance(m.p_pi_Trucking, pyo.Param)
+    assert isinstance(m.PipelineCapacityExpansion, pyo.Constraint)
+    assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 1,
+        "solver": "cbc",
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+    assert degrees_of_freedom(m.quality) == 1040
+    assert isinstance(m.p_epsilon_TreatmentRemoval, pyo.Param)
+    assert (
+        len(m.p_epsilon_TreatmentRemoval) > 1
+    )  # Check if multiple components have removal efficiency values
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_water_quality_with_MD(
+    build_reduced_strategic_model_for_surrogates,
+):
+    m = build_reduced_strategic_model_for_surrogates(
+        config_dict={
+            "objective": Objectives.cost_surrogate,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "desalination_model": DesalinationModel.md,
+            "node_capacity": True,
+            "water_quality": WaterQuality.post_process,
+            "removal_efficiency_method": RemovalEfficiencyMethod.load_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        }
+    )
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 1,
+        "solver": "cbc",
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+    assert degrees_of_freedom(m.quality) == 1040
+    assert isinstance(m.p_epsilon_TreatmentRemoval, pyo.Param)
+    assert (
+        len(m.p_epsilon_TreatmentRemoval) > 1
+    )  # Check if multiple components have removal efficiency values
+
+
 # if solver cbc exists @solver
 @pytest.mark.component
 def test_infrastructure_buildout(build_toy_strategic_model):
@@ -1655,7 +2172,7 @@ def test_infrastructure_buildout(build_toy_strategic_model):
 
     # Solve models
     solver = get_solver("cbc")
-    solver.options["seconds"] = 60 * 5
+    solver.options["seconds"] = 60 * 2
     results_capacity_based = solver.solve(m_capacity_based, tee=False)
     results_distance_based = solver.solve(m_distance_based, tee=False)
 
@@ -1793,6 +2310,14 @@ def build_workshop_strategic_model():
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     with resources.path(
@@ -1814,15 +2339,15 @@ def test_workshop_build(build_workshop_strategic_model):
     """Make a model and make sure it doesn't throw exception"""
     m = build_workshop_strategic_model(
         config_dict={
-            "objective": Objectives.cost,
+            "objective": Objectives.reuse,
             "pipeline_cost": PipelineCost.distance_based,
             "pipeline_capacity": PipelineCapacity.input,
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 3973
+    assert degrees_of_freedom(m) == 4312
     # Check unit config arguments
-    assert len(m.config) == 8
+    assert len(m.config) == 10
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1856,7 +2381,89 @@ def test_run_workshop_model(build_workshop_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 3851
+    assert degrees_of_freedom(m) == 4188
     assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
+
+
+@pytest.mark.unit
+def test_subsurface_risk_build(build_toy_strategic_model):
+    """Make a model and make sure it doesn't throw exception"""
+    m = build_toy_strategic_model(
+        config_dict={
+            "objective": Objectives.subsurface_risk,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.false,
+            "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
+        }
+    )
+    assert degrees_of_freedom(m) == 7245
+    assert len(m.config) == 10
+    assert m.do_subsurface_risk_calcs
+    assert m.config.objective
+    assert isinstance(m.v_Z_SubsurfaceRisk, pyo.Var)
+    assert isinstance(m.ObjectiveFunctionSubsurfaceRisk, pyo.Constraint)
+    assert isinstance(m.ExcludeUnderAndOverPressuredDisposalWells, pyo.Constraint)
+
+
+# if solver cbc exists @solver
+@pytest.mark.component
+def test_run_subsurface_risk_model(build_workshop_strategic_model):
+    m = build_workshop_strategic_model(
+        config_dict={
+            "objective": Objectives.subsurface_risk,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.false,
+            "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
+        }
+    )
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": False,
+        "scaling_factor": 1000,
+        "running_time": 60 * 5,
+        "gap": 0,
+        "only_subsurface_block": True,
+    }
+
+    solve_model(model=m, options=options)
+
+    options["only_subsurface_block"] = False
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert degrees_of_freedom(m) == 4187
+    assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z_SubsurfaceRisk)
+    with nostdout():
+        assert is_feasible(m)
+
+
+@pytest.mark.unit
+def test_exceptions(build_toy_strategic_model):
+    """Check for certain exceptions when building or modifying models"""
+    with pytest.raises(Exception) as excinfo:
+        build_toy_strategic_model(config_dict={"objective": -1})
+        assert "Objective not supported" in str(excinfo.value)
+
+    with pytest.raises(Exception) as excinfo:
+        m = build_toy_strategic_model(
+            config_dict={
+                "objective": Objectives.cost,
+                "subsurface_risk": SubsurfaceRisk.false,
+            }
+        )
+        set_objective(m, Objectives.subsurface_risk)
+        assert "Subsurface risk objective has not been created" in str(excinfo.value)

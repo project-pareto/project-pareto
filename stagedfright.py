@@ -249,7 +249,6 @@ def pytest_run(
     ignore_ini_file: bool = True,
     collect_all: bool = True,
 ) -> pytest.ExitCode:
-
     items = list(StagedFile.from_paths(to_inspect))
 
     testpath = Path(testpath).resolve()

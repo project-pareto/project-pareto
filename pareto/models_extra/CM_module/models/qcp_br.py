@@ -436,7 +436,6 @@ def build_qcp_br(data):
     model.Cconc = pyo.ConstraintList(doc="Completions pad Concentration")
     for n in model.s_NC:
         for t in model.s_T:
-
             # condition where completion pad is producing
             if model.p_FGen[n, t] > 0 and model.p_FCons[n, t] == 0:
                 model.Cflow.add(
