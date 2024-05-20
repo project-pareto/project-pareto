@@ -174,7 +174,6 @@ def create_model(df_sets, df_parameters):
 
 
 if __name__ == "__main__":
-
     # Tabs in the input Excel spreadsheet
     set_list = ["ProductionPads", "CompletionsPads", "SWDSites", "ProductionTanks"]
     parameter_list = [
