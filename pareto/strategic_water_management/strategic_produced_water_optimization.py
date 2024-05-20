@@ -17,6 +17,7 @@ import math
 from cmath import nan
 import numpy as np
 import os
+import re
 
 
 from pyomo.environ import (

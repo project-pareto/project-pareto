@@ -294,6 +294,7 @@ def check_required_data(df_sets, df_parameters, config):
             Objectives.cost: [],
             Objectives.reuse: [],
             Objectives.subsurface_risk: [],
+            Objectives.cost_surrogate: []
         },
         config_required_params={
             Objectives.cost: [],
@@ -308,6 +309,7 @@ def check_required_data(df_sets, df_parameters, config):
                 "SWDAveragePressure",
                 "SWDRiskFactors",
             ],
+            Objectives.cost_surrogate: ["DesalinationSurrogate"]
         },
     )
     data_error_items.extend(objectives_config_errors)
