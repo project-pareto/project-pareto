@@ -199,7 +199,6 @@ CONFIG.declare(
 )
 
 
-
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
