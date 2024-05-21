@@ -60,6 +60,8 @@ and a dictionary that contains parameters in the following format:
 
 
 
+.. note::
+    Custom data tabs can optionally be passed to the function as shown above. If the custom data tabs include invalid PARETO input, the data is not incorporated into the PARETO model unless the models are modified.
 
 .. _get_data_set_consistency_check:
 
