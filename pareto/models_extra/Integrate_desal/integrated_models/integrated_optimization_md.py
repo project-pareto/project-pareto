@@ -12,7 +12,7 @@
 #####################################################################################################
 import pyomo.environ as pyo
 from pareto.models_extra.Integrate_desal.models.qcp_desal import build_network
-from pareto.examples.Membrane_Distillation.MD_single_stage_continuous_recirculation import (
+from pareto.models_extra.desalination_models.MD_single_stage_continuous_recirculation import (
     build,
     set_operating_conditions,
     initialize_system,
