@@ -22,10 +22,7 @@ import requests
 import numpy as np
 import warnings
 
-set_tabs_operational_model = [
-    "ProductionTanks",
-    "ReuseOptions"
-]
+set_tabs_operational_model = ["ProductionTanks", "ReuseOptions"]
 set_tabs_strategic_model = [
     "ReuseOptions",
     "PipelineDiameters",
@@ -56,8 +53,7 @@ parameter_tabs_operational_model = [
     "CompletionsPadStorage",
     "ReuseOperationalCost",
     "PadStorageCost",
-    "ExternalWaterQuality"
-
+    "ExternalWaterQuality",
 ]
 parameter_tabs_strategic_model = [
     "Units",
@@ -194,6 +190,8 @@ parameter_tabs_all_models = [
 """
 List of all sets and parameters to be obtained by get_data() function
 """
+
+
 def get_valid_input_set_tab_names(model_type):
     valid_input_set = set_tabs_all_models
     if model_type == "strategic":
@@ -212,6 +210,7 @@ def get_valid_input_parameter_tab_names(model_type):
     elif model_type == "critical_mineral":
         valid_input_param.extend(parameter_tabs_critical_mineral_model)
     return valid_input_param
+
 
 def _read_data(_fname, _set_list, _parameter_list, _model_type):
     """
@@ -432,7 +431,13 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     return _df_parameters
 
 
-def get_data(fname, set_list=None, parameter_list=None, model_type="strategic", sum_repeated_indexes=False):
+def get_data(
+    fname,
+    set_list=None,
+    parameter_list=None,
+    model_type="strategic",
+    sum_repeated_indexes=False,
+):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -498,9 +503,7 @@ def get_data(fname, set_list=None, parameter_list=None, model_type="strategic", 
         )
     else:
         # Invalid model type provided, raise warning and use default (strategic)
-        warning_message = (
-                f"An invalid model type has been provided. Strategic model type has been assumed. If you would like to run as a different model type, please re-run with one of the following model types: 'strategic', 'operational', 'extra_models'"
-        )
+        warning_message = f"An invalid model type has been provided. Strategic model type has been assumed. If you would like to run as a different model type, please re-run with one of the following model types: 'strategic', 'operational', 'extra_models'"
         warnings.warn(
             warning_message,
             UserWarning,

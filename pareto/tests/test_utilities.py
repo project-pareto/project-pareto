@@ -85,6 +85,7 @@ def fetch_strategic_model(config_dict):
 
     return strategic_model, options, results
 
+
 #
 # ############################
 # def test_utilities_wout_quality():
