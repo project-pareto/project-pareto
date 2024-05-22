@@ -80,7 +80,7 @@ def get_valid_piping_arc_list():
 
 # Process the input data (df_sets, df_parameters) from get_data.py.
 # Raise errors and warnings for missing data and infeasibilities.
-def check_required_data(df_sets, df_parameters, config):
+def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     # Import config options within module to avoid circular module imports
     from pareto.strategic_water_management.strategic_produced_water_optimization import (
         WaterQuality,
@@ -643,7 +643,7 @@ def check_required_data(df_sets, df_parameters, config):
     # raise warning if empty dictionary or default is used.
     default_used = []
     # Defaults - Sets
-    all_set_input_tabs = get_valid_input_set_tab_names()
+    all_set_input_tabs = get_valid_input_set_tab_names(model_type)
 
     for set_tab in all_set_input_tabs:
         if set_tab not in df_sets.keys():
@@ -662,7 +662,7 @@ def check_required_data(df_sets, df_parameters, config):
             default_used.append(input_tab)
     # If an empty dictionary is passed to create_model(), the default value for the parameter
     # is defined at the initialization of the parameter
-    all_parameter_input_tabs = get_valid_input_parameter_tab_names()
+    all_parameter_input_tabs = get_valid_input_parameter_tab_names(model_type)
     for param_tab in all_parameter_input_tabs:
         if param_tab not in df_parameters.keys():
             df_parameters[param_tab] = {}

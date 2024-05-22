@@ -22,148 +22,205 @@ import requests
 import numpy as np
 import warnings
 
+set_tabs_operational_model = [
+    "ProductionTanks",
+    "ReuseOptions"
+]
+set_tabs_strategic_model = [
+    "ReuseOptions",
+    "PipelineDiameters",
+    "StorageCapacities",
+    "InjectionCapacities",
+    "TreatmentCapacities",
+    "TreatmentTechnologies",
+]
+set_tabs_all_models = [
+    "ProductionPads",
+    "CompletionsPads",
+    "SWDSites",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
+    "StorageSites",
+    "TreatmentSites",
+    "NetworkNodes",
+]
+parameter_tabs_operational_model = [
+    "Units",
+    "PAL",
+    "TankFlowbackRates",
+    "ProductionRates",
+    "ProductionTankCapacity",
+    "DisposalCapacity",
+    "TreatmentCapacity",
+    "PadOffloadingCapacity",
+    "CompletionsPadStorage",
+    "ReuseOperationalCost",
+    "PadStorageCost",
+    "ExternalWaterQuality"
 
-def get_valid_input_set_tab_names():
-    return [
-        "ProductionPads",
-        "CompletionsPads",
-        "SWDSites",
-        "ExternalWaterSources",
-        "WaterQualityComponents",
-        "StorageSites",
-        "TreatmentSites",
-        "ReuseOptions",
-        "NetworkNodes",
-        "PipelineDiameters",
-        "StorageCapacities",
-        "InjectionCapacities",
-        "TreatmentCapacities",
-        "TreatmentTechnologies",
-    ]
+]
+parameter_tabs_strategic_model = [
+    "Units",
+    "Elevation",
+    "DesalinationTechnologies",
+    "CompletionsPadOutsideSystem",
+    "DesalinationSites",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
+    "InitialPipelineCapacity",
+    "InitialDisposalCapacity",
+    "InitialTreatmentCapacity",
+    "InitialStorageLevel",
+    "PadOffloadingCapacity",
+    "CompletionsPadStorage",
+    "ReuseOperationalCost",
+    "ExternalWaterQuality",
+    "InitialStorageCapacity",
+    "RemovalEfficiency",
+    "StorageCost",
+    "StorageWithdrawalRevenue",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
+    "WellPressure",
+    "NodeCapacities",
+    "InitialPipelineDiameters",
+    "ReuseMinimum",
+    "ReuseCapacity",
+    "PipelineDiameterValues",
+    "DisposalCapacityIncrements",
+    "StorageCapacityIncrements",
+    "TreatmentCapacityIncrements",
+    "PipelineCapacityIncrements",
+    "DisposalExpansionCost",
+    "StorageExpansionCost",
+    "TreatmentExpansionCost",
+    "PipelineCapexDistanceBased",
+    "PipelineCapexCapacityBased",
+    "PipelineExpansionDistance",
+    "Hydraulics",
+    "Economics",
+    "PadStorageInitialWaterQuality",
+    "DisposalOperatingCapacity",
+    "TreatmentExpansionLeadTime",
+    "DisposalExpansionLeadTime",
+    "StorageExpansionLeadTime",
+    "PipelineExpansionLeadTime_Dist",
+    "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
+    "DesalinationSurrogate",
+]
+parameter_tabs_critical_mineral_model = [
+    "ComponentPrice",
+    "ComponentTreatment",
+    "MinTreatmentFlow",
+    "MinResidualQuality",
+    "CompletionsPadOutsideSystem",
+    "DesalinationSites",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
+    "InitialPipelineCapacity",
+    "InitialDisposalCapacity",
+    "InitialTreatmentCapacity",
+    "InitialStorageLevel",
+    "InitialStorageCapacity",
+    "RemovalEfficiency",
+    "StorageCost",
+    "StorageWithdrawalRevenue",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
+]
+parameter_tabs_all_models = [
+    "PCA",
+    "PNA",
+    "PPA",
+    "CNA",
+    "CCA",
+    "NNA",
+    "NCA",
+    "NKA",
+    "NRA",
+    "NSA",
+    "FCA",
+    "FNA",
+    "RCA",
+    "RNA",
+    "RSA",
+    "SCA",
+    "SNA",
+    "SKA",
+    "SRA",
+    "ROA",
+    "RKA",
+    "SOA",
+    "NOA",
+    "PCT",
+    "PKT",
+    "PST",
+    "PRT",
+    "POT",
+    "FCT",
+    "CST",
+    "CCT",
+    "CKT",
+    "CRT",
+    "SCT",
+    "SKT",
+    "RST",
+    "ROT",
+    "SOT",
+    "RKT",
+    "CompletionsDemand",
+    "PadRates",
+    "FlowbackRates",
+    "TruckingTime",
+    "ExtWaterSourcingAvailability",
+    "DisposalOperationalCost",
+    "TreatmentOperationalCost",
+    "PipelineOperationalCost",
+    "TruckingHourlyCost",
+    "ExternalSourcingCost",
+    "TreatmentEfficiency",
+    "PadWaterQuality",
+    "StorageInitialWaterQuality",
+]
+
+"""
+List of all sets and parameters to be obtained by get_data() function
+"""
+def get_valid_input_set_tab_names(model_type):
+    valid_input_set = set_tabs_all_models
+    if model_type == "strategic":
+        valid_input_set.extend(set_tabs_strategic_model)
+    elif model_type == "operational":
+        valid_input_set.extend(set_tabs_operational_model)
+    return valid_input_set
 
 
-def get_valid_input_parameter_tab_names():
-    return [
-        "Units",
-        "PCA",
-        "PNA",
-        "PPA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NRA",
-        "NSA",
-        "FCA",
-        "FNA",
-        "RCA",
-        "RNA",
-        "RSA",
-        "SCA",
-        "SNA",
-        "SKA",
-        "SRA",
-        "ROA",
-        "RKA",
-        "SOA",
-        "NOA",
-        "PCT",
-        "PKT",
-        "PST",
-        "PRT",
-        "POT",
-        "FCT",
-        "CST",
-        "CCT",
-        "CKT",
-        "CRT",
-        "SCT",
-        "SKT",
-        "RST",
-        "ROT",
-        "SOT",
-        "RKT",
-        "Elevation",
-        "CompletionsPadOutsideSystem",
-        "DesalinationTechnologies",
-        "DesalinationSites",
-        "BeneficialReuseCost",
-        "BeneficialReuseCredit",
-        "TruckingTime",
-        "CompletionsDemand",
-        "PadRates",
-        "FlowbackRates",
-        "WellPressure",
-        "NodeCapacities",
-        "InitialPipelineCapacity",
-        "InitialPipelineDiameters",
-        "InitialDisposalCapacity",
-        "InitialTreatmentCapacity",
-        "ReuseMinimum",
-        "ReuseCapacity",
-        "InitialStorageLevel",
-        "StorageCost",
-        "StorageWithdrawalRevenue",
-        "ExtWaterSourcingAvailability",
-        "PadOffloadingCapacity",
-        "CompletionsPadStorage",
-        "DisposalOperationalCost",
-        "TreatmentOperationalCost",
-        "ReuseOperationalCost",
-        "PipelineOperationalCost",
-        "ExternalSourcingCost",
-        "TruckingHourlyCost",
-        "PipelineDiameterValues",
-        "DisposalCapacityIncrements",
-        "InitialStorageCapacity",
-        "StorageCapacityIncrements",
-        "TreatmentCapacityIncrements",
-        "TreatmentEfficiency",
-        "RemovalEfficiency",
-        "DisposalExpansionCost",
-        "StorageExpansionCost",
-        "TreatmentExpansionCost",
-        "PipelineCapexDistanceBased",
-        "PipelineCapexCapacityBased",
-        "PipelineCapacityIncrements",
-        "PipelineExpansionDistance",
-        "Hydraulics",
-        "Economics",
-        "ExternalWaterQuality",
-        "PadWaterQuality",
-        "StorageInitialWaterQuality",
-        "PadStorageInitialWaterQuality",
-        "DisposalOperatingCapacity",
-        "TreatmentExpansionLeadTime",
-        "DisposalExpansionLeadTime",
-        "StorageExpansionLeadTime",
-        "PipelineExpansionLeadTime_Dist",
-        "PipelineExpansionLeadTime_Capac",
-        "SWDDeep",
-        "SWDAveragePressure",
-        "SWDProxPAWell",
-        "SWDProxInactiveWell",
-        "SWDProxEQ",
-        "SWDProxFault",
-        "SWDProxHpOrLpWell",
-        "SWDRiskFactors",
-        "ComponentPrice",
-        "ComponentTreatment",
-        "MinTreatmentFlow",
-        "MinResidualQuality",
-        "DesalinationSurrogate",
-    ]
+def get_valid_input_parameter_tab_names(model_type):
+    valid_input_param = parameter_tabs_all_models
+    if model_type == "strategic":
+        valid_input_param.extend(parameter_tabs_strategic_model)
+    elif model_type == "operational":
+        valid_input_param.extend(parameter_tabs_operational_model)
+    elif model_type == "critical_mineral":
+        valid_input_param.extend(parameter_tabs_critical_mineral_model)
+    return valid_input_param
 
-
-def _read_data(_fname, _set_list, _parameter_list):
+def _read_data(_fname, _set_list, _parameter_list, _model_type):
     """
     This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
-    pareto_input_set_tab_names = get_valid_input_set_tab_names()
-    pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names()
+    pareto_input_set_tab_names = get_valid_input_set_tab_names(_model_type)
+    pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names(_model_type)
 
     if _set_list is not None:
         valid_set_tab_names = pareto_input_set_tab_names
@@ -375,7 +432,7 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     return _df_parameters
 
 
-def get_data(fname, set_list=None, parameter_list=None, sum_repeated_indexes=False):
+def get_data(fname, set_list=None, parameter_list=None, model_type="strategic", sum_repeated_indexes=False):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
     - Sets are assumed to not have neither a header nor an index column. In addition, the data
@@ -388,6 +445,8 @@ def get_data(fname, set_list=None, parameter_list=None, sum_repeated_indexes=Fal
     - set_list and parameter_list are optional parameters. When they are not given, tabs with
       valid PARETO labels are read. Otherwise, the specified tabs in set_list and
       parameter_list are read in addition to valid PARETO input tabs.
+    - model_type is an additional optional parameter which indicates why type of model data is being read for.
+      Valid inputs: 'strategic', 'operational', 'critical_mineral'. The default is 'strategic'.
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
@@ -430,10 +489,27 @@ def get_data(fname, set_list=None, parameter_list=None, sum_repeated_indexes=Fal
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
     """
-    # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
-    [_df_sets, _df_parameters, data_column] = _read_data(
-        fname, set_list, parameter_list
-    )
+
+    # Call _read_data with the correct model type
+    if model_type in ["strategic", "operational", "critical_mineral"]:
+        # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
+        [_df_sets, _df_parameters, data_column] = _read_data(
+            fname, set_list, parameter_list, model_type
+        )
+    else:
+        # Invalid model type provided, raise warning and use default (strategic)
+        warning_message = (
+                f"An invalid model type has been provided. Strategic model type has been assumed. If you would like to run as a different model type, please re-run with one of the following model types: 'strategic', 'operational', 'extra_models'"
+        )
+        warnings.warn(
+            warning_message,
+            UserWarning,
+            stacklevel=3,
+        )
+        # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
+        [_df_sets, _df_parameters, data_column] = _read_data(
+            fname, set_list, parameter_list, _model_type="strategic"
+        )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
     _df_parameters = _cleanup_data(_df_parameters)

@@ -1011,10 +1011,11 @@ def test_strategic_model_UI_display_units():
     ) as fpath:
         [df_sets, df_parameters] = get_data(fpath)
 
-    input_sheet_names = get_valid_input_set_tab_names()
-    input_sheet_names.extend(get_valid_input_parameter_tab_names())
-    UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
-    assert UI_display_units
+    for model_type in ["strategic", "operational", "critical_mineral"]:
+        input_sheet_names = get_valid_input_set_tab_names(model_type)
+        input_sheet_names.extend(get_valid_input_parameter_tab_names(model_type))
+        UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
+        assert UI_display_units
 
 
 @pytest.fixture(scope="module")

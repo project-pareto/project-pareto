@@ -40,7 +40,7 @@ class TestCMqcpModel:
             "pareto.models_extra.CM_module.case_studies",
             "CM_small_permian.xlsx",
         ) as fpath:
-            [df_sets, df_parameters] = get_data(fpath)
+            [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
             data = data_parser(df_sets, df_parameters)
 
@@ -81,7 +81,7 @@ class TestAddFeatures:
             "pareto.models_extra.CM_module.case_studies",
             "CM_small_permian.xlsx",
         ) as fpath:
-            [df_sets, df_parameters] = get_data(fpath)
+            [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
         data = data_parser(df_sets, df_parameters)
         return data, df_sets, df_parameters
