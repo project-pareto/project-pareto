@@ -86,7 +86,6 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
     Raises:
         SolverError if no mapping for the option key is found for the given solver.
     """
-    # TODO: Adding reslim for gams based solvers.
     name_key_mapping = {
         "gurobi": "timeLimit",
         "gurobi_direct": "timeLimit",
