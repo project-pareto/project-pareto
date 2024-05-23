@@ -252,7 +252,7 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
 
     if len(unused_tab_list) > 0:
         warning_message = (
-            f"Invalid PARETO input has been provided and has NOT been parsed. Check that the input tab names match valid PARETO input. If you'd like to read custom tabs (e.g., PARETO output files), please pass a list of the custom tab names to get_data(). The following tabs are NOT parsed: "
+            f"Invalid PARETO input has been provided. Check that the input tab names match valid PARETO input. If you'd like to read custom tabs (e.g., PARETO output files), please pass a list of the custom tab names to get_data(). The following tabs are not standard PARETO inputs: "
             + str(unused_tab_list)
         )
         warnings.warn(
