@@ -33,7 +33,6 @@ from pareto.utilities.results import (
     nostdout,
 )
 from importlib import resources
-import pyomo.environ as pyo
 
 
 # This emulates what the pyomo command-line tools does
@@ -162,8 +161,7 @@ strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_toy_case_study.xlsx"
-    # "strategic_treatment_demo_modified.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
@@ -185,7 +183,7 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost_surrogate,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
@@ -202,8 +200,8 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 10000,
-    "gap": 100,
+    "running_time": 200,
+    "gap": 0,
 }
 
 results = solve_model(model=strategic_model, options=options)
@@ -227,11 +225,11 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     results_obj=results,
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
-    fname="MD_surrogate_UB_100.xlsx",
+    fname="strategic_optimization_results.xlsx",
 )
 
 # This shows how to read data from PARETO reports
 set_list = []
 parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "MD_surrogate_UB_100.xlsx"
+fname = "strategic_optimization_results.xlsx"
 [sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)
