@@ -34,6 +34,22 @@ idaes get-extensions --verbose
 
 See the "For developers" pages in the [PARETO GitHub Wiki](https://github.com/project-pareto/project-pareto/wiki).
 
+## How to Cite PARETO software
+If you are using the current version of the repository, please cite the resource:
+
+```
+@misc{https://doi.org/10.18141/2308839,
+  doi = {10.18141/2308839},
+  url = {https://www.osti.gov/servlets/purl/2308839/},
+  author = {Susarla,  Naresh and Arnold,  Travis and Shamlou,  Elmira and Tominac,  Philip and Beattie,  Keith and Zamarripa,  Miguel and Drouven,  Markus and Gunter,  Dan and Bianchi,  Ludovico and Pesce,  Michael and Shellman,  Melody and Poon,  Sarah},
+  keywords = {PARETO, PARETO-UI, PSE, Process Systems Engineering, Produced water, Water},
+  language = {en},
+  title = {PARETO 0.8.0 Release},
+  publisher = {National Energy Technology Laboratory - Energy Data eXchange; NETL},
+  year = {2023}
+}
+```
+
 ## Funding Acknowledgement
 
 This work was conducted as part of the Produced Water Optimization Initiative, “Project PARETO”,
