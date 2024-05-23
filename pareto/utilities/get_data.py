@@ -707,15 +707,6 @@ def get_display_units(input_sheet_name_list, user_units):
         "StorageInitialWaterQuality": user_units["concentration"],
         "PadStorageInitialWaterQuality": user_units["concentration"],
         "DisposalOperatingCapacity": "fraction",
-        # additional operational model tabs
-        "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
-        "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
-        "ProductionTankCapacity": user_units["volume"],
-        "PRT": "",
-        "CRT": "",
-        "PAL": "",
-        "PadStorageCost": user_units["volume"],
-        "ProductionRates": user_units["volume"] + "/" + user_units["time"],
         "TreatmentExpansionLeadTime": user_units["decision period"],
         "DisposalExpansionLeadTime": user_units["decision period"],
         "StorageExpansionLeadTime": user_units["decision period"],
@@ -752,6 +743,16 @@ def get_display_units(input_sheet_name_list, user_units):
         "InjectionCapacities": "",
         "TreatmentCapacities": "",
         "TreatmentTechnologies": "",
+        # additional operational model tabs
+        "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
+        "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
+        "ProductionTankCapacity": user_units["volume"],
+        "PRT": "",
+        "CRT": "",
+        "PAL": "",
+        "PadStorageCost": user_units["volume"],
+        "ProductionRates": user_units["volume"] + "/" + user_units["time"],
+        "TankFlowbackRates": user_units["volume"] + "/" + user_units["time"],
     }
 
     return {sheet: unit_dict[sheet] for sheet in input_sheet_name_list}
