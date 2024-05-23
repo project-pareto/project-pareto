@@ -86,208 +86,208 @@ def fetch_strategic_model(config_dict):
     return strategic_model, options, results
 
 
-#
-# ############################
-# def test_utilities_wout_quality():
-#     config_dict = {
-#         "objective": Objectives.cost,
-#         "pipeline_cost": PipelineCost.distance_based,
-#         "pipeline_capacity": PipelineCapacity.input,
-#         "node_capacity": True,
-#         "water_quality": WaterQuality.false,
-#         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-#     }
-#     model, _, _ = fetch_strategic_model(config_dict)
-#
-#     # Add bounds and check to confirm that bounds have been added
-#     model = VariableBounds(model)
-#     check_01 = not all(
-#         model.v_F_Piped[ll, t].upper is None for ll in model.s_LLA for t in model.s_T
-#     )
-#     assert check_01
-#     if __name__ == "__main__":
-#         print(
-#             "After VariableBounds: Not all v_F_Piped upper bounds are None: ", check_01
-#         )
-#
-#     # Free variables with exception list and test that variables have NOT been freed
-#     free_variables(model, exception_list=["v_F_Piped"])
-#     check_02 = not all(
-#         model.v_F_Piped[ll, t].upper is None for ll in model.s_LLA for t in model.s_T
-#     )
-#     assert check_02
-#     if __name__ == "__main__":
-#         print(
-#             "After free_variables with v_F_Piped in exception_list: Not all v_F_Piped upper bounds are None: ",
-#             check_02,
-#         )
-#
-#     # Free variables and test that variables have been freed
-#     free_variables(model)
-#     check_03 = all(
-#         model.v_F_Piped[ll, t].upper is None for ll in model.s_LLA for t in model.s_T
-#     )
-#     assert check_03
-#     if __name__ == "__main__":
-#         print(
-#             "After free_variables with no exception_list: All v_F_Piped upper bounds are None: ",
-#             check_03,
-#         )
-#
-#     # Deactivate slacks and test that slacks have been set to zero
-#     deactivate_slacks(model)
-#     check_04 = all(
-#         [
-#             all(
-#                 value(model.v_S_FracDemand[p, t]) == 0
-#                 for p in model.s_CP
-#                 for t in model.s_T
-#             ),
-#             all(
-#                 value(model.v_S_Production[p, t]) == 0
-#                 for p in model.s_PP
-#                 for t in model.s_T
-#             ),
-#             all(
-#                 value(model.v_S_Flowback[p, t]) == 0
-#                 for p in model.s_CP
-#                 for t in model.s_T
-#             ),
-#             all(
-#                 value(model.v_S_PipelineCapacity[l1, l2]) == 0
-#                 for l1 in model.s_L
-#                 for l2 in model.s_L
-#             ),
-#             all(value(model.v_S_StorageCapacity[s]) == 0 for s in model.s_S),
-#             all(value(model.v_S_DisposalCapacity[k]) == 0 for k in model.s_K),
-#             all(value(model.v_S_TreatmentCapacity[r]) == 0 for r in model.s_R),
-#             all(value(model.v_S_BeneficialReuseCapacity[o]) == 0 for o in model.s_O),
-#         ]
-#     )
-#     assert check_04
-#     if __name__ == "__main__":
-#         print("After deactivate_slacks: All slack variables are 0: ", check_04)
-#
-#
-# ############################
-# def test_utilities_w_post_quality():
-#     config_dict = {
-#         "objective": Objectives.cost,
-#         "pipeline_cost": PipelineCost.distance_based,
-#         "pipeline_capacity": PipelineCapacity.input,
-#         "node_capacity": True,
-#         "water_quality": WaterQuality.post_process,
-#         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-#     }
-#     model, _, _ = fetch_strategic_model(config_dict)
-#
-#     # Add bounds and check to confirm that bounds have been added
-#     model = VariableBounds(model)
-#     check_01 = not all(
-#         model.quality.v_Q[n, q, t].upper is None
-#         for n in model.quality.s_WQL
-#         for q in model.s_QC
-#         for t in model.s_T
-#     )
-#     assert check_01
-#     if __name__ == "__main__":
-#         print("After VariableBounds: Not all v_Q upper bounds are None: ", check_01)
-#
-#     # Free variables with exception list and test that variables have NOT been freed
-#     free_variables(model, exception_list=["quality.v_Q"])
-#     check_02 = not all(
-#         model.quality.v_Q[n, q, t].upper is None
-#         for n in model.quality.s_WQL
-#         for q in model.s_QC
-#         for t in model.s_T
-#     )
-#     assert check_02
-#     if __name__ == "__main__":
-#         print(
-#             "After free_variables with v_Q in exception_list: Not all v_Q upper bounds are None: ",
-#             check_02,
-#         )
-#
-#     # Free variables and test that variables have been freed
-#     free_variables(model)
-#     check_03 = all(
-#         model.quality.v_Q[n, q, t].upper is None
-#         for n in model.quality.s_WQL
-#         for q in model.s_QC
-#         for t in model.s_T
-#     )
-#     assert check_03
-#     if __name__ == "__main__":
-#         print(
-#             "After free_variables with no exception_list: All v_Q upper bounds are None: ",
-#             check_03,
-#         )
-#
-#
-# ############################
-# def test_utilities_w_discrete_quality():
-#     config_dict = {
-#         "objective": Objectives.cost,
-#         "pipeline_cost": PipelineCost.distance_based,
-#         "pipeline_capacity": PipelineCapacity.input,
-#         "node_capacity": True,
-#         "water_quality": WaterQuality.discrete,
-#         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-#     }
-#     model, _, _ = fetch_strategic_model(config_dict)
-#
-#     # Add bounds and check to confirm that bounds have been added
-#     model = VariableBounds(model)
-#     check_01 = not all(
-#         model.v_F_DiscretePiped[key, t, w, q].upper is None
-#         for key in model.s_NonPLP
-#         for t in model.s_T
-#         for w in model.s_QC
-#         for q in model.s_Q
-#     )
-#     assert check_01
-#     if __name__ == "__main__":
-#         print(
-#             "After VariableBounds: Not all v_F_DiscretePiped upper bounds are None: ",
-#             check_01,
-#         )
-#
-#
-# ############################
-# def test_fix_vars():
-#     config_dict = {
-#         "objective": Objectives.cost,
-#         "pipeline_cost": PipelineCost.distance_based,
-#         "pipeline_capacity": PipelineCapacity.input,
-#         "hydraulics": Hydraulics.false,
-#         "node_capacity": True,
-#         "water_quality": WaterQuality.false,
-#         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
-#         "infrastructure_timing": InfrastructureTiming.false,
-#     }
-#     model, options, results = fetch_strategic_model(config_dict)
-#     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
-#     assert results.solver.status == pyo.SolverStatus.ok
-#
-#     fix_vars(model, ["vb_y_Treatment"], ("R01", "MVC", "J2"), 1)
-#     solve_model(model=model, options=options)
-#     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
-#     assert results.solver.status == pyo.SolverStatus.ok
-#     assert model.vb_y_Treatment["R01", "MVC", "J2"].value == 1
-#     assert model.vb_y_Treatment["R01", "MD", "J3"].value == 0
-#     with nostdout():
-#         assert is_feasible(model)
-#
-#     model.vb_y_Treatment["R01", "MVC", "J2"].unfix()
-#
-#     fix_vars(model, ["vb_y_Treatment"], ("R01", "MD", "J3"), 1)
-#     solve_model(model=model, options=options)
-#     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
-#     assert results.solver.status == pyo.SolverStatus.ok
-#     assert model.vb_y_Treatment["R01", "MVC", "J2"].value == 0
-#     assert model.vb_y_Treatment["R01", "MD", "J3"].value == 1
-#     with nostdout():
-#         assert is_feasible(model)
+
+############################
+def test_utilities_wout_quality():
+    config_dict = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": True,
+        "water_quality": WaterQuality.false,
+        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+    }
+    model, _, _ = fetch_strategic_model(config_dict)
+
+    # Add bounds and check to confirm that bounds have been added
+    model = VariableBounds(model)
+    check_01 = not all(
+        model.v_F_Piped[ll, t].upper is None for ll in model.s_LLA for t in model.s_T
+    )
+    assert check_01
+    if __name__ == "__main__":
+        print(
+            "After VariableBounds: Not all v_F_Piped upper bounds are None: ", check_01
+        )
+
+    # Free variables with exception list and test that variables have NOT been freed
+    free_variables(model, exception_list=["v_F_Piped"])
+    check_02 = not all(
+        model.v_F_Piped[ll, t].upper is None for ll in model.s_LLA for t in model.s_T
+    )
+    assert check_02
+    if __name__ == "__main__":
+        print(
+            "After free_variables with v_F_Piped in exception_list: Not all v_F_Piped upper bounds are None: ",
+            check_02,
+        )
+
+    # Free variables and test that variables have been freed
+    free_variables(model)
+    check_03 = all(
+        model.v_F_Piped[ll, t].upper is None for ll in model.s_LLA for t in model.s_T
+    )
+    assert check_03
+    if __name__ == "__main__":
+        print(
+            "After free_variables with no exception_list: All v_F_Piped upper bounds are None: ",
+            check_03,
+        )
+
+    # Deactivate slacks and test that slacks have been set to zero
+    deactivate_slacks(model)
+    check_04 = all(
+        [
+            all(
+                value(model.v_S_FracDemand[p, t]) == 0
+                for p in model.s_CP
+                for t in model.s_T
+            ),
+            all(
+                value(model.v_S_Production[p, t]) == 0
+                for p in model.s_PP
+                for t in model.s_T
+            ),
+            all(
+                value(model.v_S_Flowback[p, t]) == 0
+                for p in model.s_CP
+                for t in model.s_T
+            ),
+            all(
+                value(model.v_S_PipelineCapacity[l1, l2]) == 0
+                for l1 in model.s_L
+                for l2 in model.s_L
+            ),
+            all(value(model.v_S_StorageCapacity[s]) == 0 for s in model.s_S),
+            all(value(model.v_S_DisposalCapacity[k]) == 0 for k in model.s_K),
+            all(value(model.v_S_TreatmentCapacity[r]) == 0 for r in model.s_R),
+            all(value(model.v_S_BeneficialReuseCapacity[o]) == 0 for o in model.s_O),
+        ]
+    )
+    assert check_04
+    if __name__ == "__main__":
+        print("After deactivate_slacks: All slack variables are 0: ", check_04)
+
+
+############################
+def test_utilities_w_post_quality():
+    config_dict = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": True,
+        "water_quality": WaterQuality.post_process,
+        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+    }
+    model, _, _ = fetch_strategic_model(config_dict)
+
+    # Add bounds and check to confirm that bounds have been added
+    model = VariableBounds(model)
+    check_01 = not all(
+        model.quality.v_Q[n, q, t].upper is None
+        for n in model.quality.s_WQL
+        for q in model.s_QC
+        for t in model.s_T
+    )
+    assert check_01
+    if __name__ == "__main__":
+        print("After VariableBounds: Not all v_Q upper bounds are None: ", check_01)
+
+    # Free variables with exception list and test that variables have NOT been freed
+    free_variables(model, exception_list=["quality.v_Q"])
+    check_02 = not all(
+        model.quality.v_Q[n, q, t].upper is None
+        for n in model.quality.s_WQL
+        for q in model.s_QC
+        for t in model.s_T
+    )
+    assert check_02
+    if __name__ == "__main__":
+        print(
+            "After free_variables with v_Q in exception_list: Not all v_Q upper bounds are None: ",
+            check_02,
+        )
+
+    # Free variables and test that variables have been freed
+    free_variables(model)
+    check_03 = all(
+        model.quality.v_Q[n, q, t].upper is None
+        for n in model.quality.s_WQL
+        for q in model.s_QC
+        for t in model.s_T
+    )
+    assert check_03
+    if __name__ == "__main__":
+        print(
+            "After free_variables with no exception_list: All v_Q upper bounds are None: ",
+            check_03,
+        )
+
+
+############################
+def test_utilities_w_discrete_quality():
+    config_dict = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "node_capacity": True,
+        "water_quality": WaterQuality.discrete,
+        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+    }
+    model, _, _ = fetch_strategic_model(config_dict)
+
+    # Add bounds and check to confirm that bounds have been added
+    model = VariableBounds(model)
+    check_01 = not all(
+        model.v_F_DiscretePiped[key, t, w, q].upper is None
+        for key in model.s_NonPLP
+        for t in model.s_T
+        for w in model.s_QC
+        for q in model.s_Q
+    )
+    assert check_01
+    if __name__ == "__main__":
+        print(
+            "After VariableBounds: Not all v_F_DiscretePiped upper bounds are None: ",
+            check_01,
+        )
+
+
+############################
+def test_fix_vars():
+    config_dict = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "hydraulics": Hydraulics.false,
+        "node_capacity": True,
+        "water_quality": WaterQuality.false,
+        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        "infrastructure_timing": InfrastructureTiming.false,
+    }
+    model, options, results = fetch_strategic_model(config_dict)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+
+    fix_vars(model, ["vb_y_Treatment"], ("R01", "MVC", "J2"), 1)
+    solve_model(model=model, options=options)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert model.vb_y_Treatment["R01", "MVC", "J2"].value == 1
+    assert model.vb_y_Treatment["R01", "MD", "J3"].value == 0
+    with nostdout():
+        assert is_feasible(model)
+
+    model.vb_y_Treatment["R01", "MVC", "J2"].unfix()
+
+    fix_vars(model, ["vb_y_Treatment"], ("R01", "MD", "J3"), 1)
+    solve_model(model=model, options=options)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert model.vb_y_Treatment["R01", "MVC", "J2"].value == 0
+    assert model.vb_y_Treatment["R01", "MD", "J3"].value == 1
+    with nostdout():
+        assert is_feasible(model)
 
 
 ############################
@@ -321,7 +321,7 @@ def test_data_check():
         in str(error_record.value)
     )
     assert (
-        "The following inputs are missing and required for the selected config option PipelineCost.capacity_based:{'PipelineCapexCapacityBased'}"
+        "The following inputs are missing and required for the selected config option PipelineCost.capacity_based: {'PipelineCapexCapacityBased'}"
         in str(error_record.value)
     )
 
@@ -377,22 +377,22 @@ def test_data_check():
     # check that the message matches
     assert (
         warning_record[0].message.args[0]
-        == "CompletionsPads are given, but CompletionsPads data is missing. The following tabs have been set to default values:{'CompletionsDemand'}"
+        == "CompletionsPads are given, but CompletionsPads data is missing. Inputs for the following tabs have been set to default values: {'CompletionsDemand'}"
     )
     assert (
         warning_record[1].message.args[0]
-        == "CompletionsPads are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:['CNA', 'CCA', 'CST', 'CCT', 'CKT', 'CRT']"
+        == "CompletionsPads are given, but some piping and trucking arcs are missing. At least one of the following arcs are required (missing sets have been assumed to be empty): ['CNA', 'CCA', 'CST', 'CCT', 'CKT', 'CRT']"
     )
     assert (
-        "StorageSites are given, but StorageSites data is missing. The following tabs have been set to default values:"
+        "StorageSites are given, but StorageSites data is missing. Inputs for the following tabs have been set to default values:"
         in warning_record[2].message.args[0]
     )
     assert (
         warning_record[3].message.args[0]
-        == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:{'TruckingTime'}"
+        == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values: {'TruckingTime'}"
     )
     assert (
-        "The following parameters were missing and default values were substituted:['Economics', 'DesalinationSurrogate']"
+        "The following parameters were missing and default values were substituted: ['Economics', 'DesalinationSurrogate']"
         in warning_record[4].message.args[0]
     )
 
