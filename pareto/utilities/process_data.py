@@ -728,78 +728,87 @@ def model_infeasibility_detection(strategic_model):
             + strategic_model.p_beta_Flowback[p, t]
             for p in strategic_model.s_P
         )
+
     strategic_model.total_pw = Expression(strategic_model.s_T, rule=total_pw_rule)
 
     def total_pw_capacity_rule(strategic_model, t):
         strategic_model.p_sigma_MaxPWCapacity[t] = (
-                sum(
-                    strategic_model.p_gamma_Completions[p, t]
-                    for p in strategic_model.s_P  # Completions Demand
-                )
-                + sum(
-            strategic_model.p_omega_EvaporationRate
-            for s in strategic_model.s_S  # Storage Evaporation
-        )
-                + sum(
-            strategic_model.p_sigma_BeneficialReuse[o, t]
-            if strategic_model.p_sigma_BeneficialReuse[o, t].value >= 0
-            else strategic_model.p_M_Flow
-            for o in strategic_model.s_O
-            # Beneficial Reuse (if user does not specific value, p_sigma_BeneficialReuse is -1)
-            # In this case, Beneficial Reuse at this site has no limit (big M parameter)
-        )
-                + sum(
-            strategic_model.p_sigma_Storage[s]
-            + _get_max_value_for_parameter(strategic_model.p_delta_Storage)
-            for s in strategic_model.s_S  # Storage
-        )
-                + sum(
-            (
+            sum(
+                strategic_model.p_gamma_Completions[p, t]
+                for p in strategic_model.s_P  # Completions Demand
+            )
+            + sum(
+                strategic_model.p_omega_EvaporationRate
+                for s in strategic_model.s_S  # Storage Evaporation
+            )
+            + sum(
+                strategic_model.p_sigma_BeneficialReuse[o, t]
+                if strategic_model.p_sigma_BeneficialReuse[o, t].value >= 0
+                else strategic_model.p_M_Flow
+                for o in strategic_model.s_O
+                # Beneficial Reuse (if user does not specific value, p_sigma_BeneficialReuse is -1)
+                # In this case, Beneficial Reuse at this site has no limit (big M parameter)
+            )
+            + sum(
+                strategic_model.p_sigma_Storage[s]
+                + _get_max_value_for_parameter(strategic_model.p_delta_Storage)
+                for s in strategic_model.s_S  # Storage
+            )
+            + sum(
+                (
                     strategic_model.p_sigma_Disposal[k]
                     + _get_max_value_for_parameter(strategic_model.p_delta_Disposal)
+                )
+                * strategic_model.p_epsilon_DisposalOperatingCapacity[k, t]
+                for k in strategic_model.s_K  # (Initial Disposal + max disposal) * operating capacity
             )
-            * strategic_model.p_epsilon_DisposalOperatingCapacity[k, t]
-            for k in strategic_model.s_K  # (Initial Disposal + max disposal) * operating capacity
-        )
-                + sum(
-            max(
-                [
-                    (
+            + sum(
+                max(
+                    [
+                        (
                             strategic_model.p_sigma_Treatment[r, wt].value
                             + max(
-                        [
-                            strategic_model.p_delta_Treatment[wt, j].value
-                            for j in strategic_model.s_J
-                        ]
-                    )
-                    )
-                    for wt in strategic_model.s_WT
-                ]
-            )
-            for r in strategic_model.s_R
-        )  # Treatment: for each treatment site, select treatment technology that yields the
+                                [
+                                    strategic_model.p_delta_Treatment[wt, j].value
+                                    for j in strategic_model.s_J
+                                ]
+                            )
+                        )
+                        for wt in strategic_model.s_WT
+                    ]
+                )
+                for r in strategic_model.s_R
+            )  # Treatment: for each treatment site, select treatment technology that yields the
             # maximum value for (initial treatment + max treatment expansion)
         )
 
-    strategic_model.total_pw_capacity = Expression(strategic_model.s_T, rule=total_pw_capacity_rule)
+    strategic_model.total_pw_capacity = Expression(
+        strategic_model.s_T, rule=total_pw_capacity_rule
+    )
 
     def total_water_demand_rule(strategic_model, t):
-    # Note: if completions pad is outside system, demand is not required to be met
+        # Note: if completions pad is outside system, demand is not required to be met
         strategic_model.p_gamma_TimePeriodDemand[t] = sum(
             strategic_model.p_gamma_Completions[cp, t]
             if strategic_model.p_chi_OutsideCompletionsPad[cp] == 0
             else 0
             for cp in strategic_model.s_CP
         )
-    strategic_model.total_water_demand = Expression(strategic_model.s_T, rule=total_water_demand_rule)
+
+    strategic_model.total_water_demand = Expression(
+        strategic_model.s_T, rule=total_water_demand_rule
+    )
 
     def total_water_available_rule(strategic_model, t):
         strategic_model.p_sigma_WaterAvailable[t] = strategic_model.p_beta_TotalPW[
-                                                        t
-                                                    ].value + sum(
+            t
+        ].value + sum(
             strategic_model.p_sigma_ExternalWater[f, t] for f in strategic_model.s_F
         )
-    strategic_model.total_water_available = Expression(strategic_model.s_T, rule=total_water_available_rule)
+
+    strategic_model.total_water_available = Expression(
+        strategic_model.s_T, rule=total_water_available_rule
+    )
 
     # For each time period, check for infeasibilities
     for t in strategic_model.s_T:

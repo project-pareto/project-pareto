@@ -32,7 +32,6 @@ from pareto.utilities.get_data import (
     get_display_units,
     get_valid_input_set_tab_names,
     get_valid_input_parameter_tab_names,
-
 )
 from pareto.utilities.units_support import (
     flatten_list,
