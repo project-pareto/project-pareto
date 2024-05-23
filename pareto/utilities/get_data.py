@@ -472,6 +472,14 @@ def get_display_units(input_sheet_name_list, user_units):
         + "/"
         + user_units["distance"],
         "PipelineExpansionLeadTime_Capac": user_units["decision period"],
+        "SWDDeep": "",
+        "SWDAveragePressure": "psi/ft",
+        "SWDProxPAWell": "miles",
+        "SWDProxInactiveWell": "miles",
+        "SWDProxEQ": "miles",
+        "SWDProxFault": "miles",
+        "SWDProxHpOrLpWell": "miles",
+        "SWDRiskFactors": "",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
