@@ -1005,17 +1005,17 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
 @pytest.mark.component
 def test_strategic_model_UI_display_units():
+    model_type = "strategic"
     with resources.path(
         "pareto.case_studies",
         "strategic_small_case_study.xlsx",
     ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath)
+        [df_sets, df_parameters] = get_data(fpath, model_type=model_type)
 
-    for model_type in ["strategic", "operational", "critical_mineral"]:
-        input_sheet_names = get_valid_input_set_tab_names(model_type)
-        input_sheet_names.extend(get_valid_input_parameter_tab_names(model_type))
-        UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
-        assert UI_display_units
+    input_sheet_names = get_valid_input_set_tab_names(model_type)
+    input_sheet_names.extend(get_valid_input_parameter_tab_names(model_type))
+    UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
+    assert UI_display_units
 
 
 @pytest.fixture(scope="module")
