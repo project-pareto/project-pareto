@@ -77,12 +77,8 @@ setup(
         "plotly==5.11.0",
         "kaleido",
         "ipywidgets>=8.0.0",
-<<<<<<< HEAD
-        "tensorflow=2.13.0"
-=======
         "tensorflow==2.13.0",
         "omlt==1.1",
->>>>>>> 81d54fe4d2788bb53eae7c8b5bfad96582781cdb
         # pyproj requires python >= 3.9
         "pyproj ; python_version >= '3.9'",
     ],
