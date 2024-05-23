@@ -81,7 +81,8 @@ def get_valid_piping_arc_list():
 # Process the input data (df_sets, df_parameters) from get_data.py.
 # Raise errors and warnings for missing data and infeasibilities.
 def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
-    # Import config options within module to avoid circular module imports
+    # Import config option classes here instead of at the top of this module to
+    # avoid circular imports
     from pareto.strategic_water_management.strategic_produced_water_optimization import (
         WaterQuality,
         PipelineCost,
@@ -331,9 +332,11 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         },
     )
     data_error_items.extend(water_quality_config_errors)
-    # If post_process of discrete water quality modules are selected config option,
-    # Additional data may be needed, depending on what node types are used in the system
-    # For example, If external water sources are used, external water quality is needed.
+    
+    # If either post_process or discrete config option is selected for water
+    # quality, then additional data may be needed, depending on what node types
+    # are used in the system. For example, If external water sources are used,
+    # external water quality is needed.
     if (
         config.water_quality is WaterQuality.discrete
         or config.water_quality is WaterQuality.post_process
@@ -633,14 +636,14 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             for s in missing_trucking_data:
                 df_parameters[s] = {}
             warning_message = (
-                "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values:"
+                "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values: "
                 + str(missing_trucking_data)
             )
             warnings.warn(warning_message, stacklevel=3)
 
     # Set Default Data
     # Iterate through all expected input. For all input left without data, fill with empty dictionary or default data.
-    # raise warning if empty dictionary or default is used.
+    # Raise warning if empty dictionary or default is used.
     default_used = []
     # Defaults - Sets
     all_set_input_tabs = get_valid_input_set_tab_names(model_type)
@@ -660,6 +663,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         if input_tab not in df_parameters.keys():
             df_parameters[input_tab] = default_values[input_tab]
             default_used.append(input_tab)
+
     # If an empty dictionary is passed to create_model(), the default value for the parameter
     # is defined at the initialization of the parameter
     all_parameter_input_tabs = get_valid_input_parameter_tab_names(model_type)
@@ -667,30 +671,32 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         if param_tab not in df_parameters.keys():
             df_parameters[param_tab] = {}
             default_used.append(param_tab)
+
     # Raise warning for default values
     if len(default_used) > 0:
         warning_message = (
-            f"The following parameters were missing and default values were substituted:"
+            f"The following parameters were missing and default values were substituted: "
             + str(default_used)
         )
         warnings.warn(warning_message, stacklevel=3)
+
     return (df_sets, df_parameters)
 
 
 def model_infeasibility_detection(strategic_model):
     # check_required_data() performs basic feasibility checks:
     # - at least one source node in the model
-    # - at least on sink node in the model
+    # - at least one sink node in the model
     # - each source node has an outgoing arc, each sink node has an incoming arc, and all other nodes have both an incoming and an outgoing arc.
 
     capacity_feasibility_message = []
     demand_feasibility_message = []
     # Checks that for each time period, the volume of produced water is below the maximum capacity limit of sink nodes
-    # Get the total system produced water for each time period (PadRates, FLowbackRates)
+    # Get the total system produced water for each time period (PadRates, FlowbackRates)
     strategic_model.p_beta_TotalPW = Param(
         strategic_model.s_T,
         units=strategic_model.model_units["volume"],
-        doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
+        doc="Combined water supply forecast (flowback & production) at each time period [volume]",
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
 
@@ -708,7 +714,7 @@ def model_infeasibility_detection(strategic_model):
     strategic_model.p_gamma_TimePeriodDemand = Param(
         strategic_model.s_T,
         units=strategic_model.model_units["volume"],
-        doc="Total water demand over the planning horizon [volume]",
+        doc="Total water demand at each time period [volume]",
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
 
@@ -774,6 +780,7 @@ def model_infeasibility_detection(strategic_model):
             )  # Treatment: for each treatment site, select treatment technology that yields the
             # maximum value for (initial treatment + max treatment expansion)
         )
+
         # Note: if completions pad is outside system, demand is not required to be met
         strategic_model.p_gamma_TimePeriodDemand[t] = sum(
             strategic_model.p_gamma_Completions[cp, t]
@@ -867,7 +874,7 @@ def _check_optional_data(
             _missing_tabs = _missing_sets
             _missing_tabs.update(_missing_parameters)
             warning_message = (
-                f"{optional_set_name} are given, but {optional_set_name} data is missing. The following tabs have been set to default values:"
+                f"{optional_set_name} are given, but {optional_set_name} data is missing. Inputs for the following tabs have been set to default values: "
                 + str(_missing_tabs)
             )
             warnings.warn(warning_message, stacklevel=3)
@@ -876,7 +883,7 @@ def _check_optional_data(
             _included_params = set(requires_list) & _df_parameters_set
             if len(_included_params) < 1:
                 warning_message = (
-                    f"{optional_set_name} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required, missing sets have been assumed to be empty:"
+                    f"{optional_set_name} are given, but some piping and trucking arcs are missing. At least one of the following arcs are required (missing sets have been assumed to be empty): "
                     + str(requires_list)
                 )
                 warnings.warn(warning_message, stacklevel=3)
@@ -925,7 +932,7 @@ def _check_config_dependent_data(
         _missing_tabs = _missing_sets
         _missing_tabs.update(_missing_params)
         error_message.append(
-            f"The following inputs are missing and required for the selected config option {config_argument}:"
+            f"The following inputs are missing and required for the selected config option {config_argument}: "
             + str(_missing_tabs)
         )
 
