@@ -198,6 +198,8 @@ def get_valid_input_set_tab_names(model_type):
         valid_input_set.extend(set_tabs_strategic_model)
     elif model_type == "operational":
         valid_input_set.extend(set_tabs_operational_model)
+    elif model_type == "none":
+        valid_input_set = []
     return valid_input_set
 
 
@@ -209,6 +211,8 @@ def get_valid_input_parameter_tab_names(model_type):
         valid_input_param.extend(parameter_tabs_operational_model)
     elif model_type == "critical_mineral":
         valid_input_param.extend(parameter_tabs_critical_mineral_model)
+    elif model_type == "none":
+        valid_input_param = []
     return valid_input_param
 
 
@@ -311,6 +315,14 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
+
+    # If _model_type is "none" and _df_sets is empty, it is assumed that a parameter in column format is being read.
+    # _df_sets is created based on the DataFrame column names, except for the last name,
+    # which is used as the data column name. See test_plot_scatter.py for an example of this use case.
+    if len(_df_sets.keys()) == 0:
+        for i in _df_parameters:
+            valid_set_tab_names.extend(list(_df_parameters[i].columns)[:-1])
+            _data_column.append(list(_df_parameters[i].columns)[-1])
 
     valid_set_tab_names = list(set(valid_set_tab_names))
     _data_column = list(set(_data_column))
@@ -444,7 +456,7 @@ def get_data(
       valid PARETO labels are read. Otherwise, the specified tabs in set_list and
       parameter_list are read in addition to valid PARETO input tabs.
     - model_type is an additional optional parameter which indicates why type of model data is being read for.
-      Valid inputs: 'strategic', 'operational', 'critical_mineral'. The default is 'strategic'.
+      Valid inputs: 'strategic', 'operational', 'critical_mineral', 'none'. The default is 'strategic'.
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
@@ -489,7 +501,7 @@ def get_data(
     """
 
     # Call _read_data with the correct model type
-    if model_type in ["strategic", "operational", "critical_mineral"]:
+    if model_type in ["strategic", "operational", "critical_mineral", "none"]:
         # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
         [_df_sets, _df_parameters, data_column] = _read_data(
             fname, set_list, parameter_list, model_type

@@ -50,8 +50,29 @@ def data_parser(df_sets, df_parameters):
     # ARCS
     d["s_A"] = []
 
-    arcs = get_valid_piping_arc_list()
-    arcs.extend(get_valid_trucking_arc_list())
+    arcs = [
+        "PNA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NRA",
+        "NSA",
+        "SNA",
+        "FNA",
+        "FCA",
+        "RCA",
+        "RSA",
+        "SCA",
+        "RNA",
+        "PCT",
+        "FCT",
+        "PKT",
+        "CKT",
+        "CCT",
+        "CST",
+    ]
 
     # Creating the unified arc set and appending 'Piped' or 'Trucked' to the arc tuple
     for arc_name in arcs:

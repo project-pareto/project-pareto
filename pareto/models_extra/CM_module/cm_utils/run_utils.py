@@ -37,7 +37,7 @@ from pareto.utilities.solvers import get_solver
 
 def load_data(fpath):
     # importing data
-    [df_sets, df_parameters] = get_data(fpath)
+    [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
     data = data_parser(df_sets, df_parameters)
     return data

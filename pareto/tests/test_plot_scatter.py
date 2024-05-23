@@ -35,7 +35,11 @@ def input_data_animated_1():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -69,7 +73,11 @@ def input_data_animated_2():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -101,7 +109,11 @@ def input_data_animated_3():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -133,7 +145,11 @@ def input_data_animated_4():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -163,7 +179,11 @@ def input_data_static_1():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -197,7 +217,11 @@ def input_data_static_2():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -229,7 +253,11 @@ def input_data_static_3():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -261,7 +289,11 @@ def input_data_static_4():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
 
     return {
@@ -346,7 +378,11 @@ def plot_args5():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
     return {
         "plot_title": "Test Data",
@@ -376,7 +412,11 @@ def plot_args5_static():
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
         [df_sets, df_parameters] = get_data(
-            fpath, set_list, parameter_list, sum_repeated_indexes=True
+            fpath,
+            set_list,
+            parameter_list,
+            model_type="none",
+            sum_repeated_indexes=True,
         )
     return {
         "plot_title": "Test Data",
