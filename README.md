@@ -38,13 +38,13 @@ See the "For developers" pages in the [PARETO GitHub Wiki](https://github.com/pr
 If you are using the current version of the repository, please cite the resource:
 
 ```
-@misc{https://doi.org/10.18141/2308839,
-  doi = {10.18141/2308839},
-  url = {https://www.osti.gov/servlets/purl/2308839/},
-  author = {Susarla,  Naresh and Arnold,  Travis and Shamlou,  Elmira and Tominac,  Philip and Beattie,  Keith and Zamarripa,  Miguel and Drouven,  Markus and Gunter,  Dan and Bianchi,  Ludovico and Pesce,  Michael and Shellman,  Melody and Poon,  Sarah},
+@misc{https://doi.org/10.18141/2308838,
+  doi = {10.18141/2308838},
+  url = {https://www.osti.gov/servlets/purl/2308838/},
+  author = {Arnold,  Travis and Shamlou,  Elmira and Susarla,  Naresh and Tominac,  Philip and Beattie,  Keith and Zamarripa,  Miguel and Drouven,  Markus and Gunter,  Dan and Bianchi,  Ludovico and Pesce,  Michael and Shellman,  Melody and Poon,  Sarah},
   keywords = {PARETO, PARETO-UI, PSE, Process Systems Engineering, Produced water, Water},
   language = {en},
-  title = {PARETO 0.8.0 Release},
+  title = {PARETO 0.9.0 Release},
   publisher = {National Energy Technology Laboratory - Energy Data eXchange; NETL},
   year = {2023}
 }
