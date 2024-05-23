@@ -332,7 +332,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         },
     )
     data_error_items.extend(water_quality_config_errors)
-    
+
     # If either post_process or discrete config option is selected for water
     # quality, then additional data may be needed, depending on what node types
     # are used in the system. For example, If external water sources are used,
