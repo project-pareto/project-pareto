@@ -425,7 +425,7 @@ def test_infeasibility_check():
         )
 
     assert (
-        "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: T01 (700196 total koil_bbls PW)"
+        "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: T01 (700196 total koil_bbls PW vs 3089 koil_bbls PW capacity)"
         == str(error_record.value)
     )
 
@@ -455,6 +455,6 @@ def test_infeasibility_check():
         )
 
     assert (
-        "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand)"
+        "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand vs 756 koil_bbls available water)"
         == str(error_record.value)
     )
