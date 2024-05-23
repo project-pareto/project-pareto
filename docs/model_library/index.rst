@@ -70,3 +70,4 @@ Water Management Model Library
     strategic_water_management/index
     water_treatment/index
     Hydraulics/index
+    subsurface_risk_calculation/index

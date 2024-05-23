@@ -92,7 +92,10 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
         "gurobi_direct": "timeLimit",
         "cbc": "seconds",
         "gams:CPLEX": "resLim",
+<<<<<<< HEAD
         "gams": "reslim",
+=======
+>>>>>>> 81d54fe4d2788bb53eae7c8b5bfad96582781cdb
     }
     option_key = name_key_mapping.get(solver.name, None)
     if option_key is None:
