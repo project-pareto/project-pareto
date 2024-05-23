@@ -157,12 +157,8 @@ strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
 strategic_toy_case_study.xlsx
-<<<<<<< HEAD
-strategic_treatment_demo_modified
-=======
 workshop_baseline_all_data.xlsx
 strategic_treatment_demo_surrogates.xlsx
->>>>>>> 81d54fe4d2788bb53eae7c8b5bfad96582781cdb
 """
 with resources.path(
     "pareto.case_studies",
@@ -210,11 +206,7 @@ options = {
     "gap": 100,
 }
 
-<<<<<<< HEAD
-results = solve_model(model=strategic_model, solver="gams:CPLEX", options=options)
-=======
 results = solve_model(model=strategic_model, options=options)
->>>>>>> 81d54fe4d2788bb53eae7c8b5bfad96582781cdb
 
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
