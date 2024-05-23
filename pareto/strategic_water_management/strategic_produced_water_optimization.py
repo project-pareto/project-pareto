@@ -282,12 +282,10 @@ def create_model(df_sets, df_parameters, default={}):
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
-    model.df_sets = df_sets
-    model.df_parameters = df_parameters
 
     # check that input data contains required data
     model.df_sets, model.df_parameters = check_required_data(
-        model.df_sets, model.df_parameters, model.config
+        df_sets, df_parameters, model.config
     )
 
     try:

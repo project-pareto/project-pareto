@@ -418,7 +418,7 @@ def test_infeasibility_check():
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
             "infrastructure_timing": InfrastructureTiming.true,
         }
-        # Model_infeasibility_detection() is called within create_model, after all constraints have been added
+        # model_infeasibility_detection() is called within create_model, after all constraints have been added
         strategic_model = create_model(
             df_sets,
             df_parameters,
@@ -448,7 +448,7 @@ def test_infeasibility_check():
             "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
             "infrastructure_timing": InfrastructureTiming.true,
         }
-        # Model_infeasibility_detection() is called within create_model, after all constraints have been added
+        # model_infeasibility_detection() is called within create_model, after all constraints have been added
         strategic_model = create_model(
             df_sets,
             df_parameters,
