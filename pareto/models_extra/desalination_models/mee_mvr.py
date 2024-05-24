@@ -966,7 +966,9 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # All costs are in kUS$
     def _compressor_capex_con(m):
-        return m.compressor_capex == m.cepci_ratio * (7.9 * m.compressor_capacity**0.62)
+        return m.compressor_capex == m.cepci_ratio * (
+            7.9 * m.compressor_capacity**0.62
+        )
 
     m.compressor_capex_con = pyo.Constraint(rule=_compressor_capex_con)
 
