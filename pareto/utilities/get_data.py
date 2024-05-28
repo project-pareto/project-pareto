@@ -193,7 +193,7 @@ List of all sets and parameters to be obtained by get_data() function
 
 
 def get_valid_input_set_tab_names(model_type):
-    valid_input_set = set_tabs_all_models
+    valid_input_set = set_tabs_all_models.copy()
     if model_type == "strategic":
         valid_input_set.extend(set_tabs_strategic_model)
     elif model_type == "operational":
@@ -204,7 +204,7 @@ def get_valid_input_set_tab_names(model_type):
 
 
 def get_valid_input_parameter_tab_names(model_type):
-    valid_input_param = parameter_tabs_all_models
+    valid_input_param = parameter_tabs_all_models.copy()
     if model_type == "strategic":
         valid_input_param.extend(parameter_tabs_strategic_model)
     elif model_type == "operational":
@@ -226,14 +226,14 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
     pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names(_model_type)
 
     if _set_list is not None:
-        valid_set_tab_names = pareto_input_set_tab_names
+        valid_set_tab_names = pareto_input_set_tab_names.copy()
         valid_set_tab_names.extend(_set_list)
         # De-duplicate
         valid_set_tab_names = list(set(valid_set_tab_names))
     else:
         valid_set_tab_names = pareto_input_set_tab_names
     if _parameter_list is not None:
-        valid_parameter_tab_names = pareto_input_parameter_tab_names
+        valid_parameter_tab_names = pareto_input_parameter_tab_names.copy()
         valid_parameter_tab_names.extend(_parameter_list)
         # De-duplicate
         valid_parameter_tab_names = list(set(valid_parameter_tab_names))
@@ -508,7 +508,7 @@ def get_data(
         )
     else:
         # Invalid model type provided, raise warning and use default (strategic)
-        warning_message = f"An invalid model type has been provided. Strategic model type has been assumed. If you would like to run as a different model type, please re-run with one of the following model types: 'strategic', 'operational', 'extra_models'"
+        warning_message = f"An invalid model type has been provided. Strategic model type has been assumed. If you would like to run as a different model type, please re-run with one of the following model types: 'strategic', 'operational', 'extra_models', 'none'"
         warnings.warn(
             warning_message,
             UserWarning,

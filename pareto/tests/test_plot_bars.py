@@ -22,7 +22,7 @@ def input_data():
     parameter_list = ["test_plot_bar"]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list, model_type="none")
 
     return {
         "pareto_var": df_parameters["test_plot_bar"],
@@ -36,7 +36,7 @@ def input_data_static():
     parameter_list = ["test_plot_bar_static"]
 
     with resources.path("pareto.tests", "visualization_test_data.xlsx") as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list, model_type="none")
 
     return {
         "pareto_var": df_parameters["test_plot_bar_static"],
