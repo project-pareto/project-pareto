@@ -75,8 +75,6 @@ parameter_tabs_strategic_model = [
     "RemovalEfficiency",
     "StorageCost",
     "StorageWithdrawalRevenue",
-    "BeneficialReuseCost",
-    "BeneficialReuseCredit",
     "WellPressure",
     "NodeCapacities",
     "InitialPipelineDiameters",
@@ -129,8 +127,6 @@ parameter_tabs_critical_mineral_model = [
     "RemovalEfficiency",
     "StorageCost",
     "StorageWithdrawalRevenue",
-    "BeneficialReuseCost",
-    "BeneficialReuseCredit",
 ]
 parameter_tabs_all_models = [
     "PCA",
