@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -174,7 +174,6 @@ def create_model(df_sets, df_parameters):
 
 
 if __name__ == "__main__":
-
     # Tabs in the input Excel spreadsheet
     set_list = ["ProductionPads", "CompletionsPads", "SWDSites", "ProductionTanks"]
     parameter_list = [

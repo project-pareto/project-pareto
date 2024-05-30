@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -36,7 +36,8 @@ set_list = [
     "ProductionPads",
     "CompletionsPads",
     "ProductionTanks",
-    "FreshwaterSources",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "SWDSites",
     "TreatmentSites",
@@ -63,7 +64,7 @@ parameter_list = [
     "DisposalCapacity",
     "CompletionsPadStorage",
     "TreatmentCapacity",
-    "FreshwaterSourcingAvailability",
+    "ExtWaterSourcingAvailability",
     "PadOffloadingCapacity",
     "TruckingTime",
     "DisposalOperationalCost",
@@ -72,9 +73,10 @@ parameter_list = [
     "PadStorageCost",
     "PipelineOperationalCost",
     "TruckingHourlyCost",
-    "FreshSourcingCost",
+    "ExternalSourcingCost",
     "ProductionRates",
     "TreatmentEfficiency",
+    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
 ]

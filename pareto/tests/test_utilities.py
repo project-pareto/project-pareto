@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -21,17 +21,22 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     solve_model,
     PipelineCost,
     PipelineCapacity,
+    Hydraulics,
     RemovalEfficiencyMethod,
+    InfrastructureTiming,
 )
 from pareto.utilities.get_data import get_data
+from pareto.utilities.results import is_feasible, nostdout
 from importlib import resources
 
+import pyomo.environ as pyo
 from pyomo.environ import value
 
 # Modules to test:
 from pareto.utilities.bounding_functions import VariableBounds
 from pareto.utilities.model_modifications import free_variables
 from pareto.utilities.model_modifications import deactivate_slacks
+from pareto.utilities.model_modifications import fix_vars
 
 
 ############################
@@ -41,7 +46,8 @@ def fetch_strategic_model(config_dict):
         "ProductionPads",
         "CompletionsPads",
         "SWDSites",
-        "FreshwaterSources",
+        "ExternalWaterSources",
+        "WaterQualityComponents",
         "StorageSites",
         "TreatmentSites",
         "ReuseOptions",
@@ -69,6 +75,7 @@ def fetch_strategic_model(config_dict):
         "SCA",
         "SNA",
         "ROA",
+        "RKA",
         "SOA",
         "NOA",
         "PCT",
@@ -80,28 +87,33 @@ def fetch_strategic_model(config_dict):
         "RST",
         "ROT",
         "SOT",
+        "RKT",
+        "Elevation",
         "CompletionsPadOutsideSystem",
         "DesalinationTechnologies",
         "DesalinationSites",
+        "BeneficialReuseCost",
         "BeneficialReuseCredit",
         "TruckingTime",
         "CompletionsDemand",
         "PadRates",
         "FlowbackRates",
+        "WellPressure",
         "NodeCapacities",
         "InitialPipelineCapacity",
+        "InitialPipelineDiameters",
         "InitialDisposalCapacity",
         "InitialTreatmentCapacity",
         "ReuseMinimum",
         "ReuseCapacity",
-        "FreshwaterSourcingAvailability",
+        "ExtWaterSourcingAvailability",
         "PadOffloadingCapacity",
         "CompletionsPadStorage",
         "DisposalOperationalCost",
         "TreatmentOperationalCost",
         "ReuseOperationalCost",
         "PipelineOperationalCost",
-        "FreshSourcingCost",
+        "ExternalSourcingCost",
         "TruckingHourlyCost",
         "PipelineDiameterValues",
         "DisposalCapacityIncrements",
@@ -119,6 +131,7 @@ def fetch_strategic_model(config_dict):
         "PipelineExpansionDistance",
         "Hydraulics",
         "Economics",
+        "ExternalWaterQuality",
         "PadWaterQuality",
         "StorageInitialWaterQuality",
         "PadStorageInitialWaterQuality",
@@ -130,6 +143,14 @@ def fetch_strategic_model(config_dict):
         "StorageExpansionLeadTime",
         "PipelineExpansionLeadTime_Dist",
         "PipelineExpansionLeadTime_Capac",
+        "SWDDeep",
+        "SWDAveragePressure",
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+        "SWDRiskFactors",
     ]
 
     # user needs to provide the path to the case study data file
@@ -143,7 +164,7 @@ def fetch_strategic_model(config_dict):
 
     # create mathematical model
     """Valid values of config arguments for the default parameter in the create_model() call
-    objective: [Objectives.cost, Objectives.reuse]
+    objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk]
     pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
     pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
     node_capacity: [True, False]
@@ -167,7 +188,7 @@ def fetch_strategic_model(config_dict):
 
     results = solve_model(model=strategic_model, options=options)
 
-    return strategic_model
+    return strategic_model, options, results
 
 
 ############################
@@ -180,7 +201,7 @@ def test_utilities_wout_quality():
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = fetch_strategic_model(config_dict)
+    model, _, _ = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -262,7 +283,7 @@ def test_utilities_w_post_quality():
         "water_quality": WaterQuality.post_process,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = fetch_strategic_model(config_dict)
+    model, _, _ = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -317,7 +338,7 @@ def test_utilities_w_discrete_quality():
         "water_quality": WaterQuality.discrete,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
     }
-    model = fetch_strategic_model(config_dict)
+    model, _, _ = fetch_strategic_model(config_dict)
 
     # Add bounds and check to confirm that bounds have been added
     model = VariableBounds(model)
@@ -337,7 +358,45 @@ def test_utilities_w_discrete_quality():
 
 
 ############################
+def test_fix_vars():
+    config_dict = {
+        "objective": Objectives.cost,
+        "pipeline_cost": PipelineCost.distance_based,
+        "pipeline_capacity": PipelineCapacity.input,
+        "hydraulics": Hydraulics.false,
+        "node_capacity": True,
+        "water_quality": WaterQuality.false,
+        "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+        "infrastructure_timing": InfrastructureTiming.false,
+    }
+    model, options, results = fetch_strategic_model(config_dict)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+
+    fix_vars(model, ["vb_y_Treatment"], ("R01", "MVC", "J2"), 1)
+    solve_model(model=model, options=options)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert model.vb_y_Treatment["R01", "MVC", "J2"].value == 1
+    assert model.vb_y_Treatment["R01", "MD", "J3"].value == 0
+    with nostdout():
+        assert is_feasible(model)
+
+    model.vb_y_Treatment["R01", "MVC", "J2"].unfix()
+
+    fix_vars(model, ["vb_y_Treatment"], ("R01", "MD", "J3"), 1)
+    solve_model(model=model, options=options)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    assert model.vb_y_Treatment["R01", "MVC", "J2"].value == 0
+    assert model.vb_y_Treatment["R01", "MD", "J3"].value == 1
+    with nostdout():
+        assert is_feasible(model)
+
+
+############################
 if __name__ == "__main__":
     test_utilities_wout_quality()
     test_utilities_w_post_quality()
     test_utilities_w_discrete_quality()
+    test_fix_vars()

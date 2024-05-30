@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -21,6 +21,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
+    DesalinationModel,
+    SubsurfaceRisk,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -32,13 +34,15 @@ from pareto.utilities.results import (
 )
 from importlib import resources
 
+
 # This emulates what the pyomo command-line tools does
 # Tabs in the input Excel spreadsheet
 set_list = [
     "ProductionPads",
     "CompletionsPads",
     "SWDSites",
-    "FreshwaterSources",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
     "StorageSites",
     "TreatmentSites",
     "ReuseOptions",
@@ -49,6 +53,7 @@ set_list = [
     "TreatmentCapacities",
     "TreatmentTechnologies",
 ]
+
 parameter_list = [
     "Units",
     "PNA",
@@ -66,6 +71,7 @@ parameter_list = [
     "SCA",
     "SNA",
     "ROA",
+    "RKA",
     "SOA",
     "NOA",
     "PCT",
@@ -77,10 +83,12 @@ parameter_list = [
     "RST",
     "ROT",
     "SOT",
+    "RKT",
     "Elevation",
     "CompletionsPadOutsideSystem",
     "DesalinationTechnologies",
     "DesalinationSites",
+    "BeneficialReuseCost",
     "BeneficialReuseCredit",
     "TruckingTime",
     "CompletionsDemand",
@@ -94,14 +102,14 @@ parameter_list = [
     "InitialTreatmentCapacity",
     "ReuseMinimum",
     "ReuseCapacity",
-    "FreshwaterSourcingAvailability",
+    "ExtWaterSourcingAvailability",
     "PadOffloadingCapacity",
     "CompletionsPadStorage",
     "DisposalOperationalCost",
     "TreatmentOperationalCost",
     "ReuseOperationalCost",
     "PipelineOperationalCost",
-    "FreshSourcingCost",
+    "ExternalSourcingCost",
     "TruckingHourlyCost",
     "PipelineDiameterValues",
     "DisposalCapacityIncrements",
@@ -119,6 +127,8 @@ parameter_list = [
     "PipelineExpansionDistance",
     "Hydraulics",
     "Economics",
+    "DesalinationSurrogate",
+    "ExternalWaterQuality",
     "PadWaterQuality",
     "StorageInitialWaterQuality",
     "PadStorageInitialWaterQuality",
@@ -130,47 +140,61 @@ parameter_list = [
     "StorageExpansionLeadTime",
     "PipelineExpansionLeadTime_Dist",
     "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
 ]
 
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-"""By default, PARETO comes with the following 4 strategic case studies:
+"""By default, PARETO comes with the following 6 strategic case studies:
 strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
 strategic_toy_case_study.xlsx
+workshop_baseline_all_data.xlsx
+strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "strategic_toy_case_study.xlsx",
+    "workshop_baseline_all_data.xlsx",
 ) as fpath:
     [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse, Objectives.environmental]
+ objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk, Objectives.environmental]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize]
+ hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]
+ desalination_model: [DesalinationModel.false, DesalinationModel.mvc, DesalinationModel.md]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
  infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
+ subsurface_risk: [SubsurfaceRisk.false, SubsurfaceRisk.exclude_over_and_under_pressured_wells, SubsurfaceRisk.calculate_risk_metrics]
  """
 
 strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.cost,
+        "objective": Objectives.environmental,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
+        "desalination_model": DesalinationModel.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         "infrastructure_timing": InfrastructureTiming.true,
+        "subsurface_risk": SubsurfaceRisk.false,
     },
 )
 
@@ -183,6 +207,7 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 

@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -249,7 +249,6 @@ def pytest_run(
     ignore_ini_file: bool = True,
     collect_all: bool = True,
 ) -> pytest.ExitCode:
-
     items = list(StagedFile.from_paths(to_inspect))
 
     testpath = Path(testpath).resolve()

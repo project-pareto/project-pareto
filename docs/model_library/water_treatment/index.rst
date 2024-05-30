@@ -237,8 +237,8 @@ Variable Definitions
       - kg/s
       - None
 
-    * - :math:`{F_{freshwater}}`
-      - Flow rate of fresh water
+    * - :math:`{F_{externalwater}}`
+      - Flow rate of externally sourced water
       - kg/s
       - None
 
@@ -287,8 +287,8 @@ Variable Definitions
       - :math:`{^{\circ} C}`
       - None
 
-    * - :math:`{T_{freshwater}}`
-      - Temperature of fresh water
+    * - :math:`{T_{externalwater}}`
+      - Temperature of externally sourced water
       - :math:`{^{\circ} C}`
       - None
 
@@ -642,13 +642,13 @@ Mass balance in the mixer:
 
 .. math:: 
     
-    F_{fresh water} = \sum_{i = 1}^{I}F_{vapor}^{i}
+    F_{externalwater} = \sum_{i = 1}^{I}F_{vapor}^{i}
 
 Energy balance in the mixer:
 
 .. math:: 
 
-    T_{mix}^{out} = \frac{\sum_{i = 1}^{I} F_{vapor}^{(i)}T_{brine^{(i)}}}{F_{freshwater}}
+    T_{mix}^{out} = F^{I}_{vapor}T_{cond}^{1} + \sum_{i = 1}^{I}F_{vapor}^{(i-1)}T_{cond}^{i}
 
 Preheater Model
 +++++++++++++++
@@ -657,7 +657,7 @@ Energy balance in the preheater:
 
 .. math:: 
 
-    F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
+    F_{externalwater}C_p^{mix}(T_{mix}^{out} - T_{externalwater}) = F_{in}C_{p}^{feed}(T_{in} - T_{feed})
 
 **Thermodynamic Relations**
 
@@ -681,7 +681,7 @@ Preheater LMTD calculation:
 
     \theta_{1ph} = T_{mix}^{out} - T_{in}
 
-    \theta_{2ph} = T_{freshwater} - T_{feed}
+    \theta_{2ph} = T_{externalwater} - T_{feed}
 
      LMTD_{ph} = (0.5 \theta_{1ph} \theta_{2ph}(\theta_{1ph} + \theta_{2ph}))^{1/3}
 
@@ -691,7 +691,7 @@ Preheater area calculation:
 
 .. math:: 
 
-    A_{ph} = \frac{F_{freshwater}C_p^{mix}(T_{mix}^{out} - T_{freshwater})}{U_{ph}LMTD_{ph}}
+    A_{ph} = \frac{F_{externalwater}C_p^{mix}(T_{mix}^{out} - T_{externalwater})}{U_{ph}LMTD_{ph}}
 
 Bounds for feasible operation:
 
@@ -722,23 +722,24 @@ Bounds for feasible operation:
 Objective function
 ++++++++++++++++++
 
-The goal is to minimize the total annualized cost (TAC) of the treatent unit. CAPEX of the equipments were calculated using empirical relations from IDAES costing. Assuming the evaporator is a U-tube heat exchanger, the CAPEX of the evaporators in kUSD is given by:
+The goal is to minimize the total annualized cost (TAC) of the treatent unit. CAPEX of the equipments were calculated using empirical relations from Couper et. al. Assuming the evaporator is a falling film evaporator made of nickel steel to avoid corrosion, the
+annualized CAPEX in kUSD is given by:
 
 .. math:: 
 
-    CAPEX_{evap} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.05}{1000}\sum_{i = 1}^{N_{evap}} exp(11.3852 -0.9186(log(A_{evap}^{(i)}\times 1.1)) + 0.0979(log(A_{evap}^{(i)}\times 1.1))^2 )
+    CAPEX_{evap} = \frac{CEPCI_{2022}}{CEPCI_{base}} \times f_m \times 1.218 \sum_{i = 1}^I exp\Bigl[3.2362 - 0.0126 \log(\bar{A}^{(i)}_{evap} \times 10.64) + 0.0244\log(\bar{A}^{(i)}_{evap} \times 10.64)^2\Bigr]
 
-CAPEX of centrifugal compressor in kUSD is given by:
+CAPEX of centrifugal compressor made of carbon steel in kUSD is given by:
 
 .. math:: 
 
-    CAPEX_{compr} = \frac{CEPCI_{2022}}{CEPCI_{base}}\sum_{i = 1}^{N_{compr}} exp(7.58 + 0.8\times log(\mathcal{C}_{compr}))
+    CAPEX_{compr} = \frac{CEPCI_{2022}}{CEPCI_{base}}\sum_{i = 1}^{N_{compr}} 7.9\mathcal{C}_{compr}^{0.62}
 
 Assuming the preheater is a U-tube heat exchanger, the CAPEX of the preheater is given by:
 
 .. math:: 
 
-    CAPEX_{ph} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.05}{1000} (exp(11.3852 -0.9186(log(A_{ph} \times 1.1)) + 0.0979(log(A_{ph} \times 1.1))^2 ))
+    CAPEX_{ph} = \frac{CEPCI_{2022}}{CEPCI_{base}}\frac{1.218}{1000} ( exp\Bigl[-0.9816 + 0.0830 \log(\bar{A}^{ph} \times 10.64)\Bigr] \times exp\Bigl[8.821 - 0.308 \log(\bar{A}^{ph} \times 10.64) + 0.0681 \log(\bar{A}^{ph} \times 10.64)^2\Bigr])
 
 Note: For CAPEX calculation, the areas have to be in sq. ft.
 

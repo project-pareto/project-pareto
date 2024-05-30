@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2023 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -89,6 +89,26 @@ class PintUnitExtractionVisitor(EXPR.StreamBasedExpressionVisitor):
             "An unhandled expression node type: {} was encountered while retrieving the"
             " units of expression".format(str(nodetype), str(node))
         )
+
+    def _get_unit_for_single_child(self, node, child_units):
+        """
+        Return (and test) the units corresponding to a unary operation (e.g. negation)
+        expression node in the expression tree.
+
+        Parameters
+        ----------
+        node : Pyomo expression node
+            The parent node of the children
+
+        child_units : list
+           This is a list of pint units (one for each of the children)
+
+        Returns
+        -------
+        : pint unit
+        """
+        assert len(child_units) == 1
+        return child_units[0]
 
 
 def flatten_list(input_list):
