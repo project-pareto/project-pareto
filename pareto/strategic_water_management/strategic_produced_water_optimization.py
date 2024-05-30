@@ -200,7 +200,6 @@ CONFIG.declare(
 )
 
 
-
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
 def get_strategic_model_unit_container():
@@ -2579,7 +2578,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.objective_Emissions = Objective(
-        expr=model.v_Z_emissions, sense=maximize, doc="Objective function - minimize emissions"
+        expr=model.v_Z_emissions,
+        sense=maximize,
+        doc="Objective function - minimize emissions",
     )
 
     model.objective_Emissions.deactivate()
