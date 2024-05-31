@@ -230,7 +230,6 @@ def build_network(data):
     )
 
     # --------------------VARIABLES-----------------------------
-    # TODO: Do the bounds properly
     model.v_F = pyo.Var(
         model.s_A,
         model.s_T,

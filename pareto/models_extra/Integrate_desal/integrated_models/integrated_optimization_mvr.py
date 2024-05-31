@@ -144,7 +144,6 @@ def integrated_model_build(network_data, treatment_dict={"R01_IN": 1}):
         m.m_network.desalination_nodes, m.m_network.s_T, domain=pyo.NonNegativeReals
     )
 
-    # ToDo: Global capacity variables initialization from treatment model solves
     # Initialization for global variables
     global_var_init = {}
     for site in m.m_network.desalination_nodes:
