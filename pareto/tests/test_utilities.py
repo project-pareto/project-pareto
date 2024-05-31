@@ -24,6 +24,7 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
+    CONFIG,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import is_feasible, nostdout
@@ -31,126 +32,22 @@ from importlib import resources
 
 import pyomo.environ as pyo
 from pyomo.environ import value
+import pytest
 
 # Modules to test:
 from pareto.utilities.bounding_functions import VariableBounds
 from pareto.utilities.model_modifications import free_variables
 from pareto.utilities.model_modifications import deactivate_slacks
 from pareto.utilities.model_modifications import fix_vars
+from pareto.utilities.process_data import (
+    check_required_data,
+    MissingDataError,
+    DataInfeasibilityError,
+)
 
 
 ############################
 def fetch_strategic_model(config_dict):
-    # Tabs in the input Excel spreadsheet
-    set_list = [
-        "ProductionPads",
-        "CompletionsPads",
-        "SWDSites",
-        "ExternalWaterSources",
-        "WaterQualityComponents",
-        "StorageSites",
-        "TreatmentSites",
-        "ReuseOptions",
-        "NetworkNodes",
-        "PipelineDiameters",
-        "StorageCapacities",
-        "InjectionCapacities",
-        "TreatmentCapacities",
-        "TreatmentTechnologies",
-    ]
-    parameter_list = [
-        "Units",
-        "PNA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NRA",
-        "NSA",
-        "FCA",
-        "RCA",
-        "RNA",
-        "RSA",
-        "SCA",
-        "SNA",
-        "ROA",
-        "RKA",
-        "SOA",
-        "NOA",
-        "PCT",
-        "PKT",
-        "FCT",
-        "CST",
-        "CCT",
-        "CKT",
-        "RST",
-        "ROT",
-        "SOT",
-        "RKT",
-        "Elevation",
-        "CompletionsPadOutsideSystem",
-        "DesalinationTechnologies",
-        "DesalinationSites",
-        "BeneficialReuseCost",
-        "BeneficialReuseCredit",
-        "TruckingTime",
-        "CompletionsDemand",
-        "PadRates",
-        "FlowbackRates",
-        "WellPressure",
-        "NodeCapacities",
-        "InitialPipelineCapacity",
-        "InitialPipelineDiameters",
-        "InitialDisposalCapacity",
-        "InitialTreatmentCapacity",
-        "ReuseMinimum",
-        "ReuseCapacity",
-        "ExtWaterSourcingAvailability",
-        "PadOffloadingCapacity",
-        "CompletionsPadStorage",
-        "DisposalOperationalCost",
-        "TreatmentOperationalCost",
-        "ReuseOperationalCost",
-        "PipelineOperationalCost",
-        "ExternalSourcingCost",
-        "TruckingHourlyCost",
-        "PipelineDiameterValues",
-        "DisposalCapacityIncrements",
-        "InitialStorageCapacity",
-        "StorageCapacityIncrements",
-        "TreatmentCapacityIncrements",
-        "TreatmentEfficiency",
-        "RemovalEfficiency",
-        "DisposalExpansionCost",
-        "StorageExpansionCost",
-        "TreatmentExpansionCost",
-        "PipelineCapexDistanceBased",
-        "PipelineCapexCapacityBased",
-        "PipelineCapacityIncrements",
-        "PipelineExpansionDistance",
-        "Hydraulics",
-        "Economics",
-        "ExternalWaterQuality",
-        "PadWaterQuality",
-        "StorageInitialWaterQuality",
-        "PadStorageInitialWaterQuality",
-        "DisposalOperatingCapacity",
-        "TreatmentExpansionLeadTime",
-        "DisposalExpansionLeadTime",
-        "StorageExpansionLeadTime",
-        "PipelineExpansionLeadTime_Dist",
-        "PipelineExpansionLeadTime_Capac",
-        "SWDDeep",
-        "SWDAveragePressure",
-        "SWDProxPAWell",
-        "SWDProxInactiveWell",
-        "SWDProxEQ",
-        "SWDProxFault",
-        "SWDProxHpOrLpWell",
-        "SWDRiskFactors",
-    ]
-
     # user needs to provide the path to the case study data file
     # for example: 'C:\\user\\Documents\\myfile.xlsx'
     # note the double backslashes '\\' in that path reference
@@ -158,7 +55,7 @@ def fetch_strategic_model(config_dict):
         "pareto.case_studies",
         "strategic_toy_case_study.xlsx",
     ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(fpath)
 
     # create mathematical model
     """Valid values of config arguments for the default parameter in the create_model() call
@@ -393,8 +290,171 @@ def test_fix_vars():
 
 
 ############################
-if __name__ == "__main__":
-    test_utilities_wout_quality()
-    test_utilities_w_post_quality()
-    test_utilities_w_discrete_quality()
-    test_fix_vars()
+def test_data_check():
+    # Check that MissingDataError is correctly raised
+    # This input sheet is missing the following tabs:
+    # 'Units', 'ProductionPads', 'CompletionsPads',
+    # 'ExternalWaterSources', and 'PipelineCapexCapacityBased'
+    # (the latter of which is required for the PipelineCost.capacity_based option)
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_data_error.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+        with pytest.raises(MissingDataError) as error_record:
+            default = {
+                "objective": Objectives.cost,
+                "pipeline_cost": PipelineCost.capacity_based,
+                "pipeline_capacity": PipelineCapacity.input,
+                "hydraulics": Hydraulics.false,
+                "node_capacity": True,
+                "water_quality": WaterQuality.false,
+                "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+                "infrastructure_timing": InfrastructureTiming.true,
+            }
+            check_required_data(df_sets, df_parameters, CONFIG(default))
+        # Note sets are not ordered, so cannot compare the exact error message
+        assert (
+            "Essential data is incomplete. Please add the following missing data tabs: Units, One of tabs "
+            in str(error_record.value)
+        )
+        assert (
+            "The following inputs are missing and required for the selected config option PipelineCost.capacity_based: {'PipelineCapexCapacityBased'}"
+            in str(error_record.value)
+        )
+
+    # Check a secondary case that MissingDataError is correctly raised
+    # This input sheet is missing the tab "CompletionsPads", while still including subsequent tabs that depend on this Set
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_data_error2.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+        with pytest.raises(MissingDataError) as error2_record:
+            default = {
+                "objective": Objectives.cost,
+                "pipeline_cost": PipelineCost.capacity_based,
+                "pipeline_capacity": PipelineCapacity.input,
+                "hydraulics": Hydraulics.false,
+                "node_capacity": True,
+                "water_quality": WaterQuality.false,
+                "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+                "infrastructure_timing": InfrastructureTiming.true,
+            }
+            check_required_data(df_sets, df_parameters, CONFIG(default))
+        # Note sets are not ordered, so cannot compare the exact error message
+        assert (
+            'Essential data is incomplete. Parameter data for CompletionsPads is given, but the "CompletionsPads" Set is missing. Please add and complete the following tab(s): CompletionsPads, or remove the following Parameters:'
+            in str(error2_record.value)
+        )
+
+    # Check that warnings are correctly raised
+    # This input sheet is missing the tabs "TruckingTime", "CompletionsDemand", "CNA", "CCA", "CST", "CCT","CKT","CRT", and "Economics"
+    # Three warnings should be raised
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_data_warning.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+        with pytest.warns(UserWarning) as warning_record:
+            default = {
+                "objective": Objectives.cost,
+                "pipeline_cost": PipelineCost.capacity_based,
+                "pipeline_capacity": PipelineCapacity.input,
+                "hydraulics": Hydraulics.false,
+                "node_capacity": True,
+                "water_quality": WaterQuality.false,
+                "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+                "infrastructure_timing": InfrastructureTiming.true,
+            }
+            check_required_data(df_sets, df_parameters, CONFIG(default))
+        # check that only one warning was raised
+        assert len(warning_record) == 5
+        # check that the message matches
+        assert (
+            warning_record[0].message.args[0]
+            == "CompletionsPads are given, but CompletionsPads data is missing. Inputs for the following tabs have been set to default values: {'CompletionsDemand'}"
+        )
+        assert (
+            warning_record[1].message.args[0]
+            == "CompletionsPads are given, but some piping and trucking arcs are missing. At least one of the following arcs are required (missing sets have been assumed to be empty): ['CNA', 'CCA', 'CST', 'CCT', 'CKT', 'CRT']"
+        )
+        assert (
+            "StorageSites are given, but StorageSites data is missing. Inputs for the following tabs have been set to default values:"
+            in warning_record[2].message.args[0]
+        )
+        assert (
+            warning_record[3].message.args[0]
+            == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values: {'TruckingTime'}"
+        )
+        assert (
+            "The following parameters were missing and default values were substituted: ['Economics', 'DesalinationSurrogate']"
+            in warning_record[4].message.args[0]
+        )
+
+
+############################
+def test_infeasibility_check():
+    # Check that DataInfeasibilityError is correctly raised for system capacity and demand infeasibilities
+    # This input sheet has a very high volume of flowback water in T01
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_infeasibility_capacity.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+        with pytest.raises(DataInfeasibilityError) as error_record:
+            config_dict = {
+                "objective": Objectives.cost,
+                "pipeline_cost": PipelineCost.capacity_based,
+                "pipeline_capacity": PipelineCapacity.input,
+                "hydraulics": Hydraulics.false,
+                "node_capacity": True,
+                "water_quality": WaterQuality.false,
+                "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+                "infrastructure_timing": InfrastructureTiming.true,
+            }
+            # model_infeasibility_detection() is called within create_model, after all constraints have been added
+            strategic_model = create_model(
+                df_sets,
+                df_parameters,
+                default=config_dict,
+            )
+
+        assert (
+            "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: T01 (700196 total koil_bbls PW vs 3089 koil_bbls PW capacity)"
+            == str(error_record.value)
+        )
+
+    # This input sheet has a very high completions demand in T01
+    with resources.path(
+        "pareto.tests",
+        "strategic_toy_case_study_infeasibility_demand.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+        with pytest.raises(DataInfeasibilityError) as error_record:
+            config_dict = {
+                "objective": Objectives.cost,
+                "pipeline_cost": PipelineCost.capacity_based,
+                "pipeline_capacity": PipelineCapacity.input,
+                "hydraulics": Hydraulics.false,
+                "node_capacity": True,
+                "water_quality": WaterQuality.false,
+                "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+                "infrastructure_timing": InfrastructureTiming.true,
+            }
+            # model_infeasibility_detection() is called within create_model, after all constraints have been added
+            strategic_model = create_model(
+                df_sets,
+                df_parameters,
+                default=config_dict,
+            )
+
+        assert (
+            "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand vs 756 koil_bbls available water)"
+            == str(error_record.value)
+        )
