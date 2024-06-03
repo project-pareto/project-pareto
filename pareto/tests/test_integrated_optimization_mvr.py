@@ -15,10 +15,6 @@ import pytest
 import pyomo.environ as pyo
 from importlib import resources
 from pareto.utilities.get_data import get_data
-from pareto.models_extra.CM_module.set_param_list import (
-    set_list,
-    parameter_list,
-)
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 from pareto.models_extra.Integrate_desal.integrated_models.integrated_optimization_mvr import (
     integrated_model_build,
@@ -33,7 +29,7 @@ class TestIntegratedOptimizationMvr:
             "pareto.case_studies",
             "integrated_desalination_demo.xlsx",
         ) as fpath:
-            [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+            [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
             data = data_parser(df_sets, df_parameters)
         m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 1})
@@ -47,7 +43,7 @@ class TestIntegratedOptimizationMvr:
             "pareto.case_studies",
             "integrated_desalination_demo.xlsx",
         ) as fpath:
-            [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+            [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
             data = data_parser(df_sets, df_parameters)
         m = integrated_model_build(network_data=data, treatment_dict={"R01_IN": 2})
