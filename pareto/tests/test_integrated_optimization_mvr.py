@@ -26,8 +26,8 @@ ipopt_avail = pyo.SolverFactory("ipopt").available()
 class TestIntegratedOptimizationMvr:
     def test_single_stage_mvr(self):
         with resources.path(
-            "pareto.case_studies",
-            "integrated_desalination_demo.xlsx",
+            "pareto.models_extra.CM_module.case_studies",
+            "CM_integrated_desalination_demo.xlsx",
         ) as fpath:
             [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
@@ -40,8 +40,8 @@ class TestIntegratedOptimizationMvr:
 
     def test_two_stage_mvr(self):
         with resources.path(
-            "pareto.case_studies",
-            "integrated_desalination_demo.xlsx",
+            "pareto.models_extra.CM_module.case_studies",
+            "CM_integrated_desalination_demo.xlsx",
         ) as fpath:
             [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
