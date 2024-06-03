@@ -28,7 +28,6 @@ from pareto.models_extra.CM_module.cm_utils.run_utils import print_results_summa
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 
 from importlib import resources
-from pareto.models_extra.CM_module.set_param_list import set_list, parameter_list
 
 
 # load the case study
@@ -38,7 +37,7 @@ with resources.path(
     "pareto.models_extra.CM_module.case_studies",
     "CM_small_permian.xlsx",
 ) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    [df_sets, df_parameters] = get_data(fpath, model_type="critical_mineral")
 
 data = data_parser(df_sets, df_parameters)
 
