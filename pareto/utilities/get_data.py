@@ -20,7 +20,6 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 import logging
 import warnings
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -33,6 +32,196 @@ import warnings
 
 
 _logger = logging.getLogger(__name__)
+
+
+set_tabs_operational_model = ["ProductionTanks", "ReuseOptions"]
+set_tabs_strategic_model = [
+    "ReuseOptions",
+    "PipelineDiameters",
+    "StorageCapacities",
+    "InjectionCapacities",
+    "TreatmentCapacities",
+    "TreatmentTechnologies",
+]
+set_tabs_all_models = [
+    "ProductionPads",
+    "CompletionsPads",
+    "SWDSites",
+    "ExternalWaterSources",
+    "WaterQualityComponents",
+    "StorageSites",
+    "TreatmentSites",
+    "NetworkNodes",
+]
+parameter_tabs_operational_model = [
+    "Units",
+    "PAL",
+    "TankFlowbackRates",
+    "ProductionRates",
+    "ProductionTankCapacity",
+    "DisposalCapacity",
+    "TreatmentCapacity",
+    "PadOffloadingCapacity",
+    "CompletionsPadStorage",
+    "ReuseOperationalCost",
+    "PadStorageCost",
+    "ExternalWaterQuality",
+]
+parameter_tabs_strategic_model = [
+    "Units",
+    "Elevation",
+    "DesalinationTechnologies",
+    "CompletionsPadOutsideSystem",
+    "DesalinationSites",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
+    "InitialPipelineCapacity",
+    "InitialDisposalCapacity",
+    "InitialTreatmentCapacity",
+    "InitialStorageLevel",
+    "PadOffloadingCapacity",
+    "CompletionsPadStorage",
+    "ReuseOperationalCost",
+    "ExternalWaterQuality",
+    "InitialStorageCapacity",
+    "RemovalEfficiency",
+    "StorageCost",
+    "StorageWithdrawalRevenue",
+    "WellPressure",
+    "NodeCapacities",
+    "InitialPipelineDiameters",
+    "ReuseMinimum",
+    "ReuseCapacity",
+    "PipelineDiameterValues",
+    "DisposalCapacityIncrements",
+    "StorageCapacityIncrements",
+    "TreatmentCapacityIncrements",
+    "PipelineCapacityIncrements",
+    "DisposalExpansionCost",
+    "StorageExpansionCost",
+    "TreatmentExpansionCost",
+    "PipelineCapexDistanceBased",
+    "PipelineCapexCapacityBased",
+    "PipelineExpansionDistance",
+    "Hydraulics",
+    "Economics",
+    "PadStorageInitialWaterQuality",
+    "DisposalOperatingCapacity",
+    "TreatmentExpansionLeadTime",
+    "DisposalExpansionLeadTime",
+    "StorageExpansionLeadTime",
+    "PipelineExpansionLeadTime_Dist",
+    "PipelineExpansionLeadTime_Capac",
+    "SWDDeep",
+    "SWDAveragePressure",
+    "SWDProxPAWell",
+    "SWDProxInactiveWell",
+    "SWDProxEQ",
+    "SWDProxFault",
+    "SWDProxHpOrLpWell",
+    "SWDRiskFactors",
+    "DesalinationSurrogate",
+]
+parameter_tabs_critical_mineral_model = [
+    "ComponentPrice",
+    "ComponentTreatment",
+    "MinTreatmentFlow",
+    "MinResidualQuality",
+    "CompletionsPadOutsideSystem",
+    "DesalinationSites",
+    "BeneficialReuseCost",
+    "BeneficialReuseCredit",
+    "InitialPipelineCapacity",
+    "InitialDisposalCapacity",
+    "InitialTreatmentCapacity",
+    "InitialStorageLevel",
+    "InitialStorageCapacity",
+    "RemovalEfficiency",
+    "StorageCost",
+    "StorageWithdrawalRevenue",
+]
+parameter_tabs_all_models = [
+    "PCA",
+    "PNA",
+    "PPA",
+    "CNA",
+    "CCA",
+    "NNA",
+    "NCA",
+    "NKA",
+    "NRA",
+    "NSA",
+    "FCA",
+    "FNA",
+    "RCA",
+    "RNA",
+    "RSA",
+    "SCA",
+    "SNA",
+    "SKA",
+    "SRA",
+    "ROA",
+    "RKA",
+    "SOA",
+    "NOA",
+    "PCT",
+    "PKT",
+    "PST",
+    "PRT",
+    "POT",
+    "FCT",
+    "CST",
+    "CCT",
+    "CKT",
+    "CRT",
+    "SCT",
+    "SKT",
+    "RST",
+    "ROT",
+    "SOT",
+    "RKT",
+    "CompletionsDemand",
+    "PadRates",
+    "FlowbackRates",
+    "TruckingTime",
+    "ExtWaterSourcingAvailability",
+    "DisposalOperationalCost",
+    "TreatmentOperationalCost",
+    "PipelineOperationalCost",
+    "TruckingHourlyCost",
+    "ExternalSourcingCost",
+    "TreatmentEfficiency",
+    "PadWaterQuality",
+    "StorageInitialWaterQuality",
+]
+
+"""
+List of all sets and parameters to be obtained by get_data() function
+"""
+
+
+def get_valid_input_set_tab_names(model_type):
+    valid_input_set = set_tabs_all_models.copy()
+    if model_type == "strategic":
+        valid_input_set.extend(set_tabs_strategic_model)
+    elif model_type == "operational":
+        valid_input_set.extend(set_tabs_operational_model)
+    elif model_type == "none":
+        valid_input_set = []
+    return valid_input_set
+
+
+def get_valid_input_parameter_tab_names(model_type):
+    valid_input_param = parameter_tabs_all_models.copy()
+    if model_type == "strategic":
+        valid_input_param.extend(parameter_tabs_strategic_model)
+    elif model_type == "operational":
+        valid_input_param.extend(parameter_tabs_operational_model)
+    elif model_type == "critical_mineral":
+        valid_input_param.extend(parameter_tabs_critical_mineral_model)
+    elif model_type == "none":
+        valid_input_param = []
+    return valid_input_param
 
 
 try:
@@ -72,15 +261,13 @@ class DataLoadingError(ValueError):
 
 def _sheets_to_dfs(
     src: Union[str, Path],
-    sheets: Iterable[str],
     raises: bool = True,
     **kwargs,
 ) -> Dict[str, pd.DataFrame]:
     out = {}
     failed = {}
     file = pd.ExcelFile(src)
-    sheets_to_load = list(sheets or file.sheet_names)
-    for sheet_name in sheets_to_load:
+    for sheet_name in file.sheet_names:
         try:
             df = pd.read_excel(file, sheet_name=sheet_name, **kwargs).squeeze("columns")
         except Exception as e:
@@ -106,6 +293,7 @@ def _read_data(
     _fname,
     _set_list: Iterable[str],
     _parameter_list: Iterable[str],
+    _model_type: str = "strategic",
     raises: bool = True,
 ):
     """
@@ -118,17 +306,62 @@ def _read_data(
     _logger.debug("_set_list: %s", _set_list)
     _logger.debug("_parameter_list: %s", _parameter_list)
 
+    pareto_input_set_tab_names = get_valid_input_set_tab_names(_model_type)
+    pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names(_model_type)
+
+    if _set_list is not None:
+        valid_set_tab_names = pareto_input_set_tab_names.copy()
+        valid_set_tab_names.extend(_set_list)
+        # De-duplicate
+        valid_set_tab_names = list(set(valid_set_tab_names))
+    else:
+        valid_set_tab_names = pareto_input_set_tab_names
+
+    if _parameter_list is not None:
+        valid_parameter_tab_names = pareto_input_parameter_tab_names.copy()
+        valid_parameter_tab_names.extend(_parameter_list)
+        # De-duplicate
+        valid_parameter_tab_names = list(set(valid_parameter_tab_names))
+    else:
+        valid_parameter_tab_names = pareto_input_parameter_tab_names
+
+    # Check all names available in the input sheet
+    # If the sheet name is unused (not a valid Set or Parameter tab, not "Overview", and not "Schematic"), raise a warning.
+    unused_tab_list = []
+    df = pd.ExcelFile(_fname)
+    sheet_list = df.sheet_names
+    for name in sheet_list:
+        if (
+            name not in valid_set_tab_names
+            and name not in valid_parameter_tab_names
+            and name != "Overview"
+            and name != "Schematic"
+        ):
+            unused_tab_list.append(name)
+
+    if len(unused_tab_list) > 0:
+        warning_message = (
+            f"Invalid PARETO input has been provided. Check that the input tab names match valid PARETO input. If you'd like to read custom tabs (e.g., PARETO output files), please pass a list of the custom tab names to get_data(). The following tabs are not standard PARETO inputs for the selected model type: "
+            + str(unused_tab_list)
+        )
+        warnings.warn(
+            warning_message,
+            UserWarning,
+            stacklevel=3,
+        )
+
     _df_sets = {}
     _df_parameters = {}
 
     _temp_df_parameters = {}
     _data_column = ["value"]
     proprietary_data = False
+
     # pd.read_excel() does not support empty lists in recent versions of pandas
     if _set_list:
+        # Read all tabs in the input file
         _df_sets = _sheets_to_dfs(
             _fname,
-            sheets=_set_list,
             raises=raises,
             header=0,
             index_col=None,
@@ -136,6 +369,12 @@ def _read_data(
             dtype="string",
             keep_default_na=False,
         )
+
+    # Filter for sets - remove tabs that are not specified as sets by user and
+    # are not valid PARETO inputs
+    _df_sets = {
+        key: value for key, value in _df_sets.items() if key in valid_set_tab_names
+    }
 
     # Cleaning Sets. Checking for empty entries, and entries with the keyword: PROPRIETARY DATA
     for df in _df_sets:
@@ -146,27 +385,38 @@ def _read_data(
         _df_sets[df].dropna(inplace=True)
 
     if _parameter_list:
+        # Read all tabs in the input file
         _df_parameters = _sheets_to_dfs(
             _fname,
-            sheets=_parameter_list,
             raises=raises,
             header=1,
             index_col=None,
             usecols=None,
             keep_default_na=False,
         )
+
+    # Filter for parameters - remove tabs that are not specified as parameters
+    # by user and are not valid PARETO inputs
+    _df_parameters = {
+        key: value
+        for key, value in _df_parameters.items()
+        if key in valid_parameter_tab_names
+    }
+
+    # Cleaning inputs.
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
-    # If _set_list is empty, it is assumed that a parameter is column format is being read.
-    # and _set_list is created based on the DataFrame column names, except for the last name,
-    # which is used as the data column name.
-    if len(_set_list) == 0:
+
+    # If _model_type is "none" and _df_sets is empty, it is assumed that a parameter in column format is being read.
+    # _df_sets is created based on the DataFrame column names, except for the last name,
+    # which is used as the data column name. See test_plot_scatter.py for an example of this use case.
+    if len(_df_sets.keys()) == 0:
         for i in _df_parameters:
-            _set_list.extend(list(_df_parameters[i].columns)[:-1])
+            valid_set_tab_names.extend(list(_df_parameters[i].columns)[:-1])
             _data_column.append(list(_df_parameters[i].columns)[-1])
 
-    _set_list = list(set(_set_list))
+    valid_set_tab_names = list(set(valid_set_tab_names))
     _data_column = list(set(_data_column))
     generic_words = ["index", "nodes", "time", "pads", "quantity"]
     remove_columns = ["unnamed", "proprietary data"]
@@ -208,9 +458,9 @@ def _read_data(
         index_col = []
         for j in _df_parameters[i].columns:
             # If a column name is in the set_list or in the list of keywords, it is assumed the column is an index and saved in index_col
-            if str(j).split(".")[0].lower() in [s.lower() for s in _set_list] or any(
-                x in str(j).lower() for x in generic_words
-            ):
+            if str(j).split(".")[0].lower() in [
+                s.lower() for s in valid_set_tab_names
+            ] or any(x in str(j).lower() for x in generic_words):
                 index_col.append(j)
 
         # If the number of index_col is equal to the total columns of the dataframe
@@ -253,7 +503,6 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     _df_parameters = {}
     _temp_df_parameters = {}
     for i in data_frame:
-
         # If the data frame is empty, that is, no input data was provided in the Excel
         # file then an empty parameter is created:
         if data_frame[i].empty:
@@ -280,7 +529,12 @@ def _df_to_param(data_frame, data_column, sum_repeated_indexes):
 
 
 def get_data(
-    fname, set_list, parameter_list, sum_repeated_indexes=False, raises: bool = False
+    fname,
+    set_list=None,
+    parameter_list=None,
+    model_type="strategic",
+    sum_repeated_indexes=False,
+    raises: bool = False,
 ):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
@@ -291,6 +545,11 @@ def get_data(
       The header should start in row 2, and the index column should start in cell A3.
       Column format: Does not require a header. Each set should be placed in one column,
       starting from column A and row 3. Data should be provided in the last column.
+    - set_list and parameter_list are optional parameters. When they are not given, tabs with
+      valid PARETO labels are read. Otherwise, the specified tabs in set_list and
+      parameter_list are read in addition to valid PARETO input tabs.
+    - model_type is an additional optional parameter which indicates why type of model data is being read for.
+      Valid inputs: 'strategic', 'operational', 'critical_mineral', 'none'. The default is 'strategic'.
 
     By default, errors encountered while performing data pre-processing are collected and displayed as warnings.
     If ``raises=True``, an exception will be raised instead.
@@ -336,48 +595,24 @@ def get_data(
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
     """
-    # Check all names available in the input sheet
-    set_list_common = []
-    parameter_list_common = []
-    df = pd.ExcelFile(fname)
-    sheet_list = df.sheet_names
-    for name in sheet_list:
-        if name in set_list:
-            set_list_common.append(name)
-        elif name in parameter_list:
-            parameter_list_common.append(name)
-        # If the sheet name is unused (not a Set or Parameter tab, "Overview", or "Schematic"), raise a warning.
-        else:
-            if name != "Overview" and name != "Schematic":
-                warnings.warn(
-                    f"{name} is not found in defined sets or parameters but is parsed in the input data",
-                    UserWarning,
-                    stacklevel=2,
-                )
-    # Check that expected Set tabs are included in input sheet. If they are missing, raise a warning.
-    for sets in set_list:
-        if sets not in set_list_common:
-            warnings.warn(
-                f"{sets} is defined in set_list but not parsed in the input data",
-                UserWarning,
-                stacklevel=2,
-            )
-    # Check that expected Parameter tabs are included in input sheet. If they are missing, raise a warning.
-    for params in parameter_list:
-        if params not in parameter_list_common:
-            warnings.warn(
-                f"{params} is defined in parameter_list but not parsed in the input data",
-                UserWarning,
-                stacklevel=2,
-            )
-    # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
-    # Pass only tab names that exist in the input file (rather than all expected tab names)
-    [_df_sets, _df_parameters, data_column] = _read_data(
-        fname,
-        set_list_common,
-        parameter_list_common,
-        raises=raises,
-    )
+    # Call _read_data with the correct model type
+    if model_type in ["strategic", "operational", "critical_mineral", "none"]:
+        # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
+        [_df_sets, _df_parameters, data_column] = _read_data(
+            fname, set_list, parameter_list, model_type, raises=raises
+        )
+    else:
+        # Invalid model type provided, raise warning and use default (strategic)
+        warning_message = f"An invalid model type has been provided. Strategic model type has been assumed. If you would like to run as a different model type, please re-run with one of the following model types: 'strategic', 'operational', 'extra_models', 'none'"
+        warnings.warn(
+            warning_message,
+            UserWarning,
+            stacklevel=3,
+        )
+        # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
+        [_df_sets, _df_parameters, data_column] = _read_data(
+            fname, set_list, parameter_list, _model_type="strategic", raises=raises
+        )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
     _df_parameters = _cleanup_data(_df_parameters)
@@ -385,7 +620,7 @@ def get_data(
     # The set for time periods is defined based on the columns of the parameter for
     # Completions Demand. This is done so the user does not have to add an extra tab
     # in the spreadsheet for the time period set
-    if "CompletionsDemand" in parameter_list:
+    if "CompletionsDemand" in _df_parameters.keys():
         _df_sets["TimePeriods"] = _df_parameters[
             "CompletionsDemand"
         ].columns.to_series()
@@ -463,7 +698,9 @@ def get_display_units(input_sheet_name_list, user_units):
     # Display units are dependent on which units the user decides to use
     unit_dict = {
         "Units": "",
+        "PCA": "",
         "PNA": "",
+        "PPA": "",
         "CNA": "",
         "CCA": "",
         "NNA": "",
@@ -472,21 +709,29 @@ def get_display_units(input_sheet_name_list, user_units):
         "NRA": "",
         "NSA": "",
         "FCA": "",
+        "FNA": "",
         "RCA": "",
         "RNA": "",
         "RSA": "",
         "SCA": "",
         "SNA": "",
+        "SKA": "",
+        "SRA": "",
         "ROA": "",
+        "RKA": "",
         "SOA": "",
         "NOA": "",
-        "RKA": "",
         "PCT": "",
         "PKT": "",
+        "PST": "",
+        "PRT": "",
+        "POT": "",
         "FCT": "",
         "CST": "",
         "CCT": "",
         "CKT": "",
+        "SCT": "",
+        "SKT": "",
         "RST": "",
         "ROT": "",
         "SOT": "",
@@ -509,6 +754,9 @@ def get_display_units(input_sheet_name_list, user_units):
         "InitialTreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
         "ReuseMinimum": user_units["volume"] + "/" + user_units["time"],
         "ReuseCapacity": user_units["volume"] + "/" + user_units["time"],
+        "InitialStorageLevel": user_units["volume"],
+        "StorageCost": user_units["currency"] + "/" + user_units["volume"],
+        "StorageWithdrawalRevenue": user_units["currency"] + "/" + user_units["volume"],
         "ExtWaterSourcingAvailability": user_units["volume"] + "/" + user_units["time"],
         "PadOffloadingCapacity": user_units["volume"] + "/" + user_units["time"],
         "CompletionsPadStorage": user_units["volume"],
@@ -559,15 +807,6 @@ def get_display_units(input_sheet_name_list, user_units):
         "StorageInitialWaterQuality": user_units["concentration"],
         "PadStorageInitialWaterQuality": user_units["concentration"],
         "DisposalOperatingCapacity": "fraction",
-        # additional operational model tabs
-        "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
-        "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
-        "ProductionTankCapacity": user_units["volume"],
-        "PRT": "",
-        "CRT": "",
-        "PAL": "",
-        "PadStorageCost": user_units["volume"],
-        "ProductionRates": user_units["volume"] + "/" + user_units["time"],
         "TreatmentExpansionLeadTime": user_units["decision period"],
         "DisposalExpansionLeadTime": user_units["decision period"],
         "StorageExpansionLeadTime": user_units["decision period"],
@@ -575,6 +814,19 @@ def get_display_units(input_sheet_name_list, user_units):
         + "/"
         + user_units["distance"],
         "PipelineExpansionLeadTime_Capac": user_units["decision period"],
+        "SWDDeep": "",
+        "SWDAveragePressure": "psi/ft",
+        "SWDProxPAWell": "miles",
+        "SWDProxInactiveWell": "miles",
+        "SWDProxEQ": "miles",
+        "SWDProxFault": "miles",
+        "SWDProxHpOrLpWell": "miles",
+        "SWDRiskFactors": "",
+        "ComponentPrice": user_units["currency"] + "/" + user_units["volume"],
+        "ComponentTreatment": "",
+        "MinTreatmentFlow": user_units["volume"],
+        "MinResidualQuality": "",
+        "DesalinationSurrogate": "kg/s",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
@@ -591,13 +843,22 @@ def get_display_units(input_sheet_name_list, user_units):
         "InjectionCapacities": "",
         "TreatmentCapacities": "",
         "TreatmentTechnologies": "",
+        # additional operational model tabs
+        "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
+        "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
+        "ProductionTankCapacity": user_units["volume"],
+        "PRT": "",
+        "CRT": "",
+        "PAL": "",
+        "PadStorageCost": user_units["volume"],
+        "ProductionRates": user_units["volume"] + "/" + user_units["time"],
+        "TankFlowbackRates": user_units["volume"] + "/" + user_units["time"],
     }
 
     return {sheet: unit_dict[sheet] for sheet in input_sheet_name_list}
 
 
 def od_matrix(inputs):
-
     """
     This method allows the user to request drive distances and drive times using Bing maps API and
     Open Street Maps API.
@@ -774,7 +1035,6 @@ def od_matrix(inputs):
         if response_json["code"].lower() == "ok":
             for index_i, o_name in enumerate(origin):
                 for index_j, d_name in enumerate(destination):
-
                     output_times[(o_name, d_name)] = (
                         response_json["durations"][index_i][index_j] / 3600
                     )

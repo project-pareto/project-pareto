@@ -17,15 +17,20 @@ import math
 from cmath import nan
 import numpy as np
 import os
-import pandas as pd
+import re
+
+
 from pyomo.environ import (
     Var,
     Param,
     Set,
     ConcreteModel,
+    Expression,
     Constraint,
+    ConstraintList,
     Objective,
     minimize,
+    maximize,
     NonNegativeReals,
     Reals,
     Binary,
@@ -37,21 +42,31 @@ from pyomo.environ import (
     value,
     SolverFactory,
 )
+from pyomo.common.fileutils import this_file_dir
 
 from pyomo.core.base.constraint import simple_constraint_rule
-from pyomo.core.expr.current import identify_variables
+from pyomo.core.expr import identify_variables
 
-# from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
+from pathlib import Path
+
+from pareto.utilities.process_data import (
+    get_valid_piping_arc_list,
+    get_valid_trucking_arc_list,
+    check_required_data,
+    model_infeasibility_detection,
+)
 
 
 class Objectives(Enum):
     cost = 0
     reuse = 1
+    cost_surrogate = 2
+    subsurface_risk = 3
 
 
 class PipelineCapacity(Enum):
@@ -74,6 +89,7 @@ class Hydraulics(Enum):
     false = 0
     post_process = 1
     co_optimize = 2
+    co_optimize_linearized = 3
 
 
 class RemovalEfficiencyMethod(Enum):
@@ -90,6 +106,18 @@ class TreatmentStreams(IntEnum):
 class InfrastructureTiming(Enum):
     false = 0
     true = 1
+
+
+class SubsurfaceRisk(Enum):
+    false = 0
+    exclude_over_and_under_pressured_wells = 1
+    calculate_risk_metrics = 2
+
+
+class DesalinationModel(Enum):
+    false = 0
+    mvc = 1
+    md = 2
 
 
 # create config dictionary
@@ -129,6 +157,7 @@ CONFIG.declare(
         **Hydraulics.false** - does not add hydraulics feature
         **Hydraulics.post_process** - adds economic parameters for flow based on elevation changes and computes pressures at each node post-optimization,
         **Hydraulics.co_optimize** - re-solves the problem using an MINLP formulation to simulatenuosly optimize pressures and flows,
+        **Hydraulics.co_optimize_linearized** - a linearized approximation of the co-optimization model,
         }""",
     ),
 )
@@ -160,6 +189,22 @@ CONFIG.declare(
         }""",
     ),
 )
+CONFIG.declare(
+    "desalination_model",
+    ConfigValue(
+        default=DesalinationModel.false,
+        domain=In(DesalinationModel),
+        description="Desalination Model",
+        doc="""Selection to include Desalination Model
+        ***default*** - DesalinationModel.false
+        **Valid Values:** - {
+        **DesalinationModel.false** - Exclude surrogate constraints for desalination model,
+        **DesalinationModel.mvc** - Include surrogate constraints for MVC (Mechanical Vapor Compressor) desalination model,
+        **DesalinationModel.md** - Include surrogate constraints for MD (Membrane Distillation) desalination model,
+        }""",
+    ),
+)
+
 
 # return the units container used for strategic model
 # this is needed for the testing_strategic_model.py for checking units consistency
@@ -214,6 +259,22 @@ CONFIG.declare(
     ),
 )
 
+CONFIG.declare(
+    "subsurface_risk",
+    ConfigValue(
+        default=SubsurfaceRisk.false,
+        domain=In(SubsurfaceRisk),
+        description="Subsurface risk",
+        doc="""Selection to include subsurface risk.
+        ***default*** - SubsurfaceRisk.false
+        **Valid Values:** - {
+        **SubsurfaceRisk.false** - Exclude subsurface risk from model (unless the subsurface risk objective function is selected),
+        **SubsurfaceRisk.exclude_over_and_under_pressured_wells** - Calculate subsurface risk metrics and disallow disposal to overpressured and underpressured wells,
+        **SubsurfaceRisk.calculate_risk_metrics** - Calculate subsurface risk metrics for the user to view, but don't change the optimization model
+        }""",
+    ),
+)
+
 
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
@@ -221,8 +282,11 @@ def create_model(df_sets, df_parameters, default={}):
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
-    model.df_sets = df_sets
-    model.df_parameters = df_parameters
+
+    # check that input data contains required data
+    model.df_sets, model.df_parameters = check_required_data(
+        df_sets, df_parameters, model.config
+    )
 
     try:
         # Check that currency is set to USD
@@ -424,30 +488,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
     )
 
-    piping_arc_types = [
-        "PCA",
-        "PNA",
-        "PPA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NSA",
-        "NRA",
-        "NOA",
-        "FCA",
-        "RNA",
-        "RCA",
-        "RKA",
-        "RSA",
-        "SNA",
-        "SCA",
-        "SKA",
-        "SRA",
-        "SOA",
-        "ROA",
-    ]
+    piping_arc_types = get_valid_piping_arc_list()
 
     # Build dictionary of all specified piping arcs
     model.df_parameters["LLA"] = {}
@@ -458,24 +499,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
 
-    trucking_arc_types = [
-        "PCT",
-        "PKT",
-        "PST",
-        "PRT",
-        "POT",
-        "FCT",
-        "CKT",
-        "CST",
-        "CRT",
-        "CCT",
-        "SCT",
-        "SKT",
-        "SOT",
-        "RKT",
-        "RST",
-        "ROT",
-    ]
+    trucking_arc_types = get_valid_trucking_arc_list()
 
     # Build dictionary of all specified trucking arcs
     model.df_parameters["LLT"] = {}
@@ -488,11 +512,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     # Define continuous variables #
 
-    model.v_Z = Var(
-        within=Reals,
-        units=model.model_units["currency"],
-        doc="Objective function variable [currency]",
-    )
     model.v_F_Piped = Var(
         model.s_LLA,
         model.s_T,
@@ -804,6 +823,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        default=0,
         doc="Binary parameter designating the Completion Pads that are outside the system",
     )
     model.p_chi_DesalinationTechnology = Param(
@@ -1048,6 +1068,13 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=init_arc_param("FCA"),
         doc="Valid externally sourced water-to-completions pipeline arcs [-]",
+    )
+    model.p_FNA = Param(
+        model.s_F,
+        model.s_N,
+        default=0,
+        initialize=init_arc_param("FNA"),
+        doc="Valid externally sourced water-to-node pipeline arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
@@ -1678,6 +1705,14 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         default=0,
         units=model.model_units["volume"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["InitialStorageLevel"].items()
+        },
         doc="Initial storage level at storage site [volume]",
     )
     model.p_lambda_PadStorage = Param(
@@ -1709,10 +1744,12 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_lambda_Pipeline = Param(
         model.s_L,
         model.s_L,
-        default=max(PipelineExpansionDistance_convert_to_model.values()) * 100
-        if PipelineExpansionDistance_convert_to_model
-        else pyunits.convert_value(
-            10000, from_units=pyunits.miles, to_units=model.model_units["distance"]
+        default=(
+            max(PipelineExpansionDistance_convert_to_model.values()) * 100
+            if PipelineExpansionDistance_convert_to_model
+            else pyunits.convert_value(
+                10000, from_units=pyunits.miles, to_units=model.model_units["distance"]
+            )
         ),
         initialize=PipelineExpansionDistance_convert_to_model,
         units=model.model_units["distance"],
@@ -1909,12 +1946,14 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.p_pi_Disposal = Param(
         model.s_K,
-        default=max(DisposalOperationalCost_convert_to_model.values()) * 100
-        if DisposalOperationalCost_convert_to_model
-        else pyunits.convert_value(
-            25,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(DisposalOperationalCost_convert_to_model.values()) * 100
+            if DisposalOperationalCost_convert_to_model
+            else pyunits.convert_value(
+                25,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=DisposalOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -1945,12 +1984,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Reuse = Param(
         model.s_CP,
-        default=max(ReuseOperationalCost_convert_to_model.values()) * 100
-        if ReuseOperationalCost_convert_to_model
-        else pyunits.convert_value(
-            25,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(ReuseOperationalCost_convert_to_model.values()) * 100
+            if ReuseOperationalCost_convert_to_model
+            else pyunits.convert_value(
+                25,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=ReuseOperationalCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -1969,7 +2010,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["StorageCost"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Storage deposit operational cost [currency/volume]",
@@ -1987,7 +2028,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["StorageWithdrawalRevenue"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",
@@ -2113,12 +2154,14 @@ def create_model(df_sets, df_parameters, default={}):
     # be confusing
     model.p_pi_Trucking = Param(
         model.s_L,
-        default=max(TruckingHourlyCost_convert_to_model.values()) * 100
-        if TruckingHourlyCost_convert_to_model
-        else pyunits.convert_value(
-            15000,
-            from_units=pyunits.USD,
-            to_units=model.model_units["currency"],
+        default=(
+            max(TruckingHourlyCost_convert_to_model.values()) * 100
+            if TruckingHourlyCost_convert_to_model
+            else pyunits.convert_value(
+                15000,
+                from_units=pyunits.USD,
+                to_units=model.model_units["currency"],
+            )
         ),
         initialize=TruckingHourlyCost_convert_to_model,
         units=model.model_units["currency"],
@@ -2134,12 +2177,14 @@ def create_model(df_sets, df_parameters, default={}):
     }
     model.p_pi_Sourcing = Param(
         model.s_F,
-        default=max(ExternalSourcingCost_convert_to_model.values()) * 100
-        if ExternalSourcingCost_convert_to_model
-        else pyunits.convert_value(
-            150,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
+        default=(
+            max(ExternalSourcingCost_convert_to_model.values()) * 100
+            if ExternalSourcingCost_convert_to_model
+            else pyunits.convert_value(
+                150,
+                from_units=pyunits.USD / pyunits.oil_bbl,
+                to_units=model.model_units["currency_volume"],
+            )
         ),
         initialize=ExternalSourcingCost_convert_to_model,
         units=model.model_units["currency_volume"],
@@ -2255,76 +2300,399 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_epsilon_DisposalOperatingCapacity = Param(
         model.s_K,
         model.s_T,
-        default=0,
+        default=1,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Operating capacity of disposal site [%]",
     )
 
-    # Define cost objective function #
+    # Calculate subsurface risk metrics if necessary
+    model.do_subsurface_risk_calcs = (
+        model.config.subsurface_risk != SubsurfaceRisk.false
+        or model.config.objective == Objectives.subsurface_risk
+    )
+    if model.do_subsurface_risk_calcs:
+        subsurface_risk(model)
 
-    if model.config.objective == Objectives.cost:
+    # For each possible objective function, create a corresponding variable and constrain it with the correct expression #
 
-        def CostObjectiveFunctionRule(model):
-            return model.v_Z == (
-                model.v_C_TotalSourced
-                + model.v_C_TotalDisposal
-                + model.v_C_TotalTreatment
-                + model.v_C_TotalReuse
-                + model.v_C_TotalPiping
-                + model.v_C_TotalStorage
-                + model.v_C_TotalTrucking
-                + model.v_C_TotalBeneficialReuse
-                + model.p_alpha_AnnualizationRate
-                * (
-                    model.v_C_DisposalCapEx
-                    + model.v_C_StorageCapEx
-                    + model.v_C_TreatmentCapEx
-                    + model.v_C_PipelineCapEx
-                )
-                + model.v_C_Slack
-                - model.v_R_TotalStorage
-                - model.v_R_TotalBeneficialReuse
-            )
+    ####### Minimum cost objective #######
+    model.v_Z = Var(
+        within=Reals,
+        units=model.model_units["currency"],
+        doc="Objective function variable - minimize cost [currency]",
+    )
 
-        model.CostObjectiveFunction = Constraint(
-            rule=CostObjectiveFunctionRule, doc="Cost objective function"
+    model.ObjectiveFunctionCost = Constraint(
+        expr=model.v_Z
+        == model.v_C_TotalSourced
+        + model.v_C_TotalDisposal
+        + model.v_C_TotalTreatment
+        + model.v_C_TotalReuse
+        + model.v_C_TotalPiping
+        + model.v_C_TotalStorage
+        + model.v_C_TotalTrucking
+        + model.v_C_TotalBeneficialReuse
+        + model.p_alpha_AnnualizationRate
+        * (
+            model.v_C_DisposalCapEx
+            + model.v_C_StorageCapEx
+            + model.v_C_TreatmentCapEx
+            + model.v_C_PipelineCapEx
+        )
+        + model.v_C_Slack
+        - model.v_R_TotalStorage
+        - model.v_R_TotalBeneficialReuse,
+        doc="Objective function constraint - minimize cost",
+    )
+
+    model.objective_Cost = Objective(
+        expr=model.v_Z, sense=minimize, doc="Objective function - minimize cost"
+    )
+
+    model.objective_Cost.deactivate()
+
+    ####### Maximum reuse objective #######
+    model.v_Z_Reuse = Var(
+        within=Reals,
+        units=pyunits.dimensionless,
+        doc="Objective function variable - maximize reuse [dimensionless]",
+    )
+
+    model.ObjectiveFunctionReuse = Constraint(
+        expr=model.v_Z_Reuse == model.v_F_TotalReused / model.p_beta_TotalProd,
+        doc="Objective function constraint - maximize reuse",
+    )
+
+    model.objective_Reuse = Objective(
+        expr=model.v_Z_Reuse, sense=maximize, doc="Objective function - maximize reuse"
+    )
+
+    model.objective_Reuse.deactivate()
+
+    ####### Minimum subsurface risk objective #######
+    if model.do_subsurface_risk_calcs:
+        model.v_Z_SubsurfaceRisk = Var(
+            within=Reals,
+            units=model.model_units["volume_time"],
+            doc="Objective function variable - minimize subsurface risk [volume/time]",
+        )
+        model.ObjectiveFunctionSubsurfaceRisk = Constraint(
+            expr=model.v_Z_SubsurfaceRisk
+            == sum(
+                sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
+                * model.subsurface.risk_metrics[k]
+                for k in model.s_K
+            ),
+            doc="Objective function constraint - minimize subsurface risk",
         )
 
-    # Define reuse objective function #
-
-    elif model.config.objective == Objectives.reuse:
-
-        def ReuseObjectiveFunctionRule(model):
-            return model.v_Z == -(
-                model.v_F_TotalReused / model.p_beta_TotalProd
-            ) + 1 / 38446652 * (
-                model.v_C_TotalSourced
-                + model.v_C_TotalDisposal
-                + model.v_C_TotalTreatment
-                + model.v_C_TotalReuse
-                + model.v_C_TotalPiping
-                + model.v_C_TotalStorage
-                + model.v_C_TotalTrucking
-                + model.v_C_TotalBeneficialReuse
-                + model.p_alpha_AnnualizationRate
-                * (
-                    model.v_C_DisposalCapEx
-                    + model.v_C_StorageCapEx
-                    + model.v_C_TreatmentCapEx
-                    + model.v_C_PipelineCapEx
-                )
-                + model.v_C_Slack
-                - model.v_R_TotalStorage
-                - model.v_R_TotalBeneficialReuse
-            )
-
-        model.ReuseObjectiveFunction = Constraint(
-            rule=ReuseObjectiveFunctionRule, doc="Reuse objective function"
+        model.objective_SubsurfaceRisk = Objective(
+            expr=model.v_Z_SubsurfaceRisk,
+            sense=minimize,
+            doc="Objective function - minimize subsurface risk",
         )
 
-    else:
-        raise Exception("objective not supported")
+        model.objective_SubsurfaceRisk.deactivate()
+
+    if model.config.objective == Objectives.cost_surrogate:
+        if model.config.desalination_model == DesalinationModel.false:
+            raise Exception(
+                "Cannot create a surrogate objective without a Desalination Model being selected"
+            )
+        from idaes.core.surrogate.surrogate_block import SurrogateBlock
+        from idaes.core.surrogate.keras_surrogate import KerasSurrogate
+
+        # Create variables needed for surrogate #
+        model.v_C_Treatment_site = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency_time"],
+            doc="Cost of treating produced water at treatment site [currency_time]",
+        )
+        model.v_C_Treatment_site_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency_time"],
+            doc="Annualized cost of treating produced water at treatment site with flow consideration [currency_time]",
+        )
+        model.v_C_TreatmentCapEx_site = Var(
+            model.s_R,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Annualized capital cost of constructing or expanding treatment capacity for each site [currency]",
+        )
+        model.v_C_TreatmentCapEx_site_time = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Annualized capital cost of constructing or expanding treatment capacity for each time at each site [currency]",
+        )
+        model.v_C_TreatmentCapEx_surrogate = Var(
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Annualized capital cost of constructing or expanding treatment capacity [currency]",
+        )
+        model.vb_y_DesalSelected = Var(
+            model.s_R,
+            within=Binary,
+            initialize=0,
+            doc="Selection for each desalination site",
+        )
+        model.inlet_salinity = Var(
+            model.s_R,
+            within=Reals,
+            initialize=model.df_parameters["DesalinationSurrogate"]["inlet_salinity"],
+            units=pyunits.kg / pyunits.litre,
+            doc="Inlet salinity in the feed [kg/L]",
+        )
+        model.recovery = Var(
+            model.s_R,
+            initialize=model.df_parameters["DesalinationSurrogate"]["recovery"],
+            within=Reals,
+            bounds=(0, 1),
+            doc="Volumetric recovery fraction of water",
+        )
+        model.vb_y_flow_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=Binary,
+            doc="Binary indicating flow greater than 0",
+        )
+        model.v_T_Treatment_scaled_ReLU = Var(
+            model.s_R,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            doc="Putting flow to 0 if DesalSite is not selected",
+        )
+        model.v_C_TreatmentOpex_surrogate = Var(
+            initialize=0,
+            within=NonNegativeReals,
+            units=model.model_units["currency"],
+            doc="Capital operating treatment capacity [currency]",
+        )
+        model.BigM = Param(initialize=1e6, mutable=True)
+
+        ####### Minimum cost objective with surrogate model #######
+        model.v_Z_Surrogate = Var(
+            within=Reals,
+            units=model.model_units["currency"],
+            doc="Objective function variable - minimize cost with surrogate desalination model [currency]",
+        )
+
+        model.ObjectiveFunctionCostSurrogate = Constraint(
+            expr=model.v_Z_Surrogate
+            == model.v_C_TotalSourced
+            + model.v_C_TotalDisposal
+            + model.v_C_TotalTreatment
+            + model.v_C_TotalReuse
+            + model.v_C_TotalPiping
+            + model.v_C_TotalStorage
+            + model.v_C_TotalTrucking
+            + model.v_C_TotalBeneficialReuse
+            + model.v_C_TreatmentOpex_surrogate
+            + model.v_C_TreatmentCapEx_surrogate
+            + model.p_alpha_AnnualizationRate
+            * (
+                model.v_C_DisposalCapEx
+                + model.v_C_StorageCapEx
+                + model.v_C_PipelineCapEx
+                + model.v_C_TreatmentCapEx
+            )
+            + model.v_C_Slack
+            - model.v_R_TotalStorage
+            - model.v_R_TotalBeneficialReuse,
+            doc="Objective function constraint - minimize cost with surrogate",
+        )
+
+        model.objective_CostSurrogate = Objective(
+            expr=model.v_Z_Surrogate,
+            sense=minimize,
+            doc="Objective function - minimize cost with surrogate",
+        )
+
+        model.objective_CostSurrogate.deactivate()
+
+        # Define constraints for surrogate #
+        model.inlet_salinity.fix()
+        model.recovery.fix()
+        model.surrogate_costs = SurrogateBlock(model.s_R, model.s_T)
+        model.model_units["L_per_s"] = pyunits.L / pyunits.s
+        conversion_factor = pyunits.convert_value(
+            1,
+            from_units=model.model_units["volume_time"],
+            to_units=model.model_units["L_per_s"],
+        )
+
+        model.v_T_Treatment_scaled = Var(
+            model.s_R,
+            model.s_T,
+            within=NonNegativeReals,
+            initialize=1 * 5 * conversion_factor,
+        )
+
+        model.cap_upper_bound = Param(
+            initialize=29,
+            mutable=True,
+            units=model.model_units["L_per_s"],
+            doc="Upper bound of flow for trained surrogate [L/s]",
+        )
+
+        model.cap_lower_bound = Param(
+            initialize=0,
+            mutable=True,
+            units=model.model_units["L_per_s"],
+            doc="Lower bound of flow for trained surrogate [L/s]",
+        )
+
+        for i in model.s_R:
+            for t in model.s_T:
+                if model.p_chi_DesalinationSites[i]:
+                    model.v_T_Treatment_scaled[i, t].setlb(model.cap_lower_bound)
+                    model.v_T_Treatment_scaled[i, t].setub(model.cap_upper_bound)
+
+                else:
+                    model.v_T_Treatment_scaled[i, t].fix(0)
+
+        def scalingTreatment(model, r, t):
+            if model.p_chi_DesalinationSites[r]:
+                return model.v_T_Treatment_scaled[r, t] == conversion_factor * (
+                    sum(
+                        model.v_F_Piped[l, r, t]
+                        for l in model.s_L
+                        if (l, r) in model.s_LLA
+                    )
+                    + sum(
+                        model.v_F_Trucked[l, r, t]
+                        for l in model.s_L
+                        if (l, r) in model.s_LLT
+                    )
+                )
+            else:
+                return Constraint.Skip
+
+        model.treatment_vol = Constraint(model.s_R, model.s_T, rule=scalingTreatment)
+        base_dir = Path(this_file_dir())
+        if model.config.desalination_model == DesalinationModel.mvc:
+            keras_surrogate = KerasSurrogate.load_from_folder(
+                str(base_dir / "mvc_keras")
+            )
+        elif model.config.desalination_model == DesalinationModel.md:
+            keras_surrogate = KerasSurrogate.load_from_folder(
+                str(base_dir / "md_keras")
+            )
+
+        for i in model.s_R:
+            for t in model.s_T:
+                if model.p_chi_DesalinationSites[i]:
+                    # Build the model with non-zero outputs
+                    cap = model.v_T_Treatment_scaled[i, t]
+                    model.surrogate_costs[i, t].build_model(
+                        keras_surrogate,
+                        formulation=KerasSurrogate.Formulation.RELU_BIGM,
+                        input_vars=[model.inlet_salinity[i], model.recovery[i], cap],
+                        output_vars=[
+                            model.v_C_TreatmentCapEx_site_time[i, t],
+                            model.v_C_Treatment_site[i, t],
+                        ],
+                    )
+                else:
+                    # If not a desalination site, fix the outputs to zero
+                    model.v_T_Treatment_scaled[i, t].fix(0)
+                    model.v_C_TreatmentCapEx_site_time[i, t].fix(0)
+                    model.v_C_Treatment_site[i, t].fix(0)
+
+        def flowBinRule(model, r, t):
+            return model.v_T_Treatment_scaled[r, t] >= 0 + 1e-6 - model.BigM * (
+                1 - model.vb_y_flow_ReLU[r, t]
+            )
+
+        model.flowBin = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=flowBinRule,
+            doc="Flow binary to set to 0 if flow is 0, else 1",
+        )
+
+        def flowMaxRule(model, r, t):
+            return (
+                model.v_T_Treatment_scaled[r, t]
+                <= model.BigM * model.vb_y_flow_ReLU[r, t]
+            )
+
+        model.flowMax = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=flowMaxRule,
+            doc="Flow binary to set to 0 if flow is 0 else 1",
+        )
+
+        def OpexTreatmentRule(model, r, t):
+            return model.v_C_Treatment_site_ReLU[r, t] >= model.v_C_Treatment_site[
+                r, t
+            ] - model.BigM * (1 - model.vb_y_flow_ReLU[r, t])
+
+        model.OpexTreatment = Constraint(
+            model.s_R, model.s_T, rule=OpexTreatmentRule, doc="Opex based on binary"
+        )
+
+        def treatmentCost(model):
+            if model.decision_period == pyunits.day:
+                annual_factor = 365
+            elif model.decision_period == pyunits.week:
+                annual_factor = 52
+            elif model.decision_period == pyunits.fortnight:
+                annual_factor = 26
+            elif model.decision_period == pyunits.month:
+                annual_factor = 12
+            else:
+                raise Exception(
+                    "Decision Period should be day, week, fortnight or month"
+                )
+            return (
+                model.v_C_TreatmentOpex_surrogate
+                == sum(
+                    sum(model.v_C_Treatment_site_ReLU[r, t] for r in model.s_R)
+                    for t in model.s_T
+                )
+                / annual_factor  # model.v_C_Treatment_site_ReLU yeilds an annualized opex and thus needs to be divided by annual_factor which gives opex for period t
+            )
+
+        model.treatmentCost = Constraint(rule=treatmentCost, doc="Treatment Rule")
+
+        def treatmentCapexSurrogate(model, i, t):
+            return model.v_C_TreatmentCapEx_site[
+                i
+            ] >= model.v_C_TreatmentCapEx_site_time[i, t] - model.BigM * (
+                1 - model.vb_y_flow_ReLU[i, t]
+            )
+
+        model.max_cap = Constraint(
+            model.s_R,
+            model.s_T,
+            rule=treatmentCapexSurrogate,
+            doc="Max treated vol as capex",
+        )
+
+        def capExSurrogate(model):
+            return model.v_C_TreatmentCapEx_surrogate == sum(
+                model.v_C_TreatmentCapEx_site[i] for i in model.s_R
+            )
+
+        model.CapEx_cost = Constraint(rule=capExSurrogate, doc="Treatment costs")
+
+    # Activate correct objective function based on config value #
+    set_objective(model, model.config.objective)
 
     # Define constraints #
 
@@ -2446,7 +2814,6 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-
         constraint = (
             sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
             <= model.p_sigma_OffloadingPad[p]
@@ -2792,17 +3159,35 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TreatmentCapacityExpansionRule(model, r):
-        return model.v_T_Capacity[r] == sum(
-            (
-                model.p_sigma_Treatment[r, wt]
-                * sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                + sum(
-                    model.p_delta_Treatment[wt, j] * model.vb_y_Treatment[r, wt, j]
-                    for j in model.s_J
+        if model.config.objective == Objectives.cost_surrogate:
+            return (
+                model.v_T_Capacity[r]
+                == sum(
+                    (
+                        model.p_sigma_Treatment[r, wt]
+                        * sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                        + sum(
+                            model.p_delta_Treatment[wt, j]
+                            * model.vb_y_Treatment[r, wt, j]
+                            for j in model.s_J
+                        )
+                    )
+                    for wt in model.s_WT
                 )
+                + model.cap_upper_bound * model.vb_y_DesalSelected[r]
             )
-            for wt in model.s_WT
-        )
+        else:
+            return model.v_T_Capacity[r] == sum(
+                (
+                    model.p_sigma_Treatment[r, wt]
+                    * sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    + sum(
+                        model.p_delta_Treatment[wt, j] * model.vb_y_Treatment[r, wt, j]
+                        for j in model.s_J
+                    )
+                )
+                for wt in model.s_WT
+            )
 
     model.TreatmentCapacityExpansion = Constraint(
         model.s_R,
@@ -2856,13 +3241,30 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ResidualWaterLHSRule(model, r, wt, t):
-        constraint = (
-            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
-            - model.p_M_Flow
-            * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
-            <= model.v_F_ResidualWater[r, t]
-        )
-        return process_constraint(constraint)
+        if model.config.objective == Objectives.cost_surrogate:
+            if model.p_chi_DesalinationSites[r]:
+                epsilon_treatment = model.recovery[r]
+                treatment_selection = model.vb_y_DesalSelected[r]
+            else:
+                epsilon_treatment = model.p_epsilon_Treatment[r, wt]
+                treatment_selection = sum(
+                    model.vb_y_Treatment[r, wt, j] for j in model.s_J
+                )
+
+            constraint = (
+                model.v_F_TreatmentFeed[r, t] * (1 - epsilon_treatment)
+                - model.p_M_Flow * (1 - treatment_selection)
+                <= model.v_F_ResidualWater[r, t]
+            )
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
+                - model.p_M_Flow
+                * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
+                <= model.v_F_ResidualWater[r, t]
+            )
+            return process_constraint(constraint)
 
     model.ResidualWaterLHS = Constraint(
         model.s_R,
@@ -2873,13 +3275,31 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def ResidualWaterRHSRule(model, r, wt, t):
-        constraint = (
-            model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
-            + model.p_M_Flow
-            * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
-            >= model.v_F_ResidualWater[r, t]
-        )
-        return process_constraint(constraint)
+        if model.config.objective == Objectives.cost_surrogate:
+            if model.p_chi_DesalinationSites[r]:
+                epsilon_treatment = model.recovery[r]
+                treatment_selection = model.vb_y_DesalSelected[r]
+            else:
+                epsilon_treatment = model.p_epsilon_Treatment[r, wt]
+                treatment_selection = sum(
+                    model.vb_y_Treatment[r, wt, j] for j in model.s_J
+                )
+
+            constraint = (
+                model.v_F_TreatmentFeed[r, t] * (1 - epsilon_treatment)
+                + model.p_M_Flow * (1 - treatment_selection)
+                >= model.v_F_ResidualWater[r, t]
+            )
+
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                model.v_F_TreatmentFeed[r, t] * (1 - model.p_epsilon_Treatment[r, wt])
+                + model.p_M_Flow
+                * (1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J))
+                >= model.v_F_ResidualWater[r, t]
+            )
+            return process_constraint(constraint)
 
     model.ResidualWaterRHS = Constraint(
         model.s_R,
@@ -3674,14 +4094,25 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintTreatmentRule(model, r):
-        constraint = (
-            sum(
-                sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                for wt in model.s_WT
+        if model.config.objective == Objectives.cost_surrogate:
+            constraint = (
+                sum(
+                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    for wt in model.s_WT
+                )
+                + model.vb_y_DesalSelected[r]
+                == 1
             )
-            == 1
-        )
-        return process_constraint(constraint)
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                sum(
+                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    for wt in model.s_WT
+                )
+                == 1
+            )
+            return process_constraint(constraint)
 
     model.LogicConstraintTreatmentAssignment = Constraint(
         model.s_R,
@@ -3690,18 +4121,33 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintDesalinationAssignmentRule(model, r):
-        if model.p_chi_DesalinationSites[r]:
-            constraint = (
-                sum(
-                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                    for wt in model.s_WT
-                    if model.p_chi_DesalinationTechnology[wt]
+        if model.config.objective == Objectives.cost_surrogate:
+            if model.p_chi_DesalinationSites[r]:
+                constraint = (
+                    sum(
+                        sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                        for wt in model.s_WT
+                        if model.p_chi_DesalinationTechnology[wt]
+                    )
+                    + model.vb_y_DesalSelected[r]
+                    == 1
                 )
-                == 1
-            )
-            return process_constraint(constraint)
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
         else:
-            return Constraint.Skip
+            if model.p_chi_DesalinationSites[r]:
+                constraint = (
+                    sum(
+                        sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                        for wt in model.s_WT
+                        if model.p_chi_DesalinationTechnology[wt]
+                    )
+                    == 1
+                )
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
 
     model.LogicConstraintDesalinationAssignment = Constraint(
         model.s_R,
@@ -3849,19 +4295,71 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_K,
         model.s_T,
         rule=SeismicActivityExceptionRule,
-        doc="Constraint to restrict flow to a seismic response area",
+        doc="Restrict flow within a seismic response area",
     )
 
-    # Define Objective and Solve Statement #
+    if (
+        model.config.subsurface_risk
+        == SubsurfaceRisk.exclude_over_and_under_pressured_wells
+    ):
 
-    model.objective = Objective(
-        expr=model.v_Z, sense=minimize, doc="Objective function"
-    )
+        def ExcludeUnderAndOverPressuredDisposalWellsRule(model, k):
+            if model.subsurface.sites_included[k]:
+                # Disposal is allowed at SWD k - skip
+                return Constraint.Skip
+            else:
+                # Disposal is not allowed at SWD k - constrain to 0
+                constraint = (
+                    sum(model.v_F_DisposalDestination[k, t] for t in model.s_T) == 0
+                )
+
+            return process_constraint(constraint)
+
+        model.ExcludeUnderAndOverPressuredDisposalWells = Constraint(
+            model.s_K,
+            rule=ExcludeUnderAndOverPressuredDisposalWellsRule,
+            doc="Disallow disposal in over and under pressured wells",
+        )
 
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
 
+    model = model_infeasibility_detection(model)
     return model
+
+
+def set_objective(model, obj):
+    """
+    Activate the indicated objectve function for the model. The argument obj
+    should be an instance of the Objectives class defined in this module.
+    """
+    # Deactivate all objective functions.
+    model.objective_Cost.deactivate()
+    model.objective_Reuse.deactivate()
+    if hasattr(model, "objective_CostSurrogate"):
+        model.objective_CostSurrogate.deactivate()
+    if model.do_subsurface_risk_calcs:
+        model.objective_SubsurfaceRisk.deactivate()
+
+    # Activate the objective function indicated by obj, and change the config
+    # option accordingly.
+    if obj == Objectives.cost:
+        model.objective_Cost.activate()
+        model.config.objective = Objectives.cost
+    elif obj == Objectives.reuse:
+        model.objective_Reuse.activate()
+        model.config.objective = Objectives.reuse
+    elif obj == Objectives.cost_surrogate:
+        model.objective_CostSurrogate.activate()
+        model.config.objective = Objectives.cost_surrogate
+    elif obj == Objectives.subsurface_risk:
+        if model.do_subsurface_risk_calcs:
+            model.objective_SubsurfaceRisk.activate()
+            model.config.objective = Objectives.subsurface_risk
+        else:
+            raise Exception("Subsurface risk objective has not been created")
+    else:
+        raise Exception("Objective not supported")
 
 
 def pipeline_hydraulics(model):
@@ -3876,6 +4374,8 @@ def pipeline_hydraulics(model):
         1) post-process method: only the hydraulics block is solved for pressures
         2) co-optimize method: the hydraulics block is solved along with the network
     """
+    n_sections = 3
+    Del_I = 70000 / n_sections
     cons_scaling_factor = 1e0
 
     # Create a block to add all variables and constraints for hydraulics within the model
@@ -3969,6 +4469,20 @@ def pipeline_hydraulics(model):
         units=model.model_units["pressure"],
         doc="Well pressure at production or completions pad [pressure]",
     )
+    # ------
+    # The folllowing decision variables are intermediate variables that allow piecewise linearization of Hazen-William Equations
+
+    mh.v_term = Var(
+        model.s_LLA,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Produced water quantity piped from location l to location l [volume/time] raised to 1.85",
+    )
+
+    # ---------------
+
     mh.vb_Y_Pump = Var(
         model.s_LLA,
         within=Binary,
@@ -4181,8 +4695,13 @@ def pipeline_hydraulics(model):
         the cost of pumps.
         """
         # In the co_optimize method the objective should include the cost of pumps. So,
-        # delete the original objective to add a modified objective in this method.
-        del model.objective
+        # deactivate the original objectives to add a modified objective in this method.
+        model.objective_Cost.deactivate()
+        model.objective_Reuse.deactivate()
+        if hasattr(model, "objective_CostSurrogate"):
+            model.objective_CostSurrogate.deactivate()
+        if model.do_subsurface_risk_calcs:
+            model.objective_SubsurfaceRisk.deactivate()
 
         # add necessary variables and constraints
         mh.v_HW_loss = Var(
@@ -4300,8 +4819,291 @@ def pipeline_hydraulics(model):
             doc="Capital Cost of Pump",
         )
 
+        if model.config.objective == Objectives.cost:
+            obj_var = model.v_Z
+        elif model.config.objective == Objectives.reuse:
+            obj_var = model.v_Z_Reuse
+        elif model.config.objective == Objectives.cost_surrogate:
+            obj_var = model.v_Z_Surrogate
+        elif model.config.objective == Objectives.subsurface_risk:
+            obj_var = model.v_Z_SubsurfaceRisk
+        else:
+            raise Exception("Objective not supported")
+
         model.objective = Objective(
-            expr=(model.v_Z + mh.v_Z_HydrualicsCost),
+            expr=(obj_var + mh.v_Z_HydrualicsCost),
+            sense=minimize,
+            doc="Objective function",
+        )
+
+    elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
+        """
+        For the co-optimize method, the hydraulics block is solved along with
+        the network model to optimize the network in the presence of
+        hydraulics constraints. The objective is to minimize total cost including
+        the cost of pumps.
+        """
+        # In the co_optimize method the objective should include the cost of pumps. So,
+        # deactivate the original objectives to add a modified objective in this method.
+        model.objective_Cost.deactivate()
+        model.objective_Reuse.deactivate()
+        if hasattr(model, "objective_CostSurrogate"):
+            model.objective_CostSurrogate.deactivate()
+        if model.do_subsurface_risk_calcs:
+            model.objective_SubsurfaceRisk.deactivate()
+
+        # Define sets for the piecewise linear approximation
+        model.s_lamset = Set(initialize=list(range(n_sections + 1)))
+        model.s_lamset2 = Set(initialize=list(range(n_sections)))
+        model.s_zset = Set(initialize=list(range(n_sections)))
+
+        # add necessary variables and constraints
+        mh.v_HW_loss = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+            units=pyunits.meter,
+            doc="Hazen-Williams Frictional loss, m",
+        )
+
+        mh.v_variable_pump_cost = Var(
+            model.s_LLA,
+            model.s_T,
+            initialize=0,
+            within=NonNegativeReals,
+        )
+
+        mh.v_lambdas = Var(
+            model.s_LLA,
+            model.s_T,
+            model.s_lamset,
+            within=NonNegativeReals,
+            initialize=0,
+            doc="Convex combination multipliers",
+        )
+
+        mh.vb_z = Var(
+            model.s_LLA,
+            model.s_T,
+            model.s_zset,
+            within=Binary,
+            initialize=0,
+            doc="Convex combination binaries",
+        )
+
+        # Add the constraints, starting with the constraints that linearize (piecewise)
+        # non-linear flow term in Hazen-William Equation
+
+        def FlowEquationConvRule(b, l1, l2, t1):
+            constraint = (
+                model.v_F_Piped[l1, l2, t1] * cons_scaling_factor
+                == sum(mh.v_lambdas[l1, l2, t1, k] * Del_I * k for k in model.s_lamset)
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.FlowEquationConv = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=FlowEquationConvRule,
+            doc="Flow at an arc at a time",
+        )
+
+        def termEquationConvRule(b, l1, l2, t1):
+            constraint = mh.v_term[l1, l2, t1] == sum(
+                mh.v_lambdas[l1, l2, t1, k] * (k * Del_I * 1.84 * 10 ** (-6)) ** 1.85
+                for k in model.s_lamset
+            )
+            return process_constraint(constraint)
+
+        mh.termEquationConv = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=termEquationConvRule,
+            doc="Value of flow to the power 1.85 at the selected flow",
+        )
+
+        def EnforceZeroRule(b, i, l1, l2, t1):
+            if i == 0:
+                constraint = mh.v_lambdas[l1, l2, t1, i] <= mh.vb_z[l1, l2, t1, i]
+            elif i == len(model.s_lamset) - 1:
+                constraint = mh.v_lambdas[l1, l2, t1, i] <= mh.vb_z[l1, l2, t1, i - 1]
+            else:
+                constraint = (
+                    mh.v_lambdas[l1, l2, t1, i]
+                    <= mh.vb_z[l1, l2, t1, i] + mh.vb_z[l1, l2, t1, i - 1]
+                )
+            return process_constraint(constraint)
+
+        mh.EnforceZero = Constraint(
+            model.s_lamset,
+            model.s_LLA,
+            model.s_T,
+            rule=EnforceZeroRule,
+            doc="Put appropriate lambda to zero",
+        )
+
+        def SumOneRule(b, l1, l2, t1):
+            constraint = (
+                sum(mh.v_lambdas[l1, l2, t1, j] for j in model.s_lamset)
+                * cons_scaling_factor
+                == 1 * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.SumOne = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=SumOneRule,
+            doc="Lambdas add up to 1",
+        )
+
+        def SumOne2Rule(b, l1, l2, t1):
+            constraint = (
+                sum(mh.vb_z[l1, l2, t1, j] for j in model.s_zset) * cons_scaling_factor
+                == 1 * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.SumOne2 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=SumOne2Rule,
+            doc="Lambdas add up to 1",
+        )
+
+        # Now define the Hazen William equation in terms of the intermediate variables.
+        # v_term2(defined below) gives the product friction pressure drop with binary variable selecting pipe dia
+
+        def HazenWilliamsRule(b, l1, l2, t1):
+            # if (l2, l1) in model.s_LLA:
+            constraint = (
+                (6 * 0.0254) ** 4.87 * b.v_HW_loss[l1, l2, t1]
+            ) * cons_scaling_factor == (
+                10.704
+                * (
+                    mh.v_term[l1, l2, t1]
+                    / (mh.p_iota_HW_material_factor_pipeline) ** 1.85
+                )
+                * (pyunits.convert(model.p_lambda_Pipeline[l1, l2], to_units=pyunits.m))
+            ) * cons_scaling_factor
+
+            return process_constraint(constraint)
+
+        mh.HW_loss_equaltion = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=HazenWilliamsRule,
+            doc="Pressure at Node L",
+        )
+
+        M_1 = 10**8
+
+        def NodePressure1Rule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1] + model.p_zeta_Elevation[l1] * mh.p_rhog
+            ) * cons_scaling_factor >= (
+                b.v_Pressure[l2, t1]
+                + model.p_zeta_Elevation[l2] * mh.p_rhog
+                + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                - M_1 * (1 - model.vb_y_Flow[l1, l2, t1]) * mh.p_rhog
+            ) * cons_scaling_factor
+            return process_constraint(constraint)
+
+        mh.NodePressure1 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressure1Rule,
+            doc="Pressure at Node L",
+        )
+
+        def NodePressure2Rule(b, l1, l2, t1):
+            constraint = (
+                b.v_Pressure[l1, t1]
+                + model.p_zeta_Elevation[l1] * mh.p_rhog * cons_scaling_factor
+                <= (
+                    b.v_Pressure[l2, t1]
+                    + model.p_zeta_Elevation[l2] * mh.p_rhog
+                    + b.v_HW_loss[l1, l2, t1] * mh.p_rhog
+                    - b.v_PumpHead[l1, l2, t1] * mh.p_rhog
+                    + b.v_ValveHead[l1, l2, t1] * mh.p_rhog
+                    + M_1 * (1 - model.vb_y_Flow[l1, l2, t1]) * mh.p_rhog
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.NodePressure2 = Constraint(
+            model.s_LLA,
+            model.s_T,
+            rule=NodePressure2Rule,
+            doc="Pressure at Node L",
+        )
+
+        def VariablePumpCostRule(b, l1, l2, t, i):
+            binary_string = bin(i)[2:].zfill(len(model.s_zset))
+            binary_list = [int(bit) for bit in binary_string]
+            constraint = (
+                b.v_variable_pump_cost[l1, l2, t] * cons_scaling_factor
+                >= (
+                    (
+                        (mh.p_nu_ElectricityCost / 3.6e6)
+                        * mh.p_rhog
+                        * 1e3  # convert the kUSD/kWh to kUSD/Ws
+                        * b.v_PumpHead[l1, l2, t]
+                        * Del_I
+                        * i
+                        * 1.84
+                        * 10 ** (-6)
+                        * 3600
+                    )
+                    - 20000 * (1 - mh.vb_z[l1, l2, t, i])
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.VariablePumpCost = Constraint(
+            model.s_LLA,
+            model.s_T,
+            model.s_lamset2,
+            rule=VariablePumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        def PumpCostRule(b, l1, l2):
+            constraint = (
+                b.v_PumpCost[l1, l2] * cons_scaling_factor
+                >= (
+                    mh.p_nu_PumpFixedCost * mh.vb_Y_Pump[l1, l2]
+                    + sum(mh.v_variable_pump_cost[l1, l2, t] for t in model.s_T)
+                )
+                * cons_scaling_factor
+            )
+            return process_constraint(constraint)
+
+        mh.PumpCostEq = Constraint(
+            model.s_LLA,
+            rule=PumpCostRule,
+            doc="Capital Cost of Pump",
+        )
+
+        if model.config.objective == Objectives.cost:
+            obj_var = model.v_Z
+        elif model.config.objective == Objectives.reuse:
+            obj_var = model.v_Z_Reuse
+        elif model.config.objective == Objectives.cost_surrogate:
+            obj_var = model.v_Z_Surrogate
+        elif model.config.objective == Objectives.subsurface_risk:
+            obj_var = model.v_Z_SubsurfaceRisk
+        else:
+            raise Exception("Objective not supported")
+
+        model.objective = Objective(
+            expr=(obj_var + mh.v_Z_HydrualicsCost),
             sense=minimize,
             doc="Objective function",
         )
@@ -4729,76 +5531,158 @@ def water_quality(model):
     )
 
     def TreatedWaterQualityConcentrationBasedLHSRule(b, r, wt, qc, t):
-        constraint = (
-            b.v_Q[r, qc, t]
-            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
-            + b.parent_block().p_M_Concentration
-            * (
-                1
-                - sum(
+        if model.config.objective == Objectives.cost_surrogate:
+            if b.parent_block().p_chi_DesalinationSites[r]:
+                epsilon_value = 0.99
+                treatment_selection = b.parent_block().vb_y_DesalSelected[r]
+            else:
+                epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
+                treatment_selection = sum(
                     b.parent_block().vb_y_Treatment[r, wt, j]
                     for j in b.parent_block().s_J
                 )
-            )
-            >= b.v_Q[r + treated_water_label, qc, t]
-        )
 
-        return process_constraint(constraint)
+            constraint = (
+                b.v_Q[r, qc, t] * (1 - epsilon_value)
+                + b.parent_block().p_M_Concentration * (1 - treatment_selection)
+                >= b.v_Q[r + treated_water_label, qc, t]
+            )
+
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                b.v_Q[r, qc, t]
+                * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+                + b.parent_block().p_M_Concentration
+                * (
+                    1
+                    - sum(
+                        b.parent_block().vb_y_Treatment[r, wt, j]
+                        for j in b.parent_block().s_J
+                    )
+                )
+                >= b.v_Q[r + treated_water_label, qc, t]
+            )
+
+            return process_constraint(constraint)
 
     def TreatedWaterQualityConcentrationBasedRHSRule(b, r, wt, qc, t):
-        constraint = (
-            b.v_Q[r, qc, t]
-            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
-            - b.parent_block().p_M_Concentration
-            * (
-                1
-                - sum(
+        if model.config.objective == Objectives.cost_surrogate:
+            if b.parent_block().p_chi_DesalinationSites[r]:
+                epsilon_value = 0.99
+                treatment_selection = b.parent_block().vb_y_DesalSelected[r]
+            else:
+                epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
+                treatment_selection = sum(
                     b.parent_block().vb_y_Treatment[r, wt, j]
                     for j in b.parent_block().s_J
                 )
-            )
-            <= b.v_Q[r + treated_water_label, qc, t]
-        )
 
-        return process_constraint(constraint)
+            constraint = (
+                b.v_Q[r, qc, t] * (1 - epsilon_value)
+                - b.parent_block().p_M_Concentration * (1 - treatment_selection)
+                <= b.v_Q[r + treated_water_label, qc, t]
+            )
+
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                b.v_Q[r, qc, t]
+                * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+                - b.parent_block().p_M_Concentration
+                * (
+                    1
+                    - sum(
+                        b.parent_block().vb_y_Treatment[r, wt, j]
+                        for j in b.parent_block().s_J
+                    )
+                )
+                <= b.v_Q[r + treated_water_label, qc, t]
+            )
+
+            return process_constraint(constraint)
 
     def TreatedWaterQualityLoadBasedLHSRule(b, r, wt, qc, t):
-        constraint = (
-            b.v_Q[r, qc, t]
-            * b.parent_block().v_F_TreatmentFeed[r, t]
-            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
-            + b.parent_block().p_M_Flow_Conc
-            * (
-                1
-                - sum(
+        if model.config.objective == Objectives.cost_surrogate:
+            if b.parent_block().p_chi_DesalinationSites[r]:
+                epsilon_value = 0.99
+                treatment_selection = b.parent_block().vb_y_DesalSelected[r]
+            else:
+                epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
+                treatment_selection = sum(
                     b.parent_block().vb_y_Treatment[r, wt, j]
                     for j in b.parent_block().s_J
                 )
-            )
-            >= b.v_Q[r + treated_water_label, qc, t]
-            * b.parent_block().v_F_TreatedWater[r, t]
-        )
 
-        return process_constraint(constraint)
+            constraint = (
+                b.v_Q[r, qc, t]
+                * b.parent_block().v_F_TreatmentFeed[r, t]
+                * (1 - epsilon_value)
+                + b.parent_block().p_M_Flow_Conc * (1 - treatment_selection)
+                >= b.v_Q[r + treated_water_label, qc, t]
+                * b.parent_block().v_F_TreatedWater[r, t]
+            )
+
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                b.v_Q[r, qc, t]
+                * b.parent_block().v_F_TreatmentFeed[r, t]
+                * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+                + b.parent_block().p_M_Flow_Conc
+                * (
+                    1
+                    - sum(
+                        b.parent_block().vb_y_Treatment[r, wt, j]
+                        for j in b.parent_block().s_J
+                    )
+                )
+                >= b.v_Q[r + treated_water_label, qc, t]
+                * b.parent_block().v_F_TreatedWater[r, t]
+            )
+
+            return process_constraint(constraint)
 
     def TreatedWaterQualityLoadBasedRHSRule(b, r, wt, qc, t):
-        constraint = (
-            b.v_Q[r, qc, t]
-            * b.parent_block().v_F_TreatmentFeed[r, t]
-            * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
-            - b.parent_block().p_M_Flow_Conc
-            * (
-                1
-                - sum(
+        if model.config.objective == Objectives.cost_surrogate:
+            if b.parent_block().p_chi_DesalinationSites[r]:
+                epsilon_value = 0.99
+                treatment_selection = b.parent_block().vb_y_DesalSelected[r]
+            else:
+                epsilon_value = b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc]
+                treatment_selection = sum(
                     b.parent_block().vb_y_Treatment[r, wt, j]
                     for j in b.parent_block().s_J
                 )
-            )
-            <= b.v_Q[r + treated_water_label, qc, t]
-            * b.parent_block().v_F_TreatedWater[r, t]
-        )
 
-        return process_constraint(constraint)
+            constraint = (
+                b.v_Q[r, qc, t]
+                * b.parent_block().v_F_TreatmentFeed[r, t]
+                * (1 - epsilon_value)
+                - b.parent_block().p_M_Flow_Conc * (1 - treatment_selection)
+                <= b.v_Q[r + treated_water_label, qc, t]
+                * b.parent_block().v_F_TreatedWater[r, t]
+            )
+
+            return process_constraint(constraint)
+        else:
+            constraint = (
+                b.v_Q[r, qc, t]
+                * b.parent_block().v_F_TreatmentFeed[r, t]
+                * (1 - b.parent_block().p_epsilon_TreatmentRemoval[r, wt, qc])
+                - b.parent_block().p_M_Flow_Conc
+                * (
+                    1
+                    - sum(
+                        b.parent_block().vb_y_Treatment[r, wt, j]
+                        for j in b.parent_block().s_J
+                    )
+                )
+                <= b.v_Q[r + treated_water_label, qc, t]
+                * b.parent_block().v_F_TreatedWater[r, t]
+            )
+
+            return process_constraint(constraint)
 
     if (
         model.config.removal_efficiency_method
@@ -5108,7 +5992,7 @@ def discretize_water_quality(df_parameters, df_sets, discrete_qualities) -> dict
         for i, value in enumerate(
             np.linspace(min_quality, max_quality, len(discrete_qualities))
         ):
-            discrete_quality[(quality_component, discrete_qualities[i])] = value
+            discrete_quality[(quality_component, discrete_qualities[i])] = float(value)
     return discrete_quality
 
 
@@ -5241,7 +6125,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_Q,
         initialize={
             key: pyunits.convert_value(
-                value,
+                float(value),
                 from_units=model.user_units["concentration"],
                 to_units=model.model_units["concentration"],
             )
@@ -5357,7 +6241,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeTruckedFlowQuality(model):
-
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
@@ -5394,7 +6277,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         )
 
     def DiscretizeDisposalDestinationQuality(model):
-
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
@@ -6352,10 +7234,21 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="Obj value including minimizing quality at completion pads",
     )
 
-    def ObjectiveFunctionRule(model):
+    def ObjectiveFunctionQualityRule(model):
+        if model.config.objective == Objectives.cost:
+            obj_var = model.v_Z
+        elif model.config.objective == Objectives.reuse:
+            obj_var = model.v_Z_Reuse
+        elif model.config.objective == Objectives.cost_surrogate:
+            obj_var = model.v_Z_Surrogate
+        elif model.config.objective == Objectives.subsurface_risk:
+            obj_var = model.v_Z_SubsurfaceRisk
+        else:
+            raise Exception("Objective not supported")
+
         return (
             model.v_ObjectiveWithQuality
-            == model.v_Z
+            == obj_var
             + sum(
                 sum(
                     sum(model.v_Q_CompletionPad[p, qc, t] for p in model.s_CP)
@@ -6366,11 +7259,20 @@ def water_quality_discrete(model, df_parameters, df_sets):
             / 1000
         )
 
-    model.ObjectiveFunction = Constraint(
-        rule=ObjectiveFunctionRule, doc="Objective function water quality"
+    model.ObjectiveFunctionQuality = Constraint(
+        rule=ObjectiveFunctionQualityRule, doc="Objective function water quality"
     )
 
-    model.objective.set_value(expr=model.v_ObjectiveWithQuality)
+    if model.config.objective == Objectives.cost:
+        model.objective_Cost.set_value(expr=model.v_ObjectiveWithQuality)
+    elif model.config.objective == Objectives.reuse:
+        model.objective_Reuse.set_value(expr=model.v_ObjectiveWithQuality)
+    elif model.config.objective == Objectives.cost_surrogate:
+        model.objective_CostSurrogate.set_value(expr=model.v_ObjectiveWithQuality)
+    elif model.config.objective == Objectives.subsurface_risk:
+        model.objective_SubsurfaceRisk.set_value(expr=model.v_ObjectiveWithQuality)
+    else:
+        raise Exception("Objective not supported")
 
     return model
 
@@ -6390,7 +7292,13 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    if opt.type == "gurobi_direct":
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(
+            water_quality_model.quality,
+            tee=True,
+            add_options=["gams_model.optfile=1;"],
+        )
+    elif opt.type == "gurobi_direct":
         opt.solve(water_quality_model.quality, tee=True, save_results=False)
     else:
         opt.solve(water_quality_model.quality, tee=True)
@@ -6398,15 +7306,16 @@ def postprocess_water_quality_calculation(model, opt):
     return water_quality_model
 
 
-def scale_model(model, scaling_factor=None):
-
-    if scaling_factor is None:
-        scaling_factor = 1000000
-
+def scale_model(model, scaling_factor=1000000):
     model.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
     # Scaling variables
     model.scaling_factor[model.v_Z] = 1 / scaling_factor
+    model.scaling_factor[model.v_Z_Reuse] = 1 / scaling_factor
+    if hasattr(model, "v_Z_Surrogate"):
+        model.scaling_factor[model.v_Z_Surrogate] = 1 / scaling_factor
+    if model.do_subsurface_risk_calcs:
+        model.scaling_factor[model.v_Z_SubsurfaceRisk] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
@@ -6487,14 +7396,13 @@ def scale_model(model, scaling_factor=None):
         model.scaling_factor[model.v_F_DiscreteCPDestination] = 1 / (scaling_factor)
         model.scaling_factor[model.v_Q_CompletionPad] = 1 / (scaling_factor)
         model.scaling_factor[model.v_ObjectiveWithQuality] = 1 / (scaling_factor)
-        model.scaling_factor[model.ObjectiveFunction] = 1 / scaling_factor
+        model.scaling_factor[model.ObjectiveFunctionQuality] = 1 / scaling_factor
 
     # Scaling constraints
-    if model.config.objective == Objectives.cost:
-        model.scaling_factor[model.CostObjectiveFunction] = 1 / scaling_factor
-    elif model.config.objective == Objectives.reuse:
-        model.scaling_factor[model.ReuseObjectiveFunction] = 1 / scaling_factor
-
+    model.scaling_factor[model.ObjectiveFunctionCost] = 1 / scaling_factor
+    model.scaling_factor[model.ObjectiveFunctionReuse] = 1 / scaling_factor
+    if model.do_subsurface_risk_calcs:
+        model.scaling_factor[model.ObjectiveFunctionSubsurfaceRisk] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
@@ -6578,6 +7486,16 @@ def scale_model(model, scaling_factor=None):
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
+    if (
+        model.config.subsurface_risk
+        == SubsurfaceRisk.exclude_over_and_under_pressured_wells
+    ):
+        model.scaling_factor[model.ExcludeUnderAndOverPressuredDisposalWells] = (
+            1 / scaling_factor
+        )
+
+    if model.do_subsurface_risk_calcs:
+        model.scaling_factor[model.subsurface.site_constraint] = 1
 
     if model.config.node_capacity == True:
         model.scaling_factor[model.NetworkCapacity] = 1 / scaling_factor
@@ -6925,6 +7843,160 @@ def infrastructure_timing(model):
             )
 
 
+def subsurface_risk(model):
+    model.subsurface = Block()
+    m = model.subsurface
+
+    maxmin = ["max", "min"]
+    prox = ["orphan", "inactive", "EQ", "fault", "HP_LP"]
+    prox_params = [
+        "SWDProxPAWell",
+        "SWDProxInactiveWell",
+        "SWDProxEQ",
+        "SWDProxFault",
+        "SWDProxHpOrLpWell",
+    ]
+    prox_init = {}
+    k = 0
+    for i in prox_params:
+        for j in model.s_K:
+            prox_init[prox[k], j] = model.df_parameters[i][j]
+        k += 1
+
+    m.deep = model.df_parameters["SWDDeep"]
+    m.pressure = model.df_parameters["SWDAveragePressure"]
+    m.prox = Param(prox, model.s_K, initialize=prox_init)
+
+    risk_factors = model.df_parameters["SWDRiskFactors"]
+    risk_factor_set = ["distance", "severity"]
+    dist_init = {}
+    severity_init = {}
+    for i in risk_factors.keys():
+        match = re.search("distance", i)
+        if match:
+            for j in prox:
+                match = re.search(j, i)
+                if match:
+                    dist_init[j] = risk_factors[i]
+                    break
+        match = re.search("severity", i)
+        if match:
+            for j in prox:
+                match = re.search(j, i)
+                if match:
+                    severity_init[j] = risk_factors[i]
+                    break
+    pres_init = {
+        "max": risk_factors["HP_threshold"],
+        "min": risk_factors["LP_threshold"],
+    }
+
+    m.distance_risk_factors = Param(prox, initialize=dist_init, mutable=True)
+    m.severity_risk_factors = Param(prox, initialize=severity_init, mutable=True)
+    m.sum_risk_factor = Param(risk_factor_set, initialize=0, mutable=True)
+    m.pressure_thresholds = Param(maxmin, initialize=pres_init)
+    m.site_risk_factor = Param(model.s_K, prox, initialize=0, mutable=True)
+
+    m.vb_y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
+
+    for site in model.s_K:
+        for factor in prox:
+            if factor in ("orphan", "inactive") and m.deep[site]:
+                m.vb_y_dist[site, factor].fix(1)
+
+    # Defining expressions
+    def sum_risk_dist_rule(m):
+        for i in prox:
+            m.sum_risk_factor["distance"] += m.distance_risk_factors[i]
+        return m.sum_risk_factor["distance"]
+
+    m.sum_risk_dist = Expression(rule=sum_risk_dist_rule)
+
+    def sum_risk_severity_rule(m):
+        for i in prox:
+            m.sum_risk_factor["severity"] += m.severity_risk_factors[i]
+        return m.sum_risk_factor["severity"]
+
+    m.sum_risk_severity = Expression(rule=sum_risk_severity_rule)
+
+    def norm_risk_dist_rule(m, prox):
+        return m.distance_risk_factors[prox] / m.sum_risk_dist
+
+    m.norm_risk_dist = Expression(prox, rule=norm_risk_dist_rule)
+
+    def norm_risk_severity_rule(m, prox):
+        return m.severity_risk_factors[prox] / m.sum_risk_severity
+
+    m.norm_risk_severity = Expression(prox, rule=norm_risk_severity_rule)
+
+    def max_risk_fact_min_risk_rule(m):
+        return sum(
+            m.distance_risk_factors[i] * m.norm_risk_dist[i] * m.norm_risk_severity[i]
+            for i in prox
+        )
+
+    m.max_risk_fact_min_risk = Expression(rule=max_risk_fact_min_risk_rule)
+
+    def site_rule_constraints(m, site, factor):
+        if factor in ("orphan", "inactive") and m.deep[site]:
+            return Constraint.Skip
+        else:
+            return (
+                m.distance_risk_factors[factor] * m.vb_y_dist[site, factor]
+                <= m.prox[factor, site]
+            )
+
+    m.site_constraint = Constraint(model.s_K, prox, rule=site_rule_constraints)
+
+    def site_risk_factor_rule(m, site, factor):
+        if factor in ("orphan", "inactive") and m.deep[site]:
+            m.site_risk_factor[site, factor] = m.distance_risk_factors[factor]
+        else:
+            m.site_risk_factor[site, factor] = m.distance_risk_factors[
+                factor
+            ] * m.vb_y_dist[site, factor] + m.prox[factor, site] * (
+                1 - m.vb_y_dist[site, factor]
+            )
+        return m.site_risk_factor[site, factor]
+
+    m.site_risk_factors = Expression(model.s_K, prox, rule=site_risk_factor_rule)
+
+    def risk_metric_rule(m, site):
+        return (
+            1
+            - sum(
+                (
+                    m.distance_risk_factors[factor] * m.vb_y_dist[site, factor]
+                    + m.prox[factor, site] * (1 - m.vb_y_dist[site, factor])
+                )
+                * m.norm_risk_dist[factor]
+                * m.norm_risk_severity[factor]
+                for factor in prox
+            )
+            / m.max_risk_fact_min_risk
+        )
+
+    m.risk_metrics = Expression(model.s_K, rule=risk_metric_rule)
+
+    m.sites_included = Param(
+        model.s_K,
+        initialize={
+            k: m.pressure[k] >= m.pressure_thresholds["min"]
+            and m.pressure[k] <= m.pressure_thresholds["max"]
+            for k in model.s_K
+        },
+    )
+
+    m.objective = Objective(
+        expr=sum(m.vb_y_dist[i, j] for i in model.s_K for j in prox),
+        sense=maximize,
+        doc="Objective function",
+    )
+    m.objective.deactivate()
+
+    return model
+
+
 def solve_discrete_water_quality(model, opt, scaled):
     # Discrete water quality method consists of 3 steps:
     # Step 1 - generate a feasible initial solution
@@ -6943,7 +8015,14 @@ def solve_discrete_water_quality(model, opt, scaled):
     # Step 1a - fix discrete water quality variables
     v_DQ.fix()
     # Step 1b - solve model, obtain optimal flows without considering quality
-    opt.solve(model, tee=True)
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(
+            model,
+            tee=True,
+            add_options=["gams_model.optfile=1;"],
+        )
+    else:
+        opt.solve(model, tee=True)
     # Step 1c - fix or bound all non quality variables
     prefix = "scaled_" if scaled else ""
     discrete_variables_names = {
@@ -6984,7 +8063,14 @@ def solve_discrete_water_quality(model, opt, scaled):
     print("*" * 50)
     print(" " * 15, "Solving non-discrete water quality model")
     print("*" * 50)
-    opt.solve(model, tee=True, warmstart=True)
+    if opt.options["solver"] == "CPLEX":
+        opt.solve(
+            model,
+            tee=True,
+            add_options=["gams_model.optfile=1;"],
+        )
+    else:
+        opt.solve(model, tee=True, warmstart=True)
 
     # Step 2 - solve full discrete water quality
     # Step 2a - free or remove bounds for all non quality variables
@@ -7007,21 +8093,103 @@ def solve_discrete_water_quality(model, opt, scaled):
     print("*" * 50)
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
-    results = opt.solve(model, tee=True, warmstart=True)
+    if opt.options["solver"] == "CPLEX":
+        results = opt.solve(
+            model,
+            tee=True,
+            warmstart=True,
+            add_options=["gams_model.optfile=1;"],
+        )
+    else:
+        results = opt.solve(model, tee=True, warmstart=True)
 
     # Step 3 - Return solution
     return results
 
 
+def calc_new_pres(model_h, ps, l1, l2, t):
+    D_eff = value(model_h.hydraulics.p_Initial_Pipeline_Diameter[l1, l2]) + sum(
+        value(model_h.vb_y_Pipeline[l1, l2, d])
+        * value(model_h.df_parameters["PipelineDiameterValues"][d])
+        for d in model_h.s_D
+    )
+    if value(model_h.v_F_Piped[(l1, l2), t]) > 0.01:
+        if D_eff > 0.1:
+            HW_loss = (
+                10.704
+                * (
+                    (
+                        value(
+                            pyunits.convert(
+                                model_h.v_F_Piped[l1, l2, t],
+                                to_units=pyunits.m**3 / pyunits.s,
+                            )
+                        )
+                        / value(model_h.hydraulics.p_iota_HW_material_factor_pipeline)
+                    )
+                    ** 1.85
+                )
+                * value(
+                    pyunits.convert(
+                        model_h.p_lambda_Pipeline[l1, l2], to_units=pyunits.m
+                    )
+                )
+            ) / ((D_eff * 0.0254) ** 4.87)
+        else:
+            HW_loss = 0
+    else:
+        HW_loss = 0
+    P2 = ps
+    (
+        +value(model_h.p_zeta_Elevation[l1]) * value(model_h.hydraulics.p_rhog)
+        - value(model_h.p_zeta_Elevation[l2]) * value(model_h.hydraulics.p_rhog)
+        - value(model_h.hydraulics.v_HW_loss[l1, l2, t])
+        * value(model_h.hydraulics.p_rhog)
+        + value(model_h.hydraulics.v_PumpHead[l1, l2, t])
+        * value(model_h.hydraulics.p_rhog)
+        - value(model_h.hydraulics.v_ValveHead[l1, l2, t])
+        * value(model_h.hydraulics.p_rhog)
+    )
+
+    return P2
+
+
 def solve_model(model, options=None):
+    """
+    Solve the optimization model. options is a dictionary with the following options:
+
+    `solver`: Either a string with solver name or a tuple of strings with several solvers to try and load in order. PARETO currently supports Gurobi (commercial), CPLEX (commercial) and CBC (free) solvers, but it might be possible to use other MILP solvers as well. Default = ("gurobi_direct", "gurobi", "gams:CPLEX", "cbc")
+
+    `running_time`: Maximum solver running time in seconds. Default = 60
+
+    `gap`: Solver gap. Default = 0
+
+    `deactivate_slacks`: `True` to deactivate slack variables, `False` to use slack variables. Default = `True`
+
+    `scale_model`: `True` to apply scaling to the model, `False` to not apply scaling. Default = `False`
+
+    `scaling_factor`: Scaling factor to apply to the model (only relevant if `scale_model` is `True`). Default = 1000000
+
+    `gurobi_numeric_focus`: The `NumericFocus` parameter to pass to the Gurobi solver. This parameter can be 1, 2, or 3, and per Gurobi, "settings 1-3 increasingly shift the focus towards more care in numerical computations, which can impact performance." This option is ignored if a solver other than Gurobi is used. Default = 1
+
+    `only_subsurface_block`: If `True`, solve only the subsurface risk block and then return without solving the parent model. This option only has an affect if the subsurface risk block has been created. Default = `False`
+
+    Returns the solver results object.
+    """
     # default option values
     running_time = 60  # solver running time in seconds
     gap = 0  # solver gap
     deactivate_slacks = True  # yes/no to deactivate slack variables
     use_scaling = False  # yes/no to scale the model
     scaling_factor = 1000000  # scaling factor to apply to the model (only relevant if scaling is turned on)
-    solver = ("gurobi_direct", "gurobi", "cbc")  # solvers to try and load in order
     gurobi_numeric_focus = 1
+    only_subsurface_block = False  # yes/no to only solve the subsurface risk block
+    solver = (
+        "gurobi_direct",
+        "gurobi",
+        "gams:CPLEX",
+        "cbc",
+    )  # solvers to try and load in order
 
     # raise an exception if options is neither None nor a user-provided dictionary
     if options is not None and not isinstance(options, dict):
@@ -7046,14 +8214,24 @@ def solve_model(model, options=None):
             solver = options["solver"]
         if "gurobi_numeric_focus" in options.keys():
             gurobi_numeric_focus = options["gurobi_numeric_focus"]
+        if "only_subsurface_block" in options.keys():
+            only_subsurface_block = options["only_subsurface_block"]
 
-    # load pyomo solver
+    # Load solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
 
-    # set maximum running time for solver
+    # The below code is not the best way to check for solver but this works.
+    # Checks for CPLEX using gams.
+    if opt.options["solver"] == "CPLEX":
+        with open(f"{opt.options['solver']}.opt", "w") as f:
+            f.write(
+                f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
+            )
+
+    # Set maximum running time for solver
     set_timeout(opt, timeout_s=running_time)
 
-    # set solver gap
+    # Set solver gap
     if opt.type in ("gurobi_direct", "gurobi"):
         # Apply Gurobi specific options
         opt.options["mipgap"] = gap
@@ -7061,10 +8239,8 @@ def solve_model(model, options=None):
     elif opt.type in ("cbc"):
         # Apply CBC specific option
         opt.options["ratioGap"] = gap
-    else:
-        print("\nNot implemented passing gap for solver :%s\n" % opt.type)
 
-    # deactivate slack variables if necessary
+    # Deactivate slack variables if necessary
     if deactivate_slacks:
         model.v_C_Slack.fix(0)
         model.v_S_FracDemand.fix(0)
@@ -7075,6 +8251,41 @@ def solve_model(model, options=None):
         model.v_S_DisposalCapacity.fix(0)
         model.v_S_TreatmentCapacity.fix(0)
         model.v_S_BeneficialReuseCapacity.fix(0)
+
+    if model.do_subsurface_risk_calcs:
+        print("\n")
+        print("*" * 50)
+        print(" " * 6, "Calculating subsurface risk metrics")
+        print("*" * 50)
+
+        # Certain indexes of model.subsurface.vb_y_dist need to be fixed to 1 for
+        # the subsurface risk block to work properly
+        for site in model.s_K:
+            for factor in ["orphan", "inactive", "EQ", "fault", "HP_LP"]:
+                model.subsurface.vb_y_dist[site, factor].unfix()
+                if factor in ("orphan", "inactive") and model.subsurface.deep[site]:
+                    model.subsurface.vb_y_dist[site, factor].fix(1)
+
+        # Solve just the subsurface risk block
+        model.subsurface.objective.activate()
+        results_subsurface = opt.solve(model.subsurface, tee=True)
+        model.subsurface.objective.deactivate()
+
+        # Fix all indexes of vb_y_dist before proceeding with solving the rest of
+        # the model
+        for site in model.s_K:
+            for factor in ["orphan", "inactive", "EQ", "fault", "HP_LP"]:
+                model.subsurface.vb_y_dist[site, factor].fix()
+        results_subsurface.write()
+
+        # Return now if the user only wants to solve the subsurface risk block
+        if only_subsurface_block:
+            return results_subsurface
+    else:
+        if only_subsurface_block:
+            print(
+                "Subsurface risk block has not been created. Proceeding with solving network model."
+            )
 
     if use_scaling:
         # Step 1: scale model
@@ -7093,7 +8304,14 @@ def solve_model(model, options=None):
             results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
         elif model.config.water_quality is WaterQuality.post_process:
             # option 3.2:
-            results = opt.solve(scaled_model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    scaled_model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
+            else:
+                results = opt.solve(scaled_model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
                 TransformationFactory("core.scale_model").propagate_solution(
                     scaled_model, model
@@ -7101,7 +8319,15 @@ def solve_model(model, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 3.1:
-            results = opt.solve(scaled_model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    scaled_model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
+            else:
+                opt.options["DualReductions"] = 0
+                results = opt.solve(scaled_model, tee=True)
 
         # Step 4: propagate scaled model results to original model
         if results.solver.termination_condition != TerminationCondition.infeasible:
@@ -7124,12 +8350,27 @@ def solve_model(model, options=None):
             results = solve_discrete_water_quality(model, opt, scaled=False)
         elif model.config.water_quality is WaterQuality.post_process:
             # option 2.2:
-            results = opt.solve(model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
+            else:
+                results = opt.solve(model, tee=True)
             if results.solver.termination_condition != TerminationCondition.infeasible:
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 2.1:
-            results = opt.solve(model, tee=True)
+            if opt.options["solver"] == "CPLEX":
+                results = opt.solve(
+                    model,
+                    tee=True,
+                    add_options=["gams_model.optfile=1;"],
+                )
+            else:
+                opt.options["DualReductions"] = 0
+                results = opt.solve(model, tee=True)
 
     if results.solver.termination_condition == TerminationCondition.infeasible:
         print(
@@ -7169,7 +8410,11 @@ def solve_model(model, options=None):
             mh = model_h.hydraulics
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
-            if opt.type == "gurobi_direct":
+            if opt.options["solver"] == "CPLEX":
+                results_2 = opt.solve(
+                    mh, tee=True, add_options=["gams_model.optfile=1;"]
+                )
+            elif opt.type == "gurobi_direct":
                 results_2 = opt.solve(mh, tee=True, save_results=False)
             else:
                 results_2 = opt.solve(mh, tee=True)
@@ -7211,7 +8456,7 @@ def solve_model(model, options=None):
                     keepfiles=True,
                     solver=mathoptsolver,
                     tmpdir="temp",
-                    add_options=["gams_model.optfile=1;"],
+                    io_options=["gams_model.optfile=1;"],
                 )
                 try:
                     # second solve with SCIP
@@ -7230,6 +8475,60 @@ def solve_model(model, options=None):
                     results_2 = solver2.solve(
                         model_h, options={"limits/gap": 0.3}, tee=True
                     )
+        elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
+            # Adding temporary variable bounds until the bounding method is implemented for the following Vars
+            model_h.v_F_Piped.setub(1050)
+            model_h.hydraulics.v_Pressure.setub(3.5e6)
+            if opt.options["solver"] == "CPLEX":
+                results_2 = opt.solve(
+                    model_h,
+                    tee=True,
+                    keepfiles=True,
+                    io_options=["gams_model.optfile=1;"],
+                )
+            else:
+                results_2 = opt.solve(model_h, tee=True, keepfiles=True)
+
+            # Check the feasibility of the results with regards to max pressure and node pressures
+
+            # Navigate over all the times
+            flagV = 0
+            flagU = 0
+            for t in model.s_T:
+                Press_dict = {}
+                for p in model.s_PP:
+                    Press_dict[p] = value(model_h.hydraulics.v_Pressure[p, t])
+                    while True:
+                        pres_dict_keys = list(Press_dict.keys())
+                        for l1, l2 in model.s_LLA:
+                            if l1 in Press_dict.keys():
+                                ps = Press_dict[l1]
+                                this_p = calc_new_pres(model_h, ps, l1, l2, t)
+                                Press_dict[l2] = this_p
+                                if (
+                                    this_p > value(model_h.hydraulics.p_xi_Max_AOP)
+                                    and l2 in model.s_N
+                                ):
+                                    flagV = 1
+                                    print(l2, "->", l2 in model.s_N)
+                                    print(
+                                        "\n\nThe Pressure is ",
+                                        this_p,
+                                        " and max is ",
+                                        value(model_h.hydraulics.p_xi_Max_AOP),
+                                    )
+                                if this_p < 0 and l2 in model.s_N:
+                                    flagU = 1
+                        pres_dict_keys2 = list(Press_dict.keys())
+                        if pres_dict_keys == pres_dict_keys2:
+                            break
+
+            if flagV:
+                print("Violation of maximum pressure")
+            elif flagU:
+                print("Violation of minimum pressure")
+            else:
+                print("All pressures satisfied ")
 
         # Once the hydraulics block is solved, it is deactivated to retain the original MILP
         model_h.hydraulics.deactivate()
