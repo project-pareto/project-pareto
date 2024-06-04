@@ -291,8 +291,8 @@ def _sheets_to_dfs(
 
 def _read_data(
     _fname,
-    _set_list: Iterable[str],
-    _parameter_list: Iterable[str],
+    _set_list,
+    _parameter_list,
     _model_type: str = "strategic",
     raises: bool = True,
 ):
@@ -301,29 +301,30 @@ def _read_data(
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
     contains all the parameters in raw format: _df_parameters
     """
-    _set_list = list(_set_list)
-    _parameter_list = list(_parameter_list)
-    _logger.debug("_set_list: %s", _set_list)
-    _logger.debug("_parameter_list: %s", _parameter_list)
-
     pareto_input_set_tab_names = get_valid_input_set_tab_names(_model_type)
     pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names(_model_type)
 
     if _set_list is not None:
+        _set_list = list(_set_list)
+        _logger.debug("_set_list: %s", _set_list)
         valid_set_tab_names = pareto_input_set_tab_names.copy()
         valid_set_tab_names.extend(_set_list)
         # De-duplicate
         valid_set_tab_names = list(set(valid_set_tab_names))
     else:
         valid_set_tab_names = pareto_input_set_tab_names
+        _logger.debug("_set_list: None")
 
     if _parameter_list is not None:
+        _parameter_list = list(_parameter_list)
+        _logger.debug("_parameter_list: %s", _parameter_list)
         valid_parameter_tab_names = pareto_input_parameter_tab_names.copy()
         valid_parameter_tab_names.extend(_parameter_list)
         # De-duplicate
         valid_parameter_tab_names = list(set(valid_parameter_tab_names))
     else:
         valid_parameter_tab_names = pareto_input_parameter_tab_names
+        _logger.debug("_parameter_list: None")
 
     # Check all names available in the input sheet
     # If the sheet name is unused (not a valid Set or Parameter tab, not "Overview", and not "Schematic"), raise a warning.
@@ -353,22 +354,20 @@ def _read_data(
     _df_sets = {}
     _df_parameters = {}
 
-    _temp_df_parameters = {}
     _data_column = ["value"]
     proprietary_data = False
 
     # pd.read_excel() does not support empty lists in recent versions of pandas
-    if _set_list:
-        # Read all tabs in the input file
-        _df_sets = _sheets_to_dfs(
-            _fname,
-            raises=raises,
-            header=0,
-            index_col=None,
-            usecols="A",
-            dtype="string",
-            keep_default_na=False,
-        )
+    # Read all tabs in the input file
+    _df_sets = _sheets_to_dfs(
+        _fname,
+        raises=raises,
+        header=0,
+        index_col=None,
+        usecols="A",
+        dtype="string",
+        keep_default_na=False,
+    )
 
     # Filter for sets - remove tabs that are not specified as sets by user and
     # are not valid PARETO inputs
@@ -384,16 +383,16 @@ def _read_data(
         _df_sets[df].replace("", np.nan, inplace=True)
         _df_sets[df].dropna(inplace=True)
 
-    if _parameter_list:
-        # Read all tabs in the input file
-        _df_parameters = _sheets_to_dfs(
-            _fname,
-            raises=raises,
-            header=1,
-            index_col=None,
-            usecols=None,
-            keep_default_na=False,
-        )
+    # pd.read_excel() does not support empty lists in recent versions of pandas
+    # Read all tabs in the input file
+    _df_parameters = _sheets_to_dfs(
+        _fname,
+        raises=raises,
+        header=1,
+        index_col=None,
+        usecols=None,
+        keep_default_na=False,
+    )
 
     # Filter for parameters - remove tabs that are not specified as parameters
     # by user and are not valid PARETO inputs
