@@ -34,5 +34,5 @@ def test_case_studies(file_name: str):
 
     with resources.path("pareto.case_studies", file_name) as fpath:
         # changing to raises=True will cause the test to fail on data loading failures
-        data = get_data(fpath, model_type=model_type raises=False)
+        data = get_data(fpath, model_type=model_type, raises=False)
     assert data is not None
