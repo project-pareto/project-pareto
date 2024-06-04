@@ -18,7 +18,8 @@ from cmath import nan
 import numpy as np
 import os
 import re
-import pandas as pd
+
+
 from pyomo.environ import (
     Var,
     Param,
@@ -46,13 +47,19 @@ from pyomo.common.fileutils import this_file_dir
 from pyomo.core.base.constraint import simple_constraint_rule
 from pyomo.core.expr import identify_variables
 
-# from gurobipy import *
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
 from pathlib import Path
+
+from pareto.utilities.process_data import (
+    get_valid_piping_arc_list,
+    get_valid_trucking_arc_list,
+    check_required_data,
+    model_infeasibility_detection,
+)
 
 
 class Objectives(Enum):
@@ -276,8 +283,11 @@ def create_model(df_sets, df_parameters, default={}):
     # import config dictionary
     model.config = CONFIG(default)
     model.type = "strategic"
-    model.df_sets = df_sets
-    model.df_parameters = df_parameters
+
+    # check that input data contains required data
+    model.df_sets, model.df_parameters = check_required_data(
+        df_sets, df_parameters, model.config
+    )
 
     try:
         # Check that currency is set to USD
@@ -482,33 +492,11 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.s_A = Set(
-        initialize=model.df_sets["AirEmissionComponents"], doc="Air emission components"
+        initialize=model.df_sets["AirEmissionsComponents"],
+        doc="Air emission components",
     )
 
-    piping_arc_types = [
-        "PCA",
-        "PNA",
-        "PPA",
-        "CNA",
-        "CCA",
-        "NNA",
-        "NCA",
-        "NKA",
-        "NSA",
-        "NRA",
-        "NOA",
-        "FCA",
-        "RNA",
-        "RCA",
-        "RKA",
-        "RSA",
-        "SNA",
-        "SCA",
-        "SKA",
-        "SRA",
-        "SOA",
-        "ROA",
-    ]
+    piping_arc_types = get_valid_piping_arc_list()
 
     # Build dictionary of all specified piping arcs
     model.df_parameters["LLA"] = {}
@@ -519,24 +507,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
     )
 
-    trucking_arc_types = [
-        "PCT",
-        "PKT",
-        "PST",
-        "PRT",
-        "POT",
-        "FCT",
-        "CKT",
-        "CST",
-        "CRT",
-        "CCT",
-        "SCT",
-        "SKT",
-        "SOT",
-        "RKT",
-        "RST",
-        "ROT",
-    ]
+    trucking_arc_types = get_valid_trucking_arc_list()
 
     # Build dictionary of all specified trucking arcs
     model.df_parameters["LLT"] = {}
@@ -860,6 +831,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
         initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        default=0,
         doc="Binary parameter designating the Completion Pads that are outside the system",
     )
     model.p_chi_DesalinationTechnology = Param(
@@ -1173,6 +1145,13 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=init_arc_param("FCA"),
         doc="Valid externally sourced water-to-completions pipeline arcs [-]",
+    )
+    model.p_FNA = Param(
+        model.s_F,
+        model.s_N,
+        default=0,
+        initialize=init_arc_param("FNA"),
+        doc="Valid externally sourced water-to-node pipeline arcs [-]",
     )
     model.p_RNA = Param(
         model.s_R,
@@ -1803,6 +1782,14 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_S,
         default=0,
         units=model.model_units["volume"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters["InitialStorageLevel"].items()
+        },
         doc="Initial storage level at storage site [volume]",
     )
     model.p_lambda_PadStorage = Param(
@@ -2100,7 +2087,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["StorageCost"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Storage deposit operational cost [currency/volume]",
@@ -2118,7 +2105,7 @@ def create_model(df_sets, df_parameters, default={}):
                 from_units=model.user_units["currency_volume"],
                 to_units=model.model_units["currency_volume"],
             )
-            for key, value in {}
+            for key, value in model.df_parameters["StorageWithdrawalRevenue"].items()
         },
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",
@@ -2390,7 +2377,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_epsilon_DisposalOperatingCapacity = Param(
         model.s_K,
         model.s_T,
-        default=0,
+        default=1,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Operating capacity of disposal site [%]",
@@ -2569,7 +2556,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.v_Z_emissions = Var(
         within=Reals,
         units=model.model_units["mass"],
-        doc="Emissions objective function variable [mass]",
+        doc="Objective function variable - minimize air emissions [mass]",
     )
 
     model.ObjectiveFunctionEmissions = Constraint(
@@ -4706,6 +4693,7 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.water_quality is WaterQuality.discrete:
         model = water_quality_discrete(model, df_parameters, df_sets)
 
+    model = model_infeasibility_detection(model)
     return model
 
 
@@ -6377,7 +6365,7 @@ def discretize_water_quality(df_parameters, df_sets, discrete_qualities) -> dict
         for i, value in enumerate(
             np.linspace(min_quality, max_quality, len(discrete_qualities))
         ):
-            discrete_quality[(quality_component, discrete_qualities[i])] = value
+            discrete_quality[(quality_component, discrete_qualities[i])] = float(value)
     return discrete_quality
 
 

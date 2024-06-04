@@ -35,121 +35,6 @@ from pareto.utilities.results import (
 from importlib import resources
 
 
-# This emulates what the pyomo command-line tools does
-# Tabs in the input Excel spreadsheet
-set_list = [
-    "ProductionPads",
-    "CompletionsPads",
-    "SWDSites",
-    "ExternalWaterSources",
-    "WaterQualityComponents",
-    "StorageSites",
-    "TreatmentSites",
-    "ReuseOptions",
-    "NetworkNodes",
-    "PipelineDiameters",
-    "StorageCapacities",
-    "InjectionCapacities",
-    "TreatmentCapacities",
-    "TreatmentTechnologies",
-]
-
-parameter_list = [
-    "Units",
-    "PNA",
-    "CNA",
-    "CCA",
-    "NNA",
-    "NCA",
-    "NKA",
-    "NRA",
-    "NSA",
-    "FCA",
-    "RCA",
-    "RNA",
-    "RSA",
-    "SCA",
-    "SNA",
-    "ROA",
-    "RKA",
-    "SOA",
-    "NOA",
-    "PCT",
-    "PKT",
-    "FCT",
-    "CST",
-    "CCT",
-    "CKT",
-    "RST",
-    "ROT",
-    "SOT",
-    "RKT",
-    "Elevation",
-    "CompletionsPadOutsideSystem",
-    "DesalinationTechnologies",
-    "DesalinationSites",
-    "BeneficialReuseCost",
-    "BeneficialReuseCredit",
-    "TruckingTime",
-    "CompletionsDemand",
-    "PadRates",
-    "FlowbackRates",
-    "WellPressure",
-    "NodeCapacities",
-    "InitialPipelineCapacity",
-    "InitialPipelineDiameters",
-    "InitialDisposalCapacity",
-    "InitialTreatmentCapacity",
-    "ReuseMinimum",
-    "ReuseCapacity",
-    "ExtWaterSourcingAvailability",
-    "PadOffloadingCapacity",
-    "CompletionsPadStorage",
-    "DisposalOperationalCost",
-    "TreatmentOperationalCost",
-    "ReuseOperationalCost",
-    "PipelineOperationalCost",
-    "ExternalSourcingCost",
-    "TruckingHourlyCost",
-    "PipelineDiameterValues",
-    "DisposalCapacityIncrements",
-    "InitialStorageCapacity",
-    "StorageCapacityIncrements",
-    "TreatmentCapacityIncrements",
-    "TreatmentEfficiency",
-    "RemovalEfficiency",
-    "DisposalExpansionCost",
-    "StorageExpansionCost",
-    "TreatmentExpansionCost",
-    "PipelineCapexDistanceBased",
-    "PipelineCapexCapacityBased",
-    "PipelineCapacityIncrements",
-    "PipelineExpansionDistance",
-    "Hydraulics",
-    "Economics",
-    "DesalinationSurrogate",
-    "ExternalWaterQuality",
-    "PadWaterQuality",
-    "StorageInitialWaterQuality",
-    "PadStorageInitialWaterQuality",
-    "DisposalOperatingCapacity",
-    "AirEmissionCoefficients",
-    "TreatmentEmissionCoefficients",
-    "TreatmentExpansionLeadTime",
-    "DisposalExpansionLeadTime",
-    "StorageExpansionLeadTime",
-    "PipelineExpansionLeadTime_Dist",
-    "PipelineExpansionLeadTime_Capac",
-    "SWDDeep",
-    "SWDAveragePressure",
-    "SWDProxPAWell",
-    "SWDProxInactiveWell",
-    "SWDProxEQ",
-    "SWDProxFault",
-    "SWDProxHpOrLpWell",
-    "SWDRiskFactors",
-]
-
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
@@ -165,11 +50,12 @@ with resources.path(
     "pareto.case_studies",
     "workshop_baseline_all_data.xlsx",
 ) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
+    [df_sets, df_parameters] = get_data(fpath)
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk, Objectives.environmental]
+ objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk,, Objective.cost_surrogate, Objectives.environmental]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]
@@ -185,7 +71,7 @@ strategic_model = create_model(
     df_sets,
     df_parameters,
     default={
-        "objective": Objectives.environmental,
+        "objective": Objectives.cost,
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
@@ -229,9 +115,3 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )
-
-# This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

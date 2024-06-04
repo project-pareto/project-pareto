@@ -27,7 +27,12 @@ from pareto.operational_water_management.operational_produced_water_optimization
     WaterQuality,
     get_operational_model_unit_container,
 )
-from pareto.utilities.get_data import get_data, get_display_units
+from pareto.utilities.get_data import (
+    get_data,
+    get_display_units,
+    get_valid_input_set_tab_names,
+    get_valid_input_parameter_tab_names,
+)
 from pareto.utilities.units_support import (
     flatten_list,
     PintUnitExtractionVisitor,
@@ -48,64 +53,13 @@ solver = get_solver("cbc")
 @pytest.fixture(scope="module")
 def build_operational_model():
     # This emulates what the pyomo command-line tools does
-    # Tabs in the input Excel spreadsheet
-    set_list = [
-        "ProductionPads",
-        "CompletionsPads",
-        "ProductionTanks",
-        "ExternalWaterSources",
-        "WaterQualityComponents",
-        "StorageSites",
-        "SWDSites",
-        "TreatmentSites",
-        "ReuseOptions",
-        "NetworkNodes",
-    ]
-    parameter_list = [
-        "Units",
-        "RCA",
-        "FCA",
-        "PCT",
-        "FCT",
-        "CCT",
-        "PKT",
-        "PRT",
-        "CKT",
-        "CRT",
-        "PAL",
-        "CompletionsDemand",
-        "PadRates",
-        "TankFlowbackRates",
-        "FlowbackRates",
-        "ProductionTankCapacity",
-        "DisposalCapacity",
-        "CompletionsPadStorage",
-        "TreatmentCapacity",
-        "ExtWaterSourcingAvailability",
-        "PadOffloadingCapacity",
-        "TruckingTime",
-        "DisposalOperationalCost",
-        "TreatmentOperationalCost",
-        "ReuseOperationalCost",
-        "PadStorageCost",
-        "PipelineOperationalCost",
-        "TruckingHourlyCost",
-        "ExternalSourcingCost",
-        "ProductionRates",
-        "TreatmentEfficiency",
-        "ExternalWaterQuality",
-        "PadWaterQuality",
-        "StorageInitialWaterQuality",
-    ]
-
     with resources.path(
         "pareto.case_studies", "operational_generic_case_study.xlsx"
     ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(fpath, model_type="operational")
     df_parameters["MinTruckFlow"] = 75
     df_parameters["MaxTruckFlow"] = 37000
     # create mathematical model
-
     def _call_model_with_config(config_dict):
         operational_model = create_model(df_sets, df_parameters, config_dict)
         return operational_model
@@ -298,61 +252,14 @@ def test_operational_model_discrete_water_quality_build(build_operational_model)
 
 @pytest.mark.component
 def test_operational_model_UI_display_units():
+    model_type = "operational"
     # This emulates what the pyomo command-line tools does
-    # Tabs in the input Excel spreadsheet
-    set_list = [
-        "ProductionPads",
-        "CompletionsPads",
-        "ProductionTanks",
-        "ExternalWaterSources",
-        "WaterQualityComponents",
-        "StorageSites",
-        "SWDSites",
-        "TreatmentSites",
-        "ReuseOptions",
-        "NetworkNodes",
-    ]
-    parameter_list = [
-        "Units",
-        "RCA",
-        "FCA",
-        "PCT",
-        "FCT",
-        "CCT",
-        "PKT",
-        "PRT",
-        "CKT",
-        "CRT",
-        "PAL",
-        "CompletionsDemand",
-        "PadRates",
-        "FlowbackRates",
-        "ProductionTankCapacity",
-        "DisposalCapacity",
-        "CompletionsPadStorage",
-        "TreatmentCapacity",
-        "ExtWaterSourcingAvailability",
-        "PadOffloadingCapacity",
-        "TruckingTime",
-        "DisposalOperationalCost",
-        "TreatmentOperationalCost",
-        "ReuseOperationalCost",
-        "PadStorageCost",
-        "PipelineOperationalCost",
-        "TruckingHourlyCost",
-        "ExternalSourcingCost",
-        "ProductionRates",
-        "TreatmentEfficiency",
-        "ExternalWaterQuality",
-        "PadWaterQuality",
-        "StorageInitialWaterQuality",
-    ]
-
     with resources.path(
         "pareto.case_studies", "operational_generic_case_study.xlsx"
     ) as fpath:
-        [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+        [df_sets, df_parameters] = get_data(fpath, model_type="operational")
 
-    input_sheet_names = parameter_list + set_list
+    input_sheet_names = get_valid_input_set_tab_names(model_type)
+    input_sheet_names.extend(get_valid_input_parameter_tab_names(model_type))
     UI_display_units = get_display_units(input_sheet_names, df_parameters["Units"])
     assert UI_display_units
