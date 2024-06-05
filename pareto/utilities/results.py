@@ -840,7 +840,7 @@ def generate_report(
                         "Hazen-Williams head loss",
                     )
                 ],
-                "hydraulics.v_effective_Pipeline_diameter_dict": [
+                "hydraulics.v_eff_pipe_diam_dict": [
                     (
                         "Location",
                         "Location",
@@ -1189,34 +1189,8 @@ def generate_report(
     else:
         raise Exception("Model type {0} is not supported".format(model.type))
 
-    # Convert Objective to display units
-    # get display unit:  the display units (to_unit) is defined by output_units from module parameter
-    from_unit_string = model.v_Z.get_units().to_string()
-    if output_units == OutputUnits.unscaled_model_units:
-        to_unit = model.model_to_unscaled_model_display_units[from_unit_string]
-    elif output_units == OutputUnits.user_units:
-        to_unit = model.model_to_user_units[from_unit_string]
-
-    var_value = pyunits.convert_value(
-        model.v_Z.value,
-        from_units=model.v_Z.get_units(),
-        to_units=to_unit,
-    )
-    # Add objective to v_F_Overview_dict
-    headers["v_F_Overview_dict"].append(
-        (
-            model.v_Z.name,
-            model.v_Z.doc,
-            to_unit.to_string().replace("oil_bbl", "bbl"),
-            var_value,
-        )
-    )
-
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
-        # Objective variable already added to report. We can skip it here.
-        if variable.name == "v_Z":
-            continue
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
         units_true = (
             variable.get_units() is not None
@@ -1245,6 +1219,7 @@ def generate_report(
 
         else:
             to_unit = None
+
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:

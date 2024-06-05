@@ -48,7 +48,7 @@ strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
-    "workshop_baseline_all_data.xlsx",
+    "strategic_toy_case_study.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets, df_parameters] = get_data(fpath)

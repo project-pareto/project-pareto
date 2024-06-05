@@ -27,7 +27,6 @@ from pyomo.environ import (
     ConcreteModel,
     Expression,
     Constraint,
-    ConstraintList,
     Objective,
     minimize,
     maximize,
@@ -2550,9 +2549,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.objective_SubsurfaceRisk.deactivate()
 
     ####### Minimum emissions objective #######
-
-    # Define emissions objective function #
-
     model.v_Z_emissions = Var(
         within=Reals,
         units=model.model_units["mass"],
@@ -2561,7 +2557,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.ObjectiveFunctionEmissions = Constraint(
         expr=model.v_Z_emissions == model.v_E_TotalEmissions,
-        doc="Objective function constraint - maximize reuse",
+        doc="Objective function constraint - minimize emissions",
     )
 
     model.objective_Emissions = Objective(
@@ -2571,6 +2567,8 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.objective_Emissions.deactivate()
+
+    # Surrogate desalination models #
 
     if model.config.objective == Objectives.cost_surrogate:
         if model.config.desalination_model == DesalinationModel.false:
@@ -4953,7 +4951,7 @@ def pipeline_hydraulics(model):
         Hazen-Williams equation in a separate stand alone method "_hazen_williams_head". In this method,
         the hydraulics block is solved alone for the objective of minimizing total cost of pumps.
         """
-        mh.p_effective_Pipeline_diameter = Param(
+        mh.p_eff_pipe_diam = Param(
             model.s_LLA,
             default=0,
             initialize=0,
@@ -4972,9 +4970,7 @@ def pipeline_hydraulics(model):
             doc="Hazen-Williams Frictional loss, m",
         )
         for key in model.s_LLA:
-            mh.p_effective_Pipeline_diameter[key] = mh.p_Initial_Pipeline_Diameter[
-                key
-            ] + value(
+            mh.p_eff_pipe_diam[key] = mh.p_Initial_Pipeline_Diameter[key] + value(
                 sum(
                     model.vb_y_Pipeline[key, d]
                     * model.df_parameters["PipelineDiameterValues"][d]
@@ -4986,14 +4982,14 @@ def pipeline_hydraulics(model):
         for t0 in model.s_T:
             for key in model.s_LLA:
                 if value(model.v_F_Piped[key, t0]) > 0.01:
-                    if value(mh.p_effective_Pipeline_diameter[key]) > 0.1:
+                    if value(mh.p_eff_pipe_diam[key]) > 0.1:
                         mh.p_HW_loss[key, t0] = _hazen_williams_head(
                             mh.p_iota_HW_material_factor_pipeline,
                             pyunits.convert(
                                 model.p_lambda_Pipeline[key], to_units=pyunits.meter
                             ),
                             pyunits.convert(
-                                mh.p_effective_Pipeline_diameter[key],
+                                mh.p_eff_pipe_diam[key],
                                 to_units=pyunits.meter,
                             ),
                             pyunits.convert(
@@ -5085,7 +5081,7 @@ def pipeline_hydraulics(model):
             units=pyunits.meter,
             doc="Hazen-Williams Frictional loss, m",
         )
-        mh.v_effective_Pipeline_diameter = Var(
+        mh.v_eff_pipe_diam = Var(
             model.s_LLA,
             initialize=0,
             units=model.model_units["diameter"],
@@ -5093,9 +5089,9 @@ def pipeline_hydraulics(model):
         )
 
         def EffectiveDiameterRule(b, l1, l2, t1):
-            constraint = mh.v_effective_Pipeline_diameter[
+            constraint = mh.v_eff_pipe_diam[l1, l2] == mh.p_Initial_Pipeline_Diameter[
                 l1, l2
-            ] == mh.p_Initial_Pipeline_Diameter[l1, l2] + sum(
+            ] + sum(
                 model.vb_y_Pipeline[l1, l2, d]
                 * model.df_parameters["PipelineDiameterValues"][d]
                 for d in model.s_D
@@ -5113,9 +5109,7 @@ def pipeline_hydraulics(model):
             constraint = (
                 b.v_HW_loss[l1, l2, t1]
                 * (
-                    pyunits.convert(
-                        mh.v_effective_Pipeline_diameter[l1, l2], to_units=pyunits.m
-                    )
+                    pyunits.convert(mh.v_eff_pipe_diam[l1, l2], to_units=pyunits.m)
                     ** 4.87
                 )
             ) * cons_scaling_factor == (
