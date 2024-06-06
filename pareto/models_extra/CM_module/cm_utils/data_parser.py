@@ -19,6 +19,10 @@ from pareto.models_extra.CM_module.cm_utils.spec_utils import (
     set_processing,
     parameter_processing,
 )
+from pareto.utilities.process_data import (
+    get_valid_piping_arc_list,
+    get_valid_trucking_arc_list,
+)
 
 
 def _tolist(d):
@@ -39,7 +43,7 @@ def data_parser(df_sets, df_parameters):
     d["s_NC"] = df_sets["CompletionsPads"].tolist()  # completion pads
     d["s_NS"] = df_sets["StorageSites"].tolist()  # storage
     d["s_ND"] = df_sets["SWDSites"].tolist()  # disposal
-    d["s_NW"] = df_sets["FreshwaterSources"].tolist()  # freshwater
+    d["s_NW"] = df_sets["ExternalWaterSources"].tolist()  # freshwater
     d["s_NT"] = df_sets["TreatmentSites"].tolist()  # treatment
     # NTIN, NTTW, NTCW created in set processing
 
@@ -131,7 +135,7 @@ def data_parser(df_sets, df_parameters):
     }
 
     # Treatment Capacities
-    d["p_Cap_fresh"] = df_parameters["FreshwaterSourcingAvailability"]
+    d["p_Cap_fresh"] = df_parameters["ExtWaterSourcingAvailability"]
     d["p_Cap_disposal"] = df_parameters[
         "InitialDisposalCapacity"
     ]  # adding capacity for component recovery in parameter_processing
@@ -165,7 +169,7 @@ def data_parser(df_sets, df_parameters):
         else:  # trucking case
             d["p_betaArc"][aIN, aOUT, aTP] = 0.01
     d["p_betaD"] = df_parameters["DisposalOperationalCost"]
-    d["p_betaW"] = df_parameters["FreshSourcingCost"]
+    d["p_betaW"] = df_parameters["ExternalSourcingCost"]
     d["p_betaT"] = {
         d["NT_set"][n][0]: df_parameters["TreatmentOperationalCost"][n]
         for n in d["s_NT"]
@@ -182,7 +186,7 @@ def data_parser(df_sets, df_parameters):
     }
     d["p_gammaS"] = df_parameters["StorageWithdrawalRevenue"]
     d["p_gammaR"] = {
-        d["NT_set"][n][1]: df_parameters["BeneficialReuseRevenue"][n] for n in d["s_NT"]
+        d["NT_set"][n][1]: df_parameters["BeneficialReuseCredit"][n] for n in d["s_NT"]
     }
 
     # Bounds
