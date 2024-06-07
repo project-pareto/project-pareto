@@ -877,11 +877,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
-    model.v_E_TotalTruckingHours = Var(
-        within=NonNegativeReals,
-        initialize=0,
-        doc="Total trucking Hours (with nonzero water volume only) [hours]",
-    )
     model.v_E_TotalTruckingEmissions = Var(
         model.s_A,
         within=NonNegativeReals,
@@ -1033,15 +1028,6 @@ def create_model(df_sets, df_parameters, default={}):
         within=Binary,
         initialize=0,
         doc="Directional flow between two locations",
-    )
-    # TODO - this should really be a post-processed variable
-    model.vb_y_TruckingVolume = Var(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        within=Binary,
-        initialize=0,
-        doc="Indicates if there in nonzero trucking flow",
     )
     model.vb_y_BeneficialReuse = Var(
         model.s_O,
@@ -2406,7 +2392,8 @@ def create_model(df_sets, df_parameters, default={}):
             if "Pipeline Operations" in x
         },
         units=model.model_units["mass"]
-        / (model.model_units["volume"] / model.model_units["distance"]),
+        / model.model_units["volume"]
+        / model.model_units["distance"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Air emissions pipeline operations coefficients [mass/volume_distance]",
     )
@@ -2445,7 +2432,9 @@ def create_model(df_sets, df_parameters, default={}):
             for (x, y) in model.df_parameters["AirEmissionCoefficients"]
             if "Storage" in x
         },
-        units=model.model_units["mass"] / model.model_units["volume_time"],
+        units=model.model_units["mass"]
+        / model.model_units["volume"]
+        / model.model_units["time"],
         mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
         doc="Air emissions storage coefficients [mass/volume-time]",
     )
@@ -3188,12 +3177,16 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalStorageEmissionsRule(model, a):
-        constraint = model.v_E_TotalStorageEmissions[a] == sum(
-            sum(
-                model.v_L_Storage[s, t] * model.p_eta_StorageEmissionsCoefficient[a]
-                for s in model.s_S
+        constraint = (
+            model.v_E_TotalStorageEmissions[a]
+            == sum(
+                sum(
+                    model.v_L_Storage[s, t] * model.p_eta_StorageEmissionsCoefficient[a]
+                    for s in model.s_S
+                )
+                for t in model.s_T
             )
-            for t in model.s_T
+            * model.model_units["time"]
         )
         return process_constraint(constraint)
 
@@ -3261,18 +3254,22 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalPipelineOperationsEmissionsRule(model, a):
-        constraint = model.v_E_TotalPipeOperationEmissions[a] == sum(
-            sum(
+        constraint = (
+            model.v_E_TotalPipeOperationEmissions[a]
+            == sum(
                 sum(
-                    model.v_F_Piped[l, l_tilde, t]
-                    * model.p_lambda_Pipeline[l, l_tilde]
-                    * model.p_eta_PipelineOperationsEmissionsCoefficient[a]
-                    for l in model.s_L
-                    if (l, l_tilde) in model.s_LLA
+                    sum(
+                        model.v_F_Piped[l, l_tilde, t]
+                        * model.p_lambda_Pipeline[l, l_tilde]
+                        * model.p_eta_PipelineOperationsEmissionsCoefficient[a]
+                        for l in model.s_L
+                        if (l, l_tilde) in model.s_LLA
+                    )
+                    for l_tilde in model.s_L
                 )
-                for l_tilde in model.s_L
+                for t in model.s_T
             )
-            for t in model.s_T
+            * model.model_units["time"]
         )
         return process_constraint(constraint)
 
@@ -3285,7 +3282,8 @@ def create_model(df_sets, df_parameters, default={}):
     def TotalPipelineInstallationEmissionsRule(model, a):
         constraint = model.v_E_TotalPipeInstallEmissions[a] == sum(
             sum(
-                model.p_lambda_Pipeline[l, l_tilde]
+                sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D)
+                * model.p_lambda_Pipeline[l, l_tilde]
                 * model.p_eta_PipelineInstallationEmissionsCoefficient[a]
                 for l in model.s_L
                 if (l, l_tilde) in model.s_LLA
@@ -3630,12 +3628,10 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = model.v_E_TotalTreatmentEmissions[a] == sum(
             sum(
                 sum(
-                    sum(
-                        model.p_eta_TreatmentEmissionsCoefficient[wt, a]
-                        * model.v_F_TreatmentFeed[r, t]
-                        for wt in model.s_WT
-                    )
-                    for j in model.s_J
+                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
+                    * model.v_F_TreatmentFeed[r, t]
+                    for wt in model.s_WT
                 )
                 for r in model.s_R
             )
@@ -4186,49 +4182,16 @@ def create_model(df_sets, df_parameters, default={}):
         rule=TotalTruckingVolumeRule, doc="Total trucking volume"
     )
 
-    def NonZeroTruckingLBRule(model, l, l_tilde, t):
-        if (l, l_tilde) in model.s_LLT:
-            constraint = (
-                model.vb_y_TruckingVolume[l, l_tilde, t]
-                <= model.v_F_Trucked[l, l_tilde, t]
-            )
-        else:
-            return Constraint.Skip
-        return process_constraint(constraint)
-
-    model.NonZeroTruckingLB = Constraint(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        rule=NonZeroTruckingLBRule,
-        doc="Nonzero Trucking Volume",
-    )
-
-    def NonZeroTruckingUBRule(model, l, l_tilde, t):
-        if (l, l_tilde) in model.s_LLT:
-            constraint = (
-                model.v_F_Trucked[l, l_tilde, t]
-                <= model.vb_y_TruckingVolume[l, l_tilde, t] * model.p_M_Flow
-            )
-        else:
-            return Constraint.Skip
-        return process_constraint(constraint)
-
-    model.NonZeroTruckingUB = Constraint(
-        model.s_L,
-        model.s_L,
-        model.s_T,
-        rule=NonZeroTruckingUBRule,
-        doc="Nonzero Trucking Volume",
-    )
-
-    def TotalTruckingHoursRule(model):
-        constraint = model.v_E_TotalTruckingHours == (
-            sum(
+    def TotalTruckingEmissionsRule(model, a):
+        constraint = (
+            model.v_E_TotalTruckingEmissions[a]
+            == sum(
                 sum(
                     sum(
-                        model.p_tau_Trucking[l, l_tilde]
-                        * model.vb_y_TruckingVolume[l, l_tilde, t]
+                        model.v_F_Trucked[l, l_tilde, t]
+                        / model.p_delta_Truck
+                        * model.p_tau_Trucking[l, l_tilde]
+                        * model.p_eta_TruckingEmissionsCoefficient[a]
                         for l in model.s_L
                         if (l, l_tilde) in model.s_LLT
                     )
@@ -4236,26 +4199,7 @@ def create_model(df_sets, df_parameters, default={}):
                 )
                 for t in model.s_T
             )
-        )
-        return process_constraint(constraint)
-
-    model.TotalTruckingHours = Constraint(
-        rule=TotalTruckingHoursRule, doc="Total trucking hours"
-    )
-
-    def TotalTruckingEmissionsRule(model, a):
-        constraint = model.v_E_TotalTruckingEmissions[a] == sum(
-            sum(
-                sum(
-                    model.p_tau_Trucking[l, l_tilde]
-                    * model.v_F_Trucked[l, l_tilde, t]
-                    * model.p_eta_TruckingEmissionsCoefficient[a]
-                    for l in model.s_L
-                    if (l, l_tilde) in model.s_LLT
-                )
-                for l_tilde in model.s_L
-            )
-            for t in model.s_T
+            * model.model_units["time"]
         )
         return process_constraint(constraint)
 
@@ -4445,7 +4389,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.SlackCosts = Constraint(rule=SlackCostsRule, doc="Slack costs")
 
     def LogicConstraintDisposalRule(model, k):
-        constraint = sum(model.vb_y_Disposal[k, i] for i in model.s_I) == 1
+        constraint = sum(model.vb_y_Disposal[k, i] for i in model.s_I) <= 1
         return process_constraint(constraint)
 
     model.LogicConstraintDisposal = Constraint(
@@ -4453,7 +4397,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintStorageRule(model, s):
-        constraint = sum(model.vb_y_Storage[s, c] for c in model.s_C) == 1
+        constraint = sum(model.vb_y_Storage[s, c] for c in model.s_C) <= 1
         return process_constraint(constraint)
 
     model.LogicConstraintStorage = Constraint(
@@ -4468,7 +4412,7 @@ def create_model(df_sets, df_parameters, default={}):
                     for wt in model.s_WT
                 )
                 + model.vb_y_DesalSelected[r]
-                == 1
+                <= 1
             )
             return process_constraint(constraint)
         else:
@@ -4477,7 +4421,7 @@ def create_model(df_sets, df_parameters, default={}):
                     sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
                     for wt in model.s_WT
                 )
-                == 1
+                <= 1
             )
             return process_constraint(constraint)
 
@@ -4488,33 +4432,18 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintDesalinationAssignmentRule(model, r):
-        if model.config.objective == Objectives.cost_surrogate:
-            if model.p_chi_DesalinationSites[r]:
-                constraint = (
-                    sum(
-                        sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                        for wt in model.s_WT
-                        if model.p_chi_DesalinationTechnology[wt]
-                    )
-                    + model.vb_y_DesalSelected[r]
-                    == 1
+        if model.p_chi_DesalinationSites[r]:
+            constraint = (
+                sum(
+                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    for wt in model.s_WT
+                    if not model.p_chi_DesalinationTechnology[wt]
                 )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
+                == 0
+            )
+            return process_constraint(constraint)
         else:
-            if model.p_chi_DesalinationSites[r]:
-                constraint = (
-                    sum(
-                        sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                        for wt in model.s_WT
-                        if model.p_chi_DesalinationTechnology[wt]
-                    )
-                    == 1
-                )
-                return process_constraint(constraint)
-            else:
-                return Constraint.Skip
+            return Constraint.Skip
 
     model.LogicConstraintDesalinationAssignment = Constraint(
         model.s_R,
@@ -4523,18 +4452,33 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def LogicConstraintNoDesalinationAssignmentRule(model, r):
-        if not model.p_chi_DesalinationSites[r]:
-            constraint = (
-                sum(
-                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
-                    for wt in model.s_WT
-                    if not model.p_chi_DesalinationTechnology[wt]
+        if model.config.objective == Objectives.cost_surrogate:
+            if not model.p_chi_DesalinationSites[r]:
+                constraint = (
+                    sum(
+                        sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                        for wt in model.s_WT
+                        if model.p_chi_DesalinationTechnology[wt]
+                    )
+                    + model.vb_y_DesalSelected[r]
+                    == 0
                 )
-                == 1
-            )
-            return process_constraint(constraint)
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
         else:
-            return Constraint.Skip
+            if not model.p_chi_DesalinationSites[r]:
+                constraint = (
+                    sum(
+                        sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                        for wt in model.s_WT
+                        if model.p_chi_DesalinationTechnology[wt]
+                    )
+                    == 0
+                )
+                return process_constraint(constraint)
+            else:
+                return Constraint.Skip
 
     model.LogicConstraintNoDesalinationAssignment = Constraint(
         model.s_R,
@@ -4566,7 +4510,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     def LogicConstraintPipelineRule(model, l, l_tilde):
         if (l, l_tilde) in model.s_LLA:
-            constraint = sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) == 1
+            constraint = sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D) <= 1
             return process_constraint(constraint)
         else:
             return Constraint.Skip
@@ -7730,7 +7674,6 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalTruckingHours] = 1 / scaling_factor
     model.scaling_factor[model.v_E_TotalTruckingEmissions] = 1 / scaling_factor
     model.scaling_factor[model.v_E_TotalPipeOperationEmissions] = 1 / scaling_factor
     model.scaling_factor[model.v_E_TotalPipeInstallEmissions] = 1 / scaling_factor
@@ -7868,9 +7811,6 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.TotalPipelineInstallationsEmissions] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentEmissions] = 1 / scaling_factor
     model.scaling_factor[model.TotalDisposalEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.NonZeroTruckingLB] = 1 / scaling_factor
-    model.scaling_factor[model.NonZeroTruckingUB] = 1 / scaling_factor
-    model.scaling_factor[model.TotalTruckingHours] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingEmissions] = 1 / scaling_factor
     model.scaling_factor[model.TotalEmissions] = 1 / scaling_factor
     model.scaling_factor[model.TotalEmissionsByComponent] = 1 / scaling_factor

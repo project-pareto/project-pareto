@@ -178,7 +178,9 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
     assert isinstance(m.PipelineExpansionCapEx, pyo.Constraint)
 
 
-def test_strategic_model_build_units_scaled_units_consistency(build_strategic_model):
+def test_strategic_model_build_units_scaled_units_consistency(
+    build_workshop_strategic_model,
+):
     """
     Note: There are pyomo functions like assert_units_consistent that test consistency of expressions.
     This test utilizes assert_units_consistent in addition to a special case test assertion.
@@ -189,7 +191,7 @@ def test_strategic_model_build_units_scaled_units_consistency(build_strategic_mo
     length of time T that is the decision period, so the units are consistent despite [bbl] and
     [bbl/day] being inconsistent.
     """
-    m = build_strategic_model(
+    m = build_workshop_strategic_model(
         config_dict={
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
@@ -1005,6 +1007,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
 @pytest.mark.component
 def test_strategic_model_UI_display_units():
+    model_type = "strategic"
     with resources.path(
         "pareto.case_studies",
         "strategic_small_case_study.xlsx",

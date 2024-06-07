@@ -135,7 +135,6 @@ def generate_report(
                     "v_S_TreatmentCapacity",
                     "v_S_BeneficialReuseCapacity",
                     "v_Q",
-                    "v_E_TotalTruckingHours",
                     "v_E_TotalTruckingEmissions",
                     "v_E_TotalPipeOperationEmissions",
                     "v_E_TotalPipeInstallEmissions",
@@ -265,7 +264,6 @@ def generate_report(
                 ("Treatment site", "Time", "surrogate cost")
             ],
             "vb_y_BeneficialReuse_dict": [("Reuse site", "Time", "Reuse selection")],
-            "vb_y_TruckingVolume_dict": [("Origin", "Destination", "Time", "Volume")],
             "v_D_Capacity_dict": [("Disposal Site", "Disposal Site Capacity")],
             "v_T_Capacity_dict": [("Treatment Site", "Treatment Capacity")],
             "v_X_Capacity_dict": [("Storage Site", "Storage Site Capacity")],

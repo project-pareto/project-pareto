@@ -55,8 +55,6 @@ parameter_tabs_operational_model = [
     "ReuseOperationalCost",
     "PadStorageCost",
     "ExternalWaterQuality",
-    "AirEmissionCoefficients",
-    "TreatmentEmissionCoefficients",
 ]
 parameter_tabs_strategic_model = [
     "Units",
