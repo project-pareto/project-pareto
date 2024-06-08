@@ -577,6 +577,15 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Flow of feed to a treatment site [volume/time]",
     )
 
+    model.v_F_TreatmentFeedTech = Var(
+        model.s_R,
+        model.s_WT,
+        model.s_T,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Flow of feed to a treatment site indexed by treatment technology [volume/time]",
+    )
+
     model.v_F_ResidualWater = Var(
         model.s_R,
         model.s_T,
@@ -3454,6 +3463,38 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment center feed flow balance",
     )
 
+    def TreatmentFeedTechLHSRule(model, r, wt, t):
+        constraint = model.v_F_TreatmentFeedTech[r, wt, t] >= model.v_F_TreatmentFeed[
+            r, t
+        ] - model.p_M_Flow * (
+            1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+        )
+        return process_constraint(constraint)
+
+    model.TreatmentFeedTechLHS = Constraint(
+        model.s_R,
+        model.s_WT,
+        model.s_T,
+        rule=TreatmentFeedTechLHSRule,
+        doc="Treatment feed indexed by treatment technology",
+    )
+
+    def TreatmentFeedTechRHSRule(model, r, wt, t):
+        constraint = model.v_F_TreatmentFeedTech[r, wt, t] <= model.v_F_TreatmentFeed[
+            r, t
+        ] + model.p_M_Flow * (
+            1 - sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+        )
+        return process_constraint(constraint)
+
+    model.TreatmentFeedTechRHS = Constraint(
+        model.s_R,
+        model.s_WT,
+        model.s_T,
+        rule=TreatmentFeedTechRHSRule,
+        doc="Treatment feed indexed by treatment technology",
+    )
+
     def TreatmentBalanceRule(model, r, t):
         constraint = (
             model.v_F_TreatmentFeed[r, t]
@@ -3628,9 +3669,8 @@ def create_model(df_sets, df_parameters, default={}):
         constraint = model.v_E_TotalTreatmentEmissions[a] == sum(
             sum(
                 sum(
-                    sum(model.vb_y_Treatment[r, wt, j] for j in model.s_J)
+                    model.v_F_TreatmentFeedTech[r, wt, t]
                     * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
-                    * model.v_F_TreatmentFeed[r, t]
                     for wt in model.s_WT
                 )
                 for r in model.s_R
@@ -7655,6 +7695,7 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.v_F_ReuseDestination] = 1 / scaling_factor
     model.scaling_factor[model.v_F_StorageEvaporationStream] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TreatmentFeed] = 1 / scaling_factor
+    model.scaling_factor[model.v_F_TreatmentFeedTech] = 1 / scaling_factor
     model.scaling_factor[model.v_F_ResidualWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_TreatedWater] = 1 / scaling_factor
     model.scaling_factor[model.v_F_BeneficialReuseDestination] = 1 / scaling_factor
@@ -7790,9 +7831,10 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.TotalBeneficialReuseCredit] = 1 / scaling_factor
     model.scaling_factor[model.TotalTreatmentCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingCost] = 1 / scaling_factor
-    model.scaling_factor[model.TotalCost] = 1 / scaling_factor
     model.scaling_factor[model.TotalTruckingVolume] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentFeedBalance] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentFeedTechLHS] = 1 / scaling_factor
+    model.scaling_factor[model.TreatmentFeedTechRHS] = 1 / scaling_factor
     model.scaling_factor[model.TreatmentBalance] = 1 / scaling_factor
     model.scaling_factor[model.TreatedWaterBalance] = 1 / scaling_factor
     model.scaling_factor[model.ResidualWaterBalance] = 1 / scaling_factor

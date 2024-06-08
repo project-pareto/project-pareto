@@ -735,11 +735,13 @@ def get_display_units(input_sheet_name_list, user_units):
         "MinTreatmentFlow": user_units["volume"],
         "MinResidualQuality": "",
         "DesalinationSurrogate": "kg/s",
-        "AirEmissionsComponents": "",
-        "TreatmentEmissionCoefficients": "emissions/"
+        "AirEmissionCoefficients": user_units["mass"] + "/X",
+        "TreatmentEmissionCoefficients": user_units["mass"]
+        + "/("
         + user_units["volume"]
         + "/"
-        + user_units["time"],
+        + user_units["time"]
+        + ")",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",

@@ -98,7 +98,7 @@ def test_basic_build_capex_distance_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 34431
+    assert degrees_of_freedom(m) == 31161
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -121,7 +121,7 @@ def test_basic_build_capex_distance_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 34431
+    assert degrees_of_freedom(m) == 31161
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -144,7 +144,7 @@ def test_basic_build_capex_capacity_based_capacity_input(build_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 34431
+    assert degrees_of_freedom(m) == 31161
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -167,7 +167,7 @@ def test_basic_build_capex_capacity_based_capacity_calculated(build_strategic_mo
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 34431
+    assert degrees_of_freedom(m) == 31161
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -263,7 +263,7 @@ def test_run_strategic_model(build_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 34431
+    assert degrees_of_freedom(m) == 31161
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -560,7 +560,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_calculated(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 16231
+    assert degrees_of_freedom(m) == 13155
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -584,7 +584,7 @@ def test_basic_reduced_build_capex_capacity_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 16231
+    assert degrees_of_freedom(m) == 13155
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -608,7 +608,7 @@ def test_basic_reduced_build_capex_distance_based_capacity_input(
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 16231
+    assert degrees_of_freedom(m) == 13155
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -632,7 +632,7 @@ def test_basic_reduced_build_discrete_water_quality_input(
             "water_quality": WaterQuality.discrete,
         }
     )
-    assert degrees_of_freedom(m) == 106711
+    assert degrees_of_freedom(m) == 103635
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -820,7 +820,7 @@ def test_run_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11560
+    assert degrees_of_freedom(m) == 11864
     # solutions obtained from running the reduced generic case study
     assert pytest.approx(88199.598, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
@@ -985,7 +985,7 @@ def test_solver_option_reduced_strategic_model(build_reduced_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 11560
+    assert degrees_of_freedom(m) == 11864
     assert m.config.objective
     assert isinstance(m.s_T, pyo.Set)
     assert isinstance(m.v_F_Piped, pyo.Var)
@@ -1047,7 +1047,7 @@ def test_basic_toy_build(build_toy_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 8433
+    assert degrees_of_freedom(m) == 7907
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -1083,7 +1083,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 6875
+    assert degrees_of_freedom(m) == 7545
     assert pytest.approx(6122.5178, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
@@ -1119,7 +1119,7 @@ def test_basic_permian_demo_build(build_permian_demo_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 20955
+    assert degrees_of_freedom(m) == 21061
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -1143,7 +1143,7 @@ def test_run_permian_demo_strategic_model(build_permian_demo_strategic_model):
     solver = get_solver("cbc")
     solver.options["seconds"] = 60
     results = solver.solve(m, tee=False)
-    assert degrees_of_freedom(m) == 20955
+    assert degrees_of_freedom(m) == 21061
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1189,7 +1189,7 @@ def test_basic_treatment_demo_build_with_MD(
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 34709
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -1228,7 +1228,7 @@ def test_run_treatment_demo_strategic_model_with_MD(
         "gap": 0,
     }
     results = solve_model(model=m, options=options)
-    assert degrees_of_freedom(m) == 33448
+    assert degrees_of_freedom(m) == 33558
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1257,7 +1257,7 @@ def test_basic_treatment_demo_build_with_MVC(
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 34709
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -1296,7 +1296,7 @@ def test_run_treatment_demo_strategic_model_with_MVC(
         "gap": 0,
     }
     results = solve_model(model=m, options=options)
-    assert degrees_of_freedom(m) == 33448
+    assert degrees_of_freedom(m) == 33558
 
     # Test report building
     [model, results_dict] = generate_report(
@@ -1325,7 +1325,7 @@ def test_run_water_quality_with_MVC(
             "infrastructure_timing": InfrastructureTiming.true,
         }
     )
-    assert degrees_of_freedom(m) == 34599
+    assert degrees_of_freedom(m) == 34709
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -1472,7 +1472,7 @@ def test_workshop_build(build_workshop_strategic_model):
             "water_quality": WaterQuality.false,
         }
     )
-    assert degrees_of_freedom(m) == 4312
+    assert degrees_of_freedom(m) == 4442
     # Check unit config arguments
     assert len(m.config) == 10
     assert m.config.objective
@@ -1508,7 +1508,7 @@ def test_run_workshop_model(build_workshop_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 4188
+    assert degrees_of_freedom(m) == 4318
     assert pytest.approx(5661.39656, abs=1e-1) == pyo.value(m.v_Z)
     with nostdout():
         assert is_feasible(m)
@@ -1530,7 +1530,7 @@ def test_subsurface_risk_build(build_toy_strategic_model):
             "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
         }
     )
-    assert degrees_of_freedom(m) == 7245
+    assert degrees_of_freedom(m) == 7915
     assert len(m.config) == 10
     assert m.do_subsurface_risk_calcs
     assert m.config.objective
@@ -1572,7 +1572,7 @@ def test_run_subsurface_risk_model(build_workshop_strategic_model):
 
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 4187
+    assert degrees_of_freedom(m) == 4317
     assert pytest.approx(0.0, abs=1e-1) == pyo.value(m.v_Z_SubsurfaceRisk)
     with nostdout():
         assert is_feasible(m)

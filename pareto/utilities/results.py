@@ -283,6 +283,9 @@ def generate_report(
             "v_F_ResidualWater_dict": [("Treatment site", "Time", "Residual Water")],
             "v_F_TreatedWater_dict": [("Treatment site", "Time", "Treated Water")],
             "v_F_TreatmentFeed_dict": [("Treatment site", "Time", "Treatment Feed")],
+            "v_F_TreatmentFeedTech_dict": [
+                ("Treatment site", "Treatment technology", "Time", "Treatment Feed")
+            ],
             "v_F_StorageEvaporationStream_dict": [
                 ("Storage site", "Time", "Evaporated Volume")
             ],
@@ -2874,7 +2877,7 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
         # check for integer requirements
         elif var.is_integer():
             if not is_integer_value(val, bound_tol):
-                print("Variable took a  non-integer value", var, val)
+                print("Variable took a non-integer value", var, val)
                 return False
 
     for con in model.component_data_objects(
