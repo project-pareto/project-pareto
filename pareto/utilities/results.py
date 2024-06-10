@@ -135,13 +135,6 @@ def generate_report(
                     "v_S_TreatmentCapacity",
                     "v_S_BeneficialReuseCapacity",
                     "v_Q",
-                    "v_E_TotalTruckingEmissions",
-                    "v_E_TotalPipeOperationEmissions",
-                    "v_E_TotalPipeInstallEmissions",
-                    "v_E_TotalDisposalEmissions",
-                    "v_E_TotalStorageEmissions",
-                    "v_E_TotalTreatmentEmissions",
-                    "v_E_TotalEmissionsByComponent",
                 ]
 
             # PrintValues.nominal: Essential + Trucked water + Piped Water + Sourced water + vb_y_pipeline + vb_y_disposal + vb_y_storage + etc.
@@ -438,27 +431,6 @@ def generate_report(
                     "Time",
                     "Total deliveries to beneficial reuse",
                 )
-            ],
-            "v_E_TotalTruckingEmissions_dict": [
-                ("Air Quality Component", "Emissions (g)")
-            ],
-            "v_E_TotalPipeOperationEmissions_dict": [
-                ("Air Quality Component", "Emissions (g)")
-            ],
-            "v_E_TotalPipeInstallEmissions_dict": [
-                ("Air Quality Component", "Emissions (g)")
-            ],
-            "v_E_TotalDisposalEmissions_dict": [
-                ("Air Quality Component", "Emissions (g)")
-            ],
-            "v_E_TotalStorageEmissions_dict": [
-                ("Air Quality Component", "Emissions (g)")
-            ],
-            "v_E_TotalTreatmentEmissions_dict": [
-                ("Air Quality Component", "Emissions (g)")
-            ],
-            "v_E_TotalEmissionsByComponent_dict": [
-                ("Air Quality Component", "Emissions (g)")
             ],
             "v_S_FracDemand_dict": [("Completion pad", "Time", "Slack FracDemand")],
             "v_S_Production_dict": [("Production pad", "Time", "Slack Production")],
@@ -1278,6 +1250,8 @@ def generate_report(
                             headers[str(variable.name) + "_dict"].append(
                                 (*i, var_value)
                             )
+
+    # TODO - Figure out how to include expressions in reports. For some of them, could loop through similar to how we do for variables - follow the example in the above loop for variables that get added to headers["v_F_Overview_dict"]
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")

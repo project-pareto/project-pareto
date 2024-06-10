@@ -886,61 +886,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Capital cost of constructing or expanding treatment capacity [currency]",
     )
-    model.v_E_TotalTruckingEmissions = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total trucking emissions [mass]",
-    )
-    model.v_E_TotalPipeOperationEmissions = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total pipeline operations emissions [mass]",
-    )
-    model.v_E_TotalPipeInstallEmissions = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total pipeline installation emissions [mass]",
-    )
-    model.v_E_TotalDisposalEmissions = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total Disposal emissions [mass]",
-    )
-    model.v_E_TotalStorageEmissions = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total storage emissions [mass]",
-    )
-    model.v_E_TotalTreatmentEmissions = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total treatment emissions [mass]",
-    )
-    model.v_E_TotalEmissionsByComponent = Var(
-        model.s_A,
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total emissions [mass]",
-    )
-    model.v_E_TotalEmissions = Var(
-        within=NonNegativeReals,
-        units=model.model_units["mass"],
-        initialize=0,
-        doc="Total emissions [mass]",
-    )
     model.v_S_FracDemand = Var(
         model.s_CP,
         model.s_T,
@@ -2547,19 +2492,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.objective_SubsurfaceRisk.deactivate()
 
     ####### Minimum emissions objective #######
-    model.v_Z_emissions = Var(
-        within=Reals,
-        units=model.model_units["mass"],
-        doc="Objective function variable - minimize air emissions [mass]",
-    )
+    def TotalEmissionsRule(model):
+        return sum(model.TotalEmissionsByComponent[a] for a in model.s_A)
 
-    model.ObjectiveFunctionEmissions = Constraint(
-        expr=model.v_Z_emissions == model.v_E_TotalEmissions,
-        doc="Objective function constraint - minimize emissions",
-    )
+    model.TotalEmissions = Expression(rule=TotalEmissionsRule, doc="Total emissions")
 
     model.objective_Emissions = Objective(
-        expr=model.v_Z_emissions,
+        expr=model.TotalEmissions,
         sense=minimize,
         doc="Objective function - minimize emissions",
     )
@@ -3186,9 +3125,8 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalStorageEmissionsRule(model, a):
-        constraint = (
-            model.v_E_TotalStorageEmissions[a]
-            == sum(
+        return (
+            sum(
                 sum(
                     model.v_L_Storage[s, t] * model.p_eta_StorageEmissionsCoefficient[a]
                     for s in model.s_S
@@ -3197,9 +3135,8 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.model_units["time"]
         )
-        return process_constraint(constraint)
 
-    model.TotalStorageEmissions = Constraint(
+    model.TotalStorageEmissions = Expression(
         model.s_A, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
     )
 
@@ -3263,9 +3200,8 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalPipelineOperationsEmissionsRule(model, a):
-        constraint = (
-            model.v_E_TotalPipeOperationEmissions[a]
-            == sum(
+        return (
+            sum(
                 sum(
                     sum(
                         model.v_F_Piped[l, l_tilde, t]
@@ -3280,16 +3216,15 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.model_units["time"]
         )
-        return process_constraint(constraint)
 
-    model.TotalPipelineOperationsEmissions = Constraint(
+    model.TotalPipelineOperationsEmissions = Expression(
         model.s_A,
         rule=TotalPipelineOperationsEmissionsRule,
         doc="Total pipeline operations emissions",
     )
 
     def TotalPipelineInstallationEmissionsRule(model, a):
-        constraint = model.v_E_TotalPipeInstallEmissions[a] == sum(
+        return sum(
             sum(
                 sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D)
                 * model.p_lambda_Pipeline[l, l_tilde]
@@ -3300,9 +3235,7 @@ def create_model(df_sets, df_parameters, default={}):
             for l_tilde in model.s_L
         )
 
-        return process_constraint(constraint)
-
-    model.TotalPipelineInstallationsEmissions = Constraint(
+    model.TotalPipelineInstallationsEmissions = Expression(
         model.s_A,
         rule=TotalPipelineInstallationEmissionsRule,
         doc="Total pipeline installation emissions",
@@ -3666,7 +3599,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalTreatmentEmissionsRule(model, a):
-        constraint = model.v_E_TotalTreatmentEmissions[a] == sum(
+        return sum(
             sum(
                 sum(
                     model.v_F_TreatmentFeedTech[r, wt, t]
@@ -3678,9 +3611,7 @@ def create_model(df_sets, df_parameters, default={}):
             for t in model.s_T
         )
 
-        return process_constraint(constraint)
-
-    model.TotalTreatmentEmissions = Constraint(
+    model.TotalTreatmentEmissions = Expression(
         model.s_A, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
     )
 
@@ -3846,12 +3777,9 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalDisposalEmissionsRule(model, a):
-        constraint = model.v_E_TotalDisposalEmissions[a] == (
-            model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
-        )
-        return process_constraint(constraint)
+        return model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
 
-    model.TotalDisposalEmissions = Constraint(
+    model.TotalDisposalEmissions = Expression(
         model.s_A, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
     )
 
@@ -4223,9 +4151,8 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalTruckingEmissionsRule(model, a):
-        constraint = (
-            model.v_E_TotalTruckingEmissions[a]
-            == sum(
+        return (
+            sum(
                 sum(
                     sum(
                         model.v_F_Trucked[l, l_tilde, t]
@@ -4241,37 +4168,26 @@ def create_model(df_sets, df_parameters, default={}):
             )
             * model.model_units["time"]
         )
-        return process_constraint(constraint)
 
-    model.TotalTruckingEmissions = Constraint(
+    model.TotalTruckingEmissions = Expression(
         model.s_A, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
     )
 
     def TotalEmissionsByComponentRule(model, a):
-        constraint = (
-            model.v_E_TotalEmissionsByComponent[a]
-            == model.v_E_TotalTruckingEmissions[a]
-            + model.v_E_TotalPipeOperationEmissions[a]
-            + model.v_E_TotalPipeInstallEmissions[a]
-            + model.v_E_TotalDisposalEmissions[a]
-            + model.v_E_TotalStorageEmissions[a]
-            + model.v_E_TotalTreatmentEmissions[a]
+        return (
+            model.TotalTruckingEmissions[a]
+            + model.TotalPipelineOperationsEmissions[a]
+            + model.TotalPipelineInstallationsEmissions[a]
+            + model.TotalDisposalEmissions[a]
+            + model.TotalStorageEmissions[a]
+            + model.TotalTreatmentEmissions[a]
         )
-        return process_constraint(constraint)
 
-    model.TotalEmissionsByComponent = Constraint(
+    model.TotalEmissionsByComponent = Expression(
         model.s_A,
         rule=TotalEmissionsByComponentRule,
         doc="Total emissions by component",
     )
-
-    def TotalEmissionsRule(model):
-        constraint = model.v_E_TotalEmissions == sum(
-            model.v_E_TotalEmissionsByComponent[a] for a in model.s_A
-        )
-        return process_constraint(constraint)
-
-    model.TotalEmissions = Constraint(rule=TotalEmissionsRule, doc="Total emissions")
 
     def DisposalExpansionCapExRule(model):
         constraint = model.v_C_DisposalCapEx == sum(
@@ -5177,7 +5093,7 @@ def pipeline_hydraulics(model):
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
         elif model.config.objective == Objectives.environmental:
-            obj_var = model.v_Z_emissions
+            obj_var = model.TotalEmissions
         else:
             raise Exception("Objective not supported")
 
@@ -5451,7 +5367,7 @@ def pipeline_hydraulics(model):
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
         elif model.config.objective == Objectives.environmental:
-            obj_var = model.v_Z_emissions
+            obj_var = model.TotalEmissions
         else:
             raise Exception("Objective not supported")
 
@@ -7597,7 +7513,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
         elif model.config.objective == Objectives.environmental:
-            obj_var = model.v_Z_emissions
+            obj_var = model.TotalEmissions
         else:
             raise Exception("Objective not supported")
 
@@ -7671,7 +7587,6 @@ def scale_model(model, scaling_factor=1000000):
         model.scaling_factor[model.v_Z_Surrogate] = 1 / scaling_factor
     if model.do_subsurface_risk_calcs:
         model.scaling_factor[model.v_Z_SubsurfaceRisk] = 1 / scaling_factor
-    model.scaling_factor[model.v_Z_emissions] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
@@ -7720,14 +7635,6 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.v_R_TotalStorage] = 1 / scaling_factor
     model.scaling_factor[model.v_C_TotalBeneficialReuse] = 1 / scaling_factor
     model.scaling_factor[model.v_R_TotalBeneficialReuse] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalTruckingEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalPipeOperationEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalPipeInstallEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalDisposalEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalStorageEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalTreatmentEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.v_E_TotalEmissionsByComponent] = 1 / scaling_factor
     model.scaling_factor[model.v_S_DisposalCapacity] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_Flowback] = 1000 / scaling_factor
     model.scaling_factor[model.v_S_FracDemand] = 1000 / scaling_factor
@@ -7770,7 +7677,6 @@ def scale_model(model, scaling_factor=1000000):
         model.scaling_factor[model.ObjectiveFunctionSubsurfaceRisk] = 1 / scaling_factor
     if hasattr(model, "ObjectiveFunctionCostSurrogate"):
         model.scaling_factor[model.ObjectiveFunctionCostSurrogate] = 1 / scaling_factor
-    model.scaling_factor[model.ObjectiveFunctionEmissions] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
@@ -7856,14 +7762,6 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.TreatmentExpansionCapEx] = 1 / scaling_factor
     model.scaling_factor[model.LogicConstraintEvaporationFlow] = 1 / scaling_factor
     model.scaling_factor[model.SeismicResponseArea] = 1 / scaling_factor
-    model.scaling_factor[model.TotalStorageEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalPipelineOperationsEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalPipelineInstallationsEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalTreatmentEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalDisposalEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalTruckingEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalEmissions] = 1 / scaling_factor
-    model.scaling_factor[model.TotalEmissionsByComponent] = 1 / scaling_factor
     if (
         model.config.subsurface_risk
         == SubsurfaceRisk.exclude_over_and_under_pressured_wells
