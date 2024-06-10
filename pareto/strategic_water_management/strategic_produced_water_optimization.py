@@ -2560,7 +2560,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.objective_Emissions = Objective(
         expr=model.v_Z_emissions,
-        sense=maximize,
+        sense=minimize,
         doc="Objective function - minimize emissions",
     )
 
@@ -4253,9 +4253,7 @@ def create_model(df_sets, df_parameters, default={}):
             == model.v_E_TotalTruckingEmissions[a]
             + model.v_E_TotalPipeOperationEmissions[a]
             + model.v_E_TotalPipeInstallEmissions[a]
-        )
-        (
-            +model.v_E_TotalDisposalEmissions[a]
+            + model.v_E_TotalDisposalEmissions[a]
             + model.v_E_TotalStorageEmissions[a]
             + model.v_E_TotalTreatmentEmissions[a]
         )
@@ -5178,6 +5176,8 @@ def pipeline_hydraulics(model):
             obj_var = model.v_Z_Surrogate
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
+        elif model.config.objective == Objectives.environmental:
+            obj_var = model.v_Z_emissions
         else:
             raise Exception("Objective not supported")
 
@@ -5450,6 +5450,8 @@ def pipeline_hydraulics(model):
             obj_var = model.v_Z_Surrogate
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
+        elif model.config.objective == Objectives.environmental:
+            obj_var = model.v_Z_emissions
         else:
             raise Exception("Objective not supported")
 
@@ -7594,6 +7596,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             obj_var = model.v_Z_Surrogate
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
+        elif model.config.objective == Objectives.environmental:
+            obj_var = model.v_Z_emissions
         else:
             raise Exception("Objective not supported")
 
@@ -7667,6 +7671,7 @@ def scale_model(model, scaling_factor=1000000):
         model.scaling_factor[model.v_Z_Surrogate] = 1 / scaling_factor
     if model.do_subsurface_risk_calcs:
         model.scaling_factor[model.v_Z_SubsurfaceRisk] = 1 / scaling_factor
+    model.scaling_factor[model.v_Z_emissions] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Disposal] = 1 / scaling_factor
     model.scaling_factor[model.v_C_DisposalCapEx] = 1 / scaling_factor
     model.scaling_factor[model.v_C_Piped] = 1 / scaling_factor
@@ -7763,6 +7768,9 @@ def scale_model(model, scaling_factor=1000000):
     model.scaling_factor[model.ObjectiveFunctionReuse] = 1 / scaling_factor
     if model.do_subsurface_risk_calcs:
         model.scaling_factor[model.ObjectiveFunctionSubsurfaceRisk] = 1 / scaling_factor
+    if hasattr(model, "ObjectiveFunctionCostSurrogate"):
+        model.scaling_factor[model.ObjectiveFunctionCostSurrogate] = 1 / scaling_factor
+    model.scaling_factor[model.ObjectiveFunctionEmissions] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseMinimum] = 1 / scaling_factor
     model.scaling_factor[model.BeneficialReuseCapacity] = 1 / scaling_factor
     model.scaling_factor[model.TotalBeneficialReuse] = 1 / scaling_factor
