@@ -2402,6 +2402,134 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Air emissions treatment technology coefficients [mass/volume-time]",
     )
 
+    # Define emissions expressions #
+
+    def TotalTruckingEmissionsRule(model, a):
+        return (
+            sum(
+                sum(
+                    sum(
+                        model.v_F_Trucked[l, l_tilde, t]
+                        / model.p_delta_Truck
+                        * model.p_tau_Trucking[l, l_tilde]
+                        * model.p_eta_TruckingEmissionsCoefficient[a]
+                        for l in model.s_L
+                        if (l, l_tilde) in model.s_LLT
+                    )
+                    for l_tilde in model.s_L
+                )
+                for t in model.s_T
+            )
+            * model.model_units["time"]
+        )
+
+    model.TotalTruckingEmissions = Expression(
+        model.s_A, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
+    )
+
+    def TotalPipelineOperationsEmissionsRule(model, a):
+        return (
+            sum(
+                sum(
+                    sum(
+                        model.v_F_Piped[l, l_tilde, t]
+                        * model.p_lambda_Pipeline[l, l_tilde]
+                        * model.p_eta_PipelineOperationsEmissionsCoefficient[a]
+                        for l in model.s_L
+                        if (l, l_tilde) in model.s_LLA
+                    )
+                    for l_tilde in model.s_L
+                )
+                for t in model.s_T
+            )
+            * model.model_units["time"]
+        )
+
+    model.TotalPipelineOperationsEmissions = Expression(
+        model.s_A,
+        rule=TotalPipelineOperationsEmissionsRule,
+        doc="Total pipeline operations emissions",
+    )
+
+    def TotalPipelineInstallationEmissionsRule(model, a):
+        return sum(
+            sum(
+                sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D)
+                * model.p_lambda_Pipeline[l, l_tilde]
+                * model.p_eta_PipelineInstallationEmissionsCoefficient[a]
+                for l in model.s_L
+                if (l, l_tilde) in model.s_LLA
+            )
+            for l_tilde in model.s_L
+        )
+
+    model.TotalPipelineInstallationEmissions = Expression(
+        model.s_A,
+        rule=TotalPipelineInstallationEmissionsRule,
+        doc="Total pipeline installation emissions",
+    )
+
+    def TotalDisposalEmissionsRule(model, a):
+        return model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
+
+    model.TotalDisposalEmissions = Expression(
+        model.s_A, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
+    )
+
+    def TotalStorageEmissionsRule(model, a):
+        return (
+            sum(
+                sum(
+                    model.v_L_Storage[s, t] * model.p_eta_StorageEmissionsCoefficient[a]
+                    for s in model.s_S
+                )
+                for t in model.s_T
+            )
+            * model.model_units["time"]
+        )
+
+    model.TotalStorageEmissions = Expression(
+        model.s_A, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
+    )
+
+    def TotalTreatmentEmissionsRule(model, a):
+        return sum(
+            sum(
+                sum(
+                    model.v_F_TreatmentFeedTech[r, wt, t]
+                    * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
+                    for wt in model.s_WT
+                )
+                for r in model.s_R
+            )
+            for t in model.s_T
+        )
+
+    model.TotalTreatmentEmissions = Expression(
+        model.s_A, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
+    )
+
+    def TotalEmissionsByComponentRule(model, a):
+        return (
+            model.TotalTruckingEmissions[a]
+            + model.TotalPipelineOperationsEmissions[a]
+            + model.TotalPipelineInstallationEmissions[a]
+            + model.TotalDisposalEmissions[a]
+            + model.TotalStorageEmissions[a]
+            + model.TotalTreatmentEmissions[a]
+        )
+
+    model.TotalEmissionsByComponent = Expression(
+        model.s_A,
+        rule=TotalEmissionsByComponentRule,
+        doc="Total emissions by component",
+    )
+
+    def TotalEmissionsRule(model):
+        return sum(model.TotalEmissionsByComponent[a] for a in model.s_A)
+
+    model.TotalEmissions = Expression(rule=TotalEmissionsRule, doc="Total emissions")
+
     # Calculate subsurface risk metrics if necessary
     model.do_subsurface_risk_calcs = (
         model.config.subsurface_risk != SubsurfaceRisk.false
@@ -2492,11 +2620,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.objective_SubsurfaceRisk.deactivate()
 
     ####### Minimum emissions objective #######
-    def TotalEmissionsRule(model):
-        return sum(model.TotalEmissionsByComponent[a] for a in model.s_A)
-
-    model.TotalEmissions = Expression(rule=TotalEmissionsRule, doc="Total emissions")
-
     model.objective_Emissions = Objective(
         expr=model.TotalEmissions,
         sense=minimize,
@@ -3124,22 +3247,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Terminal storage site level",
     )
 
-    def TotalStorageEmissionsRule(model, a):
-        return (
-            sum(
-                sum(
-                    model.v_L_Storage[s, t] * model.p_eta_StorageEmissionsCoefficient[a]
-                    for s in model.s_S
-                )
-                for t in model.s_T
-            )
-            * model.model_units["time"]
-        )
-
-    model.TotalStorageEmissions = Expression(
-        model.s_A, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
-    )
-
     def PipelineCapacityExpansionRule(model, l, l_tilde):
         if (l, l_tilde) in model.s_LLA:
             if (l_tilde, l) in model.s_LLA:
@@ -3197,48 +3304,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=PipelineCapacityRule,
         doc="Pipeline capacity",
-    )
-
-    def TotalPipelineOperationsEmissionsRule(model, a):
-        return (
-            sum(
-                sum(
-                    sum(
-                        model.v_F_Piped[l, l_tilde, t]
-                        * model.p_lambda_Pipeline[l, l_tilde]
-                        * model.p_eta_PipelineOperationsEmissionsCoefficient[a]
-                        for l in model.s_L
-                        if (l, l_tilde) in model.s_LLA
-                    )
-                    for l_tilde in model.s_L
-                )
-                for t in model.s_T
-            )
-            * model.model_units["time"]
-        )
-
-    model.TotalPipelineOperationsEmissions = Expression(
-        model.s_A,
-        rule=TotalPipelineOperationsEmissionsRule,
-        doc="Total pipeline operations emissions",
-    )
-
-    def TotalPipelineInstallationEmissionsRule(model, a):
-        return sum(
-            sum(
-                sum(model.vb_y_Pipeline[l, l_tilde, d] for d in model.s_D)
-                * model.p_lambda_Pipeline[l, l_tilde]
-                * model.p_eta_PipelineInstallationEmissionsCoefficient[a]
-                for l in model.s_L
-                if (l, l_tilde) in model.s_LLA
-            )
-            for l_tilde in model.s_L
-        )
-
-    model.TotalPipelineInstallationsEmissions = Expression(
-        model.s_A,
-        rule=TotalPipelineInstallationEmissionsRule,
-        doc="Total pipeline installation emissions",
     )
 
     # only include network node capacity constraint if config is set to true
@@ -3598,23 +3663,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Beneficial reuse minimum flow",
     )
 
-    def TotalTreatmentEmissionsRule(model, a):
-        return sum(
-            sum(
-                sum(
-                    model.v_F_TreatmentFeedTech[r, wt, t]
-                    * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
-                    for wt in model.s_WT
-                )
-                for r in model.s_R
-            )
-            for t in model.s_T
-        )
-
-    model.TotalTreatmentEmissions = Expression(
-        model.s_A, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
-    )
-
     def BeneficialReuseCapacityRule(model, o, t):
         if value(model.p_sigma_BeneficialReuse[o, t]) < 0:
             # Beneficial reuse capacity value has not been provided by user
@@ -3774,13 +3822,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalDisposalVolume = Constraint(
         rule=TotalDisposalVolumeRule, doc="Total disposal volume"
-    )
-
-    def TotalDisposalEmissionsRule(model, a):
-        return model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
-
-    model.TotalDisposalEmissions = Expression(
-        model.s_A, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
     )
 
     def TreatmentCostLHSRule(model, r, wt, t):
@@ -4148,45 +4189,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalTruckingVolume = Constraint(
         rule=TotalTruckingVolumeRule, doc="Total trucking volume"
-    )
-
-    def TotalTruckingEmissionsRule(model, a):
-        return (
-            sum(
-                sum(
-                    sum(
-                        model.v_F_Trucked[l, l_tilde, t]
-                        / model.p_delta_Truck
-                        * model.p_tau_Trucking[l, l_tilde]
-                        * model.p_eta_TruckingEmissionsCoefficient[a]
-                        for l in model.s_L
-                        if (l, l_tilde) in model.s_LLT
-                    )
-                    for l_tilde in model.s_L
-                )
-                for t in model.s_T
-            )
-            * model.model_units["time"]
-        )
-
-    model.TotalTruckingEmissions = Expression(
-        model.s_A, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
-    )
-
-    def TotalEmissionsByComponentRule(model, a):
-        return (
-            model.TotalTruckingEmissions[a]
-            + model.TotalPipelineOperationsEmissions[a]
-            + model.TotalPipelineInstallationsEmissions[a]
-            + model.TotalDisposalEmissions[a]
-            + model.TotalStorageEmissions[a]
-            + model.TotalTreatmentEmissions[a]
-        )
-
-    model.TotalEmissionsByComponent = Expression(
-        model.s_A,
-        rule=TotalEmissionsByComponentRule,
-        doc="Total emissions by component",
     )
 
     def DisposalExpansionCapExRule(model):
