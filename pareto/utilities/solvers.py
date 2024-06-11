@@ -64,8 +64,6 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
                 solver = SolverFactory(name,executable=r"C:\Users\javal\Desktop\solvers\SCIPOptSuite 9.0.1\bin\scip.exe")
             else:
                 solver = SolverFactory(name)
-            print('Solver')
-            print(name)
             if solver.available(exception_flag=True):
                 if solver.license_is_valid():
                     print(f"Model solved using {name}")

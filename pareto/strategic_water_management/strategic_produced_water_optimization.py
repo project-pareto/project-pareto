@@ -8225,16 +8225,15 @@ def solve_model(model, options=None):
     # The below code is not the best way to check for solver but this works.
     # Checks for CPLEX using gams.
 
-    if options['solver'] == "glpk":
-        opt.options['mipgap']=gap
-    elif opt.options["solver"] == "CPLEX":
+    if opt.options["solver"] == "CPLEX":
         # Set maximum running time and mipgap for solver
         with open(f"{opt.options['solver']}.opt", "w") as f:
             f.write(
                 f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
             )
-
-    elif options['solver'] == 'scip':
+    elif opt.type in ("glpk"):
+        opt.options['mipgap']=gap
+    elif opt.type in ('scip'):
         opt.options['limits/time']=running_time
         opt.options['limits/gap'] = gap
     # Set solver gap
