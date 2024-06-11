@@ -77,7 +77,7 @@ def fetch_strategic_model(config_dict):
         "deactivate_slacks": True,
         "scale_model": False,
         "scaling_factor": 1000,
-        "running_time": 100,
+        "running_time": 300,
         "gap": 0,
     }
 
