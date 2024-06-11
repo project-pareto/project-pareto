@@ -8188,9 +8188,9 @@ def solve_model(model, options=None):
         "gurobi_direct",
         "gurobi",
         "gams:CPLEX",
-        "scip",
         "cbc",
-        "glpk"
+        "scip",
+        "glpk",
     )  # solvers to try and load in order
 
     # raise an exception if options is neither None nor a user-provided dictionary
@@ -8232,10 +8232,10 @@ def solve_model(model, options=None):
                 f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
             )
     elif opt.type in ("glpk"):
-        opt.options['mipgap']=gap
-    elif opt.type in ('scip'):
-        opt.options['limits/time']=running_time
-        opt.options['limits/gap'] = gap
+        opt.options["mipgap"] = gap
+    elif opt.type in ("scip"):
+        opt.options["limits/time"] = running_time
+        opt.options["limits/gap"] = gap
     # Set solver gap
     elif opt.type in ("gurobi_direct", "gurobi"):
         # Apply Gurobi specific options
@@ -8334,7 +8334,7 @@ def solve_model(model, options=None):
                     add_options=["gams_model.optfile=1;"],
                 )
             else:
-                if options['solver']!='glpk':
+                if opt.type not in ("glpk"):
                     opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)
 
@@ -8378,7 +8378,7 @@ def solve_model(model, options=None):
                     add_options=["gams_model.optfile=1;"],
                 )
             else:
-                if options['solver']!='glpk':
+                if opt.type not in ("glpk"):
                     opt.options["DualReductions"] = 0
                 results = opt.solve(model, tee=True)
 
