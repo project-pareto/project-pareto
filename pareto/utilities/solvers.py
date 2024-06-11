@@ -60,7 +60,12 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
     for name in solver_names:
         # Checks for solver is available and then for valid license
         try:
-            solver = SolverFactory(name)
+            if name == 'scip':
+                solver = SolverFactory(name,executable=r"C:\Users\javal\Desktop\solvers\SCIPOptSuite 9.0.1\bin\scip.exe")
+            else:
+                solver = SolverFactory(name)
+            print('Solver')
+            print(name)
             if solver.available(exception_flag=True):
                 if solver.license_is_valid():
                     print(f"Model solved using {name}")
@@ -91,6 +96,7 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
         "gurobi_direct": "timeLimit",
         "cbc": "seconds",
         "gams:CPLEX": "resLim",
+        "glpk": "tmlim"
     }
     option_key = name_key_mapping.get(solver.name, None)
     if option_key is None:
