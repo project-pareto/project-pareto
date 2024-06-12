@@ -700,7 +700,7 @@ def model_infeasibility_detection(strategic_model):
     # Get the total system produced water for each time period (PadRates, FlowbackRates)
     def total_pw_rule(model, t):
         return sum(
-            model.p_beta_Production[p, t] + model.p_beta_Flowback[p, t]
+            (model.p_beta_Production[p, t] + model.p_beta_Flowback[p, t]) * model.model_units["time"]
             for p in model.s_P
         )
 
@@ -718,7 +718,7 @@ def model_infeasibility_detection(strategic_model):
     # process_data must be re-run.
     def total_pw_capacity_rule(model, t):
         return (
-            sum(
+            (sum(
                 model.p_gamma_Completions[p, t] for p in model.s_P  # Completions Demand
             )
             + sum(
@@ -733,18 +733,13 @@ def model_infeasibility_detection(strategic_model):
                 # In this case, Beneficial Reuse at this site has no limit (big M parameter)
             )
             + sum(
-                model.p_sigma_Storage[s]
-                + _get_max_value_for_parameter(model.p_delta_Storage)
-                for s in model.s_S  # Storage
-            )
-            + sum(
                 (
                     model.p_sigma_Disposal[k]
                     + _get_max_value_for_parameter(model.p_delta_Disposal)
                 )
                 * model.p_epsilon_DisposalOperatingCapacity[k, t]
                 for k in model.s_K  # (Initial Disposal + max disposal) * operating capacity
-            )
+            )) * model.model_units["time"]
             + sum(
                 max(
                     [
@@ -761,6 +756,11 @@ def model_infeasibility_detection(strategic_model):
                     ]
                 )
                 for r in model.s_R
+            ) * model.model_units["volume"]
+            + sum(
+                model.p_sigma_Storage[s]
+                + _get_max_value_for_parameter(model.p_delta_Storage)
+                for s in model.s_S  # Storage
             )
         )  # Treatment: for each treatment site, select treatment technology that yields the
         # maximum value for (initial treatment + max treatment expansion)
@@ -778,7 +778,7 @@ def model_infeasibility_detection(strategic_model):
             if model.p_chi_OutsideCompletionsPad[cp] == 0
             else 0
             for cp in model.s_CP
-        )
+        ) * model.model_units["time"]
 
     strategic_model.e_gamma_TimePeriodDemand = Expression(
         strategic_model.s_T,
@@ -789,7 +789,7 @@ def model_infeasibility_detection(strategic_model):
     def total_water_available_rule(model, t):
         return model.e_beta_TotalPW[t] + sum(
             model.p_sigma_ExternalWater[f, t] for f in model.s_F
-        )
+        ) * model.model_units["time"]
 
     strategic_model.e_sigma_WaterAvailable = Expression(
         strategic_model.s_T,
@@ -797,21 +797,34 @@ def model_infeasibility_detection(strategic_model):
         doc="Total PW and external water available [volume]",
     )
 
+    def capacity_check_rule(model, t):
+        return model.e_beta_TotalPW[t] - model.e_sigma_MaxPWCapacity[t]
+
+    strategic_model.e_capacity_check = Expression(
+        strategic_model.s_T,
+        rule=capacity_check_rule,
+        doc="Compare total water supply with total system water capacity [volume]",
+    )
+
+    def demand_check_rule(model, t):
+        return model.e_gamma_TimePeriodDemand[t] - model.e_sigma_WaterAvailable[t]
+
+    strategic_model.e_demand_check = Expression(
+        strategic_model.s_T,
+        rule=demand_check_rule,
+        doc="Compare total water demand with total amount of water available [volume]",
+    )
+
     # For each time period, check for infeasibilities
     for t in strategic_model.s_T:
         # If volume of produced water is greater than capacity, raise an infeasibility error
-        if value(strategic_model.e_beta_TotalPW[t]) > value(
-            strategic_model.e_sigma_MaxPWCapacity[t]
-        ):
-
+        if value(strategic_model.e_capacity_check[t]) > 0:
             capacity_feasibility_message.append(
                 f"{t} ({round(value(strategic_model.e_beta_TotalPW[t]))} total {strategic_model.model_units['volume']}s PW vs {round(value(strategic_model.e_sigma_MaxPWCapacity[t]))} {strategic_model.model_units['volume']}s PW capacity)"
             )
 
         # If completions demand is greater than combined water in system and external water available, raise an infeasibility error
-        if value(strategic_model.e_gamma_TimePeriodDemand[t]) > value(
-            strategic_model.e_sigma_WaterAvailable[t]
-        ):
+        if value(strategic_model.e_demand_check[t]) > 0:
             # e_gamma_TimePeriodDemand has inconsistent units due to storage
             demand_feasibility_message.append(
                 f"{t} ({round(value(strategic_model.e_gamma_TimePeriodDemand[t]))} {strategic_model.model_units['volume']}s demand vs {round(value(strategic_model.e_sigma_WaterAvailable[t]))} {strategic_model.model_units['volume']}s available water)"
@@ -835,7 +848,7 @@ def model_infeasibility_detection(strategic_model):
 
 
 def _get_max_value_for_parameter(parameter):
-    return max([x.value for x in parameter.values()])
+    return max([x.value for x in parameter.values()]) * parameter.get_units()
 
 
 # Custom error for Missing Data.

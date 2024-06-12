@@ -17,7 +17,7 @@ Test strategic model
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
 from pyomo.core.base import value
-from pyomo.environ import Constraint
+from pyomo.environ import Constraint, Expression
 
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
@@ -199,10 +199,9 @@ def test_strategic_model_build_units_scaled_units_consistency(
         }
     )
 
-    # TODO iterate over all Expressions as well as constraints to check units in those
-
     # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
     visitor = PintUnitExtractionVisitor(get_strategic_model_unit_container())
+
     # Iterate through all Constraints
     for c in m.component_objects(Constraint):
         # If indexed, iterate through Constraint indexes
@@ -249,6 +248,10 @@ def test_strategic_model_build_units_scaled_units_consistency(
                 # otherwise, check if consistent with Pyomo's check
                 else:
                     assert_units_consistent(condata)
+
+    # Iterate through all Expressions
+    for e in m.component_objects(Expression):
+        assert_units_consistent(e)
 
 
 # if solver cbc exists @solver
