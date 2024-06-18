@@ -64,7 +64,6 @@ def get_valid_piping_arc_list():
         "NRA",
         "NOA",
         "FCA",
-        "FNA",
         "RNA",
         "RCA",
         "RKA",
@@ -575,7 +574,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             "ExternalSourcingCost",
         },
         requires_at_least_one=[
-            ["FCA", "FNA", "FCT"],
+            ["FCA", "FCT"],
         ],
     )
 
@@ -705,7 +704,7 @@ def model_infeasibility_detection(strategic_model):
             for p in model.s_P
         )
 
-    strategic_model.e_beta_TotalPW = Expression(
+    strategic_model.e_TotalPW = Expression(
         strategic_model.s_T,
         rule=total_pw_rule,
         doc="Combined water supply forecast (flowback & production) at each time period [volume]",
@@ -772,7 +771,7 @@ def model_infeasibility_detection(strategic_model):
         )  # Treatment: for each treatment site, select treatment technology that yields the
         # maximum value for (initial treatment + max treatment expansion)
 
-    strategic_model.e_sigma_MaxPWCapacity = Expression(
+    strategic_model.e_MaxPWCapacity = Expression(
         strategic_model.s_T,
         rule=total_pw_capacity_rule,
         doc="Combined produced water capacity in system [volume]",
@@ -790,7 +789,7 @@ def model_infeasibility_detection(strategic_model):
             * model.model_units["time"]
         )
 
-    strategic_model.e_gamma_TimePeriodDemand = Expression(
+    strategic_model.e_TimePeriodDemand = Expression(
         strategic_model.s_T,
         rule=total_water_demand_rule,
         doc="Total water demand at each time period [volume]",
@@ -798,19 +797,19 @@ def model_infeasibility_detection(strategic_model):
 
     def total_water_available_rule(model, t):
         return (
-            model.e_beta_TotalPW[t]
+            model.e_TotalPW[t]
             + sum(model.p_sigma_ExternalWater[f, t] for f in model.s_F)
             * model.model_units["time"]
         )
 
-    strategic_model.e_sigma_WaterAvailable = Expression(
+    strategic_model.e_WaterAvailable = Expression(
         strategic_model.s_T,
         rule=total_water_available_rule,
         doc="Total PW and external water available [volume]",
     )
 
     def capacity_check_rule(model, t):
-        return model.e_beta_TotalPW[t] - model.e_sigma_MaxPWCapacity[t]
+        return model.e_TotalPW[t] - model.e_MaxPWCapacity[t]
 
     strategic_model.e_capacity_check = Expression(
         strategic_model.s_T,
@@ -819,7 +818,7 @@ def model_infeasibility_detection(strategic_model):
     )
 
     def demand_check_rule(model, t):
-        return model.e_gamma_TimePeriodDemand[t] - model.e_sigma_WaterAvailable[t]
+        return model.e_TimePeriodDemand[t] - model.e_WaterAvailable[t]
 
     strategic_model.e_demand_check = Expression(
         strategic_model.s_T,
@@ -832,14 +831,13 @@ def model_infeasibility_detection(strategic_model):
         # If volume of produced water is greater than capacity, raise an infeasibility error
         if value(strategic_model.e_capacity_check[t]) > 0:
             capacity_feasibility_message.append(
-                f"{t} ({round(value(strategic_model.e_beta_TotalPW[t]))} total {strategic_model.model_units['volume']}s PW vs {round(value(strategic_model.e_sigma_MaxPWCapacity[t]))} {strategic_model.model_units['volume']}s PW capacity)"
+                f"{t} ({round(value(strategic_model.e_TotalPW[t]))} total {strategic_model.model_units['volume']}s PW vs {round(value(strategic_model.e_MaxPWCapacity[t]))} {strategic_model.model_units['volume']}s PW capacity)"
             )
 
         # If completions demand is greater than combined water in system and external water available, raise an infeasibility error
         if value(strategic_model.e_demand_check[t]) > 0:
-            # e_gamma_TimePeriodDemand has inconsistent units due to storage
             demand_feasibility_message.append(
-                f"{t} ({round(value(strategic_model.e_gamma_TimePeriodDemand[t]))} {strategic_model.model_units['volume']}s demand vs {round(value(strategic_model.e_sigma_WaterAvailable[t]))} {strategic_model.model_units['volume']}s available water)"
+                f"{t} ({round(value(strategic_model.e_TimePeriodDemand[t]))} {strategic_model.model_units['volume']}s demand vs {round(value(strategic_model.e_WaterAvailable[t]))} {strategic_model.model_units['volume']}s available water)"
             )
 
     if len(capacity_feasibility_message) > 0:

@@ -1085,13 +1085,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=init_arc_param("FCA"),
         doc="Valid externally sourced water-to-completions pipeline arcs [-]",
     )
-    model.p_FNA = Param(
-        model.s_F,
-        model.s_N,
-        default=0,
-        initialize=init_arc_param("FNA"),
-        doc="Valid externally sourced water-to-node pipeline arcs [-]",
-    )
     model.p_RNA = Param(
         model.s_R,
         model.s_N,
@@ -1305,15 +1298,6 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Completions water demand [volume/time]",
-    )
-    model.p_gamma_TotalDemand = Param(
-        default=0,
-        initialize=sum(
-            sum(model.p_gamma_Completions[p, t] for p in model.s_P) for t in model.s_T
-        ),
-        units=model.model_units["volume"],
-        doc="Total water demand over the planning horizon [volume]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
     )
     model.p_beta_Production = Param(
         model.s_P,
@@ -2423,7 +2407,7 @@ def create_model(df_sets, df_parameters, default={}):
             * model.model_units["time"]
         )
 
-    model.TotalTruckingEmissions = Expression(
+    model.e_TotalTruckingEmissions = Expression(
         model.s_A, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
     )
 
@@ -2445,7 +2429,7 @@ def create_model(df_sets, df_parameters, default={}):
             * model.model_units["time"]
         )
 
-    model.TotalPipelineOperationsEmissions = Expression(
+    model.e_TotalPipeOperationsEmissions = Expression(
         model.s_A,
         rule=TotalPipelineOperationsEmissionsRule,
         doc="Total pipeline operations emissions",
@@ -2463,7 +2447,7 @@ def create_model(df_sets, df_parameters, default={}):
             for l_tilde in model.s_L
         )
 
-    model.TotalPipelineInstallationEmissions = Expression(
+    model.e_TotalPipeInstallEmissions = Expression(
         model.s_A,
         rule=TotalPipelineInstallationEmissionsRule,
         doc="Total pipeline installation emissions",
@@ -2472,7 +2456,7 @@ def create_model(df_sets, df_parameters, default={}):
     def TotalDisposalEmissionsRule(model, a):
         return model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
 
-    model.TotalDisposalEmissions = Expression(
+    model.e_TotalDisposalEmissions = Expression(
         model.s_A, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
     )
 
@@ -2488,7 +2472,7 @@ def create_model(df_sets, df_parameters, default={}):
             * model.model_units["time"]
         )
 
-    model.TotalStorageEmissions = Expression(
+    model.e_TotalStorageEmissions = Expression(
         model.s_A, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
     )
 
@@ -2505,30 +2489,126 @@ def create_model(df_sets, df_parameters, default={}):
             for t in model.s_T
         )
 
-    model.TotalTreatmentEmissions = Expression(
+    model.e_TotalTreatmentEmissions = Expression(
         model.s_A, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
     )
 
     def TotalEmissionsByComponentRule(model, a):
         return (
-            model.TotalTruckingEmissions[a]
-            + model.TotalPipelineOperationsEmissions[a]
-            + model.TotalPipelineInstallationEmissions[a]
-            + model.TotalDisposalEmissions[a]
-            + model.TotalStorageEmissions[a]
-            + model.TotalTreatmentEmissions[a]
+            model.e_TotalTruckingEmissions[a]
+            + model.e_TotalPipeOperationsEmissions[a]
+            + model.e_TotalPipeInstallEmissions[a]
+            + model.e_TotalDisposalEmissions[a]
+            + model.e_TotalStorageEmissions[a]
+            + model.e_TotalTreatmentEmissions[a]
         )
 
-    model.TotalEmissionsByComponent = Expression(
+    model.e_TotalEmissionsByComponent = Expression(
         model.s_A,
         rule=TotalEmissionsByComponentRule,
         doc="Total emissions by component",
     )
 
-    def TotalEmissionsRule(model):
-        return sum(model.TotalEmissionsByComponent[a] for a in model.s_A)
+    model.e_TotalEmissions = Expression(
+        expr=sum(model.e_TotalEmissionsByComponent[a] for a in model.s_A),
+        doc="Total emissions [mass]",
+    )
 
-    model.TotalEmissions = Expression(rule=TotalEmissionsRule, doc="Total emissions")
+    # Define expressions for additional KPIs #
+    model.e_DisposalFraction = Expression(
+        expr=model.v_F_TotalDisposed / model.p_beta_TotalProd,
+        doc="Fraction of produced and flowback water that is disposed [fraction]",
+    )
+
+    model.e_TotalCompletionsDeliveries = Expression(
+        expr=sum(
+            sum(model.v_F_CompletionsDestination[cp, t] for cp in model.s_CP)
+            for t in model.s_T
+        )
+        * model.model_units["time"],
+        doc="Total deliveries to completions pads to meet completions demand [volume]",
+    )
+
+    model.e_CompletionsSourcedFrac = Expression(
+        expr=model.v_F_TotalSourced / model.e_TotalCompletionsDeliveries,
+        doc="Fraction of completions deliveries using externally sourced water [fraction]",
+    )
+
+    model.e_CompletionsReusedFrac = Expression(
+        expr=model.v_F_TotalReused / model.e_TotalCompletionsDeliveries,
+        doc="Fraction of completions deliveries using reused water [fraction]",
+    )
+
+    model.e_TotalResidualWater = Expression(
+        expr=sum(
+            sum(model.v_F_ResidualWater[r, t] for t in model.s_T) for r in model.s_R
+        )
+        * model.model_units["time"],
+        doc="Total residual water from treatment sites [volume]",
+    )
+
+    model.e_TotalResidualDesalinationWater = Expression(
+        expr=sum(
+            sum(model.v_F_ResidualWater[r, t] for t in model.s_T)
+            for r in model.s_R
+            if model.p_chi_DesalinationSites[r] == 1
+        )
+        * model.model_units["time"],
+        doc="Total residual water from desalination treatment sites [volume]",
+    )
+
+    model.e_TotalResidualNonDesalWater = Expression(
+        expr=sum(
+            sum(model.v_F_ResidualWater[r, t] for t in model.s_T)
+            for r in model.s_R
+            if model.p_chi_DesalinationSites[r] == 0
+        )
+        * model.model_units["time"],
+        doc="Total residual water from non-desalination treatment sites [volume]",
+    )
+
+    model.e_TotalReused = Expression(
+        expr=sum(
+            sum(model.v_F_ReuseDestination[p, t] for p in model.s_CP) for t in model.s_T
+        )
+        * model.model_units["time"],
+        doc="Total water reused to meet completions demand [volume]",
+    )
+
+    model.e_TotalReusedInternal = Expression(
+        expr=sum(
+            sum(
+                model.v_F_ReuseDestination[p, t]
+                for p in model.s_CP
+                if model.p_chi_OutsideCompletionsPad[p] == 0
+            )
+            for t in model.s_T
+        )
+        * model.model_units["time"],
+        doc="Total water reused to meet completions demand internal to system [volume]",
+    )
+
+    model.e_TotalReusedExternal = Expression(
+        expr=sum(
+            sum(
+                model.v_F_ReuseDestination[p, t]
+                for p in model.s_CP
+                if model.p_chi_OutsideCompletionsPad[p] == 1
+            )
+            for t in model.s_T
+        )
+        * model.model_units["time"],
+        doc="Total water reused to meet completions demand external to system [volume]",
+    )
+
+    model.e_TotalEvaporated = Expression(
+        expr=sum(
+            sum(model.v_F_StorageEvaporationStream[s, t] for s in model.s_S)
+            for t in model.s_T
+        )
+        * model.model_units["time"],
+        doc="Total water evaporated [volume]",
+    )
 
     # Calculate subsurface risk metrics if necessary
     model.do_subsurface_risk_calcs = (
@@ -2605,7 +2685,7 @@ def create_model(df_sets, df_parameters, default={}):
             expr=model.v_Z_SubsurfaceRisk
             == sum(
                 sum(model.v_F_DisposalDestination[k, t] for t in model.s_T)
-                * model.subsurface.risk_metrics[k]
+                * model.subsurface.e_risk_metrics[k]
                 for k in model.s_K
             ),
             doc="Objective function constraint - minimize subsurface risk",
@@ -2621,7 +2701,7 @@ def create_model(df_sets, df_parameters, default={}):
 
     ####### Minimum emissions objective #######
     model.objective_Emissions = Objective(
-        expr=model.TotalEmissions,
+        expr=model.e_TotalEmissions,
         sense=minimize,
         doc="Objective function - minimize emissions",
     )
@@ -2932,50 +3012,29 @@ def create_model(df_sets, df_parameters, default={}):
     # Define constraints #
 
     def CompletionsPadDemandBalanceRule(model, p, t):
+        expr = (
+            sum(
+                model.v_F_Piped[l, p, t]
+                for l in (model.s_L - model.s_F)
+                if (l, p) in model.s_LLA
+            )
+            + sum(
+                model.v_F_Sourced[f, p, t] for f in model.s_F if (f, p) in model.s_LLA
+            )
+            + sum(
+                model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT
+            )
+            + model.v_F_PadStorageOut[p, t]
+            - model.v_F_PadStorageIn[p, t]
+            + model.v_S_FracDemand[p, t]
+        )
+
         # If completions pad is outside the system, the completions demand is not required to be met
         if model.p_chi_OutsideCompletionsPad[p] == 1:
-            constraint = model.p_gamma_Completions[p, t] >= (
-                sum(
-                    model.v_F_Piped[l, p, t]
-                    for l in (model.s_L - model.s_F)
-                    if (l, p) in model.s_LLA
-                )
-                + sum(
-                    model.v_F_Sourced[f, p, t]
-                    for f in model.s_F
-                    if (f, p) in model.s_LLA
-                )
-                + sum(
-                    model.v_F_Trucked[l, p, t]
-                    for l in model.s_L
-                    if (l, p) in model.s_LLT
-                )
-                + model.v_F_PadStorageOut[p, t]
-                - model.v_F_PadStorageIn[p, t]
-                + model.v_S_FracDemand[p, t]
-            )
+            constraint = model.p_gamma_Completions[p, t] >= expr
         # If the completions pad is inside the system, demand must be met
         else:
-            constraint = model.p_gamma_Completions[p, t] == (
-                sum(
-                    model.v_F_Piped[l, p, t]
-                    for l in (model.s_L - model.s_F)
-                    if (l, p) in model.s_LLA
-                )
-                + sum(
-                    model.v_F_Sourced[f, p, t]
-                    for f in model.s_F
-                    if (f, p) in model.s_LLA
-                )
-                + sum(
-                    model.v_F_Trucked[l, p, t]
-                    for l in model.s_L
-                    if (l, p) in model.s_LLT
-                )
-                + model.v_F_PadStorageOut[p, t]
-                - model.v_F_PadStorageIn[p, t]
-                + model.v_S_FracDemand[p, t]
-            )
+            constraint = model.p_gamma_Completions[p, t] == expr
 
         return process_constraint(constraint)
 
@@ -5095,7 +5154,7 @@ def pipeline_hydraulics(model):
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
         elif model.config.objective == Objectives.environmental:
-            obj_var = model.TotalEmissions
+            obj_var = model.e_TotalEmissions
         else:
             raise Exception("Objective not supported")
 
@@ -5369,7 +5428,7 @@ def pipeline_hydraulics(model):
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
         elif model.config.objective == Objectives.environmental:
-            obj_var = model.TotalEmissions
+            obj_var = model.e_TotalEmissions
         else:
             raise Exception("Objective not supported")
 
@@ -7515,7 +7574,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         elif model.config.objective == Objectives.subsurface_risk:
             obj_var = model.v_Z_SubsurfaceRisk
         elif model.config.objective == Objectives.environmental:
-            obj_var = model.TotalEmissions
+            obj_var = model.e_TotalEmissions
         else:
             raise Exception("Objective not supported")
 
@@ -8173,7 +8232,6 @@ def subsurface_risk(model):
     m.severity_risk_factors = Param(prox, initialize=severity_init, mutable=True)
     m.sum_risk_factor = Param(risk_factor_set, initialize=0, mutable=True)
     m.pressure_thresholds = Param(maxmin, initialize=pres_init)
-    m.site_risk_factor = Param(model.s_K, prox, initialize=0, mutable=True)
 
     m.vb_y_dist = Var(model.s_K, prox, initialize=0, within=Binary)
 
@@ -8188,32 +8246,49 @@ def subsurface_risk(model):
             m.sum_risk_factor["distance"] += m.distance_risk_factors[i]
         return m.sum_risk_factor["distance"]
 
-    m.sum_risk_dist = Expression(rule=sum_risk_dist_rule)
+    m.e_sum_risk_dist = Expression(
+        rule=sum_risk_dist_rule, doc="Sum of distance risk factors [dimensionless]"
+    )
 
     def sum_risk_severity_rule(m):
         for i in prox:
             m.sum_risk_factor["severity"] += m.severity_risk_factors[i]
         return m.sum_risk_factor["severity"]
 
-    m.sum_risk_severity = Expression(rule=sum_risk_severity_rule)
+    m.e_sum_risk_severity = Expression(
+        rule=sum_risk_severity_rule, doc="Sum of severity risk factors [dimensionless]"
+    )
 
     def norm_risk_dist_rule(m, prox):
-        return m.distance_risk_factors[prox] / m.sum_risk_dist
+        return m.distance_risk_factors[prox] / m.e_sum_risk_dist
 
-    m.norm_risk_dist = Expression(prox, rule=norm_risk_dist_rule)
+    m.e_norm_risk_dist = Expression(
+        prox,
+        rule=norm_risk_dist_rule,
+        doc="Normalized distance risk factors [dimensionless]",
+    )
 
     def norm_risk_severity_rule(m, prox):
-        return m.severity_risk_factors[prox] / m.sum_risk_severity
+        return m.severity_risk_factors[prox] / m.e_sum_risk_severity
 
-    m.norm_risk_severity = Expression(prox, rule=norm_risk_severity_rule)
+    m.e_norm_risk_severity = Expression(
+        prox,
+        rule=norm_risk_severity_rule,
+        doc="Normalized severity risk factors [dimensionless]",
+    )
 
     def max_risk_fact_min_risk_rule(m):
         return sum(
-            m.distance_risk_factors[i] * m.norm_risk_dist[i] * m.norm_risk_severity[i]
+            m.distance_risk_factors[i]
+            * m.e_norm_risk_dist[i]
+            * m.e_norm_risk_severity[i]
             for i in prox
         )
 
-    m.max_risk_fact_min_risk = Expression(rule=max_risk_fact_min_risk_rule)
+    m.e_max_risk_fact_min_risk = Expression(
+        rule=max_risk_fact_min_risk_rule,
+        doc="Maximum value for lowest risk [dimensionless]",
+    )
 
     def site_rule_constraints(m, site, factor):
         if factor in ("orphan", "inactive") and m.deep[site]:
@@ -8226,19 +8301,6 @@ def subsurface_risk(model):
 
     m.site_constraint = Constraint(model.s_K, prox, rule=site_rule_constraints)
 
-    def site_risk_factor_rule(m, site, factor):
-        if factor in ("orphan", "inactive") and m.deep[site]:
-            m.site_risk_factor[site, factor] = m.distance_risk_factors[factor]
-        else:
-            m.site_risk_factor[site, factor] = m.distance_risk_factors[
-                factor
-            ] * m.vb_y_dist[site, factor] + m.prox[factor, site] * (
-                1 - m.vb_y_dist[site, factor]
-            )
-        return m.site_risk_factor[site, factor]
-
-    m.site_risk_factors = Expression(model.s_K, prox, rule=site_risk_factor_rule)
-
     def risk_metric_rule(m, site):
         return (
             1
@@ -8247,14 +8309,16 @@ def subsurface_risk(model):
                     m.distance_risk_factors[factor] * m.vb_y_dist[site, factor]
                     + m.prox[factor, site] * (1 - m.vb_y_dist[site, factor])
                 )
-                * m.norm_risk_dist[factor]
-                * m.norm_risk_severity[factor]
+                * m.e_norm_risk_dist[factor]
+                * m.e_norm_risk_severity[factor]
                 for factor in prox
             )
-            / m.max_risk_fact_min_risk
+            / m.e_max_risk_fact_min_risk
         )
 
-    m.risk_metrics = Expression(model.s_K, rule=risk_metric_rule)
+    m.e_risk_metrics = Expression(
+        model.s_K, rule=risk_metric_rule, doc="Overall SWD risk metric [dimensionless]"
+    )
 
     m.sites_included = Param(
         model.s_K,
@@ -8263,6 +8327,7 @@ def subsurface_risk(model):
             and m.pressure[k] <= m.pressure_thresholds["max"]
             for k in model.s_K
         },
+        doc="True/false are SWDs available for disposal based on average pressure in the vicinity of the well [boolean]",
     )
 
     m.objective = Objective(

@@ -60,7 +60,6 @@ def data_parser(df_sets, df_parameters):
         "NRA",
         "NSA",
         "SNA",
-        "FNA",
         "FCA",
         "RCA",
         "RSA",

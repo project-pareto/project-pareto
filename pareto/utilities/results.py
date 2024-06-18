@@ -21,10 +21,9 @@ from pareto.operational_water_management.operational_produced_water_optimization
 )
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
-    Hydraulics,
     InfrastructureTiming,
 )
-from pyomo.environ import Constraint, Var, units as pyunits, value
+from pyomo.environ import Constraint, Var, Expression, units as pyunits, value
 
 import plotly.graph_objects as go
 import plotly.express as px
@@ -285,6 +284,44 @@ def generate_report(
             "v_F_CompletionsDestination_dict": [
                 ("Pads", "Time", "Total deliveries to completions pads")
             ],
+            "e_TotalTruckingEmissions_dict": [
+                ("Component", "Total trucking emissions")
+            ],
+            "e_TotalPipeOperationsEmissions_dict": [
+                ("Component", "Total pipeline operations emissions")
+            ],
+            "e_TotalPipeInstallEmissions_dict": [
+                ("Component", "Total pipeline installation emissions")
+            ],
+            "e_TotalDisposalEmissions_dict": [
+                ("Component", "Total disposal emissions")
+            ],
+            "e_TotalStorageEmissions_dict": [("Component", "Total storage emissions")],
+            "e_TotalTreatmentEmissions_dict": [
+                ("Component", "Total treatment emissions")
+            ],
+            "e_TotalEmissionsByComponent_dict": [
+                ("Component", "Total emissions by component")
+            ],
+            "e_TotalPW_dict": [
+                ("Time", "Combined water supply (flowback + production)")
+            ],
+            "e_MaxPWCapacity_dict": [
+                ("Time", "Combined produced water capacity in system")
+            ],
+            "e_TimePeriodDemand_dict": [("Time", "Total water demand")],
+            "e_WaterAvailable_dict": [
+                ("Time", "Total PW and external water available")
+            ],
+            "e_capacity_check_dict": [
+                ("Time", "Compare total water supply with total system water capacity")
+            ],
+            "e_demand_check_dict": [
+                (
+                    "Time",
+                    "Compare total water demand with total amount of water available",
+                )
+            ],
             "v_Q_CompletionPad_dict": [
                 ("Completion pad", "Water Component", "Time", "Water Quality")
             ],
@@ -447,102 +484,8 @@ def generate_report(
             "v_S_BeneficialReuseCapacity_dict": [
                 ("Reuse site", "Slack Reuse Capacity")
             ],
-            "subsurface.vb_y_dist_dict": [
-                ("Sites", "Proximity", "distance risk metric")
-            ],
             "Solver_Stats_dict": [("Solution Attribute", "Value")],
         }
-
-        # Defining KPIs for strategic model
-        model.reuse_WaterKPI = Var(doc="Reuse Fraction Produced Water [%]")
-        if model.p_beta_TotalProd.value and model.v_F_TotalReused.value:
-            reuseWater_value = value(
-                (model.v_F_TotalReused / model.p_beta_TotalProd) * 100
-            )
-        else:
-            reuseWater_value = 0
-        model.reuse_WaterKPI.value = reuseWater_value
-
-        model.disposal_WaterKPI = Var(doc="Disposal Fraction Produced Water [%]")
-        if model.v_F_TotalDisposed.value and model.p_beta_TotalProd.value:
-            disposalWater_value = value(
-                (model.v_F_TotalDisposed / model.p_beta_TotalProd) * 100
-            )
-        else:
-            disposalWater_value = 0
-        model.disposal_WaterKPI.value = disposalWater_value
-
-        model.external_CompletionsDemandKPI = Var(
-            doc="External Fraction Completions Demand [%]"
-        )
-        if model.v_F_TotalSourced.value and model.p_gamma_TotalDemand.value:
-            externalDemand_value = value(
-                (model.v_F_TotalSourced / model.p_gamma_TotalDemand) * 100
-            )
-        else:
-            externalDemand_value = 0
-        model.external_CompletionsDemandKPI.value = externalDemand_value
-
-        model.reuse_CompletionsDemandKPI = Var(
-            doc="Reuse Fraction Completions Demand [%]"
-        )
-        if model.v_F_TotalReused.value and model.p_gamma_TotalDemand.value:
-            reuseDemand_value = value(
-                (model.v_F_TotalReused / model.p_gamma_TotalDemand) * 100
-            )
-        else:
-            reuseDemand_value = 0
-        model.reuse_CompletionsDemandKPI.value = reuseDemand_value
-
-        # Total Residual Water
-        model.totalResidualKPI = Var(
-            doc="Total Residual Water [volume]", units=model.model_units["volume"]
-        )
-        totalResidual_value = sum(
-            sum(value(model.v_F_ResidualWater[r, t]) for r in model.s_R)
-            for t in model.s_T
-        )
-        model.totalResidualKPI.value = totalResidual_value
-
-        # Total Water Reused Outside of System
-        model.totalReusedOutsideSystemKPI = Var(
-            doc="Total Water Reused Outside System [volume]",
-            units=model.model_units["volume"],
-        )
-        totalReusedOutsideSystem_value = sum(
-            sum(
-                value(model.v_F_ReuseDestination[p, t])
-                for p in model.s_CP
-                if model.p_chi_OutsideCompletionsPad[p] == 1
-            )
-            for t in model.s_T
-        )
-        model.totalReusedOutsideSystemKPI.value = totalReusedOutsideSystem_value
-
-        # Total Water Reused Inside of System
-        model.totalReusedInsideSystemKPI = Var(
-            doc="Total Water Reused Inside System [volume]",
-            units=model.model_units["volume"],
-        )
-        totalReusedInsideSystem_value = sum(
-            sum(
-                value(model.v_F_ReuseDestination[p, t])
-                for p in model.s_CP
-                if model.p_chi_OutsideCompletionsPad[p] == 0
-            )
-            for t in model.s_T
-        )
-        model.totalReusedInsideSystemKPI.value = totalReusedInsideSystem_value
-
-        # Total Water Evaporated
-        model.totalEvaporatedKPI = Var(
-            doc="Total Water Evaporated [volume]", units=model.model_units["volume"]
-        )
-        totalEvaporated_value = sum(
-            sum(value(model.v_F_StorageEvaporationStream[s, t]) for s in model.s_S)
-            for t in model.s_T
-        )
-        model.totalEvaporatedKPI.value = totalEvaporated_value
 
         # Infrastructure buildout table
 
@@ -823,6 +766,18 @@ def generate_report(
             }
         )
 
+        if model.do_subsurface_risk_calcs:
+            headers.update(
+                {
+                    "subsurface.vb_y_dist_dict": [
+                        ("Disposal site", "Proximity", "Value")
+                    ],
+                    "subsurface.e_norm_risk_dist_dict": [("Proximity", "Value")],
+                    "subsurface.e_norm_risk_severity_dict": [("Proximity", "Value")],
+                    "subsurface.e_risk_metrics_dict": [("Disposal site", "Value")],
+                }
+            )
+
     elif model.type == "operational":
         if is_print is None:
             printing_list = []
@@ -943,6 +898,13 @@ def generate_report(
             "v_F_TreatmentDestination_dict": [
                 ("Disposal Site", "Time", "Total Deliveries to Treatment Site")
             ],
+            "v_F_BeneficialReuseDestination_dict": [
+                (
+                    "Beneficial Reuse Site",
+                    "Time",
+                    "Total deliveries to beneficial reuse",
+                )
+            ],
             "v_B_Production_dict": [
                 ("Pads", "Time", "Produced Water For Transport From Pad")
             ],
@@ -961,10 +923,6 @@ def generate_report(
                 ("Treatment site", "Slack Treatment Capacity")
             ],
             "v_S_ReuseCapacity_dict": [("Reuse site", "Slack Reuse Capacity")],
-            ### TODO: Write decent description of the variables.
-            "subsurface.vb_y_dist_dict": [
-                ("Sites", "Proximity", "distance risk metric")
-            ],
         }
         # Detect if the model has equalized or individual production tanks
         if model.config.production_tanks == ProdTank.equalized:
@@ -1079,6 +1037,15 @@ def generate_report(
                             "Total outflow node",
                         )
                     ],
+                    "v_F_DiscreteBeneficialReuseDestination_dict": [
+                        (
+                            "Reuse",
+                            "Time",
+                            "Water Component",
+                            "Discrete Water Quality",
+                            "Reused water",
+                        )
+                    ],
                     "v_F_DiscreteBRDestination_dict": [
                         (
                             "Reuse Location",
@@ -1178,9 +1145,13 @@ def generate_report(
             elif output_units == OutputUnits.user_units:
                 to_unit = model.model_to_user_units[from_unit_string]
             else:
-                print("ERROR: Report output units selected by user is not valid")
-            # if variable data is not none and indexed, update headers to display unit
-            if len(variable._data) > 1 and list(variable._data.keys())[0] is not None:
+                print(
+                    f"WARNING: Report output units selected by user for variable {variable.name} are not valid"
+                )
+                to_unit = None
+
+            # if variable is indexed, update headers to display unit
+            if variable.is_indexed():
                 header = list(headers[str(variable.name) + "_dict"][0])
                 header[-1] = (
                     headers[str(variable.name) + "_dict"][0][-1]
@@ -1196,7 +1167,7 @@ def generate_report(
         if variable._data is not None:
             # Loop through the indices of a variable. "i" is a tuple of indices
             for i in variable._data:
-                # convert the value to display units
+                # Convert the value to display units if necessary
                 if units_true and variable._data[i].value:
                     var_value = pyunits.convert_value(
                         variable._data[i].value,
@@ -1206,52 +1177,140 @@ def generate_report(
                 else:
                     var_value = variable._data[i].value
 
-                if i is None:
+                if not variable.is_indexed():
                     # Create the overview report with variables that are not indexed, e.g.:
                     # total piped water, total trucked water, total externally sourced water, etc.
-                    if to_unit is not None:
-                        headers["v_F_Overview_dict"].append(
-                            (
-                                variable.name,
-                                variable.doc,
-                                to_unit.to_string().replace("oil_bbl", "bbl"),
-                                var_value,
-                            )
-                        )
+                    if to_unit is None or var_value == 0:
+                        tu = None
                     else:
-                        headers["v_F_Overview_dict"].append(
-                            (variable.name, variable.doc, to_unit, var_value)
-                        )
+                        tu = to_unit.to_string().replace("oil_bbl", "bbl")
 
-                # if a variable contains only one index, then "i" is recognized as a string and not a tuple,
-                # in that case, "i" is redefined by adding a comma so that it becomes a tuple
-                elif i is not None and isinstance(i, str):
-                    i = (i,)
-                # replace the discrete qualities by their actual values
-                if str(variable.name) == "v_DQ" and var_value > 0:
-                    var_value = model.p_discrete_quality[i[2], i[3]].value
-                if i is not None and var_value is not None and var_value > 0:
+                    headers["v_F_Overview_dict"].append(
+                        (variable.name, variable.doc, tu, var_value)
+                    )
+
+                else:
+                    # Add indexed variables to their own tab
+                    # Omit surrogate costs variables
                     if (
-                        variable.name != "inlet_salinity"
-                        and variable.name != "v_C_TreatmentCapEx_site"
-                        and variable.name != "v_C_Treatment_site"
-                        and variable.name != "v_C_Treatment_site_ReLU"
-                        and variable.name != "recovery"
-                        and variable.name != "v_C_TreatmentCapEx_site_time"
-                        and variable.name != "totalCapex"
-                        and variable.name != "v_T_Treatment_scaled"
+                        len(str(variable.name)) >= 15
+                        and str(variable.name)[:15] == "surrogate_costs"
                     ):
-                        if len(str(variable.name)) >= 15:
-                            if str(variable.name)[:15] != "surrogate_costs":
-                                headers[str(variable.name) + "_dict"].append(
-                                    (*i, var_value)
-                                )
-                        else:
-                            headers[str(variable.name) + "_dict"].append(
-                                (*i, var_value)
-                            )
+                        continue
 
-    # TODO - Figure out how to include expressions in reports. For some of them, could loop through similar to how we do for variables - follow the example in the above loop for variables that get added to headers["v_F_Overview_dict"]
+                    # if a variable contains only one index, then "i" is recognized as a string and not a tuple,
+                    # in that case, "i" is redefined by adding a comma so that it becomes a tuple
+                    if isinstance(i, str):
+                        i = (i,)
+
+                    # replace the discrete qualities by their actual values
+                    if str(variable.name) == "v_DQ":
+                        var_value = model.p_discrete_quality[i[2], i[3]].value
+
+                    if var_value is not None and variable.name not in [
+                        "inlet_salinity",
+                        "v_C_TreatmentCapEx_site",
+                        "v_C_Treatment_site",
+                        "v_C_Treatment_site_ReLU",
+                        "recovery",
+                        "v_C_TreatmentCapEx_site_time",
+                        "totalCapex",
+                        "v_T_Treatment_scaled",
+                        "v_T_Treatment_scaled_ReLU",
+                    ]:
+                        headers[str(variable.name) + "_dict"].append((*i, var_value))
+
+    # Loop through all the expressions in the model
+    for expr in model.component_objects(Expression):
+        # The get_units function does not work properly when called on an
+        # indexed expression, so we have to grab the units from the first
+        # index when we iterate through the expression. When we do that, we
+        # mark the units_fetched flag as True so we only do it once.
+        units_fetched = False
+        # Loop through the indexes of the expression.
+        for i in expr:
+            if not units_fetched:
+                units_true = (
+                    pyunits.get_units(expr[i]) is not None
+                    and pyunits.get_units(expr[i]).to_string() != "dimensionless"
+                )
+
+                # If units are used, determine what the display units should be based off user input
+                if units_true:
+                    from_unit = pyunits.get_units(expr[i])
+                    from_unit_string = from_unit.to_string()
+                    # the display units (to_unit) is defined by output_units from module parameter
+                    if output_units == OutputUnits.unscaled_model_units:
+                        to_unit = model.model_to_unscaled_model_display_units[
+                            from_unit_string
+                        ]
+                    elif output_units == OutputUnits.user_units:
+                        to_unit = model.model_to_user_units[from_unit_string]
+                    else:
+                        print(
+                            f"WARNING: Report output units selected by user for expression {expr.name} are not valid"
+                        )
+                        to_unit = None
+
+                    # If expression data is not none and indexed, update headers to display unit
+                    # if len(expr) > 1 and list(expr.keys())[0] is not None:
+                    if expr.is_indexed():
+                        header = list(headers[str(expr.name) + "_dict"][0])
+                        header[-1] = (
+                            headers[str(expr.name) + "_dict"][0][-1]
+                            + " ["
+                            + to_unit.to_string().replace("oil_bbl", "bbl")
+                            + "]"
+                        )
+                        headers[str(expr.name) + "_dict"][0] = tuple(header)
+
+                else:
+                    to_unit = None
+
+                units_fetched = True
+
+            # Convert the expression value to display units if necessary
+            # Use a try/except block to handle any errors in getting the value
+            # of the expression (e.g., division by zero)
+            try:
+                val = value(expr[i])
+                if units_true:
+                    expr_value = pyunits.convert_value(
+                        val,
+                        from_units=from_unit,
+                        to_units=to_unit,
+                    )
+                else:
+                    expr_value = val
+
+            except:
+                expr_value = "Error"
+
+            if not expr.is_indexed():
+                # Add non-indexed expressions to the v_F_Overview tab
+                if to_unit is None or expr_value == 0 or expr_value == "Error":
+                    tu = None
+                else:
+                    tu = to_unit.to_string().replace("oil_bbl", "bbl")
+
+                headers["v_F_Overview_dict"].append(
+                    (expr.name, expr.doc, tu, expr_value)
+                )
+            else:
+                # Add indexed expressions to their own tab
+                # if an expression contains only one index, then "i" is recognized
+                # as a string and not a tuple; in this case, convert to a tuple
+                if isinstance(i, str):
+                    i = (i,)
+                headers[str(expr.name) + "_dict"].append((*i, expr_value))
+
+    # The sites_included result from the subsurface risk module is a bit unique - it's the only result we have that is implemented as a Param. Add it
+    if model.type == "strategic" and model.do_subsurface_risk_calcs:
+        headers.update({"subsurface.sites_included_dict": [("Disposal site", "Value")]})
+        for k in model.s_K:
+            headers["subsurface.sites_included_dict"].append(
+                (k, value(model.subsurface.sites_included[k]))
+            )
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")

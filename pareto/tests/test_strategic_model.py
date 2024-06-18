@@ -196,6 +196,7 @@ def test_strategic_model_build_units_scaled_units_consistency(
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.capacity_based,
             "pipeline_capacity": PipelineCapacity.calculated,
+            "subsurface_risk": SubsurfaceRisk.calculate_risk_metrics,
         }
     )
 
@@ -1413,10 +1414,8 @@ def test_infrastructure_buildout(build_toy_strategic_model):
     )
 
     # Solve models
-    solver = get_solver("cbc")
-    solver.options["seconds"] = 60 * 2
-    results_capacity_based = solver.solve(m_capacity_based, tee=False)
-    results_distance_based = solver.solve(m_distance_based, tee=False)
+    solve_model(model=m_capacity_based)
+    solve_model(model=m_distance_based)
 
     # Toy case study builds treatment, storage, pipeline.
     # For testing purposes, let's adjust results to also build disposal and use new disposal.
@@ -1434,14 +1433,14 @@ def test_infrastructure_buildout(build_toy_strategic_model):
     infrastructure_timing(m_distance_based)
 
     # Test results report build with infrastructure buildout
-    [model, results_dict] = generate_report(
+    generate_report(
         m_capacity_based,
         is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
         fname="test_strategic_print_results.xlsx",
     )
 
-    [model, results_dict] = generate_report(
+    generate_report(
         m_distance_based,
         is_print=PrintValues.essential,
         output_units=OutputUnits.user_units,
