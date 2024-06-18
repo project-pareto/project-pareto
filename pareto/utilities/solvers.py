@@ -11,8 +11,11 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 from pyomo.opt.base.solvers import SolverFactory, OptSolver, check_available_solvers
+import pyomo.environ as pyo
 from numbers import Number
 from typing import Iterable
+from pyomo.contrib.appsi.solvers import Highs
+from gethighs import HiGHS
 
 
 class SolverError(ValueError):
@@ -60,11 +63,8 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
     for name in solver_names:
         # Checks for solver is available and then for valid license
         try:
-            if name == "scip":
-                solver = SolverFactory(
-                    name,
-                    executable=r"C:\Users\javal\Desktop\solvers\SCIPOptSuite 9.0.1\bin\scip.exe",
-                )
+            if name == 'highs':
+                solver=  SolverFactory('highs')
             else:
                 solver = SolverFactory(name)
             if solver.available(exception_flag=True):

@@ -80,12 +80,13 @@ strategic_model = create_model(
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         "infrastructure_timing": InfrastructureTiming.true,
-        "subsurface_risk": SubsurfaceRisk.exclude_over_and_under_pressured_wells,
+        "subsurface_risk": SubsurfaceRisk.false,
     },
 )
 
 options = {
     "deactivate_slacks": True,
+    "solver": "highs",
     "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 200,
