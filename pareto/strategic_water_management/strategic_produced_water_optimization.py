@@ -8231,9 +8231,11 @@ def solve_model(model, options=None):
             f.write(
                 f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
             )
-    elif options["solver"]=="highs":
-        opt.options['relgaptol']=gap
-        opt.options['time']=running_time
+    elif options["solver"] == "highs":
+        opt.options["mip_rel_gap"] = gap
+        opt.options["time_limit"] = running_time
+        opt.options["log_to_console"] = False
+        opt.options["log_file"] = "highs.log"
     elif opt.type in ("scip"):
         opt.options["limits/time"] = running_time
         opt.options["limits/gap"] = gap
@@ -8334,7 +8336,7 @@ def solve_model(model, options=None):
                     tee=True,
                     add_options=["gams_model.optfile=1;"],
                 )
-                
+
             else:
                 opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)

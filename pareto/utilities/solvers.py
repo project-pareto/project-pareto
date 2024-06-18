@@ -14,8 +14,7 @@ from pyomo.opt.base.solvers import SolverFactory, OptSolver, check_available_sol
 import pyomo.environ as pyo
 from numbers import Number
 from typing import Iterable
-from pyomo.contrib.appsi.solvers import Highs
-from gethighs import HiGHS
+from pyomo.contrib import appsi
 
 
 class SolverError(ValueError):
@@ -62,20 +61,20 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
 
     for name in solver_names:
         # Checks for solver is available and then for valid license
-        try:
-            if name == 'highs':
-                solver=  SolverFactory('highs')
-            else:
-                solver = SolverFactory(name)
-            if solver.available(exception_flag=True):
-                if solver.license_is_valid():
-                    print(f"Model solved using {name}")
-                    break
-        except:
-            pass
+        # try:
+        if name == "highs":
+            solver = SolverFactory("appsi_highs")
+        else:
+            solver = SolverFactory(name)
+        if solver.available(exception_flag=True):
+            if solver.license_is_valid():
+                print(f"Model solved using {name}")
+                break
+        # except:
+        #     pass
 
-    else:
-        raise NoAvailableSolver(solver_names)
+    # else:
+    #     raise NoAvailableSolver(solver_names)
     # TODO add extra solver validation, logging, etc
     return solver
 
