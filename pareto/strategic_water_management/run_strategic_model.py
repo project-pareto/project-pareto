@@ -51,7 +51,7 @@ with resources.path(
     "strategic_toy_case_study.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
-    [df_sets, df_parameters] = get_data(fpath)
+    [df_sets, df_parameters] = get_data(fpath, model_type="strategic")
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
