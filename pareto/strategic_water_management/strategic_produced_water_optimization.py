@@ -2310,9 +2310,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_A,
         default=0,
         initialize={
-            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
-            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if "Trucking" in x
+            a: pyunits.convert_value(
+                model.df_parameters["AirEmissionCoefficients"][(label, a)],
+                from_units=model.user_units["mass"],
+                to_units=model.model_units["mass"],
+            )
+            for (label, a) in model.df_parameters["AirEmissionCoefficients"]
+            if "Trucking" in label
         },
         units=model.model_units[
             "mass"
@@ -2325,24 +2329,36 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_A,
         default=0,
         initialize={
-            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
-            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if "Pipeline Operations" in x
+            a: pyunits.convert_value(
+                model.df_parameters["AirEmissionCoefficients"][(label, a)],
+                from_units=model.user_units["mass"]
+                / model.user_units["volume"]
+                / model.user_units["distance"],
+                to_units=model.model_units["mass"]
+                / model.model_units["volume"]
+                / model.model_units["distance"],
+            )
+            for (label, a) in model.df_parameters["AirEmissionCoefficients"]
+            if "Pipeline Operations" in label
         },
         units=model.model_units["mass"]
         / model.model_units["volume"]
         / model.model_units["distance"],
         mutable=True,
-        doc="Air emissions pipeline operations coefficients [mass/volume_distance]",
+        doc="Air emissions pipeline operations coefficients [mass/(volume*distance)]",
     )
 
     model.p_eta_PipelineInstallationEmissionsCoefficient = Param(
         model.s_A,
         default=0,
         initialize={
-            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
-            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if "Pipeline Installation" in x
+            a: pyunits.convert_value(
+                model.df_parameters["AirEmissionCoefficients"][(label, a)],
+                from_units=model.user_units["mass"] / model.user_units["distance"],
+                to_units=model.model_units["mass"] / model.model_units["distance"],
+            )
+            for (label, a) in model.df_parameters["AirEmissionCoefficients"]
+            if "Pipeline Installation" in label
         },
         units=model.model_units["mass"] / model.model_units["distance"],
         mutable=True,
@@ -2353,9 +2369,13 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_A,
         default=0,
         initialize={
-            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
-            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if "Disposal" in x
+            a: pyunits.convert_value(
+                model.df_parameters["AirEmissionCoefficients"][(label, a)],
+                from_units=model.user_units["mass"] / model.user_units["volume"],
+                to_units=model.model_units["mass"] / model.model_units["volume"],
+            )
+            for (label, a) in model.df_parameters["AirEmissionCoefficients"]
+            if "Disposal" in label
         },
         units=model.model_units["mass"] / model.model_units["volume"],
         mutable=True,
@@ -2366,9 +2386,17 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_A,
         default=0,
         initialize={
-            y: model.df_parameters["AirEmissionCoefficients"][(x, y)]
-            for (x, y) in model.df_parameters["AirEmissionCoefficients"]
-            if "Storage" in x
+            a: pyunits.convert_value(
+                model.df_parameters["AirEmissionCoefficients"][(label, a)],
+                from_units=model.user_units["mass"]
+                / model.user_units["volume"]
+                / model.user_units["time"],
+                to_units=model.model_units["mass"]
+                / model.model_units["volume"]
+                / model.model_units["time"],
+            )
+            for (label, a) in model.df_parameters["AirEmissionCoefficients"]
+            if "Storage" in label
         },
         units=model.model_units["mass"]
         / model.model_units["volume"]
@@ -2380,10 +2408,19 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_WT,
         model.s_A,
         default=0,
-        initialize=model.df_parameters["TreatmentEmissionCoefficients"],
-        units=model.model_units["mass"] / model.model_units["volume_time"],
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["mass"] / model.user_units["volume"],
+                to_units=model.model_units["mass"] / model.model_units["volume"],
+            )
+            for key, value in model.df_parameters[
+                "TreatmentEmissionCoefficients"
+            ].items()
+        },
+        units=model.model_units["mass"] / model.model_units["volume"],
         mutable=True,
-        doc="Air emissions treatment technology coefficients [mass/(volume/time)]",
+        doc="Air emissions treatment technology coefficients [mass/volume]",
     )
 
     # Define emissions expressions #
@@ -2477,16 +2514,19 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     def TotalTreatmentEmissionsRule(model, a):
-        return sum(
+        return (
             sum(
                 sum(
-                    model.v_F_TreatmentFeedTech[r, wt, t]
-                    * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
-                    for wt in model.s_WT
+                    sum(
+                        model.v_F_TreatmentFeedTech[r, wt, t]
+                        * model.p_eta_TreatmentEmissionsCoefficient[wt, a]
+                        for wt in model.s_WT
+                    )
+                    for r in model.s_R
                 )
-                for r in model.s_R
+                for t in model.s_T
             )
-            for t in model.s_T
+            * model.model_units["time"]
         )
 
     model.e_TotalTreatmentEmissions = Expression(
