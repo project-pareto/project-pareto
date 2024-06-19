@@ -76,7 +76,7 @@ def generate_report(
     This method identifies the type of model: [strategic, operational], create a printing list based on is_print,
     and creates a dictionary that contains headers for all the variables that will be included in an Excel report.
     IMPORTANT: If an indexed variable is added or removed from a model, the printing lists and headers should be updated
-    accrodingly.
+    accordingly.
     """
     # Printing model sets, parameters, constraints, variable values
 
@@ -1464,7 +1464,7 @@ def plot_sankey(input_data={}, args=None):
             & (sum_df["destination"] == row["destination"]),
             "value",
         ].sum()
-        sum_df.at[index, "value"] = new_value
+        sum_df.loc[index, "value"] = _ensure_scalar(new_value)
 
     df_updated = sum_df.drop_duplicates(subset=["source", "destination"], keep="first")
 
@@ -1837,7 +1837,7 @@ def plot_bars(input_data, args):
                 & (df_modified[time] == row[time]),
                 y_title,
             ].sum()
-            df_modified.at[index, y_title] = new_value
+            df_modified.loc[index, y_title] = _ensure_scalar(new_value)
 
         df_bar = df_modified.drop_duplicates(subset=[x_title, time], keep="first")
 
@@ -1924,7 +1924,7 @@ def plot_bars(input_data, args):
             new_value = df_modified.loc[
                 df_modified[x_title] == row[x_title], y_title
             ].sum()
-            df_new.at[index, y_title] = new_value
+            df_new.loc[index, y_title] = _ensure_scalar(new_value)
 
         df_new_updated = df_new.drop_duplicates(subset=[x_title], keep="first")
 
@@ -1984,6 +1984,13 @@ def plot_bars(input_data, args):
                 )
 
     return fig
+
+
+def _ensure_scalar(val):
+    if isinstance(val, pd.Series):
+        assert len(val) == 1
+        return val.iloc[0]
+    return val
 
 
 def plot_scatter(input_data, args):
@@ -2257,7 +2264,7 @@ def plot_scatter(input_data, args):
                 & (df_modified_x[time] == row[time]),
                 x_title,
             ].sum()
-            df_modified_x.at[index, x_title] = new_x_value
+            df_modified_x.loc[index, x_title] = _ensure_scalar(new_x_value)
 
         for y_index, y_row in df_dup_y.iterrows():
             new_y_value = 0
@@ -2266,7 +2273,7 @@ def plot_scatter(input_data, args):
                 & (df_modified_y[time] == y_row[time]),
                 y_title,
             ].sum()
-            df_modified_y.at[y_index, y_title] = new_y_value
+            df_modified_y.loc[y_index, y_title] = _ensure_scalar(new_y_value)
 
         # Dropping new duplicates
         df_modified_x = df_modified_x.drop_duplicates(
@@ -2277,7 +2284,7 @@ def plot_scatter(input_data, args):
         )
 
         # Add y value column then add the value for that node
-        df_modified_x[y_title] = 0
+        df_modified_x.loc[:, y_title] = 0
         for x_indx, x_df_row in df_modified_x.iterrows():
             y_value = 0
             y_value = df_modified_y.loc[
@@ -2285,10 +2292,13 @@ def plot_scatter(input_data, args):
                 & (df_modified_y[time] == x_df_row[time]),
                 y_title,
             ]
-            df_modified_x.at[x_indx, y_title] = y_value
+            if isinstance(y_value, pd.Series):
+                assert len(y_value) == 1
+                y_value = y_value.iloc[0]
+            df_modified_x.loc[x_indx, y_title] = _ensure_scalar(y_value)
 
         # Add size column and calculate the ratio or grab the size from the variable passed in for size
-        df_modified_x[size] = 0
+        df_modified_x[size] = 0.0
         if isinstance(s_variable, str):  # provided_size == False or
             for s_indx, s_df_row in df_modified_x.iterrows():
                 s_value = 0
@@ -2305,22 +2315,32 @@ def plot_scatter(input_data, args):
                     y_title,
                 ]
                 if s_variable == "y/x":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
-                    elif float(s_xvalue) == float(s_yvalue):
+                    if float(s_xvalue.iloc[0]) == 0:
+                        if float(s_yvalue.iloc[0]) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception(
+                                "Cannot divide by zero when using y/x option for marker size"
+                            )
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_xvalue) > float(s_yvalue):
+                        if float(s_xvalue.iloc[0]) > float(s_yvalue.iloc[0]):
                             s_value = s_value + (s_yvalue / s_xvalue) * 1000
                         else:
                             s_value = s_value + (s_yvalue / s_xvalue)
                 elif s_variable == "x/y":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
-                    elif float(s_xvalue) == float(s_yvalue):
+                    if float(s_yvalue.iloc[0]) == 0:
+                        if float(s_xvalue.iloc[0]) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception(
+                                "Cannot divide by zero when using x/y option for marker size"
+                            )
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_yvalue) > float(s_xvalue):
+                        if float(s_yvalue.iloc[0]) > float(s_xvalue.iloc[0]):
                             s_value = s_value + (s_xvalue / s_yvalue) * 1000
                         else:
                             s_value = s_value + (s_xvalue / s_yvalue)
@@ -2329,7 +2349,7 @@ def plot_scatter(input_data, args):
                         "Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size."
                     )
                 try:
-                    df_modified_x.at[s_indx, size] = s_value
+                    df_modified_x.loc[s_indx, size] = _ensure_scalar(s_value)
                 except:
                     raise Exception(
                         "Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.".format(
@@ -2369,7 +2389,9 @@ def plot_scatter(input_data, args):
                     & (df_modified_size[time] == size_row[time]),
                     s_title,
                 ].sum()
-                df_modified_size.at[size_index, s_title] = new_size_value
+                df_modified_size.loc[size_index, s_title] = _ensure_scalar(
+                    new_size_value
+                )
 
             # Dropping new duplicates
             df_modified_size = df_modified_size.drop_duplicates(
@@ -2388,7 +2410,7 @@ def plot_scatter(input_data, args):
                     (df_modified_x[col_1] == s_df_row[col_1])
                     & (df_modified_x[time] == s_df_row[time])
                 ].index
-                df_modified_x.at[x_index, size] = s_value
+                df_modified_x.loc[x_index, size] = _ensure_scalar(s_value)
 
         # Looping through updated dataframe and assigning all y and x values to a list
         for a, b in df_modified_x.iterrows():
@@ -2426,14 +2448,14 @@ def plot_scatter(input_data, args):
                     df_scatter[col_1] == c_df_row["Node"]
                 ].index.tolist()
                 for s_index in scatter_indxs:
-                    df_scatter.at[s_index, "Color"] = category_num
+                    df_scatter.loc[s_index, "Color"] = category_num
         else:
             if group_by_category:
                 df_scatter["Color"] = ""
                 category_char = ""
                 for row_ind, row in df_scatter.iterrows():
                     category_char = row[col_1][:1]
-                    df_scatter.at[row_ind, "Color"] = category_char
+                    df_scatter.loc[row_ind, "Color"] = category_char
             else:
                 df_scatter["Color"] = col_1
 
@@ -2522,14 +2544,14 @@ def plot_scatter(input_data, args):
             new_x_value = df_modified_x.loc[
                 (df_modified_x[col_1] == row[col_1]), x_title
             ].sum()
-            df_modified_x.at[index, x_title] = new_x_value
+            df_modified_x.loc[index, x_title] = _ensure_scalar(new_x_value)
 
         for y_index, y_row in df_dup_y.iterrows():
             new_y_value = 0
             new_y_value = df_modified_y.loc[
                 (df_modified_y[col_1] == y_row[col_1]), y_title
             ].sum()
-            df_modified_y.at[y_index, y_title] = new_y_value
+            df_modified_y.loc[y_index, y_title] = _ensure_scalar(new_y_value)
 
         # Dropping new duplicates
         df_modified_x = df_modified_x.drop_duplicates(subset=[col_1], keep="first")
@@ -2542,10 +2564,10 @@ def plot_scatter(input_data, args):
             y_value = df_modified_y.loc[
                 (df_modified_y[col_1] == x_df_row[col_1]), y_title
             ]
-            df_modified_x.at[x_indx, y_title] = y_value
+            df_modified_x.loc[x_indx, y_title] = _ensure_scalar(y_value)
 
         # Add size column and calculate the ratio
-        df_modified_x[size] = 0
+        df_modified_x[size] = 0.0
         if isinstance(s_variable, str):
             for s_indx, s_df_row in df_modified_x.iterrows():
                 s_value = 0
@@ -2558,22 +2580,32 @@ def plot_scatter(input_data, args):
                     (df_modified_x[col_1] == s_df_row[col_1]), y_title
                 ]
                 if s_variable == "y/x":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
-                    elif float(s_xvalue) == float(s_yvalue):
+                    if float(s_xvalue.iloc[0]) == 0:
+                        if float(s_yvalue.iloc[0]) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception(
+                                "Cannot divide by zero when using y/x option for marker size"
+                            )
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_xvalue) > float(s_yvalue):
+                        if float(s_xvalue.iloc[0]) > float(s_yvalue.iloc[0]):
                             s_value = s_value + (s_yvalue / s_xvalue) * 1000
                         else:
                             s_value = s_value + (s_yvalue / s_xvalue)
                 elif s_variable == "x/y":
-                    if float(s_xvalue) == 0 and float(s_yvalue) == 0:
-                        s_value = 0.0
-                    elif float(s_xvalue) == float(s_yvalue):
+                    if float(s_yvalue.iloc[0]) == 0:
+                        if float(s_xvalue.iloc[0]) == 0:
+                            s_value = 0.0
+                        else:
+                            raise Exception(
+                                "Cannot divide by zero when using x/y option for marker size"
+                            )
+                    elif float(s_xvalue.iloc[0]) == float(s_yvalue.iloc[0]):
                         s_value = s_value + 1
                     else:
-                        if float(s_yvalue) > float(s_xvalue):
+                        if float(s_yvalue.iloc[0]) > float(s_xvalue.iloc[0]):
                             s_value = s_value + (s_xvalue / s_yvalue) * 1000
                         else:
                             s_value = s_value + (s_xvalue / s_yvalue)
@@ -2582,7 +2614,7 @@ def plot_scatter(input_data, args):
                         "Possible size options are y/x or x/y to compute the size ratio. Provide a valid size ratio option or a variable to be used for the size."
                     )
                 try:
-                    df_modified_x.at[s_indx, size] = s_value
+                    df_modified_x.loc[s_indx, size] = _ensure_scalar(s_value)
                 except:
                     raise Exception(
                         "Size value returned an error or was not properly calculated based on {0} ratio provided. Please review size data provided or enter a new ratio.".format(
@@ -2608,7 +2640,9 @@ def plot_scatter(input_data, args):
                 new_size_value = df_modified_size.loc[
                     (df_modified_size[col_1] == size_row[col_1]), s_title
                 ].sum()
-                df_modified_size.at[size_index, s_title] = new_size_value
+                df_modified_size.loc[size_index, s_title] = _ensure_scalar(
+                    new_size_value
+                )
 
             # Dropping new duplicates
             df_modified_size = df_modified_size.drop_duplicates(
@@ -2623,7 +2657,7 @@ def plot_scatter(input_data, args):
                 x_index = df_modified_x.loc[
                     (df_modified_x[col_1] == s_df_row[col_1])
                 ].index
-                df_modified_x.at[x_index, size] = s_value
+                df_modified_x.loc[x_index, size] = _ensure_scalar(s_value)
 
         # Looping through updated dataframe and assigning all y and x values to a list
         for a, b in df_modified_x.iterrows():
@@ -2655,14 +2689,14 @@ def plot_scatter(input_data, args):
                     df_scatter[col_1] == c_df_row["Node"]
                 ].index.tolist()
                 for s_index in scatter_indxs:
-                    df_scatter.at[s_index, "Color"] = category_num
+                    df_scatter.loc[s_index, "Color"] = _ensure_scalar(category_num)
         else:
             if group_by_category:
                 df_scatter["Color"] = ""
                 category_char = ""
                 for row_ind, row in df_scatter.iterrows():
                     category_char = row[col_1][:1]
-                    df_scatter.at[row_ind, "Color"] = category_char
+                    df_scatter.loc[row_ind, "Color"] = _ensure_scalar(category_char)
             else:
                 df_scatter["Color"] = col_1
 
