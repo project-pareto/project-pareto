@@ -1281,7 +1281,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_alpha_AnnualizationRate = Param(
         default=1,
         initialize=model.df_parameters["AnnualizationRate"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Annualization rate [%]",
     )
     model.p_gamma_Completions = Param(
@@ -1340,7 +1340,7 @@ def create_model(df_sets, df_parameters, default={}):
         ),
         units=model.model_units["volume"],
         doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
     )
     model.p_sigma_Pipeline = Param(
         model.s_L,
@@ -1461,7 +1461,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Externally sourced water capacity [volume/time]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
     )
 
     model.p_sigma_OffloadingPad = Param(
@@ -1481,7 +1481,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Truck offloading sourcing capacity per pad [volume/time]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
     )
     model.p_sigma_OffloadingStorage = Param(
         model.s_S,
@@ -1500,7 +1500,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Truck offloading capacity per pad [volume/time]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
     )
     model.p_sigma_ProcessingPad = Param(
         model.s_P,
@@ -1519,7 +1519,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Processing (e.g. clarification) capacity per pad [volume/time]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
     )
     model.p_sigma_ProcessingStorage = Param(
         model.s_S,
@@ -1538,7 +1538,7 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["volume_time"],
         doc="Processing (e.g. clarification) capacity per storage site [volume/time]",
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
     )
     if model.config.node_capacity == True:
         model.p_sigma_NetworkNode = Param(
@@ -1561,7 +1561,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_WT,
         default=1.0,
         initialize=model.df_parameters["TreatmentEfficiency"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Treatment efficiency [%]",
     )
 
@@ -1571,7 +1571,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_QC,
         default=0,
         initialize=model.df_parameters["RemovalEfficiency"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Removal efficiency [%]",
     )
     # Note PipelineCapacityIncrements_Calculated is set in _pre_process. These values are already in model units, they
@@ -1698,7 +1698,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_L,
         default=12,
         initialize=model.df_parameters["TruckingTime"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Drive time between locations [hr]",
     )
     model.p_lambda_Storage = Param(
@@ -1708,8 +1708,8 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={
             key: pyunits.convert_value(
                 value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
+                from_units=model.user_units["volume"],
+                to_units=model.model_units["volume"],
             )
             for key, value in model.df_parameters["InitialStorageLevel"].items()
         },
@@ -1877,7 +1877,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["volume_time"],
         ),
         units=model.model_units["volume_time"],
-        doc="Evaporation Rate per week [volume/time]",
+        doc="Evaporation rate [volume/time]",
     )
 
     if model.config.pipeline_cost == PipelineCost.distance_based:
@@ -2209,7 +2209,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.p_M_Flow_Conc = Param(
         initialize=model.p_M_Concentration * model.p_M_Flow,
         units=model.model_units["concentration"] * model.model_units["volume_time"],
-        doc="Big-M flow-concentration parameter [concentration * volume_time]",
+        doc="Big-M flow-concentration parameter [concentration*volume/time]",
     )
 
     model.p_psi_FracDemand = Param(
@@ -2219,7 +2219,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
     model.p_psi_Production = Param(
         default=pyunits.convert_value(
@@ -2228,7 +2228,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
     model.p_psi_Flowback = Param(
         default=pyunits.convert_value(
@@ -2237,7 +2237,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
     model.p_psi_PipelineCapacity = Param(
         default=pyunits.convert_value(
@@ -2246,7 +2246,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
     model.p_psi_StorageCapacity = Param(
         default=pyunits.convert_value(
@@ -2264,7 +2264,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
     model.p_psi_TreatmentCapacity = Param(
         default=pyunits.convert_value(
@@ -2273,7 +2273,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
     model.p_psi_BeneficialReuseCapacity = Param(
         default=pyunits.convert_value(
@@ -2282,7 +2282,7 @@ def create_model(df_sets, df_parameters, default={}):
             to_units=model.model_units["currency_volume_time"],
         ),
         units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/volume/time]",
+        doc="Slack cost parameter [currency/(volume/time)]",
     )
 
     model.p_chi_DisposalExpansionAllowed = Param(
@@ -2293,7 +2293,7 @@ def create_model(df_sets, df_parameters, default={}):
             key: 0 if value and value > 0 else 1
             for key, value in model.df_parameters["InitialDisposalCapacity"].items()
         },
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Indicates if Expansion is allowed at site k",
     )
 
@@ -2302,7 +2302,7 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         default=1,
         initialize=model.df_parameters["DisposalOperatingCapacity"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Operating capacity of disposal site [%]",
     )
 
@@ -2317,7 +2317,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units[
             "mass"
         ],  # Note: Hours are not modeled as a separate unit (see p_pi_Trucking)
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Air emissions trucking coefficients [mass/driving hour]",
     )
 
@@ -2332,7 +2332,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["mass"]
         / model.model_units["volume"]
         / model.model_units["distance"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Air emissions pipeline operations coefficients [mass/volume_distance]",
     )
 
@@ -2345,7 +2345,7 @@ def create_model(df_sets, df_parameters, default={}):
             if "Pipeline Installation" in x
         },
         units=model.model_units["mass"] / model.model_units["distance"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Air emissions pipeline installation coefficients [mass/distance]",
     )
 
@@ -2358,7 +2358,7 @@ def create_model(df_sets, df_parameters, default={}):
             if "Disposal" in x
         },
         units=model.model_units["mass"] / model.model_units["volume"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Air emissions disposal coefficients [mass/volume]",
     )
 
@@ -2373,8 +2373,8 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["mass"]
         / model.model_units["volume"]
         / model.model_units["time"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
-        doc="Air emissions storage coefficients [mass/volume-time]",
+        mutable=True,
+        doc="Air emissions storage coefficients [mass/(volume*time)]",
     )
     model.p_eta_TreatmentEmissionsCoefficient = Param(
         model.s_WT,
@@ -2382,8 +2382,8 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize=model.df_parameters["TreatmentEmissionCoefficients"],
         units=model.model_units["mass"] / model.model_units["volume_time"],
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
-        doc="Air emissions treatment technology coefficients [mass/volume-time]",
+        mutable=True,
+        doc="Air emissions treatment technology coefficients [mass/(volume/time)]",
     )
 
     # Define emissions expressions #
@@ -6468,7 +6468,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # For the discretization we need a upperbound for the maximum number of trucks for each truck flow
     model.p_max_number_of_trucks = Param(
         initialize=500,
-        mutable=True,  # Mutable Param - can be changed in sensitivity analysis without rebuilding the entire model
+        mutable=True,
         doc="Max number of trucks. Needed for upperbound on v_F_Trucked",
     )
 

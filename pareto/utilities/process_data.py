@@ -732,7 +732,7 @@ def model_infeasibility_detection(strategic_model):
                     if model.p_sigma_BeneficialReuse[o, t].value >= 0
                     else model.p_M_Flow
                     for o in model.s_O
-                    # Beneficial Reuse (if user does not specific value, p_sigma_BeneficialReuse is -1)
+                    # Beneficial Reuse (if user does not specify a value, p_sigma_BeneficialReuse is -1)
                     # In this case, Beneficial Reuse at this site has no limit (big M parameter)
                 )
                 + sum(

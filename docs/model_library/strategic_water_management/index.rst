@@ -1189,7 +1189,7 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 **Logic Constraints:**
 
 New pipeline or facility capacity constraints: e.g., only one injection capacity can be used for a given site.
-The sets for capacity sizes should may include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
+The sets for capacity sizes may include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
 
 :math:`\forall \textcolor{blue}{k \in K}`
 
