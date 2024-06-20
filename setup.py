@@ -53,6 +53,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Chemistry",
@@ -68,7 +70,7 @@ setup(
     py_modules=["stagedfright"],
     install_requires=[
         "pyomo>=6.2",
-        "pandas==1.2.*",
+        "pandas>=2,<3",
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
         # https://peps.python.org/pep-0440/#compatible-release
