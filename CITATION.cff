@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
   - name: "PARETO contributors"
-title: "Please add a title here"
+title: "Produced Water Application for Beneficial Reuse, Environmental Impact and Treatment Optimization (PARETO)"
 url: "https://github.com/project-pareto/project-pareto"
 license-url: "https://github.com/project-pareto/project-pareto/blob/main/LICENSE.md"
 identifiers:
