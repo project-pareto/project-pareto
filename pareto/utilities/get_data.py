@@ -42,6 +42,7 @@ set_tabs_strategic_model = [
     "InjectionCapacities",
     "TreatmentCapacities",
     "TreatmentTechnologies",
+    "AirEmissionsComponents",
 ]
 set_tabs_all_models = [
     "ProductionPads",
@@ -121,6 +122,8 @@ parameter_tabs_strategic_model = [
     "SWDProxHpOrLpWell",
     "SWDRiskFactors",
     "DesalinationSurrogate",
+    "AirEmissionCoefficients",
+    "TreatmentEmissionCoefficients",
 ]
 parameter_tabs_critical_mineral_model = [
     "ComponentPrice",
@@ -152,7 +155,6 @@ parameter_tabs_all_models = [
     "NRA",
     "NSA",
     "FCA",
-    "FNA",
     "RCA",
     "RNA",
     "RSA",
@@ -593,6 +595,10 @@ def get_data(
 
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
+
+    Similarly, the Set for Water Quality Index "model.s_QC" is derived by the method based
+    on the input tab: PadWaterQuality which is indexed by QC and the Set for Air Quality Index
+    "model.s_AQ" is derived by the method based on the input tab AirEmissionCoefficients.
     """
     # Call _read_data with the correct model type
     if model_type in ["strategic", "operational", "critical_mineral", "none"]:
@@ -708,7 +714,6 @@ def get_display_units(input_sheet_name_list, user_units):
         "NRA": "",
         "NSA": "",
         "FCA": "",
-        "FNA": "",
         "RCA": "",
         "RNA": "",
         "RSA": "",
@@ -826,6 +831,13 @@ def get_display_units(input_sheet_name_list, user_units):
         "MinTreatmentFlow": user_units["volume"],
         "MinResidualQuality": "",
         "DesalinationSurrogate": "kg/s",
+        "AirEmissionCoefficients": user_units["mass"] + "/X",
+        "TreatmentEmissionCoefficients": user_units["mass"]
+        + "/("
+        + user_units["volume"]
+        + "/"
+        + user_units["time"]
+        + ")",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
@@ -842,6 +854,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "InjectionCapacities": "",
         "TreatmentCapacities": "",
         "TreatmentTechnologies": "",
+        "AirEmissionsComponents": "",
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
