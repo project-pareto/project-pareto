@@ -78,7 +78,7 @@ jobs:
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
       - name: Run pytest
         run: |
-          pytest -v
+          pytest --pyargs pareto -v
       - name: Run toy case study
         run: |
           python -m pareto.tests.toy_case_study
