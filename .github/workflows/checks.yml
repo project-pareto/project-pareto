@@ -58,7 +58,8 @@ jobs:
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
-            pip-install-target: '"project-pareto[testing] @ git+${{ format('{0}/{1}@{2}', github.server_url, github.repository, github.ref) }}"'
+            pip-install-target: >-
+              "project-pareto[testing] @ git+${{ format('{0}/{1}@{2}', github.server_url, github.repository, github.ref) }}"
           - install-mode: dev
             python-version: '3.9'
             cov-report: true
