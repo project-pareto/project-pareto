@@ -97,6 +97,9 @@ setup(
         # If any package contains these files, include them:
         "": [
             "*.xlsx",
+        ],
+        "pareto.strategic_water_management.md_keras": [
+            "*",
         ]
     },
     entry_points={
