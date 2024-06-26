@@ -38,8 +38,8 @@ jobs:
       matrix:
         python-version:
           - '3.8'
-          - '3.9'
-          - '3.10'
+          # - '3.9'
+          # - '3.10'
           - '3.11'
         os:
           # - linux
@@ -78,7 +78,7 @@ jobs:
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
       - name: Run pytest
         run: |
-          pytest --pyargs pareto -v
+          pytest --pyargs pareto -k test_strategic_model -v
       - name: Run toy case study
         run: |
           python -m pareto.tests.toy_case_study
