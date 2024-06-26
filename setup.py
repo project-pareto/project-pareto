@@ -100,7 +100,7 @@ setup(
         ],
         "pareto.strategic_water_management.md_keras": [
             "*",
-        ]
+        ],
     },
     entry_points={
         "console_scripts": [
