@@ -58,12 +58,13 @@ jobs:
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
-            pip-install-target: ".[testing]"
+            pip-install-target: '"project-pareto[testing] @ git+${{ format('{0}/{1}@{2}', github.server_url, github.repository, github.ref) }}"'
           - install-mode: dev
             python-version: '3.9'
             cov-report: true
     steps:
       - uses: actions/checkout@v4
+        if: install-mode == 'dev'
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
