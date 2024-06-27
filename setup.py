@@ -103,6 +103,8 @@ setup(
         ],
         "pareto.strategic_water_management": [
             "mvc_keras/*.pb",
+            "mvc_keras/*.json",
+            "mvc_keras/variables/variables.*",
         ],
     },
     entry_points={
