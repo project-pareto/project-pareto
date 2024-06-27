@@ -101,6 +101,9 @@ setup(
         "pareto.strategic_water_management.md_keras": [
             "*.pb",
         ],
+        "pareto.strategic_water_management": [
+            "mvc_keras/*.pb",
+        ],
     },
     entry_points={
         "console_scripts": [
