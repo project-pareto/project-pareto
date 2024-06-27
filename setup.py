@@ -97,7 +97,15 @@ setup(
         # If any package contains these files, include them:
         "": [
             "*.xlsx",
-        ]
+        ],
+        "pareto.strategic_water_management": [
+            "mvc_keras/*.pb",
+            "mvc_keras/*.json",
+            "mvc_keras/variables/variables.*",
+            "md_keras/*.pb",
+            "md_keras/*.json",
+            "md_keras/variables/variables.*",
+        ],
     },
     entry_points={
         "console_scripts": [
