@@ -98,8 +98,8 @@ setup(
         "": [
             "*.xlsx",
         ],
-        "pareto.strategic_water_management.md_keras": [
-            "*.pb",
+        "pareto.strategic_water_management": [
+            "md_keras/*",
         ],
         "pareto.strategic_water_management": [
             "mvc_keras/*.pb",
