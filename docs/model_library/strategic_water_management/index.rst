@@ -1267,6 +1267,8 @@ Completions reuse deliveries at a completions pad in time period :math:`\textcol
     \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}
         = \sum_{l \in L | (l, p) \in LLA, l \notin F}\textcolor{red}{F_{l,p,t}^{Piped}}
         + \sum_{l \in L | (l, p) \in LLT, l \notin F}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        - \textcolor{red}{F_{p,t}^{PadStorageIn}}
+        + \textcolor{red}{F_{p,t}^{PadStorageOut}}
 
 Disposal deliveries for disposal site :math:`\textcolor{blue}{k}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the disposal site :math:`\textcolor{blue}{k}`.
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
