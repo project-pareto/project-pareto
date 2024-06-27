@@ -1265,8 +1265,8 @@ Completions reuse deliveries at a completions pad in time period :math:`\textcol
 .. math::
 
     \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}
-        = \sum_{l \in L | (l, p) \in LLA, l \notin F}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{l \in L | (l, p) \in LLT, l \notin F}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        = \sum_{l \in L | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
         - \textcolor{red}{F_{p,t}^{PadStorageIn}}
         + \textcolor{red}{F_{p,t}^{PadStorageOut}}
 
