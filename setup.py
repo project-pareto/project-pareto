@@ -99,7 +99,7 @@ setup(
             "*.xlsx",
         ],
         "pareto.strategic_water_management.md_keras": [
-            "*",
+            "*.pb",
         ],
     },
     entry_points={
