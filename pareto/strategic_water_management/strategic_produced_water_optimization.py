@@ -4639,6 +4639,7 @@ def create_model(df_sets, df_parameters, default={}):
             )
             + sum(model.v_F_Trucked[f, p, t] for f in model.s_F if model.p_FCT[f, p])
             - model.v_F_PadStorageIn[p, t]
+            + model.v_F_PadStorageOut[p, t]
         )
 
         return process_constraint(constraint)
