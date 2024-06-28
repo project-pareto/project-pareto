@@ -7665,7 +7665,7 @@ def postprocess_water_quality_calculation(model, opt):
 
     # Calculate water quality. The following conditional is used to avoid errors when
     # using Gurobi solver
-    if opt.options["solver"] == "CPLEX":
+    if options["solver"] == "CPLEX":
         opt.solve(
             water_quality_model.quality,
             tee=True,
@@ -8399,7 +8399,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     # Step 1a - fix discrete water quality variables
     v_DQ.fix()
     # Step 1b - solve model, obtain optimal flows without considering quality
-    if opt.options["solver"] == "CPLEX":
+    if options["solver"] == "CPLEX":
         opt.solve(
             model,
             tee=True,
@@ -8447,7 +8447,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     print("*" * 50)
     print(" " * 15, "Solving non-discrete water quality model")
     print("*" * 50)
-    if opt.options["solver"] == "CPLEX":
+    if options["solver"] == "CPLEX":
         opt.solve(
             model,
             tee=True,
@@ -8477,7 +8477,7 @@ def solve_discrete_water_quality(model, opt, scaled):
     print("*" * 50)
     print(" " * 15, "Solving discrete water quality model")
     print("*" * 50)
-    if opt.options["solver"] == "CPLEX":
+    if options["solver"] == "CPLEX":
         results = opt.solve(
             model,
             tee=True,
@@ -8572,7 +8572,9 @@ def solve_model(model, options=None):
         "gurobi_direct",
         "gurobi",
         "gams:CPLEX",
+        "highs",
         "cbc",
+        "scip",
     )  # solvers to try and load in order
 
     # raise an exception if options is neither None nor a user-provided dictionary
@@ -8606,24 +8608,33 @@ def solve_model(model, options=None):
 
     # The below code is not the best way to check for solver but this works.
     # Checks for CPLEX using gams.
-    if opt.options["solver"] == "CPLEX":
+
+    if options["solver"] == "CPLEX":
+        # Set maximum running time and mipgap for solver
         with open(f"{opt.options['solver']}.opt", "w") as f:
             f.write(
                 f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
             )
-
-    # Set maximum running time for solver
-    set_timeout(opt, timeout_s=running_time)
-
+    elif options["solver"] == "highs":
+        opt.options["mip_rel_gap"] = gap
+        opt.options["time_limit"] = running_time
+        opt.options["log_to_console"] = False
+        opt.options["log_file"] = "highs.log"
+    elif opt.type in ("scip"):
+        opt.options["limits/time"] = running_time
+        opt.options["limits/gap"] = gap
     # Set solver gap
-    if opt.type in ("gurobi_direct", "gurobi"):
+    elif opt.type in ("gurobi_direct", "gurobi"):
         # Apply Gurobi specific options
         opt.options["mipgap"] = gap
         opt.options["NumericFocus"] = gurobi_numeric_focus
+        # Set maximum running time for solver
+        set_timeout(opt, timeout_s=running_time)
     elif opt.type in ("cbc"):
         # Apply CBC specific option
         opt.options["ratioGap"] = gap
-
+        # Set maximum running time for solver
+        set_timeout(opt, timeout_s=running_time)
     # Deactivate slack variables if necessary
     if deactivate_slacks:
         model.v_C_Slack.fix(0)
@@ -8688,7 +8699,7 @@ def solve_model(model, options=None):
             results = solve_discrete_water_quality(scaled_model, opt, scaled=True)
         elif model.config.water_quality is WaterQuality.post_process:
             # option 3.2:
-            if opt.options["solver"] == "CPLEX":
+            if options["solver"] == "CPLEX":
                 results = opt.solve(
                     scaled_model,
                     tee=True,
@@ -8703,12 +8714,13 @@ def solve_model(model, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 3.1:
-            if opt.options["solver"] == "CPLEX":
+            if options["solver"] == "CPLEX":
                 results = opt.solve(
                     scaled_model,
                     tee=True,
                     add_options=["gams_model.optfile=1;"],
                 )
+
             else:
                 opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)
@@ -8734,7 +8746,7 @@ def solve_model(model, options=None):
             results = solve_discrete_water_quality(model, opt, scaled=False)
         elif model.config.water_quality is WaterQuality.post_process:
             # option 2.2:
-            if opt.options["solver"] == "CPLEX":
+            if options["solver"] == "CPLEX":
                 results = opt.solve(
                     model,
                     tee=True,
@@ -8746,7 +8758,7 @@ def solve_model(model, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 2.1:
-            if opt.options["solver"] == "CPLEX":
+            if options["solver"] == "CPLEX":
                 results = opt.solve(
                     model,
                     tee=True,
@@ -8794,7 +8806,7 @@ def solve_model(model, options=None):
             mh = model_h.hydraulics
             # Calculate hydraulics. The following condition is used to avoid attribute error when
             # using gurobi_direct on hydraulics sub-block
-            if opt.options["solver"] == "CPLEX":
+            if options["solver"] == "CPLEX":
                 results_2 = opt.solve(
                     mh, tee=True, add_options=["gams_model.optfile=1;"]
                 )
@@ -8853,7 +8865,7 @@ def solve_model(model, options=None):
                 except:
                     print(
                         "A second solve with SCIP cannot be executed as SCIP was not found. Please add it to Path. \
-                          If you do not haev SCIP, proceed with caution when using solution obtain from first solve using BARON"
+                          If you do not have SCIP, proceed with caution when using solution obtain from first solve using BARON"
                     )
                 else:
                     results_2 = solver2.solve(
@@ -8863,7 +8875,7 @@ def solve_model(model, options=None):
             # Adding temporary variable bounds until the bounding method is implemented for the following Vars
             model_h.v_F_Piped.setub(1050)
             model_h.hydraulics.v_Pressure.setub(3.5e6)
-            if opt.options["solver"] == "CPLEX":
+            if options["solver"] == "CPLEX":
                 results_2 = opt.solve(
                     model_h,
                     tee=True,
