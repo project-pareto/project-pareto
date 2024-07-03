@@ -662,6 +662,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     # associated with a parameter (e.g. "Economics")
     default_values = {
         "Economics": {"discount_rate": 0.08, "CAPEX_lifetime": 20.0},
+        "DesalinationSurrogate": {"inlet_salinity": 200.0, "recovery": 1.0},
     }
     for input_tab in default_values.keys():
         if input_tab not in df_parameters.keys():
