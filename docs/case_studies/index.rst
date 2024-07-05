@@ -12,7 +12,7 @@ Network schematics
     Strategic Permian demo network.
 
 .. figure:: ../img/strategic_toy_network.png
-    :width: 600
+    :width: 1000
     :align: center
     :alt: Strategic toy case study network schematic
 
