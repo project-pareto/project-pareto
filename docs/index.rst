@@ -65,6 +65,7 @@ Contents
     tutorials_examples/index
     utilities/index
     faq
+    citing
     license
     copyright
 

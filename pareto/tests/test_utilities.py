@@ -77,7 +77,7 @@ def fetch_strategic_model(config_dict):
         "deactivate_slacks": True,
         "scale_model": False,
         "scaling_factor": 1000,
-        "running_time": 100,
+        "running_time": 300,
         "gap": 0,
     }
 
@@ -391,7 +391,7 @@ def test_data_check():
             == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values: {'TruckingTime'}"
         )
         assert (
-            "The following parameters were missing and default values were substituted: ['Economics', 'DesalinationSurrogate']"
+            "The following parameters were missing and default values were substituted: ['AirEmissionsComponents', 'Economics', 'DesalinationSurrogate', 'AirEmissionCoefficients', 'TreatmentEmissionCoefficients']"
             in warning_record[4].message.args[0]
         )
 
