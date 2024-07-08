@@ -12,7 +12,6 @@
 #####################################################################################################
 
 import networkx as nx
-import pyomo.environ as pyo
 import matplotlib.pyplot as plt
 
 
@@ -28,7 +27,6 @@ def plot_network(m):
     for i in m.s_LLT:
         trucking_arcs.append(i)
     G.add_edges_from(piping_acrs)
-    # G.add_edges_from(trucking_arcs)
 
     labels = {node: node for node in m.s_L}
     pos = nx.kamada_kawai_layout(G)
@@ -125,12 +123,6 @@ def plot_network(m):
             node_color="lightgreen",
             edgecolors="black",
         )
-
-    # nx.draw_networkx_edges(G,
-    #                         pos,
-    #                         trucking_arcs,
-    #                         edge_color='blue',
-    #                         alpha=0.7)
 
     nx.draw_networkx_edges(G, pos, piping_acrs, edge_color="black", style=":", width=1)
 
