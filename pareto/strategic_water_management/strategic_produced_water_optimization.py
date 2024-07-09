@@ -4741,9 +4741,10 @@ def pipeline_hydraulics(model):
     consists of a pressure balance equation for each pipeline and bounds for
     pressure. The objective is to minimize the total cost of installing and operating pumps.
     This method adds a block for hydraulics with all necessary variables and constriants.
-    Currently, there are two methods to solve the hydraulics block:
+    Currently, there are three methods to solve the hydraulics block:
         1) post-process method: only the hydraulics block is solved for pressures
         2) co-optimize method: the hydraulics block is solved along with the network
+        3) co-optimize linearized method: a linearized approximation of the co-optimize method
     """
     n_sections = 3
     Del_I = 70000 / n_sections
@@ -5207,7 +5208,7 @@ def pipeline_hydraulics(model):
 
     elif model.config.hydraulics == Hydraulics.co_optimize_linearized:
         """
-        For the co-optimize method, the hydraulics block is solved along with
+        For the co-optimize linearized method, the hydraulics block is solved along with
         the network model to optimize the network in the presence of
         hydraulics constraints. The objective is to minimize total cost including
         the cost of pumps.
