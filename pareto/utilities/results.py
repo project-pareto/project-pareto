@@ -1180,7 +1180,7 @@ def generate_report(
                 if not variable.is_indexed():
                     # Create the overview report with variables that are not indexed, e.g.:
                     # total piped water, total trucked water, total externally sourced water, etc.
-                    if to_unit is None or var_value == 0:
+                    if to_unit is None:
                         tu = None
                     else:
                         tu = to_unit.to_string().replace("oil_bbl", "bbl")
@@ -1207,17 +1207,22 @@ def generate_report(
                     if str(variable.name) == "v_DQ":
                         var_value = model.p_discrete_quality[i[2], i[3]].value
 
-                    if var_value is not None and variable.name not in [
-                        "inlet_salinity",
-                        "v_C_TreatmentCapEx_site",
-                        "v_C_Treatment_site",
-                        "v_C_Treatment_site_ReLU",
-                        "recovery",
-                        "v_C_TreatmentCapEx_site_time",
-                        "totalCapex",
-                        "v_T_Treatment_scaled",
-                        "v_T_Treatment_scaled_ReLU",
-                    ]:
+                    if (
+                        var_value is not None
+                        and var_value != 0
+                        and variable.name
+                        not in [
+                            "inlet_salinity",
+                            "v_C_TreatmentCapEx_site",
+                            "v_C_Treatment_site",
+                            "v_C_Treatment_site_ReLU",
+                            "recovery",
+                            "v_C_TreatmentCapEx_site_time",
+                            "totalCapex",
+                            "v_T_Treatment_scaled",
+                            "v_T_Treatment_scaled_ReLU",
+                        ]
+                    ):
                         headers[str(variable.name) + "_dict"].append((*i, var_value))
 
     # Loop through all the expressions in the model
@@ -1288,7 +1293,7 @@ def generate_report(
 
             if not expr.is_indexed():
                 # Add non-indexed expressions to the v_F_Overview tab
-                if to_unit is None or expr_value == 0 or expr_value == "Error":
+                if to_unit is None or expr_value == "Error":
                     tu = None
                 else:
                     tu = to_unit.to_string().replace("oil_bbl", "bbl")
@@ -1302,15 +1307,18 @@ def generate_report(
                 # as a string and not a tuple; in this case, convert to a tuple
                 if isinstance(i, str):
                     i = (i,)
-                headers[str(expr.name) + "_dict"].append((*i, expr_value))
+                if expr_value is not None and expr_value != "Error" and expr_value != 0:
+                    headers[str(expr.name) + "_dict"].append((*i, expr_value))
 
-    # The sites_included result from the subsurface risk module is a bit unique - it's the only result we have that is implemented as a Param. Add it
+    # The sites_included result from the subsurface risk module is a bit
+    # unique - it's the only result we have that is implemented as a Param. Add
+    # it to the results file.
     if model.type == "strategic" and model.do_subsurface_risk_calcs:
         headers.update({"subsurface.sites_included_dict": [("Disposal site", "Value")]})
         for k in model.s_K:
-            headers["subsurface.sites_included_dict"].append(
-                (k, value(model.subsurface.sites_included[k]))
-            )
+            val = value(model.subsurface.sites_included[k])
+            if val != 0:
+                headers["subsurface.sites_included_dict"].append((k, val))
 
     if model.v_C_Slack.value is not None and model.v_C_Slack.value > 0:
         print("!!!ATTENTION!!! One or several slack variables have been triggered!")
