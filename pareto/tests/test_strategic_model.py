@@ -1581,6 +1581,15 @@ def test_run_subsurface_risk_model(build_workshop_strategic_model):
     with nostdout():
         assert is_feasible(m)
 
+    # Test report building
+    [model, results_dict] = generate_report(
+        m,
+        results,
+        is_print=PrintValues.essential,
+        output_units=OutputUnits.user_units,
+        fname="test_strategic_print_results.xlsx",
+    )
+
 
 @pytest.mark.unit
 def test_exceptions(build_toy_strategic_model):
