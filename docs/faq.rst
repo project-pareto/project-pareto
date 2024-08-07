@@ -37,10 +37,9 @@ How to ...
     
     3. Configure Solver in Your Code:
         Ensure your code correctly specifies the solver. For example, in Pyomo
-        
-        `from pyomo.environ import SolverFactory
-        solver = SolverFactory("cbc")
-        if not solver.available():
+        ``from pyomo.environ import SolverFactory|
+        solver = SolverFactory("cbc")|
+        if not solver.available():|
             raise Exception("Solver cbc is not available.")`
 
     4. Update Path Environment Variable
