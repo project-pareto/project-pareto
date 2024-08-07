@@ -24,28 +24,27 @@ How to ...
             The easiest way to get Cbc on Windows is to download an archive from https://github.com/coin-or/Cbc/releases.
         * For Mac OS users:
 
-            $ brew tap coin-or-tools/coinor
-            $ brew install coin-or-tools/coinor/cbc
+            ``$ brew tap coin-or-tools/coinor
+            $ brew install coin-or-tools/coinor/cbc``
         * For Ubuntu users:
         
-            $ sudo apt-get install coinor-cbc
+            ``$ sudo apt-get install coinor-cbc``
     
     2. Verify Installation
         
-        After installation, verify that the solver is accessible from your command line. Run:
+        After installation, verify that the solver is accessible from your command line:
         
-        cbc
+        ``cbc``
 
         You should see the cbc solver interface if it is correctly installed.
     
     3. Configure Solver in Your Code:
         Ensure your code correctly specifies the solver. For example, in Pyomo
 
-        from pyomo.environ import SolverFactory
-
+        ``from pyomo.environ import SolverFactory
         solver = SolverFactory('cbc')
         if not solver.available():
-            raise Exception("Solver 'cbc' is not available.")
+            raise Exception("Solver 'cbc' is not available.")``
 
     4. Update Path Environment Variable
         If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
@@ -58,10 +57,10 @@ How to ...
             1. Open your terminal.
             2. Edit your shell profile file (e.g., ~/.bashrc, ~/.zshrc):
                 
-                export PATH=$PATH:/path/to/cbc
+                ``export PATH=$PATH:/path/to/cbc``
             3. Reload the profile:
 
-                source ~/.bashrc  # or ~/.zshrc
+                ``source ~/.bashrc  # or ~/.zshrc``
 
 ... Get more help?
     Use the website to `register <https://pareto.org/register/>`_ for the PARETO support mailing list.
