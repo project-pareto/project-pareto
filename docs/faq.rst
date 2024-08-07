@@ -56,12 +56,14 @@ your environment. Here are steps to resolve this issue:
    If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
 
    * **For Windows:**
+   
      1. Open the Start Search, type in "env", and select "Edit the system environment variables".
      2. Click the "Environment Variables" button.
      3. Under "System variables", find the "Path" variable, select it, and click "Edit".
      4. Add the path to the `bin` directory in the above installed binary.
 
    * **For Mac:**
+
      1. Open your terminal.
      2. Edit your shell profile file (e.g., ~/.bashrc, ~/.zshrc):
 
