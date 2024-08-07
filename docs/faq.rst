@@ -13,6 +13,7 @@ How to ...
     * pareto/strategic_water_management/run_strategic_model.py
 
 ... No available solver found among choices: ((‘cbc’,),)
+
 If you encounter the error message "No available solver found among choices: ((‘cbc’,),)," 
 it typically means that the solver 'cbc' is not installed or not correctly configured in 
 your environment. Here are steps to resolve this issue:
