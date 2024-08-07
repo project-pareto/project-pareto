@@ -18,15 +18,24 @@ How to ...
     your environment. Here are steps to resolve this issue:
 
     1. Solver Installation
-        Ensure that the 'cbc' solver is installed on your system. You can install it using the following methods:
-        
-        * For Windows Users
-            The easiest way to get Cbc on Windows is to download an archive from https://github.com/coin-or/Cbc/releases.
-        * For Mac OS users::
-                $ brew tap coin-or-tools/coinor
-                $ brew install coin-or-tools/coinor/cbc
-        * For Ubuntu users::
-                $ sudo apt-get install coinor-cbc
+   Ensure that the 'cbc' solver is installed on your system. You can install it using the following methods:
+
+   * **For Windows Users:**
+     The easiest way to get Cbc on Windows is to download an archive from `https://github.com/coin-or/Cbc/releases`.
+
+   * **For Mac OS users:**
+
+     .. code-block:: bash
+
+        $ brew tap coin-or-tools/coinor
+        $ brew install coin-or-tools/coinor/cbc
+
+   * **For Ubuntu users:**
+
+     .. code-block:: bash
+
+        $ sudo apt-get install coinor-cbc
+
     
     2. Verify Installation:        
         After installation, verify that the solver is accessible from your command line::
