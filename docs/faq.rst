@@ -13,11 +13,11 @@ How to ...
     * pareto/strategic_water_management/run_strategic_model.py
 
 ... No available solver found among choices: ((‘cbc’,),)
-    If you encounter the error message "No available solver found among choices: ((‘cbc’,),)," 
-    it typically means that the solver 'cbc' is not installed or not correctly configured in 
-    your environment. Here are steps to resolve this issue:
+If you encounter the error message "No available solver found among choices: ((‘cbc’,),)," 
+it typically means that the solver 'cbc' is not installed or not correctly configured in 
+your environment. Here are steps to resolve this issue:
 
-    1. Solver Installation
+1. Solver Installation
    Ensure that the 'cbc' solver is installed on your system. You can install it using the following methods:
 
    * **For Windows Users:**
@@ -36,34 +36,44 @@ How to ...
 
         $ sudo apt-get install coinor-cbc
 
-    
-    2. Verify Installation:        
-        After installation, verify that the solver is accessible from your command line::
-            cbc
-        You should see the cbc solver interface if it is correctly installed.
-    
-    3. Configure Solver in Your Code:
-        Ensure your code correctly specifies the solver. For example, in Pyomo::
+2. Verify Installation:        
+   After installation, verify that the solver is accessible from your command line::
 
-            from pyomo.environ import SolverFactory
-            solver = SolverFactory("cbc")
-            if not solver.available():
-                raise Exception("Solver 'cbc' is not available.")
+       cbc
 
-    4. Update Path Environment Variable
-        If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
+   You should see the cbc solver interface if it is correctly installed.
 
-        * For Windows:
-            1. Open the Start Search, type in "env", and select "Edit the system environment variables".
-            2. Click the "Environment Variables" button
-            3. Under "System variables", find the "Path" variable, select it, and click "Edit".
-            4. Add the path to the `bin` directory in the above installed binary
-        * For Mac:
-            1. Open your terminal.
-            2. Edit your shell profile file (e.g., ~/.bashrc, ~/.zshrc):
-                ``export PATH=$PATH:/path/to/cbc``
-            3. Reload the profile:
-                ``source ~/.bashrc  # or ~/.zshrc``
+3. Configure Solver in Your Code:
+   Ensure your code correctly specifies the solver. For example, in Pyomo::
+
+       from pyomo.environ import SolverFactory
+       solver = SolverFactory("cbc")
+       if not solver.available():
+           raise Exception("Solver 'cbc' is not available.")
+
+4. Update Path Environment Variable
+   If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
+
+   * **For Windows:**
+     1. Open the Start Search, type in "env", and select "Edit the system environment variables".
+     2. Click the "Environment Variables" button.
+     3. Under "System variables", find the "Path" variable, select it, and click "Edit".
+     4. Add the path to the `bin` directory in the above installed binary.
+
+   * **For Mac:**
+     1. Open your terminal.
+     2. Edit your shell profile file (e.g., ~/.bashrc, ~/.zshrc):
+
+        .. code-block:: bash
+
+            export PATH=$PATH:/path/to/cbc
+
+     3. Reload the profile:
+
+        .. code-block:: bash
+
+            source ~/.bashrc  # or ~/.zshrc
+
 
 ... Get more help?
     Use the website to `register <https://pareto.org/register/>`_ for the PARETO support mailing list.
