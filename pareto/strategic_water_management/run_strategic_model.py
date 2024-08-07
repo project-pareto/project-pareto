@@ -51,11 +51,11 @@ with resources.path(
     "strategic_toy_case_study.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
-    [df_sets, df_parameters] = get_data(fpath)
+    [df_sets, df_parameters] = get_data(fpath, model_type="strategic")
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk, Objective.cost_surrogate]
+ objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk, Objectives.cost_surrogate, Objectives.environmental]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]

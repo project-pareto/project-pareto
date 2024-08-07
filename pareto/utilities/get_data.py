@@ -17,10 +17,22 @@ format that Pyomo requires
 Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
+import logging
+import warnings
+from pathlib import Path
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Union
+
 import pandas as pd
 import requests
 import numpy as np
 import warnings
+
+
+_logger = logging.getLogger(__name__)
+
 
 set_tabs_operational_model = ["ProductionTanks", "ReuseOptions"]
 set_tabs_strategic_model = [
@@ -30,6 +42,7 @@ set_tabs_strategic_model = [
     "InjectionCapacities",
     "TreatmentCapacities",
     "TreatmentTechnologies",
+    "AirEmissionsComponents",
 ]
 set_tabs_all_models = [
     "ProductionPads",
@@ -109,6 +122,8 @@ parameter_tabs_strategic_model = [
     "SWDProxHpOrLpWell",
     "SWDRiskFactors",
     "DesalinationSurrogate",
+    "AirEmissionCoefficients",
+    "TreatmentEmissionCoefficients",
 ]
 parameter_tabs_critical_mineral_model = [
     "ComponentPrice",
@@ -140,7 +155,6 @@ parameter_tabs_all_models = [
     "NRA",
     "NSA",
     "FCA",
-    "FNA",
     "RCA",
     "RNA",
     "RSA",
@@ -212,7 +226,78 @@ def get_valid_input_parameter_tab_names(model_type):
     return valid_input_param
 
 
-def _read_data(_fname, _set_list, _parameter_list, _model_type):
+try:
+    _dataframe_map = pd.DataFrame.map
+except AttributeError:
+    # compatibility with pandas 2.0.x
+    _dataframe_map = pd.DataFrame.applymap
+
+try:
+    pd.set_option("future.no_silent_downcasting", True)
+except pd.errors.OptionError:
+    # future.no_silent_downcasting not available for pandas 2.0,
+    # which is the latest available for Python 3.8
+    pass
+
+
+class DataLoadingError(ValueError):
+    def __init__(
+        self,
+        errors: Dict[str, Exception],
+    ):
+        self.errors = dict(errors)
+        self.summary = "\n".join(self._get_summary_lines())
+        super().__init__(self.summary)
+
+    def _get_summary_lines(self) -> List[str]:
+        max_name_len = max(len(name) for name in self.errors)
+
+        lines = ["Data loading failed for the following sheets: "]
+        for name, err in self.errors.items():
+            lines.append(f"\t{name:{max_name_len}}\t{err}")
+        lines.append(
+            "This may be because the sheets are empty (possibly excepting a header)."
+        )
+        return lines
+
+
+def _sheets_to_dfs(
+    src: Union[str, Path],
+    raises: bool = True,
+    **kwargs,
+) -> Dict[str, pd.DataFrame]:
+    out = {}
+    failed = {}
+    file = pd.ExcelFile(src)
+    for sheet_name in file.sheet_names:
+        try:
+            df = pd.read_excel(file, sheet_name=sheet_name, **kwargs).squeeze("columns")
+        except Exception as e:
+            _logger.warning("Loading failed for sheet %r: %r", sheet_name, e)
+            _logger.info("An empty dataframe will be used as fallback.")
+            failed[sheet_name] = e
+            df = pd.DataFrame()
+        finally:
+            out[sheet_name] = df
+    if failed:
+        exc = DataLoadingError(failed)
+        if raises:
+            raise exc
+        else:
+            warnings.warn(
+                exc.summary
+                + "\nFor these sheets, an empty dataframe is used as fallback.\n"
+            )
+    return out
+
+
+def _read_data(
+    _fname,
+    _set_list,
+    _parameter_list,
+    _model_type: str = "strategic",
+    raises: bool = True,
+):
     """
     This methods uses Pandas methods to read from an Excel spreadsheet and output a data frame
     Two data frames are created, one that contains all the Sets: _df_sets, and another one that
@@ -222,19 +307,26 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
     pareto_input_parameter_tab_names = get_valid_input_parameter_tab_names(_model_type)
 
     if _set_list is not None:
+        _set_list = list(_set_list)
+        _logger.debug("_set_list: %s", _set_list)
         valid_set_tab_names = pareto_input_set_tab_names.copy()
         valid_set_tab_names.extend(_set_list)
         # De-duplicate
         valid_set_tab_names = list(set(valid_set_tab_names))
     else:
         valid_set_tab_names = pareto_input_set_tab_names
+        _logger.debug("_set_list: None")
+
     if _parameter_list is not None:
+        _parameter_list = list(_parameter_list)
+        _logger.debug("_parameter_list: %s", _parameter_list)
         valid_parameter_tab_names = pareto_input_parameter_tab_names.copy()
         valid_parameter_tab_names.extend(_parameter_list)
         # De-duplicate
         valid_parameter_tab_names = list(set(valid_parameter_tab_names))
     else:
         valid_parameter_tab_names = pareto_input_parameter_tab_names
+        _logger.debug("_parameter_list: None")
 
     # Check all names available in the input sheet
     # If the sheet name is unused (not a valid Set or Parameter tab, not "Overview", and not "Schematic"), raise a warning.
@@ -261,23 +353,26 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
             stacklevel=3,
         )
 
+    _df_sets = {}
     _df_parameters = {}
-    _temp_df_parameters = {}
+
     _data_column = ["value"]
     proprietary_data = False
+
+    # pd.read_excel() does not support empty lists in recent versions of pandas
     # Read all tabs in the input file
-    _df_sets = pd.read_excel(
+    _df_sets = _sheets_to_dfs(
         _fname,
-        sheet_name=None,  # read all tabs
+        raises=raises,
         header=0,
         index_col=None,
         usecols="A",
-        squeeze=True,
         dtype="string",
         keep_default_na=False,
     )
 
-    # Remove tabs that are not specified by user and are not valid PARETO inputs
+    # Filter for sets - remove tabs that are not specified as sets by user and
+    # are not valid PARETO inputs
     _df_sets = {
         key: value for key, value in _df_sets.items() if key in valid_set_tab_names
     }
@@ -290,24 +385,26 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
         _df_sets[df].replace("", np.nan, inplace=True)
         _df_sets[df].dropna(inplace=True)
 
-    _df_parameters = pd.read_excel(
+    # pd.read_excel() does not support empty lists in recent versions of pandas
+    # Read all tabs in the input file
+    _df_parameters = _sheets_to_dfs(
         _fname,
-        sheet_name=None,  # read all tabs
+        raises=raises,
         header=1,
         index_col=None,
         usecols=None,
-        squeeze=True,
         keep_default_na=False,
     )
 
-    # Remove tabs that are not specified by user and are not valid PARETO inputs
+    # Filter for parameters - remove tabs that are not specified as parameters
+    # by user and are not valid PARETO inputs
     _df_parameters = {
         key: value
         for key, value in _df_parameters.items()
         if key in valid_parameter_tab_names
     }
 
-    # Cleaning Parameters.
+    # Cleaning inputs.
     # A parameter can be defined in column format or table format.
     # Detect if columns which will be used to reshape the dataframe by defining
     # what columns are Sets or generic words
@@ -344,8 +441,8 @@ def _read_data(_fname, _set_list, _parameter_list, _model_type):
             to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value="", regex=True, inplace=True
         )
         # Removing whitespaces
-        _df_parameters[i] = _df_parameters[i].applymap(
-            lambda x: x.strip() if isinstance(x, str) else x
+        _df_parameters[i] = _dataframe_map(
+            _df_parameters[i], lambda x: x.strip() if isinstance(x, str) else x
         )
         # Removing all the columns that contain only empty strings
         # _df_parameters[i] = _df_parameters[i][_df_parameters[i].columns[~_df_parameters[i].eq('').all(0)]]
@@ -401,7 +498,7 @@ def _cleanup_data(_df_parameters):
 def _df_to_param(data_frame, data_column, sum_repeated_indexes):
     """
     This module converts the data frame that contains Parameters into the adequate
-    format that Pyomo expects for paramerters:
+    format that Pyomo expects for parameters:
     Input_parameter = {(column_index, row_header): value}
     """
     _df_parameters = {}
@@ -438,6 +535,7 @@ def get_data(
     parameter_list=None,
     model_type="strategic",
     sum_repeated_indexes=False,
+    raises: bool = False,
 ):
     """
     This method uses Pandas methods to read data for Sets and Parameters from excel spreadsheets.
@@ -453,6 +551,9 @@ def get_data(
       parameter_list are read in addition to valid PARETO input tabs.
     - model_type is an additional optional parameter which indicates why type of model data is being read for.
       Valid inputs: 'strategic', 'operational', 'critical_mineral', 'none'. The default is 'strategic'.
+
+    By default, errors encountered while performing data pre-processing are collected and displayed as warnings.
+    If ``raises=True``, an exception will be raised instead.
 
     Outputs:
     The method returns one dictionary that contains a list for each set, and one dictionary that
@@ -494,13 +595,16 @@ def get_data(
 
     It is worth highlighting that the Set for time periods "model.s_T" is derived by the
     method based on the Parameter: CompletionsDemand which is indexed by T
-    """
 
+    Similarly, the Set for Water Quality Index "model.s_QC" is derived by the method based
+    on the input tab: PadWaterQuality which is indexed by QC and the Set for Air Quality Index
+    "model.s_AQ" is derived by the method based on the input tab AirEmissionCoefficients.
+    """
     # Call _read_data with the correct model type
     if model_type in ["strategic", "operational", "critical_mineral", "none"]:
         # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
         [_df_sets, _df_parameters, data_column] = _read_data(
-            fname, set_list, parameter_list, model_type
+            fname, set_list, parameter_list, model_type, raises=raises
         )
     else:
         # Invalid model type provided, raise warning and use default (strategic)
@@ -512,7 +616,7 @@ def get_data(
         )
         # Reading raw data, two data frames are output, one for Sets, and another one for Parameters
         [_df_sets, _df_parameters, data_column] = _read_data(
-            fname, set_list, parameter_list, _model_type="strategic"
+            fname, set_list, parameter_list, _model_type="strategic", raises=raises
         )
 
     # Parameters are cleaned up, e.g. blank cells are replaced by NaN
@@ -610,7 +714,6 @@ def get_display_units(input_sheet_name_list, user_units):
         "NRA": "",
         "NSA": "",
         "FCA": "",
-        "FNA": "",
         "RCA": "",
         "RNA": "",
         "RSA": "",
@@ -728,6 +831,13 @@ def get_display_units(input_sheet_name_list, user_units):
         "MinTreatmentFlow": user_units["volume"],
         "MinResidualQuality": "",
         "DesalinationSurrogate": "kg/s",
+        "AirEmissionCoefficients": user_units["mass"] + "/X",
+        "TreatmentEmissionCoefficients": user_units["mass"]
+        + "/("
+        + user_units["volume"]
+        + "/"
+        + user_units["time"]
+        + ")",
         # set tabs
         "ProductionPads": "",
         "ProductionTanks": "",
@@ -744,6 +854,7 @@ def get_display_units(input_sheet_name_list, user_units):
         "InjectionCapacities": "",
         "TreatmentCapacities": "",
         "TreatmentTechnologies": "",
+        "AirEmissionsComponents": "",
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],

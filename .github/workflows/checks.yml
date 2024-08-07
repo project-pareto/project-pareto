@@ -39,6 +39,8 @@ jobs:
         python-version:
           - '3.8'
           - '3.9'
+          - '3.10'
+          - '3.11'
         os:
           # - linux
           - win64
@@ -56,13 +58,15 @@ jobs:
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
-            pip-install-target: ".[testing]"
+            pip-install-target: >-
+              "project-pareto[testing] @ git+${{ format('{0}/{1}@{2}', github.server_url, github.repository, github.ref) }}"
           - install-mode: dev
             python-version: '3.9'
             cov-report: true
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+        if: matrix.install-mode == 'dev'
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Set up package (install-mode=${{ matrix.install-mode }})
@@ -74,7 +78,7 @@ jobs:
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
       - name: Run pytest
         run: |
-          pytest -v
+          pytest --pyargs pareto -v
       - name: Run toy case study
         run: |
           python -m pareto.tests.toy_case_study
@@ -111,8 +115,8 @@ jobs:
     name: Run Black to verify that committed code is formatted
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install (dev mode)
