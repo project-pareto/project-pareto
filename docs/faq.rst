@@ -30,24 +30,22 @@ How to ...
         
             ``$ sudo apt-get install coinor-cbc``
     
-    2. Verify Installation
-        
+    2. Verify Installation:        
         After installation, verify that the solver is accessible from your command line:
-        
         ``cbc``
-
         You should see the cbc solver interface if it is correctly installed.
     
     3. Configure Solver in Your Code:
         Ensure your code correctly specifies the solver. For example, in Pyomo
-
+        
         ``from pyomo.environ import SolverFactory
-        solver = SolverFactory('cbc')
+        solver = SolverFactory("cbc")
         if not solver.available():
-            raise Exception("Solver 'cbc' is not available.")``
+            raise Exception("Solver cbc is not available.")``
 
     4. Update Path Environment Variable
         If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
+
         * For Windows:
             1. Open the Start Search, type in "env", and select "Edit the system environment variables".
             2. Click the "Environment Variables" button
