@@ -22,17 +22,15 @@ How to ...
         
         * For Windows Users
             The easiest way to get Cbc on Windows is to download an archive from https://github.com/coin-or/Cbc/releases.
-        * For Mac OS users:
-
-            ``$ brew tap coin-or-tools/coinor
-            $ brew install coin-or-tools/coinor/cbc``
-        * For Ubuntu users:
-        
-            ``$ sudo apt-get install coinor-cbc``
+        * For Mac OS users::
+            $ brew tap coin-or-tools/coinor
+            $ brew install coin-or-tools/coinor/cbc
+        * For Ubuntu users::
+            $ sudo apt-get install coinor-cbc
     
     2. Verify Installation:        
-        After installation, verify that the solver is accessible from your command line:
-        ``cbc``
+        After installation, verify that the solver is accessible from your command line::
+            cbc
         You should see the cbc solver interface if it is correctly installed.
     
     3. Configure Solver in Your Code:
