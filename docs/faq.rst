@@ -40,7 +40,7 @@ How to ...
         ``from pyomo.environ import SolverFactory|
         solver = SolverFactory("cbc")|
         if not solver.available():|
-            raise Exception("Solver cbc is not available.")`
+            raise Exception("Solver cbc is not available.")``
 
     4. Update Path Environment Variable
         If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
