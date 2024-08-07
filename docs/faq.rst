@@ -38,10 +38,10 @@ How to ...
     3. Configure Solver in Your Code:
         Ensure your code correctly specifies the solver. For example, in Pyomo
         
-        ``from pyomo.environ import SolverFactory
+        `from pyomo.environ import SolverFactory
         solver = SolverFactory("cbc")
         if not solver.available():
-            raise Exception("Solver cbc is not available.")``
+            raise Exception("Solver cbc is not available.")`
 
     4. Update Path Environment Variable
         If the solver is installed but not found, you might need to add it to your system's PATH environment variable.
@@ -54,10 +54,8 @@ How to ...
         * For Mac:
             1. Open your terminal.
             2. Edit your shell profile file (e.g., ~/.bashrc, ~/.zshrc):
-                
                 ``export PATH=$PATH:/path/to/cbc``
             3. Reload the profile:
-
                 ``source ~/.bashrc  # or ~/.zshrc``
 
 ... Get more help?
