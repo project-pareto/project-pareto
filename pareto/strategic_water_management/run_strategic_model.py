@@ -32,6 +32,7 @@ from pareto.utilities.results import (
     is_feasible,
     nostdout,
 )
+from pareto.utilities.visualize import plot_network
 from importlib import resources
 
 
@@ -91,6 +92,8 @@ options = {
     "running_time": 200,
     "gap": 0,
 }
+
+plot_network(strategic_model)
 
 results = solve_model(model=strategic_model, options=options)
 
