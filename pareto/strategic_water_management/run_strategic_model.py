@@ -56,7 +56,7 @@ with resources.path(
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk,, Objective.cost_surrogate, Objectives.environmental]
+ objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk, Objectives.cost_surrogate, Objectives.environmental]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
  hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]

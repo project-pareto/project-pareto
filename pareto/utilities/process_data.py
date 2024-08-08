@@ -731,9 +731,11 @@ def model_infeasibility_detection(strategic_model):
                     for s in model.s_S  # Storage Evaporation
                 )
                 + sum(
-                    model.p_sigma_BeneficialReuse[o, t]
-                    if model.p_sigma_BeneficialReuse[o, t].value >= 0
-                    else model.p_M_Flow
+                    (
+                        model.p_sigma_BeneficialReuse[o, t]
+                        if model.p_sigma_BeneficialReuse[o, t].value >= 0
+                        else model.p_M_Flow
+                    )
                     for o in model.s_O
                     # Beneficial Reuse (if user does not specify a value, p_sigma_BeneficialReuse is -1)
                     # In this case, Beneficial Reuse at this site has no limit (big M parameter)
@@ -784,9 +786,11 @@ def model_infeasibility_detection(strategic_model):
         # Note: if completions pad is outside system, demand is not required to be met
         return (
             sum(
-                model.p_gamma_Completions[cp, t]
-                if model.p_chi_OutsideCompletionsPad[cp] == 0
-                else 0
+                (
+                    model.p_gamma_Completions[cp, t]
+                    if model.p_chi_OutsideCompletionsPad[cp] == 0
+                    else 0
+                )
                 for cp in model.s_CP
             )
             * model.model_units["time"]
