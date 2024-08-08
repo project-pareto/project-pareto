@@ -16,7 +16,7 @@ import pyomo.environ as pyo
 from importlib import resources
 from pareto.utilities.get_data import get_data
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
-from pareto.models_extra.Integrate_desal.integrated_models.integrated_optimization_mvr import (
+from pareto.models_extra.integrate_desal.integrated_models.integrated_optimization_mvr import (
     integrated_model_build,
 )
 

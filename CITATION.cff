@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - name: "PARETO contributors"
+title: "Produced Water Application for Beneficial Reuse, Environmental Impact and Treatment Optimization (PARETO)"
+url: "https://github.com/project-pareto/project-pareto"
+license-url: "https://github.com/project-pareto/project-pareto/blob/main/LICENSE.md"
+identifiers:
+  - description: "OSTI archive of PARETO releases."
+    type: url
+    value: "https://www.osti.gov/search/semantic:pareto"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Drouven"
+      given-names: "Markus G"
+    - family-names: "Caldéron"
+      given-names: "Andrés J"
+    - family-names: "Zamarripa"
+      given-names: "Miguel A"
+    - family-names: "Beattie"
+      given-names: "Keith"
+  title: "PARETO: An open-source produced water optimization framework"
+  journal: "Optimization and Engineering"
+  publisher: "Springer Science and Business Media LLC"
+  volume: 24
+  number: 3
+  pages: 2229–2249
+  year: 2022
+  doi: "http://dx.doi.org/10.1007/s11081-022-09773-w"
