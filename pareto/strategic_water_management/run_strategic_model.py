@@ -86,7 +86,6 @@ strategic_model = create_model(
 
 options = {
     "deactivate_slacks": True,
-    "solver": "highs",
     "scale_model": False,
     "scaling_factor": 1000,
     "running_time": 200,
