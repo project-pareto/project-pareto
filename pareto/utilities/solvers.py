@@ -11,10 +11,8 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 from pyomo.opt.base.solvers import SolverFactory, OptSolver, check_available_solvers
-import pyomo.environ as pyo
 from numbers import Number
 from typing import Iterable
-from pyomo.contrib import appsi
 
 
 class SolverError(ValueError):
@@ -61,20 +59,17 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
 
     for name in solver_names:
         # Checks for solver is available and then for valid license
-        # try:
-        if name == "highs":
-            solver = SolverFactory("appsi_highs")
-        else:
+        try:
             solver = SolverFactory(name)
-        if solver.available(exception_flag=True):
-            if solver.license_is_valid():
-                print(f"Model solved using {name}")
-                break
-        # except:
-        #     pass
+            if solver.available(exception_flag=True):
+                if solver.license_is_valid():
+                    print(f"Model solved using {name}")
+                    break
+        except:
+            pass
 
-    # else:
-    #     raise NoAvailableSolver(solver_names)
+    else:
+        raise NoAvailableSolver(solver_names)
     # TODO add extra solver validation, logging, etc
     return solver
 
@@ -96,7 +91,6 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
         "gurobi_direct": "timeLimit",
         "cbc": "seconds",
         "gams:CPLEX": "resLim",
-        "glpk": "tmlim",
     }
     option_key = name_key_mapping.get(solver.name, None)
     if option_key is None:
