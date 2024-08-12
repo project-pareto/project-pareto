@@ -24,6 +24,8 @@
 #
 import os
 import sys
+from importlib.metadata import version as get_version
+
 import sphinx_rtd_theme
 
 sys.path.insert(0, os.path.abspath(".."))
@@ -35,10 +37,8 @@ project = "PARETO"
 copyright = "2021-2024, PARETO"
 author = "The PARETO Project"
 
-# The full version, including alpha/beta/rc tags
-release = "0.10.dev0"
-# The short X.Y version
-version = "0.10.dev0"
+# we set release and version to be the same, using the value from the installed project-pareto package
+release = version = get_version("project-pareto")
 # -- General configuration ---------------------------------------------------
 
 

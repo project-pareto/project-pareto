@@ -59,6 +59,7 @@ def build_operational_model():
         [df_sets, df_parameters] = get_data(fpath, model_type="operational")
     df_parameters["MinTruckFlow"] = 75
     df_parameters["MaxTruckFlow"] = 37000
+
     # create mathematical model
     def _call_model_with_config(config_dict):
         operational_model = create_model(df_sets, df_parameters, config_dict)

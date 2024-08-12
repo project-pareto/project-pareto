@@ -1189,37 +1189,36 @@ Weighted sum of the slack variables. In the case that the model is infeasible, t
 **Logic Constraints:**
 
 New pipeline or facility capacity constraints: e.g., only one injection capacity can be used for a given site.
-The sets for capacity sizes should also include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
-Alternatively, if it is desired to only consider sizes to build, the 0th case can be left out.
+The sets for capacity sizes may include the 0th case (e.g., 0 bbl) that indicates the choice to not expand capacity.
 
 :math:`\forall \textcolor{blue}{k \in K}`
 
 .. math::
 
-    \sum_{i \in I}\textcolor{red}{y_{k,i,[t]}^{Disposal}} = 1
+    \sum_{i \in I}\textcolor{red}{y_{k,i,[t]}^{Disposal}} \leq 1
 
 :math:`\forall \textcolor{blue}{s \in S}`
 
 .. math::
 
-    \sum_{c \in C}\textcolor{red}{y_{s,c,[t]}^{Storage}} = 1
+    \sum_{c \in C}\textcolor{red}{y_{s,c,[t]}^{Storage}} \leq 1
 
 :math:`\forall \textcolor{blue}{(l,\tilde{l}) \in LLA}`
 
 .. math::
 
-    \sum_{d \in D}\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}} = 1
+    \sum_{d \in D}\textcolor{red}{y_{l,\tilde{l},d,[t]}^{Pipeline}} \leq 1
 
 :math:`\forall \textcolor{blue}{r \in R}`
 
 .. math::
 
-    \sum_{j \in J, wt \in WT}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 1
+    \sum_{j \in J, wt \in WT}\textcolor{red}{y_{r,wt,j}^{Treatment}} \leq 1
 
 
 **Logic Constraints for Desalination:**
 
-Desalination technology is assigned to a pre-determined site.
+If a treatment site is specified for desalination, then clean brine (non-desalination) technology cannot be selected there.
 
 
 :math:`\forall \textcolor{blue}{r \in R}`
@@ -1228,10 +1227,10 @@ if :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
 
 .. math::
 
-    \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 1
+    \sum_{j \in J, wt \notin WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 0
 
 
-Clean brine technology is assigned to a non-desalination site.
+If a treatment site is specified for clean brine (non-desalination), then desalination technology cannot be selected there.
 
 
 :math:`\forall \textcolor{blue}{r \in R}`
@@ -1240,7 +1239,7 @@ if NOT :math:`\textcolor{green}{\chi_{r}^{DesalinationSite}}`
 
 .. math::
 
-    \sum_{j \in J, wt \notin WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 1
+    \sum_{j \in J, wt \in WT | \textcolor{green}{\chi_{b}^{DesalinationTechnology}}}\textcolor{red}{y_{r,wt,j}^{Treatment}} = 0
 
 
 **Evaporation Flow Constraint**
@@ -1266,8 +1265,10 @@ Completions reuse deliveries at a completions pad in time period :math:`\textcol
 .. math::
 
     \textcolor{red}{F_{p,t}^{CompletionsReuseDestination}}
-        = \sum_{l \in L | (l, p) \in LLA, l \notin F}\textcolor{red}{F_{l,p,t}^{Piped}}
-        + \sum_{l \in L | (l, p) \in LLT, l \notin F}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        = \sum_{l \in L | (l, p) \in LLA}\textcolor{red}{F_{l,p,t}^{Piped}}
+        + \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
+        - \textcolor{red}{F_{p,t}^{PadStorageIn}}
+        + \textcolor{red}{F_{p,t}^{PadStorageOut}}
 
 Disposal deliveries for disposal site :math:`\textcolor{blue}{k}` at time :math:`\textcolor{blue}{t}` is equal to all piped and trucked water moved to the disposal site :math:`\textcolor{blue}{k}`.
 :math:`\forall \textcolor{blue}{k \in K}, \textcolor{blue}{t \in T}`
