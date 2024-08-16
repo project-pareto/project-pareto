@@ -58,19 +58,20 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
     """
 
     _enable_idaes_ext_solvers()
-
+    solver_avail=False
     for name in solver_names:
         # Checks for solver is available and then for valid license
         try:
             solver = SolverFactory(name)
             if solver.available(exception_flag=False):
                 if solver.license_is_valid():
+                    solver_avail=True
                     print(f"Model solved using {name}")
                     break
         except:
             pass
-    # else:
-    #     raise NoAvailableSolver(solver_names)
+    if solver_avail==False:
+        raise NoAvailableSolver(solver_names)
     # TODO add extra solver validation, logging, etc
     return solver
 
