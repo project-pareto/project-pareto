@@ -61,17 +61,14 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
 
     for name in solver_names:
         # Checks for solver is available and then for valid license
-        # try:
-        if name == "highs":
-            solver = SolverFactory("appsi_highs")
-        else:
+        try:
             solver = SolverFactory(name)
-        if solver.available(exception_flag=True):
-            if solver.license_is_valid():
-                print(f"Model solved using {name}")
-                break
-        # except:
-        #     pass
+            if solver.available(exception_flag=True):
+                if solver.license_is_valid():
+                    print(f"Model solved using {name}")
+                    break
+        except:
+            pass
 
     # else:
     #     raise NoAvailableSolver(solver_names)
