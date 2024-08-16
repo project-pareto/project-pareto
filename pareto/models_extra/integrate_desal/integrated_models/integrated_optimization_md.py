@@ -11,7 +11,7 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 import pyomo.environ as pyo
-from pareto.models_extra.Integrate_desal.models.qcp_desal import build_network
+from pareto.models_extra.integrate_desal.models.qcp_desal import build_network
 from pareto.models_extra.desalination_models.MD_single_stage_continuous_recirculation import (
     build,
     set_operating_conditions,
