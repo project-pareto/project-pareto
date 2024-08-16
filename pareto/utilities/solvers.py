@@ -63,13 +63,12 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
         # Checks for solver is available and then for valid license
         try:
             solver = SolverFactory(name)
-            if solver.available(exception_flag=True):
+            if solver.available(exception_flag=False):
                 if solver.license_is_valid():
                     print(f"Model solved using {name}")
                     break
         except:
             pass
-
     # else:
     #     raise NoAvailableSolver(solver_names)
     # TODO add extra solver validation, logging, etc
