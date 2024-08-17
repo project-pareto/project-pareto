@@ -69,13 +69,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Set up package (install-mode=${{ matrix.install-mode }})
-        run: |
-          pip --no-cache-dir install ${{ matrix.pip-install-target }}
-          idaes get-extensions --verbose
       - name: Install SCIP
         run: |
-          git clone https://github.com/scipopt/scipoptsuite.git
+          git clone --depth 1 https://github.com/scipopt/scipoptsuite.git
           cd scipoptsuite
           mkdir build && cd build
           cmake ..
@@ -84,6 +80,10 @@ jobs:
       - name: Verify SCIP installation
         run: |
           scip --version
+      - name: Set up package (install-mode=${{ matrix.install-mode }})
+        run: |
+          pip --no-cache-dir install ${{ matrix.pip-install-target }}
+          idaes get-extensions --verbose
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
