@@ -73,6 +73,17 @@ jobs:
         run: |
           pip --no-cache-dir install ${{ matrix.pip-install-target }}
           idaes get-extensions --verbose
+      - name: Install SCIP
+        run: |
+          git clone https://github.com/scipopt/scipoptsuite.git
+          cd scipoptsuite
+          mkdir build && cd build
+          cmake ..
+          make -j4
+          sudo make install
+      - name: Verify SCIP installation
+        run: |
+          scip --version
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml" >> $GITHUB_ENV
