@@ -71,12 +71,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install SCIP
         run: |
-          git clone --depth 1 https://github.com/scipopt/scipoptsuite.git
-          cd scipoptsuite
-          mkdir build && cd build
-          cmake ..
-          make -j4
-          sudo make install
+          pip --no-cache-dir install --progress-bar off --index-url https://pypi.ampl.com  ampl-module-scip
       - name: Verify SCIP installation
         run: |
           scip --version
