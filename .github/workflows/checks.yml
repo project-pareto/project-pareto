@@ -72,9 +72,6 @@ jobs:
       - name: Install SCIP
         run: |
           pip --no-cache-dir install --progress-bar off --index-url https://pypi.ampl.com  ampl-module-scip
-      - name: Verify SCIP installation
-        run: |
-          scip --version
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install ${{ matrix.pip-install-target }}
