@@ -113,7 +113,7 @@ class TestMultipleSolverChoices:
         [
             (("bogus1", _VALID_NAME, "bogus2"), does_not_raise()),
             (("bogus1", "bogus2"), pytest.raises(SolverError)),
-            (("bogus1",_VALID_SCIP), does_not_raise()),
+            (("bogus1", _VALID_SCIP), does_not_raise()),
         ],
         ids=get_readable_param,
     )

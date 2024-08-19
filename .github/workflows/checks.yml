@@ -69,12 +69,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install SCIP
-        run: |
-          pip --no-cache-dir install --progress-bar off --index-url https://pypi.ampl.com  ampl-module-scip
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install ${{ matrix.pip-install-target }}
+          pip install --index-url https://pypi.ampl.com ampl-module-scip
           idaes get-extensions --verbose
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
