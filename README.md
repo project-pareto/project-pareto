@@ -34,6 +34,36 @@ idaes get-extensions --verbose
 
 See the "For developers" pages in the [PARETO GitHub Wiki](https://github.com/project-pareto/project-pareto/wiki).
 
+## How to Cite PARETO software
+If you make use of PARETO software in your work, please cite the following article:
+
+```
+@article{PARETO_article,
+  author  = {Drouven, Markus G. and Caldéron, Andres J. and Zamarripa, Miguel A. and Beattie, Keith},
+  title   = {PARETO: An open-source produced water optimization framework},
+  journal = {Optimization and Engineering},
+  year    = {2023},
+  volume  = {24},
+  number  = {3},
+  pages   = {2229–2249},
+  doi     = {https://doi.org/10.1007/s11081-022-09773-w},
+}
+```
+
+You can also cite the latest release of PARETO software (currently 0.9.0) as follows: 
+
+```
+@misc{PARETO_090,
+  author = {Shellman, Melody and Arnold, Travis and Bianchi, Ludovico and Shamlou, Elmira and Susarla, Naresh and Tominac, Philip and Pesce, Michael and Poon, Sarah and Beattie, Keith and Zamarripa, Miguel and Gunter, Dan and Drouven, Markus},
+  title  = {PARETO 0.9.0 Release},
+  month  = {November},
+  year   = {2023},
+  note   = {https://edx.netl.doe.gov/dataset/pareto-0-9-0-release}
+}
+```
+
+Citation information for previous versions of PARETO software may be found on [EDX](https://edx.netl.doe.gov/group/pareto).
+
 ## Funding Acknowledgement
 
 This work was conducted as part of the Produced Water Optimization Initiative, “Project PARETO”,

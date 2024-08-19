@@ -55,7 +55,7 @@ and a dictionary that contains parameters in the following format:
  set_list = ['ProductionPads','CompletionsPads']
  parameter_list = ['DriveTimes', 'CompletionsDemand']
  fpath = 'path\\to\\excel\\file.xlsx’
- # Note: set_list and parameter_list are optional parameters. When not given, only tabs with valid PARETO input tab names will be read.
+ # Note: set_list and parameter_list are optional arguments to get_data. When not given, only tabs with valid PARETO input tab names will be read.
  [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
 
 
