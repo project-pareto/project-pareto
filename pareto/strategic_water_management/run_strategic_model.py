@@ -100,7 +100,7 @@ options = {
 #           'O02':(1,40), 'O03':(1,30), 'N01':(30,20), 'N02':(30,30), 'N03':(30,40), 'N04':(40,40),\
 #               'N05':(40,20), 'N06':(50,40),'N07':(60,30), 'N08':(60,20), 'N09':(70,50)}
 
-plot_network(strategic_model, show_piping=True)
+plot_network(strategic_model, show_piping=True, save_fig=True)
 
 results = solve_model(model=strategic_model, options=options)
 

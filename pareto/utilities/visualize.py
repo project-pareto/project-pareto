@@ -15,9 +15,20 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-def plot_network(m, show_trucking=None, show_piping=None, show_results=None, pos={}):
+def plot_network(
+    m,
+    show_trucking=None,
+    show_piping=None,
+    show_results=None,
+    save_fig=None,
+    show_fig=None,
+    pos={},
+):
     if show_piping == None and show_trucking == None:
         show_piping = True
+    if show_fig == None:
+        show_fig = True
+
     G = nx.MultiDiGraph()
     for i in m.s_L:
         G.add_node(i)
@@ -150,4 +161,7 @@ def plot_network(m, show_trucking=None, show_piping=None, show_results=None, pos
                     built_trucking.append(i)
 
     nx.draw_networkx_labels(G, pos, labels, font_size=7)
-    plt.show()
+    if save_fig:
+        plt.savefig("network.png")
+    if show_fig:
+        plt.show()
