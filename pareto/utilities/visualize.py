@@ -15,9 +15,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-def plot_network(m,show_trucking=None,show_piping=None,show_results=None, pos={}):
-    if show_piping==None and show_trucking==None:
-        show_piping=True
+def plot_network(m, show_trucking=None, show_piping=None, show_results=None, pos={}):
+    if show_piping == None and show_trucking == None:
+        show_piping = True
     G = nx.MultiDiGraph()
     for i in m.s_L:
         G.add_node(i)
@@ -34,7 +34,7 @@ def plot_network(m,show_trucking=None,show_piping=None,show_results=None, pos={}
         G.add_edges_from(trucking_arcs)
 
     labels = {node: node for node in m.s_L}
-    if len(pos)>0:
+    if len(pos) > 0:
         pos = pos
     else:
         pos = nx.circular_layout(G)
@@ -132,21 +132,22 @@ def plot_network(m,show_trucking=None,show_piping=None,show_results=None, pos={}
             edgecolors="black",
         )
     if show_piping:
-        nx.draw_networkx_edges(G, pos, piping_acrs, edge_color="blue", style=":", width=3)
+        nx.draw_networkx_edges(
+            G, pos, piping_acrs, edge_color="blue", style=":", width=3
+        )
     if show_trucking:
         nx.draw_networkx_edges(G, pos, trucking_arcs, edge_color="black", width=1)
-    
-    if show_results!=None:
-        built_pipes=[]
-        built_trucking=[]
+
+    if show_results != None:
+        built_pipes = []
+        built_trucking = []
         for t in m.s_T:
             for i in piping_acrs:
-                if m.v_C_Piped[i,t].value:
+                if m.v_C_Piped[i, t].value:
                     built_pipes.append(i)
             for i in trucking_arcs:
-                if m.v_C_Trucked[i,t].value:
+                if m.v_C_Trucked[i, t].value:
                     built_trucking.append(i)
-        
 
     nx.draw_networkx_labels(G, pos, labels, font_size=7)
     plt.show()
