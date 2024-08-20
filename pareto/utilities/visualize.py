@@ -144,10 +144,12 @@ def plot_network(
         )
     if show_piping:
         nx.draw_networkx_edges(
-            G, pos, piping_acrs, edge_color="blue", style=":", width=3
+            G, pos, piping_acrs, edge_color="blue", style=":", width=3, arrows=True
         )
     if show_trucking:
-        nx.draw_networkx_edges(G, pos, trucking_arcs, edge_color="black", width=1)
+        nx.draw_networkx_edges(
+            G, pos, trucking_arcs, edge_color="black", width=1, arrows=True
+        )
 
     if show_results != None:
         built_pipes = []
