@@ -57,7 +57,7 @@ def plot_network(
             pos,
             [node],
             node_shape="o",
-            node_size=800,
+            node_size=500,
             node_color="lightgreen",
             edgecolors="black",
         )
@@ -67,7 +67,7 @@ def plot_network(
             pos,
             [node],
             node_shape="o",
-            node_size=800,
+            node_size=500,
             node_color="red",
             edgecolors="black",
         )
@@ -77,7 +77,7 @@ def plot_network(
             pos,
             [node],
             node_shape="o",
-            node_size=800,
+            node_size=500,
             node_color="lightgreen",
             edgecolors="black",
         )
@@ -97,7 +97,7 @@ def plot_network(
             pos,
             [node],
             node_shape="o",
-            node_size=800,
+            node_size=500,
             node_color="lightgreen",
             edgecolors="black",
         )
@@ -108,7 +108,7 @@ def plot_network(
                 pos,
                 [node],
                 node_shape="p",
-                node_size=800,
+                node_size=500,
                 node_color="lightgreen",
                 edgecolors="black",
             )
@@ -118,7 +118,7 @@ def plot_network(
                 pos,
                 [node],
                 node_shape="s",
-                node_size=800,
+                node_size=500,
                 node_color="lightgreen",
                 edgecolors="black",
             )
@@ -138,7 +138,7 @@ def plot_network(
             pos,
             [node],
             node_shape="o",
-            node_size=800,
+            node_size=500,
             node_color="lightgreen",
             edgecolors="black",
         )

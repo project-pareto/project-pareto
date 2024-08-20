@@ -44,6 +44,8 @@ from pareto.utilities.process_data import (
     MissingDataError,
     DataInfeasibilityError,
 )
+from pareto.utilities.visualize import plot_network
+from contextlib import nullcontext as does_not_raise
 
 
 ############################
@@ -458,3 +460,61 @@ def test_infeasibility_check():
             "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand vs 756 koil_bbls available water)"
             == str(error_record.value)
         )
+
+
+def test_plot_network():
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_toy_case_study.xlsx",
+    ) as fpath:
+        # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
+        [df_sets, df_parameters] = get_data(fpath, model_type="strategic")
+    strategic_model = create_model(
+        df_sets,
+        df_parameters,
+        default={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        },
+    )
+
+    # Hard coded positions for the toy case study
+    pos = {
+        "PP01": (20, 10),
+        "PP02": (60, 50),
+        "PP03": (60, 60),
+        "PP04": (70, 60),
+        "CP01": (60, 10),
+        "F01": (70, 1),
+        "F02": (70, 10),
+        "K01": (30, 1),
+        "K02": (70, 70),
+        "S02": (50, 70),
+        "S03": (10, 45),
+        "S04": (10, 35),
+        "R01": (20, 40),
+        "R02": (60, 70),
+        "O01": (1, 50),
+        "O02": (1, 40),
+        "O03": (1, 30),
+        "N01": (30, 20),
+        "N02": (30, 30),
+        "N03": (30, 40),
+        "N04": (40, 40),
+        "N05": (40, 20),
+        "N06": (50, 40),
+        "N07": (60, 30),
+        "N08": (60, 20),
+        "N09": (70, 50),
+    }
+
+    try:
+        plot_network(strategic_model, show_piping=True, show_fig=False, pos=pos)
+    except Exception as e:
+        pytest.fail(f"Plot network feature fails with the following exception {e}")
