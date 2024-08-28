@@ -514,7 +514,15 @@ def test_plot_network():
         "N09": (70, 50),
     }
 
+    # Run the plot_network function with several different sets of input arguments
     try:
-        plot_network(strategic_model, show_piping=True, show_fig=False, pos=pos)
+        plot_network(strategic_model, pos=pos)
+        plot_network(strategic_model, show_piping=True, show_trucking=True)
+        plot_network(
+            strategic_model,
+            show_results=True,
+            save_fig="test_network.png",
+            show_fig=True,
+        )
     except Exception as e:
         pytest.fail(f"Plot network feature fails with the following exception {e}")

@@ -163,7 +163,7 @@ def plot_network(
                     built_trucking.append(i)
 
     nx.draw_networkx_labels(G, pos, labels, font_size=7)
-    if save_fig:
-        plt.savefig("network.png")
+    if save_fig is not None:
+        plt.savefig(save_fig)
     if show_fig:
         plt.show()

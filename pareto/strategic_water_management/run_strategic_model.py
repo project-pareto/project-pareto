@@ -123,7 +123,7 @@ pos = {
     "N09": (70, 50),
 }
 
-plot_network(strategic_model, show_piping=True, save_fig=True, pos=pos)
+plot_network(strategic_model, show_piping=True, save_fig="network.png", pos=pos)
 
 results = solve_model(model=strategic_model, options=options)
 
