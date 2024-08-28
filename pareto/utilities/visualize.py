@@ -33,24 +33,24 @@ def plot_network(
     for i in m.s_L:
         G.add_node(i)
 
-    piping_acrs = []
+    piping_arcs = []
     for i in m.s_LLA:
-        piping_acrs.append(i)
+        piping_arcs.append(i)
+
     trucking_arcs = []
     for i in m.s_LLT:
         trucking_arcs.append(i)
+
     if show_piping:
-        G.add_edges_from(piping_acrs)
+        G.add_edges_from(piping_arcs)
     if show_trucking:
         G.add_edges_from(trucking_arcs)
 
-    labels = {node: node for node in m.s_L}
-    if len(pos) > 0:
-        pos = pos
-    else:
+    if len(pos) == 0:
         pos = nx.circular_layout(G)
 
-    fig = plt.figure()
+    plt.figure()
+
     for node in m.s_PP:
         nx.draw_networkx_nodes(
             G,
@@ -61,6 +61,7 @@ def plot_network(
             node_color="lightgreen",
             edgecolors="black",
         )
+
     for node in m.s_CP:
         nx.draw_networkx_nodes(
             G,
@@ -68,60 +69,60 @@ def plot_network(
             [node],
             node_shape="o",
             node_size=500,
-            node_color="red",
+            node_color="lightgreen",
             edgecolors="black",
         )
+
     for node in m.s_F:
         nx.draw_networkx_nodes(
             G,
             pos,
             [node],
-            node_shape="o",
-            node_size=500,
-            node_color="lightgreen",
+            node_shape="P",
+            node_size=600,
+            node_color="lightblue",
             edgecolors="black",
         )
+
     for node in m.s_K:
         nx.draw_networkx_nodes(
             G,
             pos,
             [node],
-            node_shape="^",
-            node_size=1200,
+            node_shape="X",
+            node_size=600,
             node_color="lightgreen",
             edgecolors="black",
         )
+
     for node in m.s_S:
         nx.draw_networkx_nodes(
             G,
             pos,
             [node],
-            node_shape="o",
-            node_size=500,
+            node_shape="H",
+            node_size=400,
             node_color="lightgreen",
             edgecolors="black",
         )
+
     for node in m.s_R:
         if m.p_chi_DesalinationSites[node]:
-            nx.draw_networkx_nodes(
-                G,
-                pos,
-                [node],
-                node_shape="p",
-                node_size=500,
-                node_color="lightgreen",
-                edgecolors="black",
-            )
+            shape = "s"
+            size = 300
         else:
-            nx.draw_networkx_nodes(
-                G,
-                pos,
-                [node],
-                node_shape="s",
-                node_size=500,
-                node_color="lightgreen",
-                edgecolors="black",
-            )
+            shape = "p"
+            size = 400
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            [node],
+            node_shape=shape,
+            node_size=size,
+            node_color="lightgreen",
+            edgecolors="black",
+        )
+
     for node in m.s_O:
         nx.draw_networkx_nodes(
             G,
@@ -132,38 +133,76 @@ def plot_network(
             node_color="lightgreen",
             edgecolors="black",
         )
+
     for node in m.s_N:
         nx.draw_networkx_nodes(
             G,
             pos,
             [node],
-            node_shape="o",
-            node_size=500,
-            node_color="lightgreen",
-            edgecolors="black",
+            node_shape=",",
+            node_size=0,
         )
+
     if show_piping:
-        nx.draw_networkx_edges(
-            G, pos, piping_acrs, edge_color="blue", style=":", width=3, arrows=True
-        )
+        draw_arcs(G, pos, piping_arcs)
+
     if show_trucking:
-        nx.draw_networkx_edges(
-            G, pos, trucking_arcs, edge_color="black", width=1, arrows=True
-        )
+        draw_arcs(G, pos, trucking_arcs, color="red", width=1.5, arrowsize=10)
 
     if show_results != None:
         built_pipes = []
         built_trucking = []
         for t in m.s_T:
-            for i in piping_acrs:
+            for i in piping_arcs:
                 if m.v_C_Piped[i, t].value:
                     built_pipes.append(i)
             for i in trucking_arcs:
                 if m.v_C_Trucked[i, t].value:
                     built_trucking.append(i)
 
-    nx.draw_networkx_labels(G, pos, labels, font_size=7)
+    nx.draw_networkx_labels(G, pos, {n: n for n in m.s_L}, font_size=7)
+
     if save_fig is not None:
         plt.savefig(save_fig)
+
     if show_fig:
         plt.show()
+
+
+def draw_arcs(G, pos, arcs, color="blue", width=3, arrowsize=15):
+    bidir_arcs_drawn = []
+    for arc in arcs:
+        # Check if arc is bidirectional
+        reverse = (arc[1], arc[0])
+        if reverse in arcs:
+            # Arc is bidirectional
+            if reverse in bidir_arcs_drawn:
+                # Arc has already been drawn (in "reverse" direction) - skip
+                continue
+            else:
+                # Arc has not yet been drawn - draw it without arrowheads
+                # and add it to the list of drawn bidirectional arcs
+                nx.draw_networkx_edges(
+                    G,
+                    pos,
+                    [arc],
+                    edge_color=color,
+                    style="-",
+                    width=width,
+                    arrows=True,
+                    arrowstyle="-",
+                    node_size=500,
+                )
+                bidir_arcs_drawn.append(arc)
+        else:
+            # Arc is not bidirectional - draw it with arrowheads
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                [arc],
+                edge_color=color,
+                style="-",
+                width=width,
+                arrowsize=arrowsize,
+                node_size=500,
+            )
