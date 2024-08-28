@@ -21,6 +21,8 @@ from pareto.strategic_water_management.strategic_produced_water_optimization imp
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
+    DesalinationModel,
+    SubsurfaceRisk,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import (
@@ -32,142 +34,37 @@ from pareto.utilities.results import (
 )
 from importlib import resources
 
-# This emulates what the pyomo command-line tools does
-# Tabs in the input Excel spreadsheet
-set_list = [
-    "ProductionPads",
-    "CompletionsPads",
-    "SWDSites",
-    "ExternalWaterSources",
-    "WaterQualityComponents",
-    "StorageSites",
-    "TreatmentSites",
-    "ReuseOptions",
-    "NetworkNodes",
-    "PipelineDiameters",
-    "StorageCapacities",
-    "InjectionCapacities",
-    "TreatmentCapacities",
-    "TreatmentTechnologies",
-]
-parameter_list = [
-    "Units",
-    "PNA",
-    "CNA",
-    "CCA",
-    "NNA",
-    "NCA",
-    "NKA",
-    "NRA",
-    "NSA",
-    "FCA",
-    "RCA",
-    "RNA",
-    "RSA",
-    "SCA",
-    "SNA",
-    "ROA",
-    "RKA",
-    "SOA",
-    "NOA",
-    "PCT",
-    "PKT",
-    "FCT",
-    "CST",
-    "CCT",
-    "CKT",
-    "RST",
-    "ROT",
-    "SOT",
-    "RKT",
-    "Elevation",
-    "CompletionsPadOutsideSystem",
-    "DesalinationTechnologies",
-    "DesalinationSites",
-    "BeneficialReuseCost",
-    "BeneficialReuseCredit",
-    "TruckingTime",
-    "CompletionsDemand",
-    "PadRates",
-    "FlowbackRates",
-    "WellPressure",
-    "NodeCapacities",
-    "InitialPipelineCapacity",
-    "InitialPipelineDiameters",
-    "InitialDisposalCapacity",
-    "InitialTreatmentCapacity",
-    "ReuseMinimum",
-    "ReuseCapacity",
-    "ExtWaterSourcingAvailability",
-    "PadOffloadingCapacity",
-    "CompletionsPadStorage",
-    "DisposalOperationalCost",
-    "TreatmentOperationalCost",
-    "ReuseOperationalCost",
-    "PipelineOperationalCost",
-    "ExternalSourcingCost",
-    "TruckingHourlyCost",
-    "PipelineDiameterValues",
-    "DisposalCapacityIncrements",
-    "InitialStorageCapacity",
-    "StorageCapacityIncrements",
-    "TreatmentCapacityIncrements",
-    "TreatmentEfficiency",
-    "RemovalEfficiency",
-    "DisposalExpansionCost",
-    "StorageExpansionCost",
-    "TreatmentExpansionCost",
-    "PipelineCapexDistanceBased",
-    "PipelineCapexCapacityBased",
-    "PipelineCapacityIncrements",
-    "PipelineExpansionDistance",
-    "Hydraulics",
-    "Economics",
-    "ExternalWaterQuality",
-    "PadWaterQuality",
-    "StorageInitialWaterQuality",
-    "PadStorageInitialWaterQuality",
-    "DisposalOperatingCapacity",
-    "TreatmentExpansionLeadTime",
-    "DisposalExpansionLeadTime",
-    "StorageExpansionLeadTime",
-    "PipelineExpansionLeadTime_Dist",
-    "PipelineExpansionLeadTime_Capac",
-    "SWDDeep",
-    "SWDAveragePressure",
-    "SWDProxPAWell",
-    "SWDProxInactiveWell",
-    "SWDProxEQ",
-    "SWDProxFault",
-    "SWDProxHpOrLpWell",
-    "SWDRiskFactors",
-]
 
 # user needs to provide the path to the case study data file
 # for example: 'C:\\user\\Documents\\myfile.xlsx'
 # note the double backslashes '\\' in that path reference
-"""By default, PARETO comes with the following 4 strategic case studies:
+"""By default, PARETO comes with the following 6 strategic case studies:
 strategic_treatment_demo.xlsx
 strategic_permian_demo.xlsx
 strategic_small_case_study.xlsx
 strategic_toy_case_study.xlsx
+workshop_baseline_all_data.xlsx
+strategic_treatment_demo_surrogates.xlsx
 """
 with resources.path(
     "pareto.case_studies",
     "strategic_toy_case_study.xlsx",
 ) as fpath:
-    [df_sets, df_parameters] = get_data(fpath, set_list, parameter_list)
+    # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
+    [df_sets, df_parameters] = get_data(fpath, model_type="strategic")
 
 # create mathematical model
 """Valid values of config arguments for the default parameter in the create_model() call
- objective: [Objectives.cost, Objectives.reuse]
+ objective: [Objectives.cost, Objectives.reuse, Objectives.subsurface_risk, Objectives.cost_surrogate, Objectives.environmental]
  pipeline_cost: [PipelineCost.distance_based, PipelineCost.capacity_based]
  pipeline_capacity: [PipelineCapacity.input, PipelineCapacity.calculated]
- hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize]
+ hydraulics: [Hydraulics.false, Hydraulics.post_process, Hydraulics.co_optimize, Hydraulics.co_optimize_linearized]
+ desalination_model: [DesalinationModel.false, DesalinationModel.mvc, DesalinationModel.md]
  node_capacity: [True, False]
  water_quality: [WaterQuality.false, WaterQuality.post_process, WaterQuality.discrete]
  removal_efficiency_method: [RemovalEfficiencyMethod.concentration_based, RemovalEfficiencyMethod.load_based]
  infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
+ subsurface_risk: [SubsurfaceRisk.false, SubsurfaceRisk.exclude_over_and_under_pressured_wells, SubsurfaceRisk.calculate_risk_metrics]
  """
 
 strategic_model = create_model(
@@ -178,10 +75,12 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "hydraulics": Hydraulics.false,
+        "desalination_model": DesalinationModel.false,
         "node_capacity": True,
         "water_quality": WaterQuality.false,
         "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
         "infrastructure_timing": InfrastructureTiming.true,
+        "subsurface_risk": SubsurfaceRisk.false,
     },
 )
 
@@ -194,6 +93,7 @@ options = {
 }
 
 results = solve_model(model=strategic_model, options=options)
+
 with nostdout():
     feasibility_status = is_feasible(strategic_model)
 
@@ -215,9 +115,3 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
 )
-
-# This shows how to read data from PARETO reports
-set_list = []
-parameter_list = ["v_F_Trucked", "v_C_Trucked"]
-fname = "strategic_optimization_results.xlsx"
-[sets_reports, parameters_report] = get_data(fname, set_list, parameter_list)

@@ -12,7 +12,7 @@ Network schematics
     Strategic Permian demo network.
 
 .. figure:: ../img/strategic_toy_network.png
-    :width: 600
+    :width: 1000
     :align: center
     :alt: Strategic toy case study network schematic
 
@@ -49,20 +49,23 @@ Comparison table
    :header-rows: 1
 
    * -
-     - Strategic model Permian demo
-     - Strategic model toy case study
-     - Strategic model small case study
-     - Strategic model treatment demo
-     - Strategic model workshop baseline
-     - Operational model case study
+     - Strategic Permian demo
+     - Strategic toy case study
+     - Strategic small case study
+     - Strategic treatment demo
+     - Strategic surrogate demo
+     - Strategic workshop baseline
+     - Operational case study
    * - **Input file**
      - ``strategic_permian_demo.xlsx``
      - ``strategic_toy_case_study.xlsx``
      - ``strategic_small_case_study.xlsx``
      - ``strategic_treatment_demo.xlsx``
+     - ``strategic_treatment_demo_surrogates.xlsx``
      - ``workshop_baseline_all_data.xlsx``
      - ``operational_generic_case_study.xlsx``
    * - **Model type**
+     - Strategic
      - Strategic
      - Strategic
      - Strategic
@@ -85,6 +88,11 @@ Comparison table
        Takes a bit longer to solve. This |br|
        can be seen as the "default" case |br|
        study for the strategic model.
+     - Same as strategic treatment demo, |br|
+       but allows for the option (but not |br|
+       the requirement) to use surrogate |br|
+       models for desalination sites (MD |br|
+       and MVC).
      - Network developed for use in |br|
        PARETO workshops. Solves quickly.
      - Generic case study for the |br|
@@ -99,6 +107,7 @@ Comparison table
      - Week
      - Week
      - Week
+     - Week
      - Day
    * - **Decision horizon**
      - 52 weeks
@@ -106,10 +115,12 @@ Comparison table
      - 52 weeks
      - 52 weeks
      - 52 weeks
+     - 10 weeks
      - 5 days
    * - **Network nodes**
      - 28
      - 9
+     - 28
      - 28
      - 28
      - 9
@@ -119,9 +130,11 @@ Comparison table
      - 4
      - 15
      - 14
+     - 14
      - 4
      - 5
    * - **Production tanks**
+     - N/A
      - N/A
      - N/A
      - N/A
@@ -133,12 +146,14 @@ Comparison table
      - 1
      - 4
      - 3
+     - 3
      - 2
      - 1
    * - **External completions pads** [#]_
      - 1 (CP03)
      - 0
      - 0
+     - 1 (CP03)
      - 1 (CP03)
      - 1 (CP02)
      - N/A
@@ -147,6 +162,7 @@ Comparison table
      - 2
      - 3
      - 5
+     - 5
      - 2
      - 2
    * - **Disposal expansion allowed?** [#]_
@@ -154,12 +170,14 @@ Comparison table
      - No
      - No
      - Yes, for K03 and K05
-     - Yes
+     - Yes, for K03 and K05
+     - No
      - No
    * - **Storage sites**
      - 3
-     - 1
+     - 3
      - 2
+     - 3
      - 3
      - 3 |br|
        Only one storage site (S02) is shown |br|
@@ -178,18 +196,20 @@ Comparison table
      - No
      - Yes
      - Yes
+     - Yes
      - No
    * - **Completions pad storage?**
      - No
      - No
      - Yes
      - No
-     - Yes
+     - No
+     - No
      - Yes
    * - **Treatment sites**
-     - 6 |br|
+     - 4 |br|
        Non-desalination sites: R02, R04, R05 |br|
-       Desalination sites: R01, R03, R06 |br|
+       Desalination sites: R03 |br|
        All sites have zero initial treatment |br|
        capacity
      - 2 |br|
@@ -201,6 +221,11 @@ Comparison table
        Both are non-desalination sites |br|
        Both sites have nonzero initial |br|
        treatment capcity
+     - 6 |br|
+       Non-desalination sites: R02, R04, R05 |br|
+       Desalination sites: R01, R03, R06 |br|
+       All sites have zero initial treatment |br|
+       capacity
      - 6 |br|
        Non-desalination sites: R02, R04, R05 |br|
        Desalination sites: R01, R03, R06 |br|
@@ -221,12 +246,16 @@ Comparison table
      - Non-desalination: CB, CB-EV |br|
        Desalination: FF, HDH
      - Non-desalination: CB, CB-EV |br|
+       Desalination (simple): FF, HDH |br|
+       Desalination (surrogate): MVC, MD
+     - Non-desalination: CB, CB-EV |br|
        Desalination: MVC, MD
      - N/A
    * - **Treatment expansion allowed?**
-     - Yes, except for R01
+     - Yes
      - Yes
      - Yes (but only one capacity option)
+     - Yes
      - Yes
      - Yes
      - No
@@ -236,8 +265,11 @@ Comparison table
      - No
      - Yes
      - Yes
+     - Yes
      - No
    * - **Hydraulics settings**
+     - Roughness factor: 110 |br|
+       Head loss: 0.03
      - Roughness factor: 110 |br|
        Head loss: 0.03
      - Roughness factor: 110 |br|
@@ -260,6 +292,8 @@ Comparison table
        CAPEX lifetime: 20 years
      - Discount rate: 8% |br|
        CAPEX lifetime: 20 years
+     - Discount rate: 8% |br|
+       CAPEX lifetime: 20 years
      - N/A
    * - **Notes**
      - Recommend solving with Gurobi, |br|
@@ -267,7 +301,8 @@ Comparison table
      -
      -
      - Recommend solving with Gurobi.
-     - 
+     - Recommend solving with Gurobi.
+     -
      -
 
 .. [#] In the strategic model, external completions pads can be used to model opportunities for water sharing outside of the main network.

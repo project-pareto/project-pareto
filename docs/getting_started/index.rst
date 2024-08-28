@@ -102,7 +102,6 @@ Core-dev
 3. Create a dedicated Conda environment for development work::
 
     conda create --name pareto-dev python=3.9 --yes
-    conda activate pareto-dev
 
 4. Activate the ``pareto-dev`` Conda environment. This command must be run every time a new console/terminal window is opened::
 
