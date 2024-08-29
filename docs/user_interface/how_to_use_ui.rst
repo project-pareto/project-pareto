@@ -15,34 +15,30 @@ Step-by-step guide
          :name: pareto-user-interface
          :class: text-header
 
-      .. rubric:: Step by step guide to using PARETO'S user interface.
-         :name: step-by-step-guide-to-using-paretos-user-interface.
-         :class: text-header
-
       .. container::
 
-         **Step 1:** Download the latest version of PARETO for your
-         operating system at *https://www.project-pareto.org/software/*.
+         **Step 1.** Download the latest version of PARETO for your
+         operating system at the `Project PARETO Website <https://www.project-pareto.org/software>`_.
 
          .. container:: screenshot-div
 
             |software-website|
 
-         **Step 2:** Follow the installation steps to install the
+         **Step 2.** Follow the installation steps to install the
          application. For windows, see below:
 
          .. container:: screenshot-div
 
             |windows-installer|
 
-         **Step 3:** Run the application, you should see a splash page
+         **Step 3.** Run the application, you should see a splash page
          before being redirected to the scenarios page:
 
          .. container:: screenshot-div
             
             |scenarios-page|
 
-         **Step 4:** Click on "Create new scenario". Download from one
+         **Step 4.** Click on "Create new scenario". Download from one
          of the available sample inputs, name the scenario, and click
          "Create scenario":
 
@@ -50,14 +46,14 @@ Step-by-step guide
 
             |create-scenario|
 
-         **Step 5:** Browse the input plots and tables, with the option
+         **Step 5.** Browse the input plots and tables, with the option
          to edit any of the inputs:
 
          .. container:: screenshot-div
 
             |input-page|
 
-         **Step 6:** Click the "optimization setup" button, and choose
+         **Step 6.** Click the "optimization setup" button, and choose
          from our model settings. If you have a gurobi license, select
          "gurobi" from the solver options:
 
@@ -65,20 +61,20 @@ Step-by-step guide
 
             |model-settings|
 
-         **Step 7:** Click "run model":
+         **Step 7.** Click "run model":
 
          .. container:: screenshot-div
 
             |running-model|
 
-         **Step 8:** : When the model is finished running, the KPI
-         dashboard will be visible from the "model output" section:
+         **Step 8.** When the model is finished running, the KPI
+         dashboard will be visible from the model results section:
 
          .. container:: screenshot-div
 
             |kpi-dashboard.|
 
-         **Step 9:** Analyze the output by looking through tables and
+         **Step 9.** Analyze the output by looking through tables and
          graphs, including the sankey diagram that interactively
          displays the distribution of produced water:
 
@@ -86,7 +82,7 @@ Step-by-step guide
 
             |sankey-diagram|
 
-         **Step 10:** If you are unhappy with any of PARETO's
+         **Step 10.** If you are unhappy with any of PARETO's
          infrastructure decisions, feel free to override with your own
          decisions in the "infrastructure buildout" tab:
 
@@ -94,17 +90,13 @@ Step-by-step guide
 
             |infrastructure-override|
 
-         **Step 11:** Compare different scenarios by clicking on any of
+         **Step 11.** Compare different scenarios by clicking on any of
          the compare icons from the scenario page:
 
          .. container:: screenshot-div
 
             |scenario-comparison|
 
-
-.. container:: footer
-
-   © 2024 Project PARETO Example. All rights reserved.
 
 .. |software-website| image:: ./img/software-website.png
    :class: screenshot
