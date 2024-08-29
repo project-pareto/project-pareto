@@ -17,18 +17,13 @@ import matplotlib.pyplot as plt
 
 def plot_network(
     m,
-    show_trucking=None,
-    show_piping=None,
-    show_results=None,
+    show_piping=True,
+    show_trucking=False,
+    show_results=False,
     save_fig=None,
-    show_fig=None,
+    show_fig=True,
     pos={},
 ):
-    if show_piping == None and show_trucking == None:
-        show_piping = True
-    if show_fig == None:
-        show_fig = True
-
     G = nx.MultiDiGraph()
     for i in m.s_L:
         G.add_node(i)
@@ -43,6 +38,7 @@ def plot_network(
 
     if show_piping:
         G.add_edges_from(piping_arcs)
+
     if show_trucking:
         G.add_edges_from(trucking_arcs)
 
@@ -143,24 +139,61 @@ def plot_network(
             node_size=0,
         )
 
+    proxies = []
+    labels = []
+    from matplotlib.lines import Line2D
+
     if show_piping:
-        draw_arcs(G, pos, piping_arcs)
+        draw_arcs(
+            G,
+            pos,
+            piping_arcs,
+            piping_arcs,
+            color="blue",
+            width=6,
+            arrowsize=20,
+            node_size=500,
+        )
+        proxies.append(Line2D([0, 1], [0, 1], color="blue"))
+        labels.append("Pipeline arcs")
 
     if show_trucking:
-        draw_arcs(G, pos, trucking_arcs, color="red", width=1.5, arrowsize=10)
+        draw_arcs(
+            G,
+            pos,
+            trucking_arcs,
+            trucking_arcs,
+            color="red",
+            width=3,
+            arrowsize=10,
+            node_size=800,
+        )
+        proxies.append(Line2D([0, 1], [0, 1], color="red"))
+        labels.append("Trucking arcs")
 
-    if show_results != None:
+    if show_results:
         built_pipes = []
-        built_trucking = []
-        for t in m.s_T:
-            for i in piping_arcs:
-                if m.v_C_Piped[i, t].value:
+        for i in piping_arcs:
+            for d in m.s_D:
+                if m.vb_y_Pipeline[i, d].value > 0 and m.p_delta_Pipeline[d].value > 0:
                     built_pipes.append(i)
-            for i in trucking_arcs:
-                if m.v_C_Trucked[i, t].value:
-                    built_trucking.append(i)
+                    break
+        draw_arcs(
+            G,
+            pos,
+            built_pipes,
+            piping_arcs,
+            color="yellow",
+            width=1,
+            arrowsize=8,
+            node_size=1200,
+        )
+        proxies.append(Line2D([0, 1], [0, 1], color="yellow"))
+        labels.append("Pipelines built/expanded")
 
     nx.draw_networkx_labels(G, pos, {n: n for n in m.s_L}, font_size=7)
+
+    plt.legend(proxies, labels)
 
     if save_fig is not None:
         plt.savefig(save_fig)
@@ -169,12 +202,14 @@ def plot_network(
         plt.show()
 
 
-def draw_arcs(G, pos, arcs, color="blue", width=3, arrowsize=15):
+def draw_arcs(
+    G, pos, arcs_to_draw, all_arcs, color="blue", width=6, arrowsize=20, node_size=500
+):
     bidir_arcs_drawn = []
-    for arc in arcs:
+    for arc in arcs_to_draw:
         # Check if arc is bidirectional
         reverse = (arc[1], arc[0])
-        if reverse in arcs:
+        if reverse in all_arcs:
             # Arc is bidirectional
             if reverse in bidir_arcs_drawn:
                 # Arc has already been drawn (in "reverse" direction) - skip
@@ -191,7 +226,7 @@ def draw_arcs(G, pos, arcs, color="blue", width=3, arrowsize=15):
                     width=width,
                     arrows=True,
                     arrowstyle="-",
-                    node_size=500,
+                    node_size=node_size,
                 )
                 bidir_arcs_drawn.append(arc)
         else:
@@ -204,5 +239,5 @@ def draw_arcs(G, pos, arcs, color="blue", width=3, arrowsize=15):
                 style="-",
                 width=width,
                 arrowsize=arrowsize,
-                node_size=500,
+                node_size=node_size,
             )
