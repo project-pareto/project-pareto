@@ -45,11 +45,11 @@ Examples
 The following figures show the network visualization produced for the strategic toy case study, showing both piping and trucking arcs, first with the default circular layout, and second in a layout with custom positioning::
 
 .. figure:: network_circular.png
-    :width: 1000
-    :align: center
-    :alt: Network visualization in a circular layout
+  :width: 1000
+  :align: center
+  :alt: Network visualization in a circular layout
 
 .. figure:: network.png
-    :width: 1000
-    :align: center
-    :alt: Network visualization with specified positions
+  :width: 1000
+  :align: center
+  :alt: Network visualization with specified positions
