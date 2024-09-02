@@ -14,8 +14,7 @@ How to ...
 
 
 **... Get more help?**
-    Use the website to `register <https://pareto.org/register/>`_ for the PARETO support mailing list.
-    Then you can send questions to |support-email|. For more specific technical questions, we recommend
+    You can reach out by email to |support-email|. For more specific technical questions, we recommend
     our new `PARETO discussions board on Github <https://github.com/project-pareto/discussions>`_.
 
 Troubleshooting
@@ -24,15 +23,15 @@ Troubleshooting
 **No available solver found among choices: (('cbc',),)**
 
   If you encounter the error message "No available solver found among choices: (('cbc',),)," 
-  it typically means that the solver 'cbc' is not installed or not correctly configured in 
+  it typically means that the solver CBC is not installed or not correctly configured in 
   your environment. Here are steps to resolve this issue:
 
   1. **Solver Installation**
 
-    Ensure that the 'cbc' solver is installed on your system. You can install it using the following methods:
+    Ensure that the CBC solver is installed on your system. You can install it using the following methods:
 
     * **For Windows Users:**
-      The easiest way to get Cbc on Windows is to download an archive from https://github.com/coin-or/Cbc/releases.
+      The easiest way to get CBC on Windows is to download an archive from https://github.com/coin-or/Cbc/releases.
 
     * **For Mac OS users:**
 
@@ -47,7 +46,7 @@ Troubleshooting
 
           $ sudo apt-get install coinor-cbc
 
-2. **Configure Solver in Your Code**
+  2. **Verify Installation and Configure Solver in Your Code**
 
     Ensure your code correctly specifies the solver. For example, in Pyomo::
 
@@ -65,7 +64,7 @@ Troubleshooting
       1. Open the Start Search, type in "env", and select "Edit the system environment variables".
       2. Click the "Environment Variables" button.
       3. Under "System variables", find the "Path" variable, select it, and click "Edit".
-      4. Add the path to the `bin` directory in the above installed binary.
+      4. Add the path to the `bin` directory containing the cbc.exe executable.
 
     * **For Mac/Ubuntu:**
 
