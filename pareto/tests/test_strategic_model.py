@@ -1081,7 +1081,7 @@ def test_run_toy_strategic_model(build_toy_strategic_model):
         "deactivate_slacks": True,
         "scale_model": False,
         "scaling_factor": 1000,
-        "running_time": 60 * 5,
+        "running_time": 600,
         "gap": 0,
     }
 
