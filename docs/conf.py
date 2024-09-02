@@ -128,5 +128,5 @@ panels_add_bootstrap_css = False
 
 rst_epilog = """
 .. |support-email| replace:: the `support email list`_
-.. _support email list: mailto:pareto-support@lbl.gov
+.. _support email list: mailto:PARETO@netl.doe.gov
 """

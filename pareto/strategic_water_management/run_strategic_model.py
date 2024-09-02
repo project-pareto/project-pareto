@@ -32,6 +32,7 @@ from pareto.utilities.results import (
     is_feasible,
     nostdout,
 )
+from pareto.utilities.visualize import plot_network
 from importlib import resources
 
 
@@ -114,4 +115,44 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     is_print=PrintValues.essential,
     output_units=OutputUnits.user_units,
     fname="strategic_optimization_results.xlsx",
+)
+
+# Positions for the toy case study
+pos = {
+    "PP01": (20, 20),
+    "PP02": (45, 20),
+    "PP03": (50, 50),
+    "PP04": (80, 40),
+    "CP01": (65, 20),
+    "F01": (75, 15),
+    "F02": (75, 25),
+    "K01": (30, 10),
+    "K02": (40, 50),
+    "S02": (60, 50),
+    "S03": (10, 44),
+    "S04": (10, 36),
+    "R01": (20, 40),
+    "R02": (70, 50),
+    "O01": (1, 55),
+    "O02": (1, 40),
+    "O03": (1, 25),
+    "N01": (30, 20),
+    "N02": (30, 30),
+    "N03": (30, 40),
+    "N04": (40, 40),
+    "N05": (45, 30),
+    "N06": (50, 40),
+    "N07": (60, 40),
+    "N08": (60, 30),
+    "N09": (70, 40),
+}
+
+# Network visualization feature
+plot_network(
+    strategic_model,
+    show_piping=True,
+    show_trucking=True,
+    show_results=False,
+    save_fig="network.png",
+    pos=pos,
 )
