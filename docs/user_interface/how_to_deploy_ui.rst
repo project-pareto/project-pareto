@@ -15,9 +15,8 @@ The deployment process is dependent on the operating system in use. We currently
 
 .. _windows_guide_start:
 
-=======
 Windows
-=======
+-------
 
 .. _windows_build_requirements:
 
@@ -77,9 +76,8 @@ Run the following command, replacing the keywords inside angular brackets (<>) w
 
 .. _mac_guide_start:
 
-=============
 MacOS (ARM64)
-=============
+-------------
 
 .. _mac_build_requirements:
 
