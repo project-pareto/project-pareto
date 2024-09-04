@@ -39,7 +39,7 @@ Step-by-step guide
             |scenarios-page|
 
          **Step 4.** Click on "Create new scenario". Download from one
-         of the available sample inputs, name the scenario, and click
+         of the available sample inputs, or use your own data, then name the scenario and click
          "Create scenario":
 
          .. container:: screenshot-div
