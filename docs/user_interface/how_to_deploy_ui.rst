@@ -44,23 +44,23 @@ The application build handles 3 substeps - building the backend, building the fr
 
 For a complete guide to codesigning electron applications, see their `codesigning guide <https://www.electronjs.org/docs/latest/tutorial/code-signing>`_.
 
-The general steps required to codesign a Windows application are as follows:
+The general steps required to obtaining a usable codesigning certificate are as follows:
 
 * Purchase a codesigning certificate. 
 
-    * This can be a standard certificate or an extended validation (EV) certificate. 
+    * This can be a standard certificate or an extended validation (EV) certificate
+    * For a list of certificate authorities, check out `Microsoft's documentation on managing code signing certificates <https://learn.microsoft.com/en-us/windows-hardware/drivers/dashboard/code-signing-cert-manage#get-or-renew-a-code-signing-certificate>`_
 
-* Implement the certificate key. 
+* Implement the certificate key
 
     * Using a hardware device such as a USB token OR
-
     * Using an HSM or cloud hosted vault such as Azure Key Vault
 
-Our team has taken the approach of purchasing an EV certificate from GlobalSign and hosting the key in Azure Key Vault. For a complete tutorial on this process, visit  this `blog post <https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/>`_ To code sign the deployed application in this manner, see the following steps:
+Our team has taken the approach of purchasing an EV certificate from GlobalSign and hosting the key in Azure Key Vault. For a complete tutorial on this process, visit  this `blog post <https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/>`_ To code sign the deployed application using this certificate, see the following steps:
 
 **Acquire an API key:**
 
-Reach out to the LBL team.
+Reach out to the PARETO LBL team.
 
 **Install Azure Signtool:**
 
