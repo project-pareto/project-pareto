@@ -40,13 +40,13 @@ The application build handles 3 substeps - building the backend, building the fr
 
 .. _windows_code_sign:
 
-**3. Codesign the application**
+**3. Code sign the application**
 
-For a complete guide to codesigning electron applications, see their `codesigning guide <https://www.electronjs.org/docs/latest/tutorial/code-signing>`_.
+For a complete guide to code signing electron applications, see their `code signing guide <https://www.electronjs.org/docs/latest/tutorial/code-signing>`_.
 
-The general steps required to obtaining a usable codesigning certificate are as follows:
+The general steps required to obtaining a usable code signing certificate are as follows:
 
-* Purchase a codesigning certificate. 
+* Purchase a code signing certificate. 
 
     * This can be a standard certificate or an extended validation (EV) certificate
     * For a list of certificate authorities, check out `Microsoft's documentation on managing code signing certificates <https://learn.microsoft.com/en-us/windows-hardware/drivers/dashboard/code-signing-cert-manage#get-or-renew-a-code-signing-certificate>`_
@@ -101,8 +101,8 @@ The application build handles 3 substeps - building the backend, building the fr
 
 .. _mac_code_sign:
 
-**3. Codesign the application**
+**3. Code sign the application**
 
-For a complete guide to codesigning electron MacOS applications, see their `mac app store submission guide <https://www.electronjs.org/docs/latest/tutorial/mac-app-store-submission-guide>`_.
+For a complete guide to code signing electron MacOS applications, see their `mac app store submission guide <https://www.electronjs.org/docs/latest/tutorial/mac-app-store-submission-guide>`_.
 
-Codesigning Mac applications requires an `Apple developer account <https://developer.apple.com/>`_. 
+Code signing Mac applications requires an `Apple developer account <https://developer.apple.com/>`_. 
