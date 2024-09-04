@@ -56,24 +56,6 @@ The general steps required to obtaining a usable code signing certificate are as
     * Using a hardware device such as a USB token OR
     * Using an HSM or cloud hosted vault such as Azure Key Vault
 
-Our team has taken the approach of purchasing an EV certificate from GlobalSign and hosting the key in Azure Key Vault. For a complete tutorial on this process, visit  this `blog post <https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/>`_ To code sign the deployed application using this certificate, see the following steps:
-
-**Acquire an API key:**
-
-Reach out to the PARETO LBL team.
-
-**Install Azure Signtool:**
-
-Run the following command::
-
-    dotnet tool install --global AzureSignTool
-
-**Sign the application:**
-
-Run the following command, replacing the keywords inside angular brackets (<>) with the appropriate values::
-
-    AzureSignTool sign -kvu "<AZURE_KEY_VAULT_URI>" -kvi "<AZURE_CLIENT_ID>" -kvt "<AZURE_TENANT_ID>" -kvs "<AZURE_CLIENT_SECRET>" -kvc $<AZURE_CERT_NAME> -tr http://timestamp.digicert.com -v <path-to-application>
-
 .. _mac_guide_start:
 
 MacOS (ARM64)
