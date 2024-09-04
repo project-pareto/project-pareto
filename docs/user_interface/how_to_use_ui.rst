@@ -11,10 +11,6 @@ Step-by-step guide
 
    .. container::
 
-      .. rubric:: PARETO User Interface
-         :name: pareto-user-interface
-         :class: text-header
-
       .. container::
 
          **Step 1.** Download the latest version of PARETO for your
@@ -98,6 +94,35 @@ Step-by-step guide
             |scenario-comparison|
 
 
+.. _map_example:
+
+Map Feature (Beta)
+------------------
+
+.. container::
+
+   The UI team has implemented a method for users to interact with the UI by uploading a map file representing their network. 
+   The UI can handle .kmz or .kml files as inputs.
+   By using this feature, users can greatly reduce the amount of input data required to begin working with PARETO. However, this feature is still
+   in its early phase so functionality is limited.
+
+   .. container::
+
+      **Step 1.** Navigate to the PARETO UI scenario list page. Click create scenario, and upload your map file. You will be directed to this input page:
+
+      .. container:: screenshot-div
+
+         |map-input|
+
+      **Step 2.** Download the auto generated excel input file, fill in the forecasted data, and re-upload to continue with optimizing your scenario OR 
+      fill the data in directly through the UI:
+
+      .. container:: screenshot-div
+
+         |edit-input-map|
+
+         Once the scenario is ready to go, you can continue optimizing and interacting with the UI by following the steps above. 
+
 .. |software-website| image:: ./img/software-website.png
    :class: screenshot
 .. |windows-installer| image:: ./img/windows-installer.png
@@ -119,4 +144,10 @@ Step-by-step guide
 .. |infrastructure-override| image:: ./img/infrastructure-override.png
    :class: screenshot
 .. |scenario-comparison| image:: ./img/scenario-comparison.png
+   :class: screenshot
+.. |map-input| image:: ./img/map-input.png
+   :class: screenshot
+.. |full-map| image:: ./img/full-map.png
+   :class: screenshot
+.. |edit-input-map| image:: ./img/edit-input-map.png
    :class: screenshot
