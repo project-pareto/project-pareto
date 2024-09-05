@@ -44,7 +44,7 @@ The application build handles 3 substeps - building the backend, building the fr
 
 For a complete guide to code signing electron applications, see their `code signing guide <https://www.electronjs.org/docs/latest/tutorial/code-signing>`_.
 
-The general steps required to obtaining a usable code signing certificate are as follows:
+The general steps required to obtaining and implementing a code signing certificate are as follows:
 
 * Purchase a code signing certificate. 
 
@@ -55,6 +55,11 @@ The general steps required to obtaining a usable code signing certificate are as
 
     * Using a hardware device such as a USB token OR
     * Using an HSM or cloud hosted vault such as Azure Key Vault
+
+* Sign the Electron application
+
+    * with a CLI tool such as Microsoft SignTool if using a USB token
+    * with a CLI tool such as AzureSignTool if using Azure Key Vault
 
 .. _mac_guide_start:
 
@@ -87,4 +92,18 @@ The application build handles 3 substeps - building the backend, building the fr
 
 For a complete guide to code signing electron MacOS applications, see their `mac app store submission guide <https://www.electronjs.org/docs/latest/tutorial/mac-app-store-submission-guide>`_.
 
-Code signing Mac applications requires an `Apple developer account <https://developer.apple.com/>`_. 
+
+The general steps required to obtaining and implementing an Apple code signing certificate are as follows:
+
+* Create an `Apple developer account <https://developer.apple.com/>`_.
+* Attain a `Developer ID Application certificate <https://developer.apple.com/help/account/create-certificates/create-developer-id-certificates/>`_ and add it to your Keychain
+* Create a ``.env`` file in the ``<pareto-ui>/electron`` directory with the following variables:
+
+    * APPLE_ID
+    * APPLE_ID_PASSWORD
+    * TEAM_ID*
+    * NOTARIZE_TOOL*
+
+* Build the application (step 2)
+
+\*MacOS applications can be notarized with Apple as an additional step after being signed. This allows Apple to scan the application, provide feedback about any vulnerabilties or issues, and, if approved, provide a reputation to the application so that it will be trusted by other Mac users. The TEAM_ID, which is connected to your developer account, and the NOTARIZE_TOOL, which should be set to a CLI tool such as "notarytool", are necessary for this notarization process to run.
