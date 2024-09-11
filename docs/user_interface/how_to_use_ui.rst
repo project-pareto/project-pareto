@@ -49,7 +49,7 @@ Step-by-step guide
 
             |input-page|
 
-         **Step 6.** Click the "optimization setup" button, and choose
+         **Step 6.** Click "CONTINUE TO OPTIMIZATION" button, and choose
          from our model settings. If you have a gurobi license, select
          "gurobi" from the solver options:
 
@@ -57,7 +57,7 @@ Step-by-step guide
 
             |model-settings|
 
-         **Step 7.** Click "run model":
+         **Step 7.** Click "OPTIMIZE" to run the PARETO strategic model:
 
          .. container:: screenshot-div
 
