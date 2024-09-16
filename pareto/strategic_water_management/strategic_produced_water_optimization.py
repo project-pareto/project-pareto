@@ -54,12 +54,11 @@ from pyomo.opt import TerminationCondition
 from pathlib import Path
 
 from pareto.utilities.process_data import (
-    get_valid_piping_arc_list,
-    get_valid_trucking_arc_list,
     check_required_data,
     model_infeasibility_detection,
 )
 from pareto.utilities.units_support import units_setup
+from pareto.utilities.build_utils import define_sets
 
 
 class Objectives(Enum):
@@ -293,83 +292,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
     # Define sets #
-
-    model.s_T = Set(
-        initialize=model.df_sets["TimePeriods"], doc="Time Periods", ordered=True
-    )
-    model.s_PP = Set(initialize=model.df_sets["ProductionPads"], doc="Production Pads")
-    model.s_CP = Set(
-        initialize=model.df_sets["CompletionsPads"], doc="Completions Pads"
-    )
-    model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc="Pads")
-    model.s_F = Set(
-        initialize=model.df_sets["ExternalWaterSources"], doc="External Water Sources"
-    )
-    model.s_K = Set(initialize=model.df_sets["SWDSites"], doc="Disposal Sites")
-    model.s_S = Set(initialize=model.df_sets["StorageSites"], doc="Storage Sites")
-    model.s_R = Set(initialize=model.df_sets["TreatmentSites"], doc="Treatment Sites")
-    model.s_O = Set(initialize=model.df_sets["ReuseOptions"], doc="Reuse Options")
-    model.s_N = Set(initialize=model.df_sets["NetworkNodes"], doc="Network Nodes")
-    model.s_QC = Set(
-        initialize=model.df_sets["WaterQualityComponents"],
-        doc="Water Quality Components",
-    )
-    model.s_L = Set(
-        initialize=(
-            model.s_P
-            | model.s_F
-            | model.s_K
-            | model.s_S
-            | model.s_R
-            | model.s_O
-            | model.s_N
-        ),
-        doc="Locations",
-    )
-    model.s_D = Set(
-        initialize=model.df_sets["PipelineDiameters"], doc="Pipeline diameters"
-    )
-    model.s_C = Set(
-        initialize=model.df_sets["StorageCapacities"], doc="Storage capacities"
-    )
-    model.s_J = Set(
-        initialize=model.df_sets["TreatmentCapacities"], doc="Treatment capacities"
-    )
-    model.s_I = Set(
-        initialize=model.df_sets["InjectionCapacities"],
-        doc="Injection (i.e. disposal) capacities",
-    )
-
-    model.s_WT = Set(
-        initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
-    )
-
-    model.s_A = Set(
-        initialize=model.df_sets["AirEmissionsComponents"],
-        doc="Air emission components",
-    )
-
-    piping_arc_types = get_valid_piping_arc_list()
-
-    # Build dictionary of all specified piping arcs
-    model.df_parameters["LLA"] = {}
-    for arctype in piping_arc_types:
-        if arctype in model.df_parameters:
-            model.df_parameters["LLA"].update(model.df_parameters[arctype])
-    model.s_LLA = Set(
-        initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
-    )
-
-    trucking_arc_types = get_valid_trucking_arc_list()
-
-    # Build dictionary of all specified trucking arcs
-    model.df_parameters["LLT"] = {}
-    for arctype in trucking_arc_types:
-        if arctype in model.df_parameters:
-            model.df_parameters["LLT"].update(model.df_parameters[arctype])
-    model.s_LLT = Set(
-        initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
-    )
+    define_sets(model)
 
     # Define continuous variables #
 

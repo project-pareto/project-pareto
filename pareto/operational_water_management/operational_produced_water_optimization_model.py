@@ -33,6 +33,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 from enum import Enum
 
 from pareto.utilities.units_support import units_setup
+from pareto.utilities.build_utils import define_sets
 
 
 class ProdTank(Enum):
@@ -110,37 +111,7 @@ def create_model(df_sets, df_parameters, default={}):
     model.proprietary_data = df_parameters["proprietary_data"][0]
 
     # Define sets #
-    model.s_T = Set(initialize=df_sets["TimePeriods"], doc="Time Periods", ordered=True)
-    model.s_PP = Set(initialize=df_sets["ProductionPads"], doc="Production Pads")
-    model.s_CP = Set(initialize=df_sets["CompletionsPads"], doc="Completions Pads")
-    model.s_A = Set(initialize=df_sets["ProductionTanks"], doc="Production Tanks")
-    model.s_P = Set(initialize=(model.s_PP | model.s_CP), doc="Pads")
-    model.s_F = Set(
-        initialize=df_sets["ExternalWaterSources"], doc="External Water Sources"
-    )
-    model.s_K = Set(initialize=df_sets["SWDSites"], doc="Disposal Sites")
-    model.s_S = Set(initialize=df_sets["StorageSites"], doc="Storage Sites")
-    model.s_R = Set(initialize=df_sets["TreatmentSites"], doc="Treatment Sites")
-    model.s_O = Set(initialize=df_sets["ReuseOptions"], doc="Reuse Options")
-    model.s_N = Set(initialize=df_sets["NetworkNodes"], doc=["Network Nodes"])
-    model.s_W = Set(
-        initialize=df_sets["WaterQualityComponents"], doc="Water Quality Components"
-    )
-    model.s_L = Set(
-        initialize=(
-            model.s_P
-            | model.s_F
-            | model.s_K
-            | model.s_S
-            | model.s_R
-            | model.s_O
-            | model.s_N
-        ),
-        doc="Locations",
-    )
-    model.s_D = Set(initialize=["D0"], doc="Pipeline diameters")
-    model.s_C = Set(initialize=["C0"], doc="Storage capacities")
-    model.s_I = Set(initialize=["I0"], doc="Injection (i.e. disposal) capacities")
+    define_sets(model)
 
     # Define model parameters #
     model.p_PCA = Param(
@@ -283,10 +254,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize={},
         doc="Valid storage-to-reuse pipeline arcs [-]",
     )
-    df_parameters["LLA"] = {
-        **df_parameters["RCA"],
-        **df_parameters["FCA"],
-    }
     model.p_PCT = Param(
         model.s_PP,
         model.s_CP,
@@ -377,24 +344,6 @@ def create_model(df_sets, df_parameters, default={}):
         default=0,
         initialize={},
         doc="Valid treatment-to-disposal trucking arcs [-]",
-    )
-    df_parameters["LLT"] = {
-        **df_parameters["PCT"],
-        **df_parameters["CCT"],
-        **df_parameters["CRT"],
-        **df_parameters["CKT"],
-        **df_parameters["FCT"],
-        **df_parameters["PKT"],
-        **df_parameters["PRT"],
-    }
-
-    model.s_LLT = Set(
-        initialize=list(df_parameters["LLT"].keys()),
-        doc="Location-to-location trucking arcs",
-    )
-    model.s_LLA = Set(
-        initialize=list(df_parameters["LLA"].keys()),
-        doc="Location-to-location piping arcs",
     )
 
     model.p_LLT = Param(
