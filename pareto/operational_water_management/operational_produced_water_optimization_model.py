@@ -47,6 +47,7 @@ class WaterQuality(Enum):
 
 # create config dictionary
 CONFIG = ConfigBlock()
+
 CONFIG.declare(
     "has_pipeline_constraints",
     ConfigValue(
@@ -60,6 +61,7 @@ CONFIG.declare(
 **False** - do not construct pipeline constraints}""",
     ),
 )
+
 CONFIG.declare(
     "production_tanks",
     ConfigValue(
@@ -69,6 +71,7 @@ CONFIG.declare(
         doc="Type of production tank arrangement (i.e., Individual, Equalized)",
     ),
 )
+
 CONFIG.declare(
     "water_quality",
     ConfigValue(
@@ -84,13 +87,6 @@ CONFIG.declare(
         }""",
     ),
 )
-
-
-# return the units container used for strategic model
-# this is needed for the testing_strategic_model.py for checking units consistency
-def get_operational_model_unit_container():
-    return pyunits
-
 
 def create_model(df_sets, df_parameters, default={}):
     """

@@ -122,6 +122,7 @@ class DesalinationModel(Enum):
 
 # create config dictionary
 CONFIG = ConfigBlock()
+
 CONFIG.declare(
     "objective",
     ConfigValue(
@@ -131,6 +132,7 @@ CONFIG.declare(
         doc="Alternate objective functions (i.e., minimize cost, maximize reuse, minimize environmental impact)",
     ),
 )
+
 CONFIG.declare(
     "pipeline_capacity",
     ConfigValue(
@@ -145,6 +147,7 @@ CONFIG.declare(
         }""",
     ),
 )
+
 CONFIG.declare(
     "hydraulics",
     ConfigValue(
@@ -161,6 +164,7 @@ CONFIG.declare(
         }""",
     ),
 )
+
 CONFIG.declare(
     "pipeline_cost",
     ConfigValue(
@@ -175,6 +179,7 @@ CONFIG.declare(
         }""",
     ),
 )
+
 CONFIG.declare(
     "node_capacity",
     ConfigValue(
@@ -189,6 +194,7 @@ CONFIG.declare(
         }""",
     ),
 )
+
 CONFIG.declare(
     "desalination_model",
     ConfigValue(
@@ -205,13 +211,6 @@ CONFIG.declare(
     ),
 )
 
-
-# return the units container used for strategic model
-# this is needed for the testing_strategic_model.py for checking units consistency
-def get_strategic_model_unit_container():
-    return pyunits
-
-
 CONFIG.declare(
     "water_quality",
     ConfigValue(
@@ -227,7 +226,6 @@ CONFIG.declare(
         }""",
     ),
 )
-
 
 CONFIG.declare(
     "removal_efficiency_method",

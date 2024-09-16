@@ -24,7 +24,14 @@ from pyomo.core.expr.numvalue import (
 
 from pyomo.core.expr import current as EXPR
 from pyomo.core.base.units_container import _PyomoUnit
+from pyomo.environ import units as pyunits
 
+
+# Return the units container used for strategic/operational model. This is
+# needed in test_strategic_model.py and test_operational_model.py for checking
+# units consistency.
+def get_model_unit_container():
+    return pyunits
 
 class PintUnitExtractionVisitor(EXPR.StreamBasedExpressionVisitor):
     def __init__(self, pyomo_units_container):

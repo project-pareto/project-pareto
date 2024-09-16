@@ -25,8 +25,8 @@ from pareto.operational_water_management.operational_produced_water_optimization
     create_model,
     ProdTank,
     WaterQuality,
-    get_operational_model_unit_container,
 )
+from pareto.utilities.units_support import get_model_unit_container
 from pareto.utilities.get_data import (
     get_data,
     get_display_units,
@@ -108,7 +108,7 @@ def test_operational_model_unit_consistency(build_operational_model):
         },
     )
     # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
-    visitor = PintUnitExtractionVisitor(get_operational_model_unit_container())
+    visitor = PintUnitExtractionVisitor(get_model_unit_container())
     # Iterate through all Constraints
     for c in m.component_objects(Constraint):
         # If indexed, iterate through Constraint indexes
