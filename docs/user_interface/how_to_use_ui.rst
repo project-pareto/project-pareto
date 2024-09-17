@@ -21,7 +21,7 @@ Step-by-step guide
             |software-website|
 
          **Step 2.** Follow the installation steps to install the
-         application. For windows, see below:
+         application. For Windows, see below:
 
          .. container:: screenshot-div
 
