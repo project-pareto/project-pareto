@@ -27,7 +27,7 @@ Step-by-step guide
 
             |windows-installer|
 
-         **Step 3.** Run the application, you should see a splash page
+         **Step 3.** Run the application. You should see a splash page
          before being redirected to the scenarios page:
 
          .. container:: screenshot-div
