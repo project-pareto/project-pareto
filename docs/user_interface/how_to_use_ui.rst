@@ -107,7 +107,7 @@ Map Feature (Beta)
 
    .. container::
 
-      **Step 1.** Navigate to the PARETO UI scenario list page. Click create scenario, and upload your map file. You will be directed to this input page:
+      **Step 1.** Navigate to the PARETO UI scenario list page. Click create scenario and upload your map file. You will be directed to this input page:
 
       .. container:: screenshot-div
 
