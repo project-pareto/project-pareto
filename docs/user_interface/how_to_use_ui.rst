@@ -70,7 +70,7 @@ Step-by-step guide
             |kpi-dashboard.|
 
          **Step 9.** Analyze the output by looking through tables and
-         graphs, including the sankey diagram that interactively
+         graphs, including the Sankey diagram that interactively
          displays the distribution of produced water:
 
          .. container:: screenshot-div
