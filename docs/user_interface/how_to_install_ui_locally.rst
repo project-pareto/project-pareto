@@ -22,7 +22,7 @@ Installing the UI
 
     git clone https://github.com/<githubid>/pareto-ui
 
-3. Create a dedicated Conda environment for development work::
+3. Navigate into the new ``pareto-ui`` directory, and run the following command to create a dedicated Conda environment for development work called ``pareto-ui-env``::
 
     conda env create --file environment.yml
 
@@ -30,12 +30,12 @@ Installing the UI
 
     conda activate pareto-ui-env
 
-5. Navigate into the new ``pareto-ui/electron`` directory, then run the following command to install 
+5. Navigate into the ``pareto-ui/electron`` directory, then run the following command to install 
    the electron javascript dependencies::
 
     npm clean-install
 
-6. Navigate into the new ``pareto-ui/electron/ui`` directory, then run the following command to install 
+6. Navigate into the ``pareto-ui/electron/ui`` directory, then run the following command to install 
    the frontend dependencies::
 
     npm clean-install
