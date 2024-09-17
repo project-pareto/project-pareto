@@ -71,7 +71,7 @@ Step-by-step guide
 
          **Step 9.** Analyze the output by looking through tables and
          graphs, including the Sankey diagram that interactively
-         displays the distribution of produced water:
+         displays the transport of produced water (via piping or trucking):
 
          .. container:: screenshot-div
 
