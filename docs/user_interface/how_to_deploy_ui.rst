@@ -90,7 +90,7 @@ The application build handles 3 substeps - building the backend, building the fr
 
 **3. Code sign the application**
 
-For a complete guide to code signing electron MacOS applications, see their `mac app store submission guide <https://www.electronjs.org/docs/latest/tutorial/mac-app-store-submission-guide>`_.
+For a complete guide to code signing electron MacOS applications, see the `Mac App Store Submission Guide <https://www.electronjs.org/docs/latest/tutorial/mac-app-store-submission-guide>`_.
 
 
 The general steps required to obtaining and implementing an Apple code signing certificate are as follows:
