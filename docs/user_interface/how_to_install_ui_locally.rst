@@ -16,7 +16,7 @@ These installation instructions are targeted towards developers and those who wi
 Installing the UI
 -----------------
 
-1. Fork the repo on GitHub (your copy of the main repo)
+1. Fork the `PARETO UI repo <https://github.com/project-pareto/pareto-ui>`_ on GitHub (your copy of the main repo)
 
 2. Clone your fork locally, creating a workspace (replacing ``<githubid>`` with your github user id)::
 
