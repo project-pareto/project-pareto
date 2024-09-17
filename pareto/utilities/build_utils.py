@@ -22,6 +22,7 @@ from pareto.utilities.process_data import (
     get_valid_trucking_arc_list,
 )
 
+
 def define_sets(model):
     model.s_T = Set(
         initialize=model.df_sets["TimePeriods"], doc="Time Periods", ordered=True
@@ -52,11 +53,14 @@ def define_sets(model):
         doc="Locations",
     )
     model.s_QC = Set(
-        initialize=model.df_sets["WaterQualityComponents"], doc="Water Quality Components",
+        initialize=model.df_sets["WaterQualityComponents"],
+        doc="Water Quality Components",
     )
 
     if model.type == "operational":
-        model.s_A = Set(initialize=model.df_sets["ProductionTanks"], doc="Production Tanks")
+        model.s_A = Set(
+            initialize=model.df_sets["ProductionTanks"], doc="Production Tanks"
+        )
         model.s_D = Set(initialize=["D0"], doc="Pipeline diameters")
         model.s_C = Set(initialize=["C0"], doc="Storage capacities")
         model.s_I = Set(initialize=["I0"], doc="Injection (i.e. disposal) capacities")
@@ -76,7 +80,8 @@ def define_sets(model):
             doc="Injection (i.e. disposal) capacities",
         )
         model.s_WT = Set(
-            initialize=model.df_sets["TreatmentTechnologies"], doc="Treatment Technologies"
+            initialize=model.df_sets["TreatmentTechnologies"],
+            doc="Treatment Technologies",
         )
         model.s_A = Set(
             initialize=model.df_sets["AirEmissionsComponents"],

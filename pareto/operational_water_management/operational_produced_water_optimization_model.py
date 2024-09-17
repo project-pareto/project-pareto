@@ -90,6 +90,7 @@ CONFIG.declare(
     ),
 )
 
+
 def create_model(df_sets, df_parameters, default={}):
     """
     create operational model
@@ -2825,7 +2826,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.s_QL,
         model.s_T,
         model.s_QC,
-        rule=lambda model, l, t, qc: sum(model.v_DQ[l, t, qc, q] for q in model.s_Q) == 1,
+        rule=lambda model, l, t, qc: sum(model.v_DQ[l, t, qc, q] for q in model.s_Q)
+        == 1,
         doc="Only one discrete quality can be chosen",
     )
 
@@ -2846,7 +2848,9 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_QC,
             model.s_Q,
-            rule=lambda model, l1, l2, t, qc, q: model.v_F_DiscretePiped[l1, l2, t, qc, q]
+            rule=lambda model, l1, l2, t, qc, q: model.v_F_DiscretePiped[
+                l1, l2, t, qc, q
+            ]
             <= (model.p_sigma_Pipeline[l1, l2] + max(model.p_delta_Pipeline.values()))
             * model.v_DQ[l1, t, qc, q],
             doc="Only one flow can be non-zero for quality component qc and all discretized quality q",
@@ -2949,7 +2953,9 @@ def water_quality_discrete(model, df_parameters, df_sets):
             model.s_T,
             model.s_QC,
             model.s_Q,
-            rule=lambda model, s, t, qc, q: model.v_F_DiscreteFlowOutStorage[s, t, qc, q]
+            rule=lambda model, s, t, qc, q: model.v_F_DiscreteFlowOutStorage[
+                s, t, qc, q
+            ]
             <= (
                 model.p_sigma_Storage[s]
                 + sum(
@@ -3227,7 +3233,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
     def DisposalWaterQualityRule(b, k, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, k, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[n, k, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
@@ -3238,7 +3245,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             if model.p_SKA[s, k]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[r, k, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[r, k, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for r in model.s_R
@@ -3370,7 +3378,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
                 if model.p_CRT[p, r]
             )
         ) <= sum(
-            model.v_F_DiscreteFlowTreatment[r, t, qc, q] * model.p_discrete_quality[qc, q]
+            model.v_F_DiscreteFlowTreatment[r, t, qc, q]
+            * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
@@ -3395,7 +3404,8 @@ def water_quality_discrete(model, df_parameters, df_sets):
             if model.p_CNA[p, n]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, n, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[s, n, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
@@ -3426,14 +3436,16 @@ def water_quality_discrete(model, df_parameters, df_sets):
     def BeneficialReuseWaterQuality(b, o, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, o, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[n, o, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
             if model.p_NOA[n, o]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, o, t, qc, q] * model.p_discrete_quality[qc, q]
+                model.v_F_DiscretePiped[s, o, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
