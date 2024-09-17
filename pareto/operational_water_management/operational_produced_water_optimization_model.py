@@ -647,7 +647,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_epsilon_Treatment = Param(
         model.s_R,
-        model.s_W,
+        model.s_QC,
         default=1.0,
         initialize=df_parameters["TreatmentEfficiency"],
         doc="Treatment efficiency [%]",
@@ -2367,7 +2367,7 @@ def water_quality(model, df_sets, df_parameters):
     # Introduce parameter nu for water quality at each pad
     model.p_nu = Param(
         model.s_P,
-        model.s_W,
+        model.s_QC,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -2383,7 +2383,7 @@ def water_quality(model, df_sets, df_parameters):
 
     model.p_xi = Param(
         model.s_S,
-        model.s_W,
+        model.s_QC,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -2399,7 +2399,7 @@ def water_quality(model, df_sets, df_parameters):
     # Introduce variable Q to track water quality at each location over time
     model.v_Q = Var(
         model.s_L,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         within=NonNegativeReals,
         initialize=0,
@@ -2408,70 +2408,70 @@ def water_quality(model, df_sets, df_parameters):
     )
 
     # Material Balance
-    def DisposalWaterQualityRule(model, k, w, t):
+    def DisposalWaterQualityRule(model, k, qc, t):
         return (
             sum(
-                model.v_F_Piped[n, k, t] * model.v_Q[n, w, t]
+                model.v_F_Piped[n, k, t] * model.v_Q[n, qc, t]
                 for n in model.s_N
                 if model.p_NKA[n, k]
             )
             + sum(
-                model.v_F_Piped[s, k, t] * model.v_Q[s, w, t]
+                model.v_F_Piped[s, k, t] * model.v_Q[s, qc, t]
                 for s in model.s_S
                 if model.p_SKA[s, k]
             )
             + sum(
-                model.v_F_Piped[r, k, t] * model.v_Q[r, w, t]
+                model.v_F_Piped[r, k, t] * model.v_Q[r, qc, t]
                 for r in model.s_R
                 if model.p_RKA[r, k]
             )
             + sum(
-                model.v_F_Trucked[s, k, t] * model.v_Q[s, w, t]
+                model.v_F_Trucked[s, k, t] * model.v_Q[s, qc, t]
                 for s in model.s_S
                 if model.p_SKT[s, k]
             )
             + sum(
-                model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, k, t] * model.v_Q[p, qc, t]
                 for p in model.s_PP
                 if model.p_PKT[p, k]
             )
             + sum(
-                model.v_F_Trucked[p, k, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, k, t] * model.v_Q[p, qc, t]
                 for p in model.s_CP
                 if model.p_CKT[p, k]
             )
             + sum(
-                model.v_F_Trucked[r, k, t] * model.v_Q[r, w, t]
+                model.v_F_Trucked[r, k, t] * model.v_Q[r, qc, t]
                 for r in model.s_R
                 if model.p_RKT[r, k]
             )
-            == model.v_Q[k, w, t] * model.v_F_DisposalDestination[k, t]
+            == model.v_Q[k, qc, t] * model.v_F_DisposalDestination[k, t]
         )
 
     model.DisposalWaterQuality = Constraint(
         model.s_K,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=DisposalWaterQualityRule,
         doc="Disposal water quality rule",
     )
 
-    def StorageSiteWaterQualityRule(model, s, w, t):
+    def StorageSiteWaterQualityRule(model, s, qc, t):
         if t == model.s_T.first():
-            return model.p_lambda_Storage[s] * model.p_xi[s, w] + sum(
-                model.v_F_Piped[n, s, t] * model.v_Q[n, w, t]
+            return model.p_lambda_Storage[s] * model.p_xi[s, qc] + sum(
+                model.v_F_Piped[n, s, t] * model.v_Q[n, qc, t]
                 for n in model.s_N
                 if model.p_NSA[n, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, s, t] * model.v_Q[p, qc, t]
                 for p in model.s_PP
                 if model.p_PST[p, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, s, t] * model.v_Q[p, qc, t]
                 for p in model.s_CP
                 if model.p_CST[p, s]
             ) == model.v_Q[
-                s, w, t
+                s, qc, t
             ] * (
                 model.v_L_Storage[s, t]
                 + sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
@@ -2488,21 +2488,21 @@ def water_quality(model, df_sets, df_parameters):
             )
         else:
             return model.v_L_Storage[s, model.s_T.prev(t)] * model.v_Q[
-                s, w, model.s_T.prev(t)
+                s, qc, model.s_T.prev(t)
             ] + sum(
-                model.v_F_Piped[n, s, t] * model.v_Q[n, w, t]
+                model.v_F_Piped[n, s, t] * model.v_Q[n, qc, t]
                 for n in model.s_N
                 if model.p_NSA[n, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, s, t] * model.v_Q[p, qc, t]
                 for p in model.s_PP
                 if model.p_PST[p, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, s, t] * model.v_Q[p, qc, t]
                 for p in model.s_CP
                 if model.p_CST[p, s]
             ) == model.v_Q[
-                s, w, t
+                s, qc, t
             ] * (
                 model.v_L_Storage[s, t]
                 + sum(model.v_F_Piped[s, n, t] for n in model.s_N if model.p_SNA[s, n])
@@ -2520,67 +2520,67 @@ def water_quality(model, df_sets, df_parameters):
 
     model.StorageSiteWaterQuality = Constraint(
         model.s_S,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=StorageSiteWaterQualityRule,
         doc="Storage site water quality rule",
     )
 
     # Treatment Facility
-    def TreatmentWaterQualityRule(model, r, w, t):
-        return model.p_epsilon_Treatment[r, w] * (
+    def TreatmentWaterQualityRule(model, r, qc, t):
+        return model.p_epsilon_Treatment[r, qc] * (
             sum(
-                model.v_F_Piped[n, r, t] * model.v_Q[n, w, t]
+                model.v_F_Piped[n, r, t] * model.v_Q[n, qc, t]
                 for n in model.s_N
                 if model.p_NRA[n, r]
             )
             + sum(
-                model.v_F_Piped[s, r, t] * model.v_Q[s, w, t]
+                model.v_F_Piped[s, r, t] * model.v_Q[s, qc, t]
                 for s in model.s_S
                 if model.p_SRA[s, r]
             )
             + sum(
-                model.v_F_Trucked[p, r, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, r, t] * model.v_Q[p, qc, t]
                 for p in model.s_PP
                 if model.p_PRT[p, r]
             )
             + sum(
-                model.v_F_Trucked[p, r, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, r, t] * model.v_Q[p, qc, t]
                 for p in model.s_CP
                 if model.p_CRT[p, r]
             )
-        ) == model.v_Q[r, w, t] * (
+        ) == model.v_Q[r, qc, t] * (
             sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
             + model.v_F_UnusedTreatedWater[r, t]
         )
 
     model.TreatmentWaterQuality = Constraint(
         model.s_R,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=simple_constraint_rule(TreatmentWaterQualityRule),
         doc="Treatment water quality",
     )
 
-    def NetworkNodeWaterQualityRule(model, n, w, t):
+    def NetworkNodeWaterQualityRule(model, n, qc, t):
         return sum(
-            model.v_F_Piped[p, n, t] * model.v_Q[p, w, t]
+            model.v_F_Piped[p, n, t] * model.v_Q[p, qc, t]
             for p in model.s_PP
             if model.p_PNA[p, n]
         ) + sum(
-            model.v_F_Piped[p, n, t] * model.v_Q[p, w, t]
+            model.v_F_Piped[p, n, t] * model.v_Q[p, qc, t]
             for p in model.s_CP
             if model.p_CNA[p, n]
         ) + sum(
-            model.v_F_Piped[s, n, t] * model.v_Q[s, w, t]
+            model.v_F_Piped[s, n, t] * model.v_Q[s, qc, t]
             for s in model.s_S
             if model.p_SNA[s, n]
         ) + sum(
-            model.v_F_Piped[n_tilde, n, t] * model.v_Q[n_tilde, w, t]
+            model.v_F_Piped[n_tilde, n, t] * model.v_Q[n_tilde, qc, t]
             for n_tilde in model.s_N
             if model.p_NNA[n_tilde, n]
         ) == model.v_Q[
-            n, w, t
+            n, qc, t
         ] * (
             sum(
                 model.v_F_Piped[n, n_tilde, t]
@@ -2596,35 +2596,35 @@ def water_quality(model, df_sets, df_parameters):
 
     model.NetworkWaterQuality = Constraint(
         model.s_N,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=NetworkNodeWaterQualityRule,
         doc="Network water quality",
     )
 
-    def BeneficialReuseWaterQuality(model, o, w, t):
+    def BeneficialReuseWaterQuality(model, o, qc, t):
         return (
             sum(
-                model.v_F_Piped[n, o, t] * model.v_Q[n, w, t]
+                model.v_F_Piped[n, o, t] * model.v_Q[n, qc, t]
                 for n in model.s_N
                 if model.p_NOA[n, o]
             )
             + sum(
-                model.v_F_Piped[s, o, t] * model.v_Q[s, w, t]
+                model.v_F_Piped[s, o, t] * model.v_Q[s, qc, t]
                 for s in model.s_S
                 if model.p_SOA[s, o]
             )
             + sum(
-                model.v_F_Trucked[p, o, t] * model.v_Q[p, w, t]
+                model.v_F_Trucked[p, o, t] * model.v_Q[p, qc, t]
                 for p in model.s_PP
                 if model.p_POT[p, o]
             )
-            == model.v_Q[o, w, t] * model.v_F_BeneficialReuseDestination[o, t]
+            == model.v_Q[o, qc, t] * model.v_F_BeneficialReuseDestination[o, t]
         )
 
     model.BeneficialReuseWaterQuality = Constraint(
         model.s_O,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=BeneficialReuseWaterQuality,
         doc="Beneficial reuse capacity",
@@ -2644,9 +2644,9 @@ def water_quality(model, df_sets, df_parameters):
 
     # Use p_nu to fix v_Q for pads
     for p in model.s_P:
-        for w in model.s_W:
+        for qc in model.s_QC:
             for t in model.s_T:
-                model.v_Q[p, w, t].fix(model.p_nu[p, w])
+                model.v_Q[p, qc, t].fix(model.p_nu[p, qc])
 
     return model
 
@@ -2700,7 +2700,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # Quality at pad
     model.p_nu_pad = Param(
         model.s_P,
-        model.s_W,
+        model.s_QC,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -2716,7 +2716,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # Quality of externally sourced water
     model.p_nu_externalwater = Param(
         model.s_F,
-        model.s_W,
+        model.s_QC,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -2742,7 +2742,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # Initial water quality at storage site
     model.p_xi_StorageSite = Param(
         model.s_S,
-        model.s_W,
+        model.s_QC,
         default=(
             max(StorageInitialWaterQuality_convert_to_model.values()) * 100
             if StorageInitialWaterQuality_convert_to_model
@@ -2765,7 +2765,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
 
     # Initialize values for each discrete quality
     model.p_discrete_quality = Param(
-        model.s_W,
+        model.s_QC,
         model.s_Q,
         initialize=discretize_water_quality(
             df_parameters, df_sets, discrete_quality_list
@@ -2805,7 +2805,7 @@ def water_quality_discrete(model, df_parameters, df_sets):
         doc="Locations with discrete quality",
     )
 
-    def SetZToMax(model, l, t, w, q):
+    def SetZToMax(model, l, t, qc, q):
         # Set initial value for discrete quality to max value. This is for setting initial solution.
         if q == discrete_quality_list[-1]:
             return 1
@@ -2814,18 +2814,18 @@ def water_quality_discrete(model, df_parameters, df_sets):
     model.v_DQ = Var(
         model.s_QL,
         model.s_T,
-        model.s_W,
+        model.s_QC,
         model.s_Q,
         within=Binary,
         initialize=SetZToMax,
-        doc="Discrete quality at location ql at time t for component w",
+        doc="Discrete quality at location ql at time t for component qc",
     )
 
     model.OnlyOneDiscreteQualityPerLocation = Constraint(
         model.s_QL,
         model.s_T,
-        model.s_W,
-        rule=lambda model, l, t, w: sum(model.v_DQ[l, t, w, q] for q in model.s_Q) == 1,
+        model.s_QC,
+        rule=lambda model, l, t, qc: sum(model.v_DQ[l, t, qc, q] for q in model.s_Q) == 1,
         doc="Only one discrete quality can be chosen",
     )
 
@@ -2833,101 +2833,101 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.v_F_DiscretePiped = Var(
             model.s_NonPLP,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
             initialize=0,
-            doc="Produced water quantity piped from location l to location l for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity piped from location l to location l for each quality component qc and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxPipeFlow = Constraint(
             model.s_NonPLP,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, l1, l2, t, w, q: model.v_F_DiscretePiped[l1, l2, t, w, q]
+            rule=lambda model, l1, l2, t, qc, q: model.v_F_DiscretePiped[l1, l2, t, qc, q]
             <= (model.p_sigma_Pipeline[l1, l2] + max(model.p_delta_Pipeline.values()))
-            * model.v_DQ[l1, t, w, q],
-            doc="Only one flow can be non-zero for quality component w and all discretized quality q",
+            * model.v_DQ[l1, t, qc, q],
+            doc="Only one flow can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteFlowsIsFlowPiped = Constraint(
             model.s_NonPLP,
             model.s_T,
-            model.s_W,
-            rule=lambda model, l1, l2, t, w: sum(
-                model.v_F_DiscretePiped[l1, l2, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, l1, l2, t, qc: sum(
+                model.v_F_DiscretePiped[l1, l2, t, qc, q] for q in model.s_Q
             )
             == model.v_F_Piped[l1, l2, t],
-            doc="Sum for each flow for component w equals the produced water quantity piped from location l to location l ",
+            doc="Sum for each flow for component qc equals the produced water quantity piped from location l to location l ",
         )
 
     def DiscretizeTruckedFlowQuality(model):
         model.v_F_DiscreteTrucked = Var(
             model.s_NonPLT,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
             initialize=0,
-            doc="Produced water quantity trucked from location l to location l for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity trucked from location l to location l for each quality component qc and discretized quality q [volume/time]",
         )
         model.DiscreteMaxTruckedFlow = Constraint(
             model.s_NonPLT,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, l1, l2, t, w, q: model.v_F_DiscreteTrucked[
-                l1, l2, t, w, q
+            rule=lambda model, l1, l2, t, qc, q: model.v_F_DiscreteTrucked[
+                l1, l2, t, qc, q
             ]
             <= (model.p_delta_Truck * model.p_max_number_of_trucks)
-            * model.v_DQ[l1, t, w, q],
-            doc="Only one flow can be non-zero for quality component w and all discretized quality q",
+            * model.v_DQ[l1, t, qc, q],
+            doc="Only one flow can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteFlowsIsFlowTrucked = Constraint(
             model.s_NonPLT,
             model.s_T,
-            model.s_W,
-            rule=lambda model, l1, l2, t, w: sum(
-                model.v_F_DiscreteTrucked[l1, l2, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, l1, l2, t, qc: sum(
+                model.v_F_DiscreteTrucked[l1, l2, t, qc, q] for q in model.s_Q
             )
             == model.v_F_Trucked[l1, l2, t],
-            doc="Sum for each flow for component w equals the produced water quantity trucked from location l to location l  ",
+            doc="Sum for each flow for component qc equals the produced water quantity trucked from location l to location l",
         )
 
     def DiscretizeDisposalDestinationQuality(model):
         model.v_F_DiscreteDisposalDestination = Var(
             model.s_K,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at disposal k for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity at disposal k for each quality component qc and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxDisposalDestination = Constraint(
             model.s_K,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, k, t, w, q: model.v_F_DiscreteDisposalDestination[
-                k, t, w, q
+            rule=lambda model, k, t, qc, q: model.v_F_DiscreteDisposalDestination[
+                k, t, qc, q
             ]
             <= (model.p_sigma_Disposal[k] + max(model.p_delta_Disposal.values()))
-            * model.v_DQ[k, t, w, q],
-            doc="Only one quantity at disposal can be non-zero for quality component w and all discretized quality q",
+            * model.v_DQ[k, t, qc, q],
+            doc="Only one quantity at disposal can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteDisposalDestinationIsDisposalDestination = Constraint(
             model.s_K,
             model.s_T,
-            model.s_W,
-            rule=lambda model, k, t, w: sum(
-                model.v_F_DiscreteDisposalDestination[k, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, k, t, qc: sum(
+                model.v_F_DiscreteDisposalDestination[k, t, qc, q] for q in model.s_Q
             )
             == model.v_F_DisposalDestination[k, t],
             doc="The sum of discretized quality q for disposal destination k equals the disposal destination k",
@@ -2937,19 +2937,19 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.v_F_DiscreteFlowOutStorage = Var(
             model.s_S,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity out of storage site s for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity out of storage site s for each quality component qc and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxOutStorageFlow = Constraint(
             model.s_S,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, s, t, w, q: model.v_F_DiscreteFlowOutStorage[s, t, w, q]
+            rule=lambda model, s, t, qc, q: model.v_F_DiscreteFlowOutStorage[s, t, qc, q]
             <= (
                 model.p_sigma_Storage[s]
                 + sum(
@@ -2988,16 +2988,16 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     if model.p_SKT[s, k]
                 )
             )
-            * model.v_DQ[s, t, w, q],
-            doc="Only one outflow for storage site s can be non-zero for quality component w and all discretized quality q",
+            * model.v_DQ[s, t, qc, q],
+            doc="Only one outflow for storage site s can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteFlowsIsFlowOutStorage = Constraint(
             model.s_S,
             model.s_T,
-            model.s_W,
-            rule=lambda model, s, t, w: sum(
-                model.v_F_DiscreteFlowOutStorage[s, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, s, t, qc: sum(
+                model.v_F_DiscreteFlowOutStorage[s, t, qc, q] for q in model.s_Q
             )
             == (
                 model.v_L_Storage[s, t]
@@ -3020,29 +3020,29 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.v_L_DiscreteStorage = Var(
             model.s_S,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume"],
-            doc="Produced water quantity at storage site s for each quality component w and discretized quality q [volume]",
+            doc="Produced water quantity at storage site s for each quality component qc and discretized quality q [volume]",
         )
 
         model.DiscreteMaxStorage = Constraint(
             model.s_S,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, s, t, w, q: model.v_L_DiscreteStorage[s, t, w, q]
-            <= model.p_sigma_Storage[s] * model.v_DQ[s, t, w, q],
-            doc="Only one quantity for storage site s can be non-zero for quality component w and all discretized quality q",
+            rule=lambda model, s, t, qc, q: model.v_L_DiscreteStorage[s, t, qc, q]
+            <= model.p_sigma_Storage[s] * model.v_DQ[s, t, qc, q],
+            doc="Only one quantity for storage site s can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteStorageIsStorage = Constraint(
             model.s_S,
             model.s_T,
-            model.s_W,
-            rule=lambda model, s, t, w: sum(
-                model.v_L_DiscreteStorage[s, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, s, t, qc: sum(
+                model.v_L_DiscreteStorage[s, t, qc, q] for q in model.s_Q
             )
             == model.v_L_Storage[s, t],
             doc="The sum of discretized quantities at storage site s equals the total quantity for storage site s",
@@ -3052,29 +3052,29 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.v_F_DiscreteFlowTreatment = Var(
             model.s_R,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at treatment site r for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity at treatment site r for each quality component qc and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxTreatmentFlow = Constraint(
             model.s_R,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, r, t, w, q: model.v_F_DiscreteFlowTreatment[r, t, w, q]
-            <= model.p_sigma_Treatment[r] * model.v_DQ[r, t, w, q],
-            doc="Only one quantity for treatment site r can be non-zero for quality component w and all discretized quality q",
+            rule=lambda model, r, t, qc, q: model.v_F_DiscreteFlowTreatment[r, t, qc, q]
+            <= model.p_sigma_Treatment[r] * model.v_DQ[r, t, qc, q],
+            doc="Only one quantity for treatment site r can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteFlowsIsFlowTreatment = Constraint(
             model.s_R,
             model.s_T,
-            model.s_W,
-            rule=lambda model, r, t, w: sum(
-                model.v_F_DiscreteFlowTreatment[r, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, r, t, qc: sum(
+                model.v_F_DiscreteFlowTreatment[r, t, qc, q] for q in model.s_Q
             )
             == (
                 sum(model.v_F_Piped[r, p, t] for p in model.s_CP if model.p_RCA[r, p])
@@ -3088,19 +3088,19 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.v_F_DiscreteFlowOutNode = Var(
             model.s_N,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity out of node n for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity out of node n for each quality component qc and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxOutNodeFlow = Constraint(
             model.s_N,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, n, t, w, q: model.v_F_DiscreteFlowOutNode[n, t, w, q]
+            rule=lambda model, n, t, qc, q: model.v_F_DiscreteFlowOutNode[n, t, qc, q]
             <= (
                 sum(
                     model.p_sigma_Pipeline[n, n_tilde]
@@ -3134,16 +3134,16 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     if model.p_NOA[n, o]
                 )
             )
-            * model.v_DQ[n, t, w, q],
-            doc="Only one outflow for node n can be non-zero for quality component w and all discretized quality q",
+            * model.v_DQ[n, t, qc, q],
+            doc="Only one outflow for node n can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteFlowsIsFlowOutNode = Constraint(
             model.s_N,
             model.s_T,
-            model.s_W,
-            rule=lambda model, n, t, w: sum(
-                model.v_F_DiscreteFlowOutNode[n, t, w, q] for q in model.s_Q
+            model.s_QC,
+            rule=lambda model, n, t, qc: sum(
+                model.v_F_DiscreteFlowOutNode[n, t, qc, q] for q in model.s_Q
             )
             == (
                 sum(
@@ -3164,20 +3164,20 @@ def water_quality_discrete(model, df_parameters, df_sets):
         model.v_F_DiscreteBeneficialReuseDestination = Var(
             model.s_O,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
             within=NonNegativeReals,
             units=model.model_units["volume_time"],
-            doc="Produced water quantity at beneficial reuse destination o for each quality component w and discretized quality q [volume/time]",
+            doc="Produced water quantity at beneficial reuse destination o for each quality component qc and discretized quality q [volume/time]",
         )
 
         model.DiscreteMaxBeneficialReuseFlow = Constraint(
             model.s_O,
             model.s_T,
-            model.s_W,
+            model.s_QC,
             model.s_Q,
-            rule=lambda model, o, t, w, q: model.v_F_DiscreteBeneficialReuseDestination[
-                o, t, w, q
+            rule=lambda model, o, t, qc, q: model.v_F_DiscreteBeneficialReuseDestination[
+                o, t, qc, q
             ]
             <= (
                 sum(
@@ -3196,16 +3196,16 @@ def water_quality_discrete(model, df_parameters, df_sets):
                     if model.p_POT[p, o]
                 )
             )
-            * model.v_DQ[o, t, w, q],
-            doc="Only one quantity for beneficial reuse destination o can be non-zero for quality component w and all discretized quality q",
+            * model.v_DQ[o, t, qc, q],
+            doc="Only one quantity for beneficial reuse destination o can be non-zero for quality component qc and all discretized quality q",
         )
 
         model.SumDiscreteFlowsIsFlowBeneficialReuse = Constraint(
             model.s_O,
             model.s_T,
-            model.s_W,
-            rule=lambda model, o, t, w: sum(
-                model.v_F_DiscreteBeneficialReuseDestination[o, t, w, q]
+            model.s_QC,
+            rule=lambda model, o, t, qc: sum(
+                model.v_F_DiscreteBeneficialReuseDestination[o, t, qc, q]
                 for q in model.s_Q
             )
             == model.v_F_BeneficialReuseDestination[o, t],
@@ -3224,54 +3224,54 @@ def water_quality_discrete(model, df_parameters, df_sets):
 
     # region Disposal
     # Material Balance
-    def DisposalWaterQualityRule(b, k, w, t):
+    def DisposalWaterQualityRule(b, k, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, k, t, w, q] * model.p_discrete_quality[w, q]
+                model.v_F_DiscretePiped[n, k, t, qc, q] * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
             if model.p_NKA[n, k]
         ) + sum(
-            model.v_F_Piped[s, k, t] * model.p_xi[s, w]
+            model.v_F_Piped[s, k, t] * model.p_xi[s, qc]
             for s in model.s_S
             if model.p_SKA[s, k]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[r, k, t, w, q] * model.p_discrete_quality[w, q]
+                model.v_F_DiscretePiped[r, k, t, qc, q] * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for r in model.s_R
             if model.p_RKA[r, k]
         ) + sum(
-            model.v_F_Trucked[s, k, t] * model.p_xi[s, w]
+            model.v_F_Trucked[s, k, t] * model.p_xi[s, qc]
             for s in model.s_S
             if model.p_SKT[s, k]
         ) + sum(
-            model.v_F_Trucked[p, k, t] * b.p_nu_pad[p, w]
+            model.v_F_Trucked[p, k, t] * b.p_nu_pad[p, qc]
             for p in model.s_PP
             if model.p_PKT[p, k]
         ) + sum(
-            model.v_F_Trucked[p, k, t] * b.p_nu_pad[p, w]
+            model.v_F_Trucked[p, k, t] * b.p_nu_pad[p, qc]
             for p in model.s_CP
             if model.p_CKT[p, k]
         ) + sum(
             sum(
-                model.v_F_DiscreteTrucked[r, k, t, w, q]
-                * model.p_discrete_quality[w, q]
+                model.v_F_DiscreteTrucked[r, k, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for r in model.s_R
             if model.p_RKT[r, k]
         ) <= sum(
-            model.v_F_DiscreteDisposalDestination[k, t, w, q]
-            * model.p_discrete_quality[w, q]
+            model.v_F_DiscreteDisposalDestination[k, t, qc, q]
+            * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
     model.DisposalWaterQuality = Constraint(
         model.s_K,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=DisposalWaterQualityRule,
         doc="Disposal water quality rule",
@@ -3279,59 +3279,59 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # endregion
 
     # region Storage
-    def StorageSiteWaterQualityRule(b, s, w, t):
+    def StorageSiteWaterQualityRule(b, s, qc, t):
         if t == model.s_T.first():
-            return model.p_lambda_Storage[s] * b.p_xi_StorageSite[s, w] + sum(
+            return model.p_lambda_Storage[s] * b.p_xi_StorageSite[s, qc] + sum(
                 sum(
-                    model.v_F_DiscretePiped[n, s, t, w, q]
-                    * model.p_discrete_quality[w, q]
+                    model.v_F_DiscretePiped[n, s, t, qc, q]
+                    * model.p_discrete_quality[qc, q]
                     for q in model.s_Q
                 )
                 for n in model.s_N
                 if model.p_NSA[n, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, qc]
                 for p in model.s_PP
                 if model.p_PST[p, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, qc]
                 for p in model.s_CP
                 if model.p_CST[p, s]
             ) <= sum(
-                model.v_F_DiscreteFlowOutStorage[s, t, w, q]
-                * model.p_discrete_quality[w, q]
+                model.v_F_DiscreteFlowOutStorage[s, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
         else:
             return sum(
-                model.v_L_DiscreteStorage[s, model.s_T.prev(t), w, q]
-                * model.p_discrete_quality[w, q]
+                model.v_L_DiscreteStorage[s, model.s_T.prev(t), qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             ) + sum(
                 sum(
-                    model.v_F_DiscretePiped[n, s, t, w, q]
-                    * model.p_discrete_quality[w, q]
+                    model.v_F_DiscretePiped[n, s, t, qc, q]
+                    * model.p_discrete_quality[qc, q]
                     for q in model.s_Q
                 )
                 for n in model.s_N
                 if model.p_NSA[n, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, qc]
                 for p in model.s_PP
                 if model.p_PST[p, s]
             ) + sum(
-                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, w]
+                model.v_F_Trucked[p, s, t] * b.p_nu_pad[p, qc]
                 for p in model.s_CP
                 if model.p_CST[p, s]
             ) <= sum(
-                model.v_F_DiscreteFlowOutStorage[s, t, w, q]
-                * model.p_discrete_quality[w, q]
+                model.v_F_DiscreteFlowOutStorage[s, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
 
     model.StorageSiteWaterQuality = Constraint(
         model.s_S,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=StorageSiteWaterQualityRule,
         doc="Storage site water quality rule",
@@ -3339,12 +3339,12 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # endregion
 
     # region Treatment
-    def TreatmentWaterQualityRule(b, r, w, t):
-        return model.p_epsilon_Treatment[r, w] * (
+    def TreatmentWaterQualityRule(b, r, qc, t):
+        return model.p_epsilon_Treatment[r, qc] * (
             sum(
                 sum(
-                    model.v_F_DiscretePiped[n, r, t, w, q]
-                    * model.p_discrete_quality[w, q]
+                    model.v_F_DiscretePiped[n, r, t, qc, q]
+                    * model.p_discrete_quality[qc, q]
                     for q in model.s_Q
                 )
                 for n in model.s_N
@@ -3352,31 +3352,31 @@ def water_quality_discrete(model, df_parameters, df_sets):
             )
             + sum(
                 sum(
-                    model.v_F_DiscretePiped[s, r, t, w, q]
-                    * model.p_discrete_quality[w, q]
+                    model.v_F_DiscretePiped[s, r, t, qc, q]
+                    * model.p_discrete_quality[qc, q]
                     for q in model.s_Q
                 )
                 for s in model.s_S
                 if model.p_SRA[s, r]
             )
             + sum(
-                model.v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
+                model.v_F_Trucked[p, r, t] * b.p_nu_pad[p, qc]
                 for p in model.s_PP
                 if model.p_PRT[p, r]
             )
             + sum(
-                model.v_F_Trucked[p, r, t] * b.p_nu_pad[p, w]
+                model.v_F_Trucked[p, r, t] * b.p_nu_pad[p, qc]
                 for p in model.s_CP
                 if model.p_CRT[p, r]
             )
         ) <= sum(
-            model.v_F_DiscreteFlowTreatment[r, t, w, q] * model.p_discrete_quality[w, q]
+            model.v_F_DiscreteFlowTreatment[r, t, qc, q] * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
     model.TreatmentWaterQuality = Constraint(
         model.s_R,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=TreatmentWaterQualityRule,
         doc="Treatment water quality",
@@ -3384,38 +3384,38 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # endregion
 
     # region Network """
-    def NetworkNodeWaterQualityRule(b, n, w, t):
+    def NetworkNodeWaterQualityRule(b, n, qc, t):
         return sum(
-            model.v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
+            model.v_F_Piped[p, n, t] * b.p_nu_pad[p, qc]
             for p in model.s_PP
             if model.p_PNA[p, n]
         ) + sum(
-            model.v_F_Piped[p, n, t] * b.p_nu_pad[p, w]
+            model.v_F_Piped[p, n, t] * b.p_nu_pad[p, qc]
             for p in model.s_CP
             if model.p_CNA[p, n]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, n, t, w, q] * model.p_discrete_quality[w, q]
+                model.v_F_DiscretePiped[s, n, t, qc, q] * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
             if model.p_SNA[s, n]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[n_tilde, n, t, w, q]
-                * model.p_discrete_quality[w, q]
+                model.v_F_DiscretePiped[n_tilde, n, t, qc, q]
+                * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n_tilde in model.s_N
             if model.p_NNA[n_tilde, n]
         ) <= sum(
-            model.v_F_DiscreteFlowOutNode[n, t, w, q] * model.p_discrete_quality[w, q]
+            model.v_F_DiscreteFlowOutNode[n, t, qc, q] * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
     model.NetworkWaterQuality = Constraint(
         model.s_N,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=NetworkNodeWaterQualityRule,
         doc="Network water quality",
@@ -3423,34 +3423,34 @@ def water_quality_discrete(model, df_parameters, df_sets):
     # endregion
 
     # region Beneficial Reuse
-    def BeneficialReuseWaterQuality(b, o, w, t):
+    def BeneficialReuseWaterQuality(b, o, qc, t):
         return sum(
             sum(
-                model.v_F_DiscretePiped[n, o, t, w, q] * model.p_discrete_quality[w, q]
+                model.v_F_DiscretePiped[n, o, t, qc, q] * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for n in model.s_N
             if model.p_NOA[n, o]
         ) + sum(
             sum(
-                model.v_F_DiscretePiped[s, o, t, w, q] * model.p_discrete_quality[w, q]
+                model.v_F_DiscretePiped[s, o, t, qc, q] * model.p_discrete_quality[qc, q]
                 for q in model.s_Q
             )
             for s in model.s_S
             if model.p_SOA[s, o]
         ) + sum(
-            model.v_F_Trucked[p, o, t] * b.p_nu_pad[p, w]
+            model.v_F_Trucked[p, o, t] * b.p_nu_pad[p, qc]
             for p in model.s_PP
             if model.p_POT[p, o]
         ) <= sum(
-            model.v_F_DiscreteBeneficialReuseDestination[o, t, w, q]
-            * model.p_discrete_quality[w, q]
+            model.v_F_DiscreteBeneficialReuseDestination[o, t, qc, q]
+            * model.p_discrete_quality[qc, q]
             for q in model.s_Q
         )
 
     model.BeneficialReuseWaterQuality = Constraint(
         model.s_O,
-        model.s_W,
+        model.s_QC,
         model.s_T,
         rule=BeneficialReuseWaterQuality,
         doc="Beneficial reuse capacity",

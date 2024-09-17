@@ -51,21 +51,17 @@ def define_sets(model):
         ),
         doc="Locations",
     )
+    model.s_QC = Set(
+        initialize=model.df_sets["WaterQualityComponents"], doc="Water Quality Components",
+    )
 
     if model.type == "operational":
         model.s_A = Set(initialize=model.df_sets["ProductionTanks"], doc="Production Tanks")
-        model.s_W = Set(
-            initialize=model.df_sets["WaterQualityComponents"], doc="Water Quality Components"
-        )  # TODO change operational model notation to match strategic (s_QC)
         model.s_D = Set(initialize=["D0"], doc="Pipeline diameters")
         model.s_C = Set(initialize=["C0"], doc="Storage capacities")
         model.s_I = Set(initialize=["I0"], doc="Injection (i.e. disposal) capacities")
 
     if model.type == "strategic":
-        model.s_QC = Set(
-            initialize=model.df_sets["WaterQualityComponents"],
-            doc="Water Quality Components",
-        )
         model.s_D = Set(
             initialize=model.df_sets["PipelineDiameters"], doc="Pipeline diameters"
         )
