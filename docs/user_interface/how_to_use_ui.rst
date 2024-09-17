@@ -105,6 +105,8 @@ Map Feature (Beta)
    By using this feature, users can greatly reduce the amount of input data required to begin working with PARETO. However, this feature is still
    in its early phase so functionality is limited.
 
+   :download:`Download A Sample Map File Here <assets/Sample_Map_Scenario.kml>`
+
    .. container::
 
       **Step 1.** Navigate to the PARETO UI scenario list page. Click create scenario and upload your map file. You will be directed to this input page:
