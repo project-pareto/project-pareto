@@ -113,7 +113,7 @@ Map Feature (Beta)
 
          |map-input|
 
-      **Step 2.** Download the auto generated excel input file, fill in the forecasted data, and re-upload to continue with optimizing your scenario OR 
+      **Step 2.** Download the auto generated Excel input file, fill in the required data, and re-upload to continue with optimizing your scenario Or 
       fill the data in directly through the UI:
 
       .. container:: screenshot-div
