@@ -50,8 +50,7 @@ Step-by-step guide
             |input-page|
 
          **Step 6.** Click "CONTINUE TO OPTIMIZATION" button, and choose
-         from our model settings. If you have a gurobi license, select
-         "gurobi" from the solver options:
+         from the optimization settings:
 
          .. container:: screenshot-div
 
