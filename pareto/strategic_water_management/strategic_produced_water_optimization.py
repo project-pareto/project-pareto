@@ -2084,7 +2084,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_eta_TruckingEmissionsCoefficient = Param(
-        model.s_A,
+        model.s_AC,
         default=0,
         initialize={
             a: pyunits.convert_value(
@@ -2103,7 +2103,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_eta_PipelineOperationsEmissionsCoefficient = Param(
-        model.s_A,
+        model.s_AC,
         default=0,
         initialize={
             a: pyunits.convert_value(
@@ -2126,7 +2126,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_eta_PipelineInstallationEmissionsCoefficient = Param(
-        model.s_A,
+        model.s_AC,
         default=0,
         initialize={
             a: pyunits.convert_value(
@@ -2143,7 +2143,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_eta_DisposalEmissionsCoefficient = Param(
-        model.s_A,
+        model.s_AC,
         default=0,
         initialize={
             a: pyunits.convert_value(
@@ -2160,7 +2160,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
 
     model.p_eta_StorageEmissionsCoefficient = Param(
-        model.s_A,
+        model.s_AC,
         default=0,
         initialize={
             a: pyunits.convert_value(
@@ -2183,7 +2183,7 @@ def create_model(df_sets, df_parameters, default={}):
     )
     model.p_eta_TreatmentEmissionsCoefficient = Param(
         model.s_WT,
-        model.s_A,
+        model.s_AC,
         default=0,
         initialize={
             key: pyunits.convert_value(
@@ -2222,7 +2222,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.e_TotalTruckingEmissions = Expression(
-        model.s_A, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
+        model.s_AC, rule=TotalTruckingEmissionsRule, doc="Total trucking emissions"
     )
 
     def TotalPipelineOperationsEmissionsRule(model, a):
@@ -2244,7 +2244,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.e_TotalPipeOperationsEmissions = Expression(
-        model.s_A,
+        model.s_AC,
         rule=TotalPipelineOperationsEmissionsRule,
         doc="Total pipeline operations emissions",
     )
@@ -2262,7 +2262,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.e_TotalPipeInstallEmissions = Expression(
-        model.s_A,
+        model.s_AC,
         rule=TotalPipelineInstallationEmissionsRule,
         doc="Total pipeline installation emissions",
     )
@@ -2271,7 +2271,7 @@ def create_model(df_sets, df_parameters, default={}):
         return model.v_F_TotalDisposed * model.p_eta_DisposalEmissionsCoefficient[a]
 
     model.e_TotalDisposalEmissions = Expression(
-        model.s_A, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
+        model.s_AC, rule=TotalDisposalEmissionsRule, doc="Total disposal emissions"
     )
 
     def TotalStorageEmissionsRule(model, a):
@@ -2287,7 +2287,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.e_TotalStorageEmissions = Expression(
-        model.s_A, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
+        model.s_AC, rule=TotalStorageEmissionsRule, doc="Total storage emissions"
     )
 
     def TotalTreatmentEmissionsRule(model, a):
@@ -2307,7 +2307,7 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.e_TotalTreatmentEmissions = Expression(
-        model.s_A, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
+        model.s_AC, rule=TotalTreatmentEmissionsRule, doc="Total treatment emissions"
     )
 
     def TotalEmissionsByComponentRule(model, a):
@@ -2321,13 +2321,13 @@ def create_model(df_sets, df_parameters, default={}):
         )
 
     model.e_TotalEmissionsByComponent = Expression(
-        model.s_A,
+        model.s_AC,
         rule=TotalEmissionsByComponentRule,
         doc="Total emissions by component",
     )
 
     model.e_TotalEmissions = Expression(
-        expr=sum(model.e_TotalEmissionsByComponent[a] for a in model.s_A),
+        expr=sum(model.e_TotalEmissionsByComponent[a] for a in model.s_AC),
         doc="Total emissions [mass]",
     )
 

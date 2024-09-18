@@ -83,10 +83,10 @@ def define_sets(model):
             initialize=model.df_sets["TreatmentTechnologies"],
             doc="Treatment Technologies",
         )
-        model.s_A = Set(
+        model.s_AC = Set(
             initialize=model.df_sets["AirEmissionsComponents"],
             doc="Air emission components",
-        )  # TODO change s_A to something else in strategic model to avoid name clash with production tanks in operational model
+        )
 
     # Build dictionary of all specified piping arcs
     piping_arc_types = get_valid_piping_arc_list(model.type)
