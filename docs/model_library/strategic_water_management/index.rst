@@ -120,6 +120,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(r,s) \in RSA}`     Treatment-to-storage pipeline arcs
 
+:math:`\textcolor{blue}{(r,o) \in ROA}`     Treatment-to-reuse pipeline arcs
+
 :math:`\textcolor{blue}{(s,n) \in SNA}`     Storage-to-node pipeline arcs
 
 :math:`\textcolor{blue}{(s,p) \in SCA}`     Storage-to-completions pipeline arcs
@@ -156,7 +158,13 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(s,k) \in SKT}`     Storage-to-disposal trucking arcs
 
+:math:`\textcolor{blue}{(s,o) \in SOT}`     Storage-to-reuse trucking arcs
+
 :math:`\textcolor{blue}{(r,k) \in RKT}`     Treatment-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(r,s) \in RST}`     Treatment-to-storage trucking arcs
+
+:math:`\textcolor{blue}{(r,o) \in ROT}`     Treatment-to-reuse trucking arcs
 
 :math:`\textcolor{blue}{(l,\tilde{l}) \in LLT}`     All valid trucking arcs
 

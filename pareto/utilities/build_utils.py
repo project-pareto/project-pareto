@@ -16,14 +16,17 @@ Module with build utility functions for strategic and operational models.
 Authors: PARETO Team
 """
 
-from pyomo.environ import Set
+from pyomo.environ import Set, Param
 from pareto.utilities.process_data import (
     get_valid_piping_arc_list,
     get_valid_trucking_arc_list,
 )
 
 
-def define_sets(model):
+def build_sets(model):
+    """Build sets for operational and strategic models."""
+
+    # Build sets which are common to operational and strategic models
     model.s_T = Set(
         initialize=model.df_sets["TimePeriods"], doc="Time Periods", ordered=True
     )
@@ -57,6 +60,27 @@ def define_sets(model):
         doc="Water Quality Components",
     )
 
+    # Build dictionary of all specified piping arcs
+    piping_arc_types = get_valid_piping_arc_list()
+    model.df_parameters["LLA"] = {}
+    for arctype in piping_arc_types:
+        if arctype in model.df_parameters:
+            model.df_parameters["LLA"].update(model.df_parameters[arctype])
+    model.s_LLA = Set(
+        initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
+    )
+
+    # Build dictionary of all specified trucking arcs
+    trucking_arc_types = get_valid_trucking_arc_list()
+    model.df_parameters["LLT"] = {}
+    for arctype in trucking_arc_types:
+        if arctype in model.df_parameters:
+            model.df_parameters["LLT"].update(model.df_parameters[arctype])
+    model.s_LLT = Set(
+        initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
+    )
+
+    # Build sets specific to operational model
     if model.type == "operational":
         model.s_A = Set(
             initialize=model.df_sets["ProductionTanks"], doc="Production Tanks"
@@ -65,6 +89,7 @@ def define_sets(model):
         model.s_C = Set(initialize=["C0"], doc="Storage capacities")
         model.s_I = Set(initialize=["I0"], doc="Injection (i.e. disposal) capacities")
 
+    # Build sets specific to strategic model
     if model.type == "strategic":
         model.s_D = Set(
             initialize=model.df_sets["PipelineDiameters"], doc="Pipeline diameters"
@@ -88,22 +113,47 @@ def define_sets(model):
             doc="Air emission components",
         )
 
-    # Build dictionary of all specified piping arcs
-    piping_arc_types = get_valid_piping_arc_list(model.type)
-    model.df_parameters["LLA"] = {}
-    for arctype in piping_arc_types:
-        if arctype in model.df_parameters:
-            model.df_parameters["LLA"].update(model.df_parameters[arctype])
-    model.s_LLA = Set(
-        initialize=list(model.df_parameters["LLA"].keys()), doc="Valid Piping Arcs"
-    )
 
-    # Build dictionary of all specified trucking arcs
-    trucking_arc_types = get_valid_trucking_arc_list(model.type)
-    model.df_parameters["LLT"] = {}
-    for arctype in trucking_arc_types:
-        if arctype in model.df_parameters:
-            model.df_parameters["LLT"].update(model.df_parameters[arctype])
-    model.s_LLT = Set(
-        initialize=list(model.df_parameters["LLT"].keys()), doc="Valid Trucking Arcs"
-    )
+def build_params(model):
+    """Build parameters common to operational and strategic models."""
+    node_type = {
+        "P": "PP",
+        "C": "CP",
+        "N": "N",
+        "K": "K",
+        "S": "S",
+        "R": "R",
+        "O": "O",
+        "F": "F",
+    }
+    node_description = {
+        "P": "production",
+        "C": "completions",
+        "N": "node",
+        "K": "disposal",
+        "S": "storage",
+        "R": "treatment",
+        "O": "reuse",
+        "F": "externally sourced water",
+    }
+    transport_description = {
+        "A": "piping",
+        "T": "trucking",
+    }
+
+    # Build Params for all arc types
+    arc_types = get_valid_piping_arc_list() + get_valid_trucking_arc_list()
+    for at in arc_types:
+        # at is a string of the form "XYZ", where X and Y are node types and Z
+        # is either A for piping or T for trucking
+        setattr(
+            model,
+            "p_" + at,  # e.g., p_PCA
+            Param(
+                getattr(model, "s_" + node_type[at[0]]),  # e.g., model.s_PP
+                getattr(model, "s_" + node_type[at[1]]),  # e.g., model.s_CP
+                default=0,
+                initialize=model.df_parameters.get(at, {}),
+                doc=f"Valid {node_description[at[0]]}-to-{node_description[at[1]]} {transport_description[at[2]]} arcs",
+            ),
+        )

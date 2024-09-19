@@ -28,75 +28,54 @@ from pareto.utilities.get_data import (
 from pyomo.environ import Expression, value
 
 
-def get_valid_trucking_arc_list(model_type="strategic"):
+def get_valid_trucking_arc_list():
     """Returns a list of all valid trucking arcs."""
-    if model_type == "operational":
-        return [
-            "PCT",
-            "CCT",
-            "CRT",
-            "CKT",
-            "FCT",
-            "PKT",
-            "PRT",
-        ]
-    else:
-        # Return the list for strategic model unless operational model
-        # is specified.
-        return [
-            "PCT",
-            "PKT",
-            "PST",
-            "PRT",
-            "POT",
-            "FCT",
-            "CKT",
-            "CST",
-            "CRT",
-            "CCT",
-            "SCT",
-            "SKT",
-            "SOT",
-            "RKT",
-            "RST",
-            "ROT",
-        ]
+    return [
+        "PCT",
+        "PKT",
+        "PST",
+        "PRT",
+        "POT",
+        "FCT",
+        "CKT",
+        "CST",
+        "CRT",
+        "CCT",
+        "SCT",
+        "SKT",
+        "SOT",
+        "RKT",
+        "RST",
+        "ROT",
+    ]
 
 
-def get_valid_piping_arc_list(model_type="strategic"):
+def get_valid_piping_arc_list():
     """Returns a list of all valid piping arcs."""
-    if model_type == "operational":
-        return [
-            "RCA",
-            "FCA",
-        ]
-    else:
-        # Return the list for strategic model unless operational model
-        # is specified.
-        return [
-            "PCA",
-            "PNA",
-            "PPA",
-            "CNA",
-            "CCA",
-            "NNA",
-            "NCA",
-            "NKA",
-            "NSA",
-            "NRA",
-            "NOA",
-            "FCA",
-            "RNA",
-            "RCA",
-            "RKA",
-            "RSA",
-            "ROA",
-            "SNA",
-            "SCA",
-            "SKA",
-            "SRA",
-            "SOA",
-        ]
+    return [
+        "PCA",
+        "PNA",
+        "PPA",
+        "CNA",
+        "CCA",
+        "NNA",
+        "NCA",
+        "NKA",
+        "NSA",
+        "NRA",
+        "NOA",
+        "FCA",
+        "RNA",
+        "RCA",
+        "RKA",
+        "RSA",
+        "ROA",
+        "SNA",
+        "SCA",
+        "SKA",
+        "SRA",
+        "SOA",
+    ]
 
 
 # Process the input data (df_sets, df_parameters) from get_data.py.
