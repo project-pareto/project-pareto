@@ -613,22 +613,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Flow capacity along pipeline arc [volume/time]",
     )
-    model.p_chi_OutsideCompletionsPad = Param(
-        model.s_CP,
-        initialize=model.df_parameters["CompletionsPadOutsideSystem"],
-        default=0,
-        doc="Binary parameter designating the Completion Pads that are outside the system",
-    )
-    model.p_chi_DesalinationTechnology = Param(
-        model.s_WT,
-        initialize=model.df_parameters["DesalinationTechnologies"],
-        doc="Binary parameter designating the treatment technologies for Desalination",
-    )
-    model.p_chi_DesalinationSites = Param(
-        model.s_R,
-        initialize=model.df_parameters["DesalinationSites"],
-        doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
-    )
 
     # If p_chi_DesalinationSites was not specified for one or more r, raise an
     # Exception
@@ -774,15 +758,22 @@ def create_model(df_sets, df_parameters, default={}):
     # Build parameters #
     build_params(model)
 
-    # Define set parameters #
-
-    PipelineCapacityIncrementsTable = {("D0"): 0}
-
-    DisposalCapacityIncrementsTable = {("I0"): 0}
-
-    StorageDisposalCapacityIncrementsTable = {("C0"): 0}
-
-    DisposalCapExTable = {("K02", "I0"): 0}
+    model.p_chi_OutsideCompletionsPad = Param(
+        model.s_CP,
+        initialize=model.df_parameters["CompletionsPadOutsideSystem"],
+        default=0,
+        doc="Binary parameter designating the Completion Pads that are outside the system",
+    )
+    model.p_chi_DesalinationTechnology = Param(
+        model.s_WT,
+        initialize=model.df_parameters["DesalinationTechnologies"],
+        doc="Binary parameter designating the treatment technologies for Desalination",
+    )
+    model.p_chi_DesalinationSites = Param(
+        model.s_R,
+        initialize=model.df_parameters["DesalinationSites"],
+        doc="Binary parameter designating which treatment sites are for desalination (1) and which are not (0)",
+    )
 
     model.p_alpha_AnnualizationRate = Param(
         default=1,
@@ -790,51 +781,7 @@ def create_model(df_sets, df_parameters, default={}):
         mutable=True,
         doc="Annualization rate [%]",
     )
-    model.p_gamma_Completions = Param(
-        model.s_P,
-        model.s_T,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["CompletionsDemand"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Completions water demand [volume/time]",
-    )
-    model.p_beta_Production = Param(
-        model.s_P,
-        model.s_T,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["PadRates"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Produced water supply forecast [volume/time]",
-    )
-    model.p_beta_Flowback = Param(
-        model.s_P,
-        model.s_T,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["FlowbackRates"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Flowback supply forecast for a completions pad [volume/time]",
-    )
+
     model.p_beta_TotalProd = Param(
         default=0,
         initialize=sum(
@@ -847,49 +794,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume"],
         doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
         mutable=True,
-    )
-    model.p_sigma_Pipeline = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["InitialPipelineCapacity"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Initial pipeline capacity between two locations [volume/time]",
-    )
-    model.p_sigma_Disposal = Param(
-        model.s_K,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["InitialDisposalCapacity"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Initial disposal capacity at disposal sites [volume/time]",
-    )
-    model.p_sigma_Storage = Param(
-        model.s_S,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume"],
-                to_units=model.model_units["volume"],
-            )
-            for key, value in model.df_parameters["InitialStorageCapacity"].items()
-        },
-        units=model.model_units["volume"],
-        doc="Initial storage capacity at storage site [volume]",
     )
     model.p_sigma_PadStorage = Param(
         model.s_CP,
@@ -951,101 +855,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Capacity of beneficial reuse option [volume/time]",
     )
-    model.p_sigma_ExternalWater = Param(
-        model.s_F,
-        model.s_T,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters[
-                "ExtWaterSourcingAvailability"
-            ].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Externally sourced water capacity [volume/time]",
-        mutable=True,
-    )
 
-    model.p_sigma_OffloadingPad = Param(
-        model.s_P,
-        default=pyunits.convert_value(
-            9999,
-            from_units=pyunits.koil_bbl / pyunits.week,
-            to_units=model.model_units["volume_time"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["PadOffloadingCapacity"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Truck offloading sourcing capacity per pad [volume/time]",
-        mutable=True,
-    )
-    model.p_sigma_OffloadingStorage = Param(
-        model.s_S,
-        default=pyunits.convert_value(
-            9999,
-            from_units=pyunits.koil_bbl / pyunits.week,
-            to_units=model.model_units["volume_time"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in {}
-        },
-        units=model.model_units["volume_time"],
-        doc="Truck offloading capacity per pad [volume/time]",
-        mutable=True,
-    )
-    model.p_sigma_ProcessingPad = Param(
-        model.s_P,
-        default=pyunits.convert_value(
-            9999,
-            from_units=pyunits.koil_bbl / pyunits.week,
-            to_units=model.model_units["volume_time"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in {}
-        },
-        units=model.model_units["volume_time"],
-        doc="Processing (e.g. clarification) capacity per pad [volume/time]",
-        mutable=True,
-    )
-    model.p_sigma_ProcessingStorage = Param(
-        model.s_S,
-        default=pyunits.convert_value(
-            9999,
-            from_units=pyunits.koil_bbl / pyunits.week,
-            to_units=model.model_units["volume_time"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in {}
-        },
-        units=model.model_units["volume_time"],
-        doc="Processing (e.g. clarification) capacity per storage site [volume/time]",
-        mutable=True,
-    )
     if model.config.node_capacity == True:
         model.p_sigma_NetworkNode = Param(
             model.s_N,
@@ -1163,13 +973,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Treatment capacity installation/expansion increments [volume/time]",
     )
-    model.p_delta_Truck = Param(
-        default=pyunits.convert_value(
-            110, from_units=pyunits.oil_bbl, to_units=model.model_units["volume"]
-        ),
-        units=model.model_units["volume"],
-        doc="Truck capacity [volume]",
-    )
     model.p_tau_Disposal = Param(
         model.s_K,
         default=pyunits.convert_value(
@@ -1186,7 +989,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.decision_period,
         doc="Storage construction/expansion lead time [time]",
     )
-
     model.p_tau_Pipeline = Param(
         model.s_L,
         model.s_L,
@@ -1196,48 +998,11 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.decision_period,
         doc="Pipeline construction/expansion lead time [time]",
     )
-    # It is expected that the units for p_tau_trucking are hours, which usually differs from the time units used
-    # for flow rates, e.g., day, week, month. Therefore, for the sake of simplicity, no units are defined for p_tau_trucking,
-    # as the hr units will cancel out with the units in model.p_pi_Trucking which is the hourly cost of trucking.
-    model.p_tau_Trucking = Param(
-        model.s_L,
-        model.s_L,
-        default=12,
-        initialize=model.df_parameters["TruckingTime"],
-        mutable=True,
-        doc="Drive time between locations [hr]",
-    )
-    model.p_lambda_Storage = Param(
-        model.s_S,
-        default=0,
-        units=model.model_units["volume"],
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume"],
-                to_units=model.model_units["volume"],
-            )
-            for key, value in model.df_parameters["InitialStorageLevel"].items()
-        },
-        doc="Initial storage level at storage site [volume]",
-    )
-    model.p_lambda_PadStorage = Param(
-        model.s_CP,
-        default=0,
-        units=model.model_units["volume"],
-        doc="Initial storage level at completions site [volume]",
-    )
     model.p_theta_Storage = Param(
         model.s_S,
         default=0,
         units=model.model_units["volume"],
         doc="Terminal storage level at storage site [volume]",
-    )
-    model.p_theta_PadStorage = Param(
-        model.s_CP,
-        default=0,
-        units=model.model_units["volume"],
-        doc="Terminal storage level at completions site [volume]",
     )
     PipelineExpansionDistance_convert_to_model = {
         key: pyunits.convert_value(
@@ -1441,30 +1206,6 @@ def create_model(df_sets, df_parameters, default={}):
             doc="Pipeline construction/expansion capital cost for selected increment [currency/volume/time]",
         )
 
-    DisposalOperationalCost_convert_to_model = {
-        key: pyunits.convert_value(
-            value,
-            from_units=model.user_units["currency_volume"],
-            to_units=model.model_units["currency_volume"],
-        )
-        for key, value in model.df_parameters["DisposalOperationalCost"].items()
-    }
-
-    model.p_pi_Disposal = Param(
-        model.s_K,
-        default=(
-            max(DisposalOperationalCost_convert_to_model.values()) * 100
-            if DisposalOperationalCost_convert_to_model
-            else pyunits.convert_value(
-                25,
-                from_units=pyunits.USD / pyunits.oil_bbl,
-                to_units=model.model_units["currency_volume"],
-            )
-        ),
-        initialize=DisposalOperationalCost_convert_to_model,
-        units=model.model_units["currency_volume"],
-        doc="Disposal operational cost [currency/volume]",
-    )
     model.p_pi_Treatment = Param(
         model.s_R,
         model.s_WT,
@@ -1479,65 +1220,6 @@ def create_model(df_sets, df_parameters, default={}):
         },
         units=model.model_units["currency_volume"],
         doc="Treatment operational cost [currency/volume]",
-    )
-    ReuseOperationalCost_convert_to_model = {
-        key: pyunits.convert_value(
-            value,
-            from_units=model.user_units["currency_volume"],
-            to_units=model.model_units["currency_volume"],
-        )
-        for key, value in model.df_parameters["ReuseOperationalCost"].items()
-    }
-    model.p_pi_Reuse = Param(
-        model.s_CP,
-        default=(
-            max(ReuseOperationalCost_convert_to_model.values()) * 100
-            if ReuseOperationalCost_convert_to_model
-            else pyunits.convert_value(
-                25,
-                from_units=pyunits.USD / pyunits.oil_bbl,
-                to_units=model.model_units["currency_volume"],
-            )
-        ),
-        initialize=ReuseOperationalCost_convert_to_model,
-        units=model.model_units["currency_volume"],
-        doc="Reuse operational cost [currency/volume]",
-    )
-    model.p_pi_Storage = Param(
-        model.s_S,
-        default=pyunits.convert_value(
-            1,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
-            )
-            for key, value in model.df_parameters["StorageCost"].items()
-        },
-        units=model.model_units["currency_volume"],
-        doc="Storage deposit operational cost [currency/volume]",
-    )
-    model.p_rho_Storage = Param(
-        model.s_S,
-        default=pyunits.convert_value(
-            0.99,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
-            )
-            for key, value in model.df_parameters["StorageWithdrawalRevenue"].items()
-        },
-        units=model.model_units["currency_volume"],
-        doc="Storage withdrawal operational credit [currency/volume]",
     )
     model.p_pi_BeneficialReuse = Param(
         model.s_O,
@@ -1575,7 +1257,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Credit for sending water to beneficial reuse [currency/volume]",
     )
-    _df_parameters = {}
     if model.config.hydraulics != Hydraulics.false:
         # Elevation parameter is only used in the hydraulics module and is not needed in the basic version
         model.p_zeta_Elevation = Param(
@@ -1593,118 +1274,6 @@ def create_model(df_sets, df_parameters, default={}):
             units=pyunits.meter,
             doc="Elevation of each node in the network",
         )
-    if model.config.hydraulics == Hydraulics.post_process:
-        # In the post-process based hydraulics model an economics-based penalty is added
-        # to moderate flow through pipelines based on the elevation change.
-        max_elevation = max([val for val in model.df_parameters["Elevation"].values()])
-        min_elevation = min([val for val in model.df_parameters["Elevation"].values()])
-        max_elevation_change = max_elevation - min_elevation
-        # Set economic penalties for pipeline operational Cost based on the elevation changes
-        for k1 in model.s_L:
-            for k2 in model.s_L:
-                if (k1, k2) in model.s_LLA:
-                    elevation_delta = value(model.p_zeta_Elevation[k1]) - value(
-                        model.p_zeta_Elevation[k2]
-                    )
-                    _df_parameters[(k1, k2)] = max(
-                        0,
-                        (
-                            model.df_parameters["PipelineOperationalCost"][(k1, k2)]
-                            - (
-                                0.01
-                                * max(
-                                    [
-                                        val
-                                        for val in model.df_parameters[
-                                            "PipelineOperationalCost"
-                                        ].values()
-                                    ]
-                                )
-                                * elevation_delta
-                                / max_elevation_change
-                            )
-                        ),
-                    )
-    else:
-        _df_parameters = model.df_parameters["PipelineOperationalCost"]
-
-    model.p_pi_Pipeline = Param(
-        model.s_L,
-        model.s_L,
-        default=pyunits.convert_value(
-            0.01,
-            from_units=pyunits.USD / pyunits.oil_bbl,
-            to_units=model.model_units["currency_volume"],
-        ),
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
-            )
-            for key, value in _df_parameters.items()
-        },
-        units=model.model_units["currency_volume"],
-        doc="Pipeline operational cost [currency/volume]",
-    )
-    TruckingHourlyCost_convert_to_model = {
-        key: pyunits.convert_value(
-            value,
-            from_units=model.user_units["currency"],
-            to_units=model.model_units["currency"],
-        )
-        for key, value in model.df_parameters["TruckingHourlyCost"].items()
-    }
-    # COMMENT: For this parameter only currency units are defined, as the hourly rate is canceled out with the
-    # trucking time units from parameter p_Tau_Trucking. This is to avoid adding an extra unit for time which may
-    # be confusing
-    model.p_pi_Trucking = Param(
-        model.s_L,
-        default=(
-            max(TruckingHourlyCost_convert_to_model.values()) * 100
-            if TruckingHourlyCost_convert_to_model
-            else pyunits.convert_value(
-                15000,
-                from_units=pyunits.USD,
-                to_units=model.model_units["currency"],
-            )
-        ),
-        initialize=TruckingHourlyCost_convert_to_model,
-        units=model.model_units["currency"],
-        doc="Trucking hourly cost (by source) [currency/hr]",
-    )
-    ExternalSourcingCost_convert_to_model = {
-        key: pyunits.convert_value(
-            value,
-            from_units=model.user_units["currency_volume"],
-            to_units=model.model_units["currency_volume"],
-        )
-        for key, value in model.df_parameters["ExternalSourcingCost"].items()
-    }
-    model.p_pi_Sourcing = Param(
-        model.s_F,
-        default=(
-            max(ExternalSourcingCost_convert_to_model.values()) * 100
-            if ExternalSourcingCost_convert_to_model
-            else pyunits.convert_value(
-                150,
-                from_units=pyunits.USD / pyunits.oil_bbl,
-                to_units=model.model_units["currency_volume"],
-            )
-        ),
-        initialize=ExternalSourcingCost_convert_to_model,
-        units=model.model_units["currency_volume"],
-        doc="Externally sourced water cost [currency/volume]",
-    )
-    model.p_M_Flow = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.koil_bbl / pyunits.week,
-            to_units=model.model_units["volume_time"],
-        ),
-        units=model.model_units["volume_time"],
-        doc="Big-M flow parameter [volume/time]",
-    )
 
     model.p_M_Concentration = Param(
         default=100,
@@ -1716,79 +1285,6 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=model.p_M_Concentration * model.p_M_Flow,
         units=model.model_units["concentration"] * model.model_units["volume_time"],
         doc="Big-M flow-concentration parameter [concentration*volume/time]",
-    )
-
-    model.p_psi_FracDemand = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
-    )
-    model.p_psi_Production = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
-    )
-    model.p_psi_Flowback = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
-    )
-    model.p_psi_PipelineCapacity = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
-    )
-    model.p_psi_StorageCapacity = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / pyunits.koil_bbl,
-            to_units=model.model_units["currency_volume"],
-        ),
-        units=model.model_units["currency_volume"],
-        doc="Slack cost parameter [currency/volume]",
-    )
-    model.p_psi_DisposalCapacity = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
-    )
-    model.p_psi_TreatmentCapacity = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
-    )
-    model.p_psi_BeneficialReuseCapacity = Param(
-        default=pyunits.convert_value(
-            99999,
-            from_units=pyunits.USD / (pyunits.koil_bbl / pyunits.week),
-            to_units=model.model_units["currency_volume_time"],
-        ),
-        units=model.model_units["currency_volume_time"],
-        doc="Slack cost parameter [currency/(volume/time)]",
     )
 
     model.p_chi_DisposalExpansionAllowed = Param(

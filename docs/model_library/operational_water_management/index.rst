@@ -277,9 +277,6 @@ Operational Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{s}^{Offloading,Storage}}` =                   Daily truck offloading sourcing capacity per storage site
 
-
-:math:`\textcolor{green}{\sigma_{p}^{Processing,Pad}}` =                    Daily processing (e.g. clarification) capacity per pad
-
 :math:`\textcolor{green}{\sigma_{s}^{Processing,Storage}}` =                Daily processing (e.g. clarification) capacity at storage site
 
 :math:`\textcolor{green}{\varepsilon_{r,w}^{Treatment}}` =                       Treatment efficiency for water quality component at treatment site
@@ -426,24 +423,6 @@ For each completions pad and time period, the volume of water being trucked into
 
     \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
         \leq \textcolor{green}{\sigma_{p}^{Offloading,Pad}}
-
-
-
-**Completions Pad Processing Capacity:**
-
-For each completions pad and time period, the volume of water (excluding externally sourced water) coming in must be below the processing limit.
-
-.. math::
-
-    \sum\nolimits_{(n,p)\in NCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(p,p)\in PCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(s,p)\in SCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}}
-
-        +\sum\nolimits_{(p,c)\in CCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(r,p)\in RCA}\textcolor{red}{F_{l,\tilde{l},t}^{Piped}} +\sum\nolimits_{(p,p)\in PCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}}
-
-        +\sum\nolimits_{(s,p)\in SCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} +\sum\nolimits_{(p,p)\in CCT}\textcolor{red}{F_{l,\tilde{l},t}^{Trucked}} \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
-
-
-.. note:: This constraint has not actually been implemented yet.
-
 
 
 **Storage Site Truck Offloading Capacity:** :math:`\forall s \in S, t \in T`
@@ -649,7 +628,6 @@ For :math:`t > 1`:
     \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}}
         = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}
         + \textcolor{green}{\sigma_{\tilde{l},l}^{Pipeline}}
-        +\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot (\textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}+\textcolor{red}{y_{\tilde{l},l,d}^{Pipeline}} )
         +\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
 
 
@@ -659,9 +637,7 @@ For :math:`t > 1`:
 
     \textcolor{red}{F_{l,\tilde{l},[t]}^{Capacity}}
         = \textcolor{green}{\sigma_{l,\tilde{l}}^{Pipeline}}
-        +\sum_{d \in D}\textcolor{green}{\delta_{d}^{Pipeline}} \cdot \textcolor{red}{y_{l,\tilde{l},d}^{Pipeline}}
         +\textcolor{red}{S_{l,\tilde{l}}^{PipelineCapacity}}
-
 
 
 **Storage Capacity:**

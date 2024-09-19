@@ -340,8 +340,6 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{green}{\sigma_{s}^{Offloading,Storage}}` =    Truck offloading sourcing capacity per storage site
 
-:math:`\textcolor{green}{\sigma_{p}^{Processing,Pad}}` =        Processing (e.g. clarification) capacity per pad
-
 :math:`\textcolor{green}{\sigma_{s}^{Processing,Storage}}` =    Processing (e.g. clarification) capacity at storage site
 
 :math:`\textcolor{green}{\sigma_{n}^{Node}}` =                  Capacity per network node
@@ -583,28 +581,6 @@ For each completions pad and time period, the volume of water being trucked into
 
     \sum_{l \in L | (l, p) \in LLT}\textcolor{red}{F_{l,p,t}^{Trucked}}
         \leq \textcolor{green}{\sigma_{p}^{Offloading,Pad}}
-
-
-**Completions Pad Processing Capacity:** :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
-
-For each completions pad and time period, the volume of water (excluding externally sourced water) coming in must be below the processing limit.
-
-.. math::
-
-    \sum_{n \in N | (n, p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}
-        + \sum_{s \in S | (s, p) \in SCA}\textcolor{red}{F_{s,p,t}^{Piped}}
-
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}
-        + \sum_{r \in R | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}}
-
-        + \sum_{s \in S | (s, p) \in SCT}\textcolor{red}{F_{s,p,t}^{Trucked}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}}
-        \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
-
-
-.. note:: The above constraint has not been implemented yet.
 
 
 **Storage Site Truck Offloading Capacity:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
