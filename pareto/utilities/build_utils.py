@@ -115,7 +115,7 @@ def build_sets(model):
         )
 
 
-def build_params(model):
+def build_common_params(model):
     """Build parameters common to operational and strategic models."""
 
     # Define dictionaries used to build arc Params

@@ -30,10 +30,9 @@ from pyomo.environ import (
 from pyomo.core.base.constraint import simple_constraint_rule
 
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
-from enum import Enum
 
 from pareto.utilities.units_support import units_setup
-from pareto.utilities.build_utils import build_sets, build_params
+from pareto.utilities.build_utils import build_sets, build_common_params
 from pareto.utilities.enums import (
     ProdTank,
     WaterQuality,
@@ -108,7 +107,7 @@ def create_model(df_sets, df_parameters, default={}):
     build_sets(model)
 
     # Build parameters #
-    build_params(model)
+    build_common_params(model)
 
     model.p_LLT = Param(
         model.s_L,

@@ -58,7 +58,7 @@ from pareto.utilities.process_data import (
     model_infeasibility_detection,
 )
 from pareto.utilities.units_support import units_setup
-from pareto.utilities.build_utils import build_sets, build_params
+from pareto.utilities.build_utils import build_sets, build_common_params
 from pareto.utilities.enums import (
     Objectives,
     PipelineCapacity,
@@ -251,7 +251,7 @@ def create_model(df_sets, df_parameters, default={}):
     build_sets(model)
 
     # Build parameters #
-    build_params(model)
+    build_common_params(model)
 
     model.p_chi_OutsideCompletionsPad = Param(
         model.s_CP,
