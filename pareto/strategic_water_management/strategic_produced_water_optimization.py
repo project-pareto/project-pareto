@@ -290,35 +290,6 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Combined water supply forecast (flowback & production) over the planning horizon [volume]",
         mutable=True,
     )
-    model.p_sigma_PadStorage = Param(
-        model.s_CP,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume"],
-                to_units=model.model_units["volume"],
-            )
-            for key, value in model.df_parameters["CompletionsPadStorage"].items()
-        },
-        units=model.model_units["volume"],
-        doc="Storage capacity at completions site [volume]",
-    )
-    model.p_sigma_Treatment = Param(
-        model.s_R,
-        model.s_WT,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["InitialTreatmentCapacity"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Initial treatment capacity at treatment site [volume/time]",
-    )
     model.p_sigma_BeneficialReuseMinimum = Param(
         model.s_O,
         model.s_T,
@@ -367,14 +338,6 @@ def create_model(df_sets, df_parameters, default={}):
             units=model.model_units["volume_time"],
             doc="Capacity per network node [volume/time]",
         )
-    model.p_epsilon_Treatment = Param(
-        model.s_R,
-        model.s_WT,
-        default=1.0,
-        initialize=model.df_parameters["TreatmentEfficiency"],
-        mutable=True,
-        doc="Treatment efficiency [%]",
-    )
 
     model.p_epsilon_TreatmentRemoval = Param(
         model.s_R,
@@ -701,21 +664,6 @@ def create_model(df_sets, df_parameters, default={}):
             doc="Pipeline construction/expansion capital cost for selected increment [currency/volume/time]",
         )
 
-    model.p_pi_Treatment = Param(
-        model.s_R,
-        model.s_WT,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
-            )
-            for key, value in model.df_parameters["TreatmentOperationalCost"].items()
-        },
-        units=model.model_units["currency_volume"],
-        doc="Treatment operational cost [currency/volume]",
-    )
     model.p_pi_BeneficialReuse = Param(
         model.s_O,
         default=pyunits.convert_value(

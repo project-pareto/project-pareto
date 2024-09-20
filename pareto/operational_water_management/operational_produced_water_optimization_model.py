@@ -161,7 +161,7 @@ def create_model(df_sets, df_parameters, default={}):
             default=0,
             initialize={},
             units=model.model_units["volume"],
-            doc="Initial water level in " "production tank [volume]",
+            doc="Initial water level in production tank [volume]",
         )
     elif model.config.production_tanks == ProdTank.equalized:
         model.p_sigma_ProdTank = Param(
@@ -173,47 +173,18 @@ def create_model(df_sets, df_parameters, default={}):
             ),
             units=model.model_units["volume"],
             initialize=df_parameters["ProductionTankCapacity"],
-            doc="Combined capacity equalized " "production tanks [volume]",
+            doc="Combined capacity equalized production tanks [volume]",
         )
         model.p_lambda_ProdTank = Param(
             model.s_P,
             default=0,
             initialize={},
             units=model.model_units["volume"],
-            doc="Initial water level in " "equalized production tanks [volume]",
+            doc="Initial water level in equalized production tanks [volume]",
         )
     else:
         raise Exception("storage type not supported")
 
-    model.p_sigma_PadStorage = Param(
-        model.s_CP,
-        model.s_T,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume"],
-                to_units=model.model_units["volume"],
-            )
-            for key, value in model.df_parameters["CompletionsPadStorage"].items()
-        },
-        units=model.model_units["volume"],
-        doc="Storage capacity at completions site [volume]",
-    )
-    model.p_sigma_Treatment = Param(
-        model.s_R,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["volume_time"],
-                to_units=model.model_units["volume_time"],
-            )
-            for key, value in model.df_parameters["TreatmentCapacity"].items()
-        },
-        units=model.model_units["volume_time"],
-        doc="Initial treatment capacity at treatment site [volume/time]",
-    )
     model.p_sigma_Reuse = Param(
         model.s_O,
         default=0,
@@ -241,28 +212,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Maximum truck capacity [volume_time]",
     )
-    model.p_epsilon_Treatment = Param(
-        model.s_R,
-        model.s_QC,
-        default=1.0,
-        initialize=df_parameters["TreatmentEfficiency"],
-        doc="Treatment efficiency [%]",
-    )
 
-    model.p_pi_Treatment = Param(
-        model.s_R,
-        default=0,
-        initialize={
-            key: pyunits.convert_value(
-                value,
-                from_units=model.user_units["currency_volume"],
-                to_units=model.model_units["currency_volume"],
-            )
-            for key, value in model.df_parameters["TreatmentOperationalCost"].items()
-        },
-        units=model.model_units["currency_volume"],
-        doc="Treatment operational cost [currency/volume]",
-    )
     model.p_pi_PadStorage = Param(
         model.s_CP,
         model.s_T,

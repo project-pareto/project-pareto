@@ -292,6 +292,11 @@ def build_params(model):
             )
             for key, value in model.df_parameters["StorageWithdrawalRevenue"].items()
         }
+        p_sigma_PadStorage_idx = (model.s_CP,)
+        p_sigma_Treatment_idx = (model.s_R, model.s_WT)
+        p_sigma_Treatment_tabname = "InitialTreatmentCapacity"
+        p_epsilon_Treatment_idx = (model.s_R, model.s_WT)
+        p_pi_Treatment_idx = (model.s_R, model.s_WT)
     else:  # operational model
         p_sigma_Pipeline_init = {}
         p_sigma_Disposal_tabname = "DisposalCapacity"
@@ -299,6 +304,11 @@ def build_params(model):
         p_lambda_Storage_init = {}
         p_pi_Storage_init = {}
         p_rho_Storage_init = {}
+        p_sigma_PadStorage_idx = (model.s_CP, model.s_T)
+        p_sigma_Treatment_idx = (model.s_R,)
+        p_sigma_Treatment_tabname = "TreatmentCapacity"
+        p_epsilon_Treatment_idx = (model.s_R, model.s_QC)
+        p_pi_Treatment_idx = (model.s_R,)
 
     model.p_sigma_Pipeline = Param(
         model.s_L,
@@ -728,4 +738,57 @@ def build_params(model):
         ),
         units=model.model_units["currency_volume_time"],
         doc="Slack cost parameter [currency/(volume/time)]",
+    )
+
+    model.p_sigma_PadStorage = Param(
+        *p_sigma_PadStorage_idx,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume"],
+                to_units=model.model_units["volume"],
+            )
+            for key, value in model.df_parameters["CompletionsPadStorage"].items()
+        },
+        units=model.model_units["volume"],
+        doc="Storage capacity at completions site [volume]",
+    )
+
+    model.p_sigma_Treatment = Param(
+        *p_sigma_Treatment_idx,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["volume_time"],
+                to_units=model.model_units["volume_time"],
+            )
+            for key, value in model.df_parameters[p_sigma_Treatment_tabname].items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Initial treatment capacity at treatment site [volume/time]",
+    )
+
+    model.p_epsilon_Treatment = Param(
+        *p_epsilon_Treatment_idx,
+        default=1.0,
+        initialize=model.df_parameters["TreatmentEfficiency"],
+        mutable=True,
+        doc="Treatment efficiency [%]",
+    )
+
+    model.p_pi_Treatment = Param(
+        *p_pi_Treatment_idx,
+        default=0,
+        initialize={
+            key: pyunits.convert_value(
+                value,
+                from_units=model.user_units["currency_volume"],
+                to_units=model.model_units["currency_volume"],
+            )
+            for key, value in model.df_parameters["TreatmentOperationalCost"].items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Treatment operational cost [currency/volume]",
     )
