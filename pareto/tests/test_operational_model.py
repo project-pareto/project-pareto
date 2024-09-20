@@ -23,9 +23,8 @@ from pyomo.environ import Constraint
 from pareto.utilities.solvers import get_solver
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     create_model,
-    ProdTank,
-    WaterQuality,
 )
+from pareto.utilities.enums import ProdTank, WaterQuality
 from pareto.utilities.units_support import get_model_unit_container
 from pareto.utilities.get_data import (
     get_data,

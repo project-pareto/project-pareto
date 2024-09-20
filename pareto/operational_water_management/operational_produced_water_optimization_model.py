@@ -34,17 +34,10 @@ from enum import Enum
 
 from pareto.utilities.units_support import units_setup
 from pareto.utilities.build_utils import build_sets, build_params
-
-
-class ProdTank(Enum):
-    individual = 0
-    equalized = 1
-
-
-class WaterQuality(Enum):
-    false = 0
-    post_process = 1
-    discrete = 2
+from pareto.utilities.enums import (
+    ProdTank,
+    WaterQuality,
+)
 
 
 # create config dictionary

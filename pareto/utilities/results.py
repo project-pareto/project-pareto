@@ -15,11 +15,10 @@
 
 Authors: PARETO Team
 """
-from pareto.operational_water_management.operational_produced_water_optimization_model import (
+
+from pareto.utilities.enums import (
     ProdTank,
     WaterQuality,
-)
-from pareto.strategic_water_management.strategic_produced_water_optimization import (
     PipelineCost,
     InfrastructureTiming,
 )

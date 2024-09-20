@@ -22,22 +22,24 @@ from pyomo.environ import Constraint, Expression
 # Import IDAES solvers
 from pareto.utilities.solvers import get_solver
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
-    WaterQuality,
     create_model,
     solve_model,
-    Objectives,
     scale_model,
+    pipeline_hydraulics,
+    infrastructure_timing,
+    set_objective,
+    water_quality_discrete,
+)
+from pareto.utilities.enums import (
+    WaterQuality,
+    Objectives,
     PipelineCost,
     Hydraulics,
     DesalinationModel,
     PipelineCapacity,
-    pipeline_hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
-    infrastructure_timing,
     SubsurfaceRisk,
-    set_objective,
-    water_quality_discrete,
 )
 from pareto.utilities.units_support import get_model_unit_container
 from pareto.utilities.get_data import (

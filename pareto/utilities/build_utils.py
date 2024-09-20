@@ -26,10 +26,8 @@ from pareto.utilities.process_data import (
     get_valid_piping_arc_list,
     get_valid_trucking_arc_list,
 )
-from pareto.operational_water_management.operational_produced_water_optimization_model import (
+from pareto.utilities.enums import (
     ProdTank,
-)
-from pareto.strategic_water_management.strategic_produced_water_optimization import (
     Hydraulics,
 )
 

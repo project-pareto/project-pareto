@@ -15,16 +15,18 @@ Test utilities
 """
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
-    WaterQuality,
     create_model,
-    Objectives,
     solve_model,
+    CONFIG,
+)
+from pareto.utilities.enums import (
+    WaterQuality,
+    Objectives,
     PipelineCost,
     PipelineCapacity,
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
-    CONFIG,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import is_feasible, nostdout
