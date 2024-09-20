@@ -36,6 +36,7 @@ from pareto.utilities.build_utils import (
     build_sets,
     build_common_params,
     build_common_vars,
+    build_common_constraints,
 )
 from pareto.utilities.enums import (
     ProdTank,
@@ -357,106 +358,8 @@ def create_model(df_sets, df_parameters, default={}):
         rule=ObjectiveFunctionRule, doc="Objective function"
     )
 
-    # Define constraints #
-    def CompletionsPadDemandBalanceRule(model, p, t):
-        return model.p_gamma_Completions[p, t] == (
-            sum(
-                model.v_F_Piped[l, p, t]
-                for l in (model.s_L - model.s_F)
-                if model.p_LLA[l, p]
-            )
-            + sum(model.v_F_Sourced[f, p, t] for f in model.s_F if model.p_LLA[f, p])
-            + sum(model.v_F_Trucked[l, p, t] for l in model.s_L if model.p_LLT[l, p])
-            + model.v_F_PadStorageOut[p, t]
-            - model.v_F_PadStorageIn[p, t]
-            + model.v_S_FracDemand[p, t]
-        )
-
-    model.CompletionsPadDemandBalance = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadDemandBalanceRule,
-        doc="Completions pad demand balance",
-    )
-
-    def CompletionsPadStorageBalanceRule(model, p, t):
-        if t == model.s_T.first():
-            return (
-                model.v_L_PadStorage[p, t]
-                == model.p_lambda_PadStorage[p]
-                + model.v_F_PadStorageIn[p, t]
-                - model.v_F_PadStorageOut[p, t]
-            )
-        else:
-            return (
-                model.v_L_PadStorage[p, t]
-                == model.v_L_PadStorage[p, model.s_T.prev(t)]
-                + model.v_F_PadStorageIn[p, t]
-                - model.v_F_PadStorageOut[p, t]
-            )
-
-    model.CompletionsPadStorageBalance = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadStorageBalanceRule,
-        doc="Completions pad storage balance",
-    )
-
-    def CompletionsPadStorageCapacityRule(model, p, t):
-        return (
-            model.v_L_PadStorage[p, t]
-            <= model.vb_z_PadStorage[p, t] * model.p_sigma_PadStorage[p, t]
-        )
-
-    model.CompletionsPadStorageCapacity = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadStorageCapacityRule,
-        doc="Completions pad storage capacity",
-    )
-
-    def TerminalCompletionsPadStorageLevelRule(model, p, t):
-        if t == model.s_T.last():
-            return model.v_L_PadStorage[p, t] <= model.p_theta_PadStorage[p]
-        else:
-            return Constraint.Skip
-
-    model.TerminalCompletionsPadStorageLevel = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=TerminalCompletionsPadStorageLevelRule,
-        doc="Terminal completions pad storage level",
-    )
-
-    def ExternalWaterSourcingCapacityRule(model, f, t):
-        if not (
-            any(model.p_FCA[f, p] for p in model.s_CP)
-            or any(model.p_FCT[f, p] for p in model.s_CP)
-        ):
-            return Constraint.Skip
-        return (
-            sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
-            + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
-        ) <= model.p_sigma_ExternalWater[f, t]
-
-    model.ExternalWaterSourcingCapacity = Constraint(
-        model.s_F,
-        model.s_T,
-        rule=ExternalWaterSourcingCapacityRule,
-        doc="Externally sourced water capacity",
-    )
-
-    def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-        return (
-            sum(model.v_F_Trucked[l, p, t] for l in model.s_L if model.p_LLT[l, p])
-        ) <= model.p_sigma_OffloadingPad[p]
-
-    model.CompletionsPadTruckOffloadingCapacity = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadTruckOffloadingCapacityRule,
-        doc="Completions pad truck offloading capacity",
-    )
+    # Build constraints #
+    build_common_constraints(model)
 
     def TrucksMaxCapacityRule(model, l, l_tilde, t):
         if (l, l_tilde) in model.s_LLT:
@@ -490,33 +393,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=TrucksMinCapacityRule,
         doc="Minimum amount of water that can be transported by trucks",
-    )
-
-    def StorageSiteTruckOffloadingCapacityRule(model, s, t):
-        return (
-            sum(model.v_F_Trucked[l, s, t] for l in model.s_L if model.p_LLT[l, s])
-            <= model.p_sigma_OffloadingStorage[s]
-        )
-
-    model.StorageSiteTruckOffloadingCapacity = Constraint(
-        model.s_S,
-        model.s_T,
-        rule=StorageSiteTruckOffloadingCapacityRule,
-        doc="Storage site truck offloading capacity",
-    )
-
-    def StorageSiteProcessingCapacityRule(model, s, t):
-        return (
-            sum(model.v_F_Piped[l, s, t] for l in model.s_L if model.p_LLA[l, s])
-            + sum(model.v_F_Trucked[l, s, t] for l in model.s_L if model.p_LLT[l, s])
-            <= model.p_sigma_ProcessingStorage[s]
-        )
-
-    model.StorageSiteProcessingCapacity = Constraint(
-        model.s_S,
-        model.s_T,
-        rule=StorageSiteProcessingCapacityRule,
-        doc="Storage site processing capacity",
     )
 
     if model.config.production_tanks == ProdTank.individual:
@@ -558,7 +434,6 @@ def create_model(df_sets, df_parameters, default={}):
             rule=ProductionTankBalanceRule,
             doc="Production tank balance",
         )
-
     elif model.config.production_tanks == ProdTank.equalized:
 
         def ProductionTankBalanceRule(model, p, t):
@@ -699,76 +574,6 @@ def create_model(df_sets, df_parameters, default={}):
         )
     else:
         raise Exception("storage type not supported")
-
-    def ProductionPadSupplyBalanceRule(model, p, t):
-        return (
-            model.v_B_Production[p, t]
-            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if model.p_LLA[p, l])
-            + sum(model.v_F_Trucked[p, l, t] for l in model.s_L if model.p_LLT[p, l])
-            + model.v_S_Production[p, t]
-        )
-
-    model.ProductionPadSupplyBalance = Constraint(
-        model.s_PP,
-        model.s_T,
-        rule=ProductionPadSupplyBalanceRule,
-        doc="Production pad supply balance",
-    )
-
-    def CompletionsPadSupplyBalanceRule(model, p, t):
-        return (
-            model.v_B_Production[p, t]
-            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if model.p_LLA[p, l])
-            + sum(model.v_F_Trucked[p, l, t] for l in model.s_L if model.p_LLT[p, l])
-            + model.v_S_Flowback[p, t]
-        )
-
-    model.CompletionsPadSupplyBalance = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadSupplyBalanceRule,
-        doc="Completions pad supply balance (i.e. flowback balance)",
-    )
-
-    def NetworkNodeBalanceRule(model, n, t):
-        return sum(
-            model.v_F_Piped[l, n, t] for l in model.s_L if model.p_LLA[l, n]
-        ) == sum(model.v_F_Piped[n, l, t] for l in model.s_L if model.p_LLA[n, l])
-
-    model.NetworkBalance = Constraint(
-        model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc="Network node balance"
-    )
-
-    def BidirectionalFlowRule1(model, l, l_tilde, t):
-        if model.p_LLA[l, l_tilde] and model.p_LLA[l_tilde, l]:
-            return model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-        else:
-            return Constraint.Skip
-
-    model.BidirectionalFlow1 = Constraint(
-        (model.s_L - model.s_F - model.s_O),
-        (model.s_L - model.s_F),
-        model.s_T,
-        rule=BidirectionalFlowRule1,
-        doc="Bi-directional flow",
-    )
-
-    def BidirectionalFlowRule2(model, l, l_tilde, t):
-        if model.p_LLA[l, l_tilde] and model.p_LLA[l_tilde, l]:
-            return (
-                model.v_F_Piped[l, l_tilde, t]
-                <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-            )
-        else:
-            return Constraint.Skip
-
-    model.BidirectionalFlow2 = Constraint(
-        (model.s_L - model.s_F - model.s_O),
-        (model.s_L - model.s_F),
-        model.s_T,
-        rule=BidirectionalFlowRule2,
-        doc="Bi-directional flow",
-    )
 
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():

@@ -638,15 +638,17 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
         = \sum_{l \in L | (n, l) \in LLA}\textcolor{red}{F_{n,l,t}^{Piped}}
 
 
-**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{l \in (L-F-O)}, \textcolor{blue}{\tilde{l} \in (L-F)}, \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
+**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{l \in (L-F-O)}, \textcolor{blue}{\tilde{l} \in (L-F)}, \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{(\tilde{l}, l) \in LLA}, \textcolor{blue}{t \in T}`
 
-There can only be flow in one direction for a given pipeline arc in a given time period. Flow is only allowed in a given direction if the binary indicator for that direction is "on".
+There can only be flow in one direction for a given pipeline arc in a given time period.
 
 .. math::
 
     \textcolor{red}{y_{l,\tilde{l},t}^{Flow}}+\textcolor{red}{y_{\tilde{l},l,t}^{Flow}} = 1
 
-.. note:: Technically the above constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
+.. note:: Technically the above constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined once per reversible arc (e.g. NCA only and not NCA and CNA).
+
+Flow is only allowed in a given direction if the binary indicator for that direction is "on".
 
 .. math::
 

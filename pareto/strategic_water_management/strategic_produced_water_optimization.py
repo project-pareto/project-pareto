@@ -44,10 +44,8 @@ from pyomo.environ import (
 from pyomo.common.fileutils import this_file_dir
 
 from pyomo.core.base.constraint import simple_constraint_rule
-from pyomo.core.expr import identify_variables
 
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
-from enum import Enum, IntEnum
 
 from pareto.utilities.solvers import get_solver, set_timeout
 from pyomo.opt import TerminationCondition
@@ -62,6 +60,8 @@ from pareto.utilities.build_utils import (
     build_sets,
     build_common_params,
     build_common_vars,
+    build_common_constraints,
+    process_constraint,
 )
 from pareto.utilities.enums import (
     Objectives,
@@ -1682,234 +1682,8 @@ def create_model(df_sets, df_parameters, default={}):
     # Activate correct objective function based on config value #
     set_objective(model, model.config.objective)
 
-    # Define constraints #
-
-    def CompletionsPadDemandBalanceRule(model, p, t):
-        expr = (
-            sum(
-                model.v_F_Piped[l, p, t]
-                for l in (model.s_L - model.s_F)
-                if (l, p) in model.s_LLA
-            )
-            + sum(
-                model.v_F_Sourced[f, p, t] for f in model.s_F if (f, p) in model.s_LLA
-            )
-            + sum(
-                model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT
-            )
-            + model.v_F_PadStorageOut[p, t]
-            - model.v_F_PadStorageIn[p, t]
-            + model.v_S_FracDemand[p, t]
-        )
-
-        # If completions pad is outside the system, the completions demand is not required to be met
-        if model.p_chi_OutsideCompletionsPad[p] == 1:
-            constraint = model.p_gamma_Completions[p, t] >= expr
-        # If the completions pad is inside the system, demand must be met
-        else:
-            constraint = model.p_gamma_Completions[p, t] == expr
-
-        return process_constraint(constraint)
-
-    model.CompletionsPadDemandBalance = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadDemandBalanceRule,
-        doc="Completions pad demand balance",
-    )
-
-    def CompletionsPadStorageBalanceRule(model, p, t):
-        if t == model.s_T.first():
-            constraint = model.v_L_PadStorage[p, t] == model.p_lambda_PadStorage[p] + (
-                (model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t])
-            )
-        else:
-            constraint = model.v_L_PadStorage[p, t] == model.v_L_PadStorage[
-                p, model.s_T.prev(t)
-            ] + ((model.v_F_PadStorageIn[p, t] - model.v_F_PadStorageOut[p, t]))
-
-        return process_constraint(constraint)
-
-    model.CompletionsPadStorageBalance = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadStorageBalanceRule,
-        doc="Completions pad storage balance",
-    )
-
-    def CompletionsPadStorageCapacityRule(model, p, t):
-        constraint = model.v_L_PadStorage[p, t] <= model.p_sigma_PadStorage[p]
-
-        return process_constraint(constraint)
-
-    model.CompletionsPadStorageCapacity = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadStorageCapacityRule,
-        doc="Completions pad storage capacity",
-    )
-
-    def TerminalCompletionsPadStorageLevelRule(model, p, t):
-        if t == model.s_T.last():
-            constraint = model.v_L_PadStorage[p, t] <= model.p_theta_PadStorage[p]
-        else:
-            return Constraint.Skip
-
-        return process_constraint(constraint)
-
-    model.TerminalCompletionsPadStorageLevel = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=TerminalCompletionsPadStorageLevelRule,
-        doc="Terminal completions pad storage level",
-    )
-
-    def ExternalWaterSourcingCapacityRule(model, f, t):
-        constraint = (
-            sum(model.v_F_Sourced[f, p, t] for p in model.s_CP if model.p_FCA[f, p])
-            + sum(model.v_F_Trucked[f, p, t] for p in model.s_CP if model.p_FCT[f, p])
-            <= model.p_sigma_ExternalWater[f, t]
-        )
-
-        return process_constraint(constraint)
-
-    model.ExternalWaterSourcingCapacity = Constraint(
-        model.s_F,
-        model.s_T,
-        rule=ExternalWaterSourcingCapacityRule,
-        doc="Externally sourced water capacity",
-    )
-
-    def CompletionsPadTruckOffloadingCapacityRule(model, p, t):
-        constraint = (
-            sum(model.v_F_Trucked[l, p, t] for l in model.s_L if (l, p) in model.s_LLT)
-            <= model.p_sigma_OffloadingPad[p]
-        )
-
-        return process_constraint(constraint)
-
-    model.CompletionsPadTruckOffloadingCapacity = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadTruckOffloadingCapacityRule,
-        doc="Completions pad truck offloading capacity",
-    )
-
-    def StorageSiteTruckOffloadingCapacityRule(model, s, t):
-        constraint = (
-            sum(model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT)
-            <= model.p_sigma_OffloadingStorage[s]
-        )
-
-        return process_constraint(constraint)
-
-    model.StorageSiteTruckOffloadingCapacity = Constraint(
-        model.s_S,
-        model.s_T,
-        rule=StorageSiteTruckOffloadingCapacityRule,
-        doc="Storage site truck offloading capacity",
-    )
-
-    def StorageSiteProcessingCapacityRule(model, s, t):
-        constraint = (
-            sum(model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT
-            )
-            <= model.p_sigma_ProcessingStorage[s]
-        )
-
-        return process_constraint(constraint)
-
-    model.StorageSiteProcessingCapacity = Constraint(
-        model.s_S,
-        model.s_T,
-        rule=StorageSiteProcessingCapacityRule,
-        doc="Storage site processing capacity",
-    )
-
-    def ProductionPadSupplyBalanceRule(model, p, t):
-        constraint = (
-            model.p_beta_Production[p, t]
-            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
-            )
-            + model.v_S_Production[p, t]
-        )
-        return process_constraint(constraint)
-
-    model.ProductionPadSupplyBalance = Constraint(
-        model.s_PP,
-        model.s_T,
-        rule=ProductionPadSupplyBalanceRule,
-        doc="Production pad supply balance",
-    )
-
-    def CompletionsPadSupplyBalanceRule(model, p, t):
-        constraint = (
-            model.p_beta_Flowback[p, t]
-            == sum(model.v_F_Piped[p, l, t] for l in model.s_L if (p, l) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[p, l, t] for l in model.s_L if (p, l) in model.s_LLT
-            )
-            + model.v_S_Flowback[p, t]
-        )
-
-        return process_constraint(constraint)
-
-    model.CompletionsPadSupplyBalance = Constraint(
-        model.s_CP,
-        model.s_T,
-        rule=CompletionsPadSupplyBalanceRule,
-        doc="Completions pad supply balance (i.e. flowback balance",
-    )
-
-    def NetworkNodeBalanceRule(model, n, t):
-        constraint = sum(
-            model.v_F_Piped[l, n, t] for l in model.s_L if (l, n) in model.s_LLA
-        ) == sum(model.v_F_Piped[n, l, t] for l in model.s_L if (n, l) in model.s_LLA)
-
-        return process_constraint(constraint)
-
-    model.NetworkBalance = Constraint(
-        model.s_N, model.s_T, rule=NetworkNodeBalanceRule, doc="Network node balance"
-    )
-
-    def BidirectionalFlowRule1(model, l, l_tilde, t):
-        if (l, l_tilde) in model.s_LLA:
-            constraint = (
-                model.vb_y_Flow[l, l_tilde, t] + model.vb_y_Flow[l_tilde, l, t] == 1
-            )
-            return process_constraint(constraint)
-        else:
-            return Constraint.Skip
-
-    model.BidirectionalFlow1 = Constraint(
-        (model.s_L - model.s_F - model.s_O),
-        (model.s_L - model.s_F),
-        model.s_T,
-        rule=BidirectionalFlowRule1,
-        doc="Bi-directional flow",
-    )
-
-    def BidirectionalFlowRule2(model, l, l_tilde, t):
-        if (l, l_tilde) in model.s_LLA:
-            constraint = (
-                model.v_F_Piped[l, l_tilde, t]
-                <= model.vb_y_Flow[l, l_tilde, t] * model.p_M_Flow
-            )
-            return process_constraint(constraint)
-        else:
-            return Constraint.Skip
-
-    model.BidirectionalFlow2 = Constraint(
-        (model.s_L - model.s_F - model.s_O),
-        (model.s_L - model.s_F),
-        model.s_T,
-        rule=BidirectionalFlowRule2,
-        doc="Bi-directional flow",
-    )
+    # Build constraints #
+    build_common_constraints(model)
 
     def StorageSiteBalanceRule(model, s, t):
         if t == model.s_T.first():
@@ -6282,15 +6056,6 @@ def water_quality_discrete(model, df_parameters, df_sets):
         raise Exception("Objective not supported")
 
     return model
-
-
-def process_constraint(constraint):
-    # Check if the constraint contains a variable
-    if list(identify_variables(constraint)):
-        return constraint
-    # Skip constraint if empty
-    else:
-        return Constraint.Skip
 
 
 def postprocess_water_quality_calculation(model, opt):
