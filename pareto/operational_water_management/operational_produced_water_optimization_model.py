@@ -32,7 +32,11 @@ from pyomo.core.base.constraint import simple_constraint_rule
 from pyomo.common.config import ConfigBlock, ConfigValue, In, Bool
 
 from pareto.utilities.units_support import units_setup
-from pareto.utilities.build_utils import build_sets, build_common_params
+from pareto.utilities.build_utils import (
+    build_sets,
+    build_common_params,
+    build_common_vars,
+)
 from pareto.utilities.enums import (
     ProdTank,
     WaterQuality,
@@ -228,54 +232,15 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Completions pad storage operational cost if used [currency]",
     )
 
-    # Define continuous variables #
+    # Build variables #
+    build_common_vars(model)
+
     model.v_Objective = Var(
         within=Reals,
         units=model.model_units["currency"],
         doc="Objective function variable [currency]",
     )
 
-    model.v_F_Piped = Var(
-        model.s_LLA,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Produced water quantity piped from location l to location l [volume/time]",
-    )
-    model.v_F_Trucked = Var(
-        model.s_LLT,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Produced water quantity trucked from location l to location l [volume/time]",
-    )
-    model.v_F_Sourced = Var(
-        model.s_F,
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Externally sourced water from source f to completions pad p [volume/time]",
-    )
-    model.v_F_PadStorageIn = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Water put into completions" " pad storage [volume/time]",
-    )
-    model.v_F_PadStorageOut = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume_time"],
-        doc="Water from completions pad storage" " used for fracturing [volume/time]",
-    )
     model.v_F_UnusedTreatedWater = Var(
         model.s_R,
         model.s_T,
@@ -284,6 +249,7 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Water leftover from the treatment process [volume/time]",
     )
+
     if model.config.production_tanks == ProdTank.individual:
         model.v_F_Drain = Var(
             model.s_P,
@@ -318,77 +284,13 @@ def create_model(df_sets, df_parameters, default={}):
         )
     else:
         raise Exception("storage type not supported")
-    model.v_L_PadStorage = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        initialize=0,
-        units=model.model_units["volume"],
-        doc="Water level in completions pad storage [volume]",
-    )
+
     model.v_B_Production = Var(
         model.s_P,
         model.s_T,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
         doc="Produced water for transport from pad [volume/time]",
-    )
-    model.v_L_Storage = Var(
-        model.s_S,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Water level at storage site [volume]",
-    )
-    model.v_C_Piped = Var(
-        model.s_LLA,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of piping produced water from location l to location l [currency/time]",
-    )
-    model.v_C_Trucked = Var(
-        model.s_LLT,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of trucking produced water from location l to location l [currency/time]",
-    )
-    model.v_C_Sourced = Var(
-        model.s_F,
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of sourcing external water from source f to completion pad p [currency/time]",
-    )
-    model.v_C_Disposal = Var(
-        model.s_K,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of injecting produced water at disposal site [currency/time]",
-    )
-    model.v_C_Treatment = Var(
-        model.s_R,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of treating produced water at treatment site [currency/time]",
-    )
-    model.v_C_Reuse = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of reusing produced water at completions site [currency/time]",
-    )
-    model.v_C_Storage = Var(
-        model.s_S,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_time"],
-        doc="Cost of storing produced water at storage site [currency/time]",
     )
     model.v_C_PadStorage = Var(
         model.s_CP,
@@ -397,83 +299,13 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency"],
         doc="Cost of storing produced water at completions pad storage [currency]",
     )
-    model.v_R_Storage = Var(
-        model.s_S,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["currency_volume"],
-        doc="Credit for retrieving stored produced water from storage site [currency/volume]",
-    )
-    model.v_F_TotalSourced = Var(
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Total volume of externally sourced water [volume]",
-    )
-    model.v_C_TotalSourced = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of externally sourced water [currency]",
-    )
-    model.v_C_TotalDisposal = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of injecting produced water [currency]",
-    )
-    model.v_C_TotalTreatment = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of treating produced water [currency]",
-    )
-    model.v_C_TotalReuse = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of reusing produced water [currency]",
-    )
-    model.v_C_TotalPiping = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of piping produced water [currency]",
-    )
-    model.v_C_TotalStorage = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of storing produced water [currency]",
-    )
+
     model.v_C_TotalPadStorage = Var(
         within=NonNegativeReals,
         units=model.model_units["currency"],
         doc="Total cost of storing produced water at completions site [currency]",
     )
-    model.v_C_TotalTrucking = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of trucking produced water [currency]",
-    )
-    model.v_C_Slack = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total cost of slack variables [currency]",
-    )
-    model.v_R_TotalStorage = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Total credit for withdrawing produced water [currency]",
-    )
 
-    model.v_F_ReuseDestination = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to completions pad [volume/time]",
-    )
-    model.v_F_DisposalDestination = Var(
-        model.s_K,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to disposal site [volume/time]",
-    )
     model.v_F_TreatmentDestination = Var(
         model.s_R,
         model.s_T,
@@ -481,123 +313,15 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Total deliveries to treatment site [volume/time]",
     )
-    model.v_F_BeneficialReuseDestination = Var(
-        model.s_O,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Total deliveries to Beneficial Reuse Site [volume/time]",
-    )
-    model.v_D_Capacity = Var(
-        model.s_K,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Disposal capacity at a disposal site [volume/time]",
-    )
-    model.v_X_Capacity = Var(
-        model.s_S,
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Storage capacity at a storage site [volume]",
-    )
-    model.v_F_Capacity = Var(
-        model.s_LLA,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Flow capacity along pipeline arc [volume/time]",
-    )
-    model.v_C_DisposalCapEx = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding disposal capacity [currency]",
-    )
-    model.v_C_PipelineCapEx = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding piping capacity [currency]",
-    )
-    model.v_C_StorageCapEx = Var(
-        within=NonNegativeReals,
-        units=model.model_units["currency"],
-        doc="Capital cost of constructing or expanding storage capacity [currency]",
-    )
-    model.v_S_FracDemand = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to meet the completions demand [volume/time]",
-    )
-    model.v_S_Production = Var(
-        model.s_PP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to process the produced water production [volume/time]",
-    )
-    model.v_S_Flowback = Var(
-        model.s_CP,
-        model.s_T,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to process flowback water production [volume/time]",
-    )
-    model.v_S_PipelineCapacity = Var(
-        model.s_LLA,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary pipeline capacity [volume/time]",
-    )
-    model.v_S_StorageCapacity = Var(
-        model.s_S,
-        within=NonNegativeReals,
-        units=model.model_units["volume"],
-        doc="Slack variable to provide necessary storage capacity [volume]",
-    )
-    model.v_S_DisposalCapacity = Var(
-        model.s_K,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary disposal capacity [volume/time]",
-    )
-    model.v_S_TreatmentCapacity = Var(
-        model.s_R,
-        within=NonNegativeReals,
-        units=model.model_units["volume_time"],
-        doc="Slack variable to provide necessary treatment capacity [volume/time]",
-    )
+
     model.v_S_ReuseCapacity = Var(
         model.s_O,
         within=NonNegativeReals,
         units=model.model_units["volume_time"],
         doc="Slack variable to provide necessary reuse capacity [volume/time]",
     )
-    # Define binary variables #
-    model.vb_y_Pipeline = Var(  # TODO is this variable even needed? It seems unused
-        model.s_LLA,
-        within=Binary,
-        initialize=0,
-        doc="New pipeline installed between one location and another location with specific diameter",
-    )
-    model.vb_y_Storage = Var(  # TODO is this variable even needed? It seems unused
-        model.s_S,
-        within=Binary,
-        initialize=0,
-        doc="New or additional storage facility installed at storage site with specific storage capacity",
-    )
-    model.vb_y_Disposal = Var(  # TODO is this variable even needed? It seems unused
-        model.s_K,
-        within=Binary,
-        initialize=0,
-        doc="New or additional disposal facility installed at disposal site with specific injection capacity",
-    )
-    model.vb_y_Flow = Var(
-        model.s_LLA,
-        model.s_T,
-        within=Binary,
-        initialize=0,
-        doc="Directional flow between two locations",
-    )
+
+    # Binary variables
     model.vb_z_PadStorage = Var(
         model.s_CP,
         model.s_T,
@@ -605,6 +329,7 @@ def create_model(df_sets, df_parameters, default={}):
         initialize=0,
         doc="Completions pad storage use",
     )
+
     model.vb_y_Truck = Var(
         model.s_LLT,
         model.s_T,
@@ -624,9 +349,6 @@ def create_model(df_sets, df_parameters, default={}):
             + model.v_C_TotalStorage
             + model.v_C_TotalPadStorage
             + model.v_C_TotalTrucking
-            + model.v_C_DisposalCapEx
-            + model.v_C_StorageCapEx
-            + model.v_C_PipelineCapEx
             + model.v_C_Slack
             - model.v_R_TotalStorage
         )
