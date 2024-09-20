@@ -752,23 +752,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["currency_volume"],
         doc="Credit for sending water to beneficial reuse [currency/volume]",
     )
-    if model.config.hydraulics != Hydraulics.false:
-        # Elevation parameter is only used in the hydraulics module and is not needed in the basic version
-        model.p_zeta_Elevation = Param(
-            model.s_L,
-            default=100,
-            domain=NonNegativeReals,
-            initialize={
-                key: pyunits.convert_value(
-                    value,
-                    from_units=model.user_units["elevation"],
-                    to_units=model.model_units["elevation"],
-                )
-                for key, value in model.df_parameters["Elevation"].items()
-            },
-            units=pyunits.meter,
-            doc="Elevation of each node in the network",
-        )
 
     model.p_M_Concentration = Param(
         default=100,

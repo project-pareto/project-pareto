@@ -77,7 +77,7 @@ def test_basic_build(build_operational_model):
             "water_quality": WaterQuality.false,
         },
     )
-    assert degrees_of_freedom(m) == 135
+    assert degrees_of_freedom(m) == 133
     # Check unit config arguments
     assert len(m.config) == 3
     assert m.config.production_tanks
@@ -168,7 +168,7 @@ def test_run_operational_model(build_operational_model):
     results = solver.solve(m, tee=True)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 135
+    assert degrees_of_freedom(m) == 133
     # solutions obtained from running the generic case study
     assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
     assert pytest.approx(0.993, abs=1e-6) == pyo.value(
@@ -188,7 +188,7 @@ def test_run_operational_model_ProdTank_individual(build_operational_model):
     results = solver.solve(m, tee=True)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 175
+    assert degrees_of_freedom(m) == 173
     # solutions obtained from running the generic case study
     assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
     assert pytest.approx(0.500, abs=1e-6) == pyo.value(
@@ -210,7 +210,7 @@ def test_operational_model_discrete_water_quality_build(build_operational_model)
             "water_quality": WaterQuality.discrete,
         },
     )
-    assert degrees_of_freedom(m) == 335
+    assert degrees_of_freedom(m) == 333
     # Check unit config arguments
     assert len(m.config) == 3
     assert m.config.water_quality

@@ -16,12 +16,7 @@ Module with build utility functions for strategic and operational models.
 Authors: PARETO Team
 """
 
-from pyomo.environ import (
-    Set,
-    Param,
-    units as pyunits,
-    value,
-)
+from pyomo.environ import Set, Param, units as pyunits, value, NonNegativeReals
 from pareto.utilities.process_data import (
     get_valid_piping_arc_list,
     get_valid_trucking_arc_list,
@@ -517,6 +512,24 @@ def build_params(model):
         units=model.model_units["currency_volume"],
         doc="Storage withdrawal operational credit [currency/volume]",
     )
+
+    if model.type == "strategic" and model.config.hydraulics != Hydraulics.false:
+        # Elevation parameter is only used in the hydraulics module and is not needed in the basic version
+        model.p_zeta_Elevation = Param(
+            model.s_L,
+            default=100,
+            domain=NonNegativeReals,
+            initialize={
+                key: pyunits.convert_value(
+                    value,
+                    from_units=model.user_units["elevation"],
+                    to_units=model.model_units["elevation"],
+                )
+                for key, value in model.df_parameters["Elevation"].items()
+            },
+            units=pyunits.meter,
+            doc="Elevation of each node in the network",
+        )
 
     if model.type == "strategic" and model.config.hydraulics == Hydraulics.post_process:
         # In the post-process based hydraulics model an economics-based penalty
