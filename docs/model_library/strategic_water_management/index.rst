@@ -281,7 +281,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{S_{k}^{DisposalCapacity}}` =                 Slack variable to provide necessary disposal capacity
 
-:math:`\textcolor{red}{S_{r}^{TreamentCapacity}}` =                 Slack variable to provide necessary treatment capacity
+:math:`\textcolor{red}{S_{r}^{TreatmentCapacity}}` =                 Slack variable to provide necessary treatment capacity
 
 :math:`\textcolor{red}{S_{o}^{BeneficialResueCapacity}}` =          Slack variable to provide necessary beneficial reuse capacity
 
@@ -802,7 +802,7 @@ The set :math:`\textcolor{blue}{J}` should also include the 0th case (e.g. 0 bbl
 
     \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
-        \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
+        \leq \textcolor{red}{T_{r,[t]}^{Capacity}} + \textcolor{red}{S_{r}^{TreatmentCapacity}}
 
 
 **Treatment Feed Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`

@@ -1376,6 +1376,186 @@ def build_common_constraints(model):
         doc="Bi-directional flow",
     )
 
+    def StorageSiteBalanceRule(model, s, t):
+        if t == model.s_T.first():
+            expr = model.p_lambda_Storage[s]
+        else:
+            expr = model.v_L_Storage[s, model.s_T.prev(t)]
+
+        expr = (
+            expr
+            + sum(model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, s, t] for l in model.s_L if (l, s) in model.s_LLT
+            )
+            - sum(model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA)
+            - sum(
+                model.v_F_Trucked[s, l, t] for l in model.s_L if (s, l) in model.s_LLT
+            )
+        )
+
+        if model.type == "strategic":
+            expr = expr - model.v_F_StorageEvaporationStream[s, t]
+
+        constraint = model.v_L_Storage[s, t] == expr
+        return process_constraint(constraint)
+
+    model.StorageSiteBalance = Constraint(
+        model.s_S,
+        model.s_T,
+        rule=StorageSiteBalanceRule,
+        doc="Storage site balance rule",
+    )
+
+    def PipelineCapacityExpansionRule(model, l, l_tilde):
+        if (l, l_tilde) in model.s_LLA:
+            expr = model.p_sigma_Pipeline[l, l_tilde]
+            if (l_tilde, l) in model.s_LLA:
+                # i.e., if the pipeline is defined as birectional then the aggregated capacity is available in both directions
+                expr = expr + model.p_sigma_Pipeline[l_tilde, l]
+
+                if model.type == "strategic":
+                    expr = expr + sum(
+                        model.p_delta_Pipeline[d]
+                        * (
+                            model.vb_y_Pipeline[l, l_tilde, d]
+                            + model.vb_y_Pipeline[l_tilde, l, d]
+                        )
+                        for d in model.s_D
+                    )
+
+            else:
+                # i.e., if the pipeline is defined as unirectional then the capacity is only available in the defined direction
+                if model.type == "strategic":
+                    expr = expr + sum(
+                        model.p_delta_Pipeline[d] * model.vb_y_Pipeline[l, l_tilde, d]
+                        for d in model.s_D
+                    )
+
+            expr = expr + model.v_S_PipelineCapacity[l, l_tilde]
+            constraint = model.v_F_Capacity[l, l_tilde] == expr
+            return process_constraint(constraint)
+
+        else:
+            return Constraint.Skip
+
+    model.PipelineCapacityExpansion = Constraint(
+        model.s_L,
+        model.s_L,
+        rule=PipelineCapacityExpansionRule,
+        doc="Pipeline capacity construction/expansion",
+    )
+
+    def PipelineCapacityRule(model, l, l_tilde, t):
+        if (l, l_tilde) in model.s_LLA:
+            constraint = (
+                model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.PipelineCapacity = Constraint(
+        (model.s_L - model.s_O - model.s_K),
+        (model.s_L - model.s_F),
+        model.s_T,
+        rule=PipelineCapacityRule,
+        doc="Pipeline capacity",
+    )
+
+    def StorageCapacityExpansionRule(model, s):
+        expr = model.p_sigma_Storage[s] + model.v_S_StorageCapacity[s]
+        if model.type == "strategic":
+            expr = expr + sum(
+                model.p_delta_Storage[c] * model.vb_y_Storage[s, c] for c in model.s_C
+            )
+        constraint = model.v_X_Capacity[s] == expr
+        return process_constraint(constraint)
+
+    model.StorageCapacityExpansion = Constraint(
+        model.s_S,
+        rule=StorageCapacityExpansionRule,
+        doc="Storage capacity construction/expansion",
+    )
+
+    def StorageCapacityRule(model, s, t):
+        constraint = model.v_L_Storage[s, t] <= model.v_X_Capacity[s]
+        return process_constraint(constraint)
+
+    model.StorageCapacity = Constraint(
+        model.s_S, model.s_T, rule=StorageCapacityRule, doc="Storage capacity"
+    )
+
+    def DisposalCapacityExpansionRule(model, k):
+        expr = model.p_sigma_Disposal[k] + model.v_S_DisposalCapacity[k]
+        if model.type == "strategic":
+            expr = (
+                expr
+                + sum(
+                    model.p_delta_Disposal[k, i] * model.vb_y_Disposal[k, i]
+                    for i in model.s_I
+                )
+                * model.p_chi_DisposalExpansionAllowed[k]
+            )
+        constraint = model.v_D_Capacity[k] == expr
+        return process_constraint(constraint)
+
+    model.DisposalCapacityExpansion = Constraint(
+        model.s_K,
+        rule=DisposalCapacityExpansionRule,
+        doc="Disposal capacity construction/expansion",
+    )
+
+    def DisposalCapacityRule(model, k, t):
+        constraint = (
+            sum(model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT
+            )
+            <= model.v_D_Capacity[k]
+        )
+        return process_constraint(constraint)
+
+    model.DisposalCapacity = Constraint(
+        model.s_K, model.s_T, rule=DisposalCapacityRule, doc="Disposal capacity"
+    )
+
+    def TreatmentCapacityRule(model, r, t):
+        LHS = sum(
+            model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
+        RHS = model.v_S_TreatmentCapacity[r]
+        if model.type == "strategic":
+            RHS = RHS + model.v_T_Capacity[r]
+        else:  # operational model
+            RHS = RHS + model.p_sigma_Treatment[r]
+        constraint = LHS <= RHS
+        return process_constraint(constraint)
+
+    model.TreatmentCapacity = Constraint(
+        model.s_R, model.s_T, rule=TreatmentCapacityRule, doc="Treatment capacity"
+    )
+
+    def ExternalSourcingCostRule(model, f, p, t):
+        if model.p_FCA[f, p] or model.p_FCT[f, p]:
+            constraint = (
+                model.v_C_Sourced[f, p, t]
+                == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
+                * model.p_pi_Sourcing[f]
+            )
+        else:
+            return Constraint.Skip
+
+        return process_constraint(constraint)
+
+    model.ExternalSourcingCost = Constraint(
+        model.s_F,
+        model.s_CP,
+        model.s_T,
+        rule=ExternalSourcingCostRule,
+        doc="Externally sourced water cost",
+    )
+
 
 def process_constraint(constraint):
     # Check if the constraint contains a variable

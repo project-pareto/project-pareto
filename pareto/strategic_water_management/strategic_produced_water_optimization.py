@@ -1685,59 +1685,6 @@ def create_model(df_sets, df_parameters, default={}):
     # Build constraints #
     build_common_constraints(model)
 
-    def StorageSiteBalanceRule(model, s, t):
-        if t == model.s_T.first():
-            constraint = model.v_L_Storage[s, t] == model.p_lambda_Storage[s] + (
-                sum(
-                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
-                )
-                + sum(
-                    model.v_F_Trucked[l, s, t]
-                    for l in model.s_L
-                    if (l, s) in model.s_LLT
-                )
-                - sum(
-                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
-                )
-                - sum(
-                    model.v_F_Trucked[s, l, t]
-                    for l in model.s_L
-                    if (s, l) in model.s_LLT
-                )
-                - model.v_F_StorageEvaporationStream[s, t]
-            )
-        else:
-            constraint = model.v_L_Storage[s, t] == model.v_L_Storage[
-                s, model.s_T.prev(t)
-            ] + (
-                sum(
-                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
-                )
-                + sum(
-                    model.v_F_Trucked[l, s, t]
-                    for l in model.s_L
-                    if (l, s) in model.s_LLT
-                )
-                - sum(
-                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
-                )
-                - sum(
-                    model.v_F_Trucked[s, l, t]
-                    for l in model.s_L
-                    if (s, l) in model.s_LLT
-                )
-                - model.v_F_StorageEvaporationStream[s, t]
-            )
-
-        return process_constraint(constraint)
-
-    model.StorageSiteBalance = Constraint(
-        model.s_S,
-        model.s_T,
-        rule=StorageSiteBalanceRule,
-        doc="Storage site balance rule",
-    )
-
     def TerminalStorageLevelRule(model, s, t):
         if t == model.s_T.last():
             constraint = model.v_L_Storage[s, t] <= model.p_theta_Storage[s]
@@ -1751,65 +1698,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_T,
         rule=TerminalStorageLevelRule,
         doc="Terminal storage site level",
-    )
-
-    def PipelineCapacityExpansionRule(model, l, l_tilde):
-        if (l, l_tilde) in model.s_LLA:
-            if (l_tilde, l) in model.s_LLA:
-                # i.e., if the pipeline is defined as birectional then the aggregated capacity is available in both directions
-                constraint = (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + model.p_sigma_Pipeline[l_tilde, l]
-                    + sum(
-                        model.p_delta_Pipeline[d]
-                        * (
-                            model.vb_y_Pipeline[l, l_tilde, d]
-                            + model.vb_y_Pipeline[l_tilde, l, d]
-                        )
-                        for d in model.s_D
-                    )
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-                return process_constraint(constraint)
-            else:
-                # i.e., if the pipeline is defined as unirectional then the capacity is only available in the defined direction
-                constraint = (
-                    model.v_F_Capacity[l, l_tilde]
-                    == model.p_sigma_Pipeline[l, l_tilde]
-                    + sum(
-                        model.p_delta_Pipeline[d] * model.vb_y_Pipeline[l, l_tilde, d]
-                        for d in model.s_D
-                    )
-                    + model.v_S_PipelineCapacity[l, l_tilde]
-                )
-                return process_constraint(constraint)
-
-        else:
-            return Constraint.Skip
-
-    model.PipelineCapacityExpansion = Constraint(
-        model.s_L,
-        model.s_L,
-        rule=PipelineCapacityExpansionRule,
-        doc="Pipeline capacity construction/expansion",
-    )
-
-    def PipelineCapacityRule(model, l, l_tilde, t):
-        if (l, l_tilde) in model.s_LLA:
-            constraint = (
-                model.v_F_Piped[l, l_tilde, t] <= model.v_F_Capacity[l, l_tilde]
-            )
-            return process_constraint(constraint)
-        else:
-            return Constraint.Skip
-
-    model.PipelineCapacity = Constraint(
-        (model.s_L - model.s_O - model.s_K),
-        (model.s_L - model.s_F),
-        model.s_T,
-        rule=PipelineCapacityRule,
-        doc="Pipeline capacity",
     )
 
     # only include network node capacity constraint if config is set to true
@@ -1837,67 +1725,6 @@ def create_model(df_sets, df_parameters, default={}):
             rule=simple_constraint_rule(NetworkNodeCapacityRule),
             doc="Network node capacity",
         )
-
-    def StorageCapacityExpansionRule(model, s):
-        constraint = (
-            model.v_X_Capacity[s]
-            == model.p_sigma_Storage[s]
-            + sum(
-                model.p_delta_Storage[c] * model.vb_y_Storage[s, c] for c in model.s_C
-            )
-            + model.v_S_StorageCapacity[s]
-        )
-
-        return process_constraint(constraint)
-
-    model.StorageCapacityExpansion = Constraint(
-        model.s_S,
-        rule=StorageCapacityExpansionRule,
-        doc="Storage capacity construction/expansion",
-    )
-
-    def StorageCapacityRule(model, s, t):
-        constraint = model.v_L_Storage[s, t] <= model.v_X_Capacity[s]
-
-        return process_constraint(constraint)
-
-    model.StorageCapacity = Constraint(
-        model.s_S, model.s_T, rule=StorageCapacityRule, doc="Storage capacity"
-    )
-
-    def DisposalCapacityExpansionRule(model, k):
-        constraint = (
-            model.v_D_Capacity[k]
-            == model.p_sigma_Disposal[k]
-            + sum(
-                model.p_delta_Disposal[k, i] * model.vb_y_Disposal[k, i]
-                for i in model.s_I
-            )
-            * model.p_chi_DisposalExpansionAllowed[k]
-            + model.v_S_DisposalCapacity[k]
-        )
-
-        return process_constraint(constraint)
-
-    model.DisposalCapacityExpansion = Constraint(
-        model.s_K,
-        rule=DisposalCapacityExpansionRule,
-        doc="Disposal capacity construction/expansion",
-    )
-
-    def DisposalCapacityRule(model, k, t):
-        constraint = (
-            sum(model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT
-            )
-            <= model.v_D_Capacity[k]
-        )
-        return process_constraint(constraint)
-
-    model.DisposalCapacity = Constraint(
-        model.s_K, model.s_T, rule=DisposalCapacityRule, doc="Disposal capacity"
-    )
 
     def TreatmentCapacityExpansionRule(model, r):
         if model.config.objective == Objectives.cost_surrogate:
@@ -1934,20 +1761,6 @@ def create_model(df_sets, df_parameters, default={}):
         model.s_R,
         rule=TreatmentCapacityExpansionRule,
         doc="Treatment capacity construction/expansion",
-    )
-
-    def TreatmentCapacityRule(model, r, t):
-        constraint = (
-            sum(model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA)
-            + sum(
-                model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT
-            )
-            <= model.v_T_Capacity[r]
-        )
-        return process_constraint(constraint)
-
-    model.TreatmentCapacity = Constraint(
-        model.s_R, model.s_T, rule=TreatmentCapacityRule, doc="Treatment capacity"
     )
 
     def TreatmentFeedBalanceRule(model, r, t):
@@ -2208,35 +2021,6 @@ def create_model(df_sets, df_parameters, default={}):
 
     model.TotalBeneficialReuse = Constraint(
         rule=TotalBeneficialReuseVolumeRule, doc="Total beneficial reuse volume"
-    )
-
-    def ExternalSourcingCostRule(model, f, p, t):
-        if f in model.s_F and p in model.s_CP:
-            if model.p_FCA[f, p]:
-                constraint = (
-                    model.v_C_Sourced[f, p, t]
-                    == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
-                    * model.p_pi_Sourcing[f]
-                )
-            elif model.p_FCT[f, p]:
-                constraint = (
-                    model.v_C_Sourced[f, p, t]
-                    == (model.v_F_Sourced[f, p, t] + model.v_F_Trucked[f, p, t])
-                    * model.p_pi_Sourcing[f]
-                )
-            else:
-                return Constraint.Skip
-
-            return process_constraint(constraint)
-        else:
-            return Constraint.Skip
-
-    model.ExternalSourcingCost = Constraint(
-        model.s_F,
-        model.s_CP,
-        model.s_T,
-        rule=ExternalSourcingCostRule,
-        doc="Externally sourced water cost",
     )
 
     def TotalExternalSourcingCostRule(model):
