@@ -1121,6 +1121,13 @@ def build_common_vars(model):
         doc="Slack variable to provide necessary treatment capacity [volume/time]",
     )
 
+    model.v_S_BeneficialReuseCapacity = Var(
+        model.s_O,
+        within=NonNegativeReals,
+        units=model.model_units["volume_time"],
+        doc="Slack variable to provide necessary beneficial reuse capacity [volume/time]",
+    )
+
     # Binary variables
     model.vb_y_Flow = Var(
         *vb_y_Flow_idx,
@@ -1554,6 +1561,380 @@ def build_common_constraints(model):
         model.s_T,
         rule=ExternalSourcingCostRule,
         doc="Externally sourced water cost",
+    )
+
+    def TotalExternalSourcingCostRule(model):
+        constraint = model.v_C_TotalSourced == sum(
+            sum(sum(model.v_C_Sourced[f, p, t] for f in model.s_F) for p in model.s_CP)
+            for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalExternalSourcingCost = Constraint(
+        rule=TotalExternalSourcingCostRule, doc="Total externally sourced water cost"
+    )
+
+    def TotalExternalSourcingVolumeRule(model):
+        constraint = model.v_F_TotalSourced == (
+            sum(
+                sum(
+                    sum(
+                        model.v_F_Sourced[f, p, t]
+                        for f in model.s_F
+                        if model.p_FCA[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for t in model.s_T
+            )
+            + sum(
+                sum(
+                    sum(
+                        model.v_F_Trucked[f, p, t]
+                        for f in model.s_F
+                        if model.p_FCT[f, p]
+                    )
+                    for p in model.s_CP
+                )
+                for t in model.s_T
+            )
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalExternalSourcingVolume = Constraint(
+        rule=TotalExternalSourcingVolumeRule,
+        doc="Total externally sourced water volume",
+    )
+
+    def DisposalCostRule(model, k, t):
+        constraint = (
+            model.v_C_Disposal[k, t]
+            == (
+                sum(
+                    model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, k, t]
+                    for l in model.s_L
+                    if (l, k) in model.s_LLT
+                )
+            )
+            * model.p_pi_Disposal[k]
+        )
+        return process_constraint(constraint)
+
+    model.DisposalCost = Constraint(
+        model.s_K, model.s_T, rule=DisposalCostRule, doc="Disposal cost"
+    )
+
+    def TotalDisposalCostRule(model):
+        constraint = model.v_C_TotalDisposal == sum(
+            sum(model.v_C_Disposal[k, t] for k in model.s_K) for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalDisposalCost = Constraint(
+        rule=TotalDisposalCostRule, doc="Total disposal cost"
+    )
+
+    def TotalTreatmentCostRule(model):
+        constraint = model.v_C_TotalTreatment == sum(
+            sum(model.v_C_Treatment[r, t] for r in model.s_R) for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalTreatmentCost = Constraint(
+        rule=TotalTreatmentCostRule, doc="Total treatment cost"
+    )
+
+    def CompletionsReuseCostRule(
+        model,
+        p,
+        t,
+    ):
+        constraint = model.v_C_Reuse[p, t] == (
+            (
+                sum(
+                    model.v_F_Piped[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, p, t]
+                    for l in (model.s_L - model.s_F)
+                    if (l, p) in model.s_LLT
+                )
+            )
+            * model.p_pi_Reuse[p]
+        )
+
+        return process_constraint(constraint)
+
+    model.CompletionsReuseCost = Constraint(
+        model.s_CP,
+        model.s_T,
+        rule=CompletionsReuseCostRule,
+        doc="Reuse completions cost",
+    )
+
+    def TotalCompletionsReuseCostRule(model):
+        constraint = model.v_C_TotalReuse == sum(
+            sum(model.v_C_Reuse[p, t] for p in model.s_CP) for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalCompletionsReuseCost = Constraint(
+        rule=TotalCompletionsReuseCostRule, doc="Total completions reuse cost"
+    )
+
+    def PipingCostRule(model, l, l_tilde, t):
+        if (l, l_tilde) in model.s_LLA:
+            if l in model.s_F:
+                constraint = (
+                    model.v_C_Piped[l, l_tilde, t]
+                    == model.v_F_Sourced[l, l_tilde, t]
+                    * model.p_pi_Pipeline[l, l_tilde]
+                )
+            else:
+                constraint = (
+                    model.v_C_Piped[l, l_tilde, t]
+                    == model.v_F_Piped[l, l_tilde, t] * model.p_pi_Pipeline[l, l_tilde]
+                )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.PipingCost = Constraint(
+        (model.s_L - model.s_O - model.s_K),
+        (model.s_L - model.s_F),
+        model.s_T,
+        rule=PipingCostRule,
+        doc="Piping cost",
+    )
+
+    def TotalPipingCostRule(model):
+        constraint = model.v_C_TotalPiping == (
+            sum(
+                sum(
+                    sum(
+                        model.v_C_Piped[l, l_tilde, t]
+                        for l in (model.s_L - model.s_O - model.s_K)
+                        if (l, l_tilde) in model.s_LLA
+                    )
+                    for l_tilde in (model.s_L - model.s_F)
+                )
+                for t in model.s_T
+            )
+        )
+        return process_constraint(constraint)
+
+    model.TotalPipingCost = Constraint(
+        rule=TotalPipingCostRule, doc="Total piping cost"
+    )
+
+    def StorageDepositCostRule(model, s, t):
+        constraint = model.v_C_Storage[s, t] == (
+            (
+                sum(
+                    model.v_F_Piped[l, s, t] for l in model.s_L if (l, s) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[l, s, t]
+                    for l in model.s_L
+                    if (l, s) in model.s_LLT
+                )
+            )
+            * model.p_pi_Storage[s]
+        )
+        return process_constraint(constraint)
+
+    model.StorageDepositCost = Constraint(
+        model.s_S, model.s_T, rule=StorageDepositCostRule, doc="Storage deposit cost"
+    )
+
+    def TotalStorageCostRule(model):
+        constraint = model.v_C_TotalStorage == sum(
+            sum(model.v_C_Storage[s, t] for s in model.s_S) for t in model.s_T
+        )
+
+        return process_constraint(constraint)
+
+    model.TotalStorageCost = Constraint(
+        rule=TotalStorageCostRule, doc="Total storage deposit cost"
+    )
+
+    def StorageWithdrawalCreditRule(model, s, t):
+        constraint = model.v_R_Storage[s, t] == (
+            (
+                sum(
+                    model.v_F_Piped[s, l, t] for l in model.s_L if (s, l) in model.s_LLA
+                )
+                + sum(
+                    model.v_F_Trucked[s, l, t]
+                    for l in model.s_L
+                    if (s, l) in model.s_LLT
+                )
+            )
+            * model.p_rho_Storage[s]
+        )
+
+        return process_constraint(constraint)
+
+    model.StorageWithdrawalCredit = Constraint(
+        model.s_S,
+        model.s_T,
+        rule=StorageWithdrawalCreditRule,
+        doc="Storage withdrawal credit",
+    )
+
+    def TotalStorageWithdrawalCreditRule(model):
+        constraint = model.v_R_TotalStorage == sum(
+            sum(model.v_R_Storage[s, t] for s in model.s_S) for t in model.s_T
+        )
+        return process_constraint(constraint)
+
+    model.TotalStorageWithdrawalCredit = Constraint(
+        rule=TotalStorageWithdrawalCreditRule, doc="Total storage withdrawal credit"
+    )
+
+    def TruckingCostRule(model, l, l_tilde, t):
+        if (l, l_tilde) in model.s_LLT:
+            constraint = (
+                model.v_C_Trucked[l, l_tilde, t]
+                == model.v_F_Trucked[l, l_tilde, t]
+                * 1
+                / model.p_delta_Truck
+                * model.p_tau_Trucking[l, l_tilde]
+                * model.p_pi_Trucking[l]
+            )
+            return process_constraint(constraint)
+        else:
+            return Constraint.Skip
+
+    model.TruckingCost = Constraint(
+        model.s_L, model.s_L, model.s_T, rule=TruckingCostRule, doc="Trucking cost"
+    )
+
+    def TotalTruckingCostRule(model):
+        constraint = model.v_C_TotalTrucking == (
+            sum(
+                sum(
+                    sum(
+                        model.v_C_Trucked[l, l_tilde, t]
+                        for l in model.s_L
+                        if (l, l_tilde) in model.s_LLT
+                    )
+                    for l_tilde in model.s_L
+                )
+                for t in model.s_T
+            )
+        )
+        return process_constraint(constraint)
+
+    model.TotalTruckingCost = Constraint(
+        rule=TotalTruckingCostRule, doc="Total trucking cost"
+    )
+
+    def SlackCostsRule(model):
+        constraint = model.v_C_Slack == (
+            sum(
+                sum(
+                    model.v_S_FracDemand[p, t] * model.p_psi_FracDemand
+                    for p in model.s_CP
+                )
+                for t in model.s_T
+            )
+            + sum(
+                sum(
+                    model.v_S_Production[p, t] * model.p_psi_Production
+                    for p in model.s_PP
+                )
+                for t in model.s_T
+            )
+            + sum(
+                sum(model.v_S_Flowback[p, t] * model.p_psi_Flowback for p in model.s_CP)
+                for t in model.s_T
+            )
+            + sum(
+                sum(
+                    model.v_S_PipelineCapacity[l, l_tilde]
+                    * model.p_psi_PipelineCapacity
+                    for l in model.s_L
+                    if (l, l_tilde) in model.s_LLA
+                )
+                for l_tilde in model.s_L
+            )
+            + sum(
+                model.v_S_StorageCapacity[s] * model.p_psi_StorageCapacity
+                for s in model.s_S
+            )
+            + sum(
+                model.v_S_DisposalCapacity[k] * model.p_psi_DisposalCapacity
+                for k in model.s_K
+            )
+            + sum(
+                model.v_S_TreatmentCapacity[r] * model.p_psi_TreatmentCapacity
+                for r in model.s_R
+            )
+            + sum(
+                model.v_S_BeneficialReuseCapacity[o]
+                * model.p_psi_BeneficialReuseCapacity
+                for o in model.s_O
+            )
+        )
+        return process_constraint(constraint)
+
+    model.SlackCosts = Constraint(rule=SlackCostsRule, doc="Slack costs")
+
+    def ReuseDestinationDeliveriesRule(model, p, t):
+        constraint = model.v_F_ReuseDestination[p, t] == sum(
+            model.v_F_Piped[l, p, t]
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLA
+        ) + sum(
+            model.v_F_Trucked[l, p, t]
+            for l in (model.s_L - model.s_F)
+            if (l, p) in model.s_LLT
+        )
+
+        return process_constraint(constraint)
+
+    model.ReuseDestinationDeliveries = Constraint(
+        model.s_CP,
+        model.s_T,
+        rule=ReuseDestinationDeliveriesRule,
+        doc="Reuse destinations volume",
+    )
+
+    def DisposalDestinationDeliveriesRule(model, k, t):
+        constraint = model.v_F_DisposalDestination[k, t] == sum(
+            model.v_F_Piped[l, k, t] for l in model.s_L if (l, k) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, k, t] for l in model.s_L if (l, k) in model.s_LLT)
+
+        return process_constraint(constraint)
+
+    model.DisposalDestinationDeliveries = Constraint(
+        model.s_K,
+        model.s_T,
+        rule=DisposalDestinationDeliveriesRule,
+        doc="Disposal destinations volume",
+    )
+
+    def BeneficialReuseDeliveriesRule(model, o, t):
+        constraint = model.v_F_BeneficialReuseDestination[o, t] == sum(
+            model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT)
+        return process_constraint(constraint)
+
+    model.BeneficialReuseDeliveries = Constraint(
+        model.s_O,
+        model.s_T,
+        rule=BeneficialReuseDeliveriesRule,
+        doc="Beneficial reuse destinations volume",
     )
 
 
