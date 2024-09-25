@@ -114,22 +114,6 @@ def create_model(df_sets, df_parameters, default={}):
     # Build parameters #
     build_common_params(model)
 
-    model.p_LLT = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLT"],
-        doc="Valid trucking arcs [-]",
-    )
-
-    model.p_LLA = Param(
-        model.s_L,
-        model.s_L,
-        default=0,
-        initialize=df_parameters["LLA"],
-        doc="Valid pipeline arcs [-]",
-    )
-
     if model.config.production_tanks == ProdTank.individual:
         model.p_PAL = Param(
             model.s_P,
@@ -572,12 +556,16 @@ def create_model(df_sets, df_parameters, default={}):
         return (
             model.p_epsilon_Treatment[r, "TDS"]
             * (
-                sum(model.v_F_Piped[l, r, t] for l in model.s_L if model.p_LLA[l, r])
+                sum(
+                    model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
+                )
                 + sum(
-                    model.v_F_Trucked[l, r, t] for l in model.s_L if model.p_LLT[l, r]
+                    model.v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
                 )
             )
-            == sum(model.v_F_Piped[r, l, t] for l in model.s_L if model.p_LLA[l, r])
+            == sum(model.v_F_Piped[r, l, t] for l in model.s_L if (l, r) in model.s_LLA)
             + model.v_F_UnusedTreatedWater[r, t]
         )
 
@@ -590,8 +578,10 @@ def create_model(df_sets, df_parameters, default={}):
 
     def BeneficialReuseCapacityRule(model, o, t):
         return (
-            sum(model.v_F_Piped[l, o, t] for l in model.s_L if model.p_LLA[l, o])
-            + sum(model.v_F_Trucked[l, o, t] for l in model.s_L if model.p_LLT[l, o])
+            sum(model.v_F_Piped[l, o, t] for l in model.s_L if (l, o) in model.s_LLA)
+            + sum(
+                model.v_F_Trucked[l, o, t] for l in model.s_L if (l, o) in model.s_LLT
+            )
             <= model.p_sigma_Reuse[o] + model.v_S_BeneficialReuseCapacity[o]
         )
 
@@ -608,9 +598,13 @@ def create_model(df_sets, df_parameters, default={}):
         return (
             model.v_C_Treatment[r, t]
             == (
-                sum(model.v_F_Piped[l, r, t] for l in model.s_L if model.p_LLA[l, r])
+                sum(
+                    model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
+                )
                 + sum(
-                    model.v_F_Trucked[l, r, t] for l in model.s_L if model.p_LLT[l, r]
+                    model.v_F_Trucked[l, r, t]
+                    for l in model.s_L
+                    if (l, r) in model.s_LLT
                 )
             )
             * model.p_pi_Treatment[r]
@@ -644,8 +638,8 @@ def create_model(df_sets, df_parameters, default={}):
 
     def TreatmentDestinationDeliveriesRule(model, r, t):
         return model.v_F_TreatmentDestination[r, t] == sum(
-            model.v_F_Piped[l, r, t] for l in model.s_L if model.p_LLA[l, r]
-        ) + sum(model.v_F_Trucked[l, r, t] for l in model.s_L if model.p_LLT[l, r])
+            model.v_F_Piped[l, r, t] for l in model.s_L if (l, r) in model.s_LLA
+        ) + sum(model.v_F_Trucked[l, r, t] for l in model.s_L if (l, r) in model.s_LLT)
 
     model.TreatmentDestinationDeliveries = Constraint(
         model.s_R,
@@ -666,7 +660,7 @@ def create_model(df_sets, df_parameters, default={}):
     return model
 
 
-def water_quality(model, df_sets, df_parameters):
+def water_quality(model):
     # Introduce parameter nu for water quality at each pad
     model.p_nu = Param(
         model.s_P,
