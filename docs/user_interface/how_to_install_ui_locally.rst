@@ -9,7 +9,7 @@ These installation instructions are targeted towards developers and those who wi
 
 **Prerequisites**
 
-- Miniconda
+- `Miniforge <https://github.com/conda-forge/miniforge>`_ 
 - npm
 
 
