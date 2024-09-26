@@ -100,7 +100,7 @@ Map Feature (Beta)
 
 .. container::
 
-   *Note: This section describes a pre-release feature with limited functionality at this time*
+   *Note: This section describes a pre-release feature with limited functionality at this time.*
 
    Users can upload a map file to the UI that represents their network. 
    By using this feature, users can greatly reduce the amount of input data required to begin working with PARETO.
