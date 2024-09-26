@@ -100,10 +100,10 @@ Map Feature (Beta)
 
 .. container::
 
-   The UI team has implemented a method for users to interact with the UI by uploading a map file representing their network. 
-   The UI can handle .kmz or .kml files as inputs.
-   By using this feature, users can greatly reduce the amount of input data required to begin working with PARETO. However, this feature is still
-   in its early phase so functionality is limited.
+   *Note: This section describes a pre-release feature with limited functionality at this time*
+   Users can upload a map file to the UI that represents their network. 
+   By using this feature, users can greatly reduce the amount of input data required to begin working with PARETO.
+   The UI can handle Keyhole Markup Language (KML) and zipped KML (KMZ) as map inputs. KML is an XML-based language schema for expressing web-based maps. KML files can be created using Google Earth, Google Maps, or ESRI ArcGIS, or using a plain text editor. More information about KML/KMZ can be found `here <https://developers.google.com/kml/documentation/kml_tut>`_ .
 
    :download:`Download A Sample Map File Here <assets/Sample_Map_Scenario.kml>`
 
