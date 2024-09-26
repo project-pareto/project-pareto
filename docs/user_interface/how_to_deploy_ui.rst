@@ -101,11 +101,13 @@ The general steps required to obtaining and implementing an Apple code signing c
 
     * APPLE_ID
     * APPLE_ID_PASSWORD
-    * TEAM_ID
-    * NOTARIZE_TOOL_
+    * `TEAM_ID <BuildAsterisks_>`_ *
+    * `NOTARIZE_TOOL <BuildAsterisks_>`_ *
+
+
 
 * Build the application (step 2)
 
-.. _NOTARIZE_TOOL:
+.. _BuildAsterisks:
 
 \*MacOS applications can be notarized with Apple as an additional step after being signed. This allows Apple to scan the application, provide feedback about any vulnerabilties or issues, and, if approved, provide a reputation to the application so that it will be trusted by other Mac users. The TEAM_ID, which is connected to your developer account, and the NOTARIZE_TOOL, which should be set to a CLI tool such as "notarytool", are necessary for this notarization process to run.
