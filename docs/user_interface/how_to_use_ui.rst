@@ -1,6 +1,6 @@
-=========================
-How To Use User Interface
-=========================
+========================
+How to Use the PARETO UI
+========================
 
 .. _how-to-use-ui-page:
 
