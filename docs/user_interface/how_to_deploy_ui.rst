@@ -35,7 +35,7 @@ To build the application installer, navigate to ``<pareto-ui>/electron`` and run
 
     npm run dist:win
 
-The application build handles 3 substeps - building the backend, building the frontned, and building the electron package. 
+The application build handles 3 substeps - building the backend, building the frontend, and building the electron package. 
 
 
 .. _windows_code_sign:
@@ -83,7 +83,7 @@ To build the application installer, navigate to ``<pareto-ui>/electron`` and run
 
     npm run dist:mac
 
-The application build handles 3 substeps - building the backend, building the frontned, and building the electron package. 
+The application build handles 3 substeps - building the backend, building the frontend, and building the electron package. 
 
 
 .. _mac_code_sign:
