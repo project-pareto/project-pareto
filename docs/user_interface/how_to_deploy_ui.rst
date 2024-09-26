@@ -2,13 +2,13 @@
 How To Deploy UI
 ================
 
-The PARETO UI is deployed using Electron.js. Visit `their site <https://www.electronjs.org/docs/latest/>`_ for complete documentation.
+The PARETO UI is deployed using `Electron.js <https://www.electronjs.org/docs/latest/>`_.
 
 The deployment process is dependent on the operating system in use. We currently support :ref:`windows_guide_start` and :ref:`mac_guide_start`.
 
 **Prerequisites**
 
-- Miniconda
+- `Miniforge <https://github.com/conda-forge/miniforge>`_ 
 - npm
 - Active conda environment with PARETO UI installed locally. To install the PARETO UI locally, follow the steps in our guide :ref:`how-to-install-ui-locally-page`
 
