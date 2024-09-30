@@ -24,6 +24,170 @@ from pyomo.core.expr.numvalue import (
 
 from pyomo.core.expr import current as EXPR
 from pyomo.core.base.units_container import _PyomoUnit
+from pyomo.environ import units as pyunits
+
+
+# Return the units container used for strategic/operational model. This is
+# needed in test_strategic_model.py and test_operational_model.py for checking
+# units consistency.
+def get_model_unit_container():
+    return pyunits
+
+
+def units_setup(model):
+    """
+    Set up units for strategic or operational model.
+    """
+    try:
+        # Check that currency is set to USD
+        print("Setting currency to:", pyunits.USD)
+    # Exception if USD is not already set and throws Attribute Error
+    except AttributeError:
+        # Currency base units are not inherently defined by default
+        pyunits.load_definitions_from_strings(["USD = [currency]"])
+
+    # Convert user unit selection to a user_units dictionary
+    model.user_units = {}
+    for user_input in model.df_parameters["Units"]:
+        # Concentration is a relationship between two units, so requires some manipulation from user input
+        if user_input == "concentration":
+            split = model.df_parameters["Units"][user_input].split("/")
+            mass = split[0]
+            vol = split[1]
+            exec(
+                "model.user_units['concentration'] = pyunits.%s / pyunits.%s"
+                % (mass, vol)
+            )
+        # Pyunits defines oil_bbl separately from bbl. Users will see 'bbl', but pyunits are defined in oil_bbl
+        elif user_input == "volume":
+            user_volume = model.df_parameters["Units"][user_input]
+            if user_volume == "bbl":
+                exec("model.user_units['volume'] = pyunits.%s" % ("oil_bbl"))
+            elif user_volume == "kbbl":
+                exec("model.user_units['volume'] = pyunits.%s" % ("koil_bbl"))
+
+        # Decision Period is not a user_unit. We will define this as a separate variable.
+        elif user_input == "decision period":
+            exec(
+                "model.decision_period = pyunits.%s"
+                % model.df_parameters["Units"][user_input]
+            )
+        # All other units can be interpreted directly from user input
+        else:
+            exec(
+                "model.user_units['%s'] = pyunits.%s"
+                % (user_input, model.df_parameters["Units"][user_input])
+            )
+
+    model.model_units = {
+        "volume": pyunits.koil_bbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.kg / pyunits.liter,
+        "currency": pyunits.kUSD,
+        "pressure": pyunits.kpascal,
+        "elevation": pyunits.meter,
+        "mass": pyunits.kg,
+        "time": model.decision_period,
+    }
+
+    # Units that are most helpful for troubleshooting
+    model.unscaled_model_display_units = {
+        "volume": pyunits.oil_bbl,
+        "distance": pyunits.mile,
+        "diameter": pyunits.inch,
+        "concentration": pyunits.mg / pyunits.liter,
+        "currency": pyunits.USD,
+        "pressure": pyunits.pascal,
+        "elevation": pyunits.meter,
+        "mass": pyunits.g,
+        "time": model.decision_period,
+    }
+
+    # Defining compound units - user units
+    model.user_units["volume_time"] = (
+        model.user_units["volume"] / model.user_units["time"]
+    )
+    model.user_units["currency_time"] = (
+        model.user_units["currency"] / model.user_units["time"]
+    )
+    model.user_units["pipe_cost_distance"] = model.user_units["currency"] / (
+        model.user_units["diameter"] * model.user_units["distance"]
+    )
+    model.user_units["pipe_cost_capacity"] = model.user_units["currency"] / (
+        model.user_units["volume"] / model.user_units["time"]
+    )
+    model.user_units["currency_volume"] = (
+        model.user_units["currency"] / model.user_units["volume"]
+    )
+    model.user_units["currency_volume_time"] = (
+        model.user_units["currency"] / model.user_units["volume_time"]
+    )
+
+    # Defining compound units - model units
+    model.model_units["volume_time"] = (
+        model.model_units["volume"] / model.decision_period
+    )
+    model.model_units["currency_time"] = (
+        model.model_units["currency"] / model.decision_period
+    )
+    model.model_units["pipe_cost_distance"] = model.model_units["currency"] / (
+        model.model_units["diameter"] * model.model_units["distance"]
+    )
+    model.model_units["pipe_cost_capacity"] = model.model_units["currency"] / (
+        model.model_units["volume"] / model.decision_period
+    )
+    model.model_units["currency_volume"] = (
+        model.model_units["currency"] / model.model_units["volume"]
+    )
+    model.model_units["currency_volume_time"] = (
+        model.model_units["currency"] / model.model_units["volume_time"]
+    )
+
+    # Defining compound units - unscaled model display units
+    model.unscaled_model_display_units["volume_time"] = (
+        model.unscaled_model_display_units["volume"] / model.decision_period
+    )
+    model.unscaled_model_display_units["currency_time"] = (
+        model.unscaled_model_display_units["currency"] / model.decision_period
+    )
+    model.unscaled_model_display_units[
+        "pipe_cost_distance"
+    ] = model.unscaled_model_display_units["currency"] / (
+        model.unscaled_model_display_units["diameter"]
+        * model.unscaled_model_display_units["distance"]
+    )
+    model.unscaled_model_display_units[
+        "pipe_cost_capacity"
+    ] = model.unscaled_model_display_units["currency"] / (
+        model.unscaled_model_display_units["volume"] / model.decision_period
+    )
+    model.unscaled_model_display_units["currency_volume"] = (
+        model.unscaled_model_display_units["currency"]
+        / model.unscaled_model_display_units["volume"]
+    )
+    model.unscaled_model_display_units["currency_volume_time"] = (
+        model.unscaled_model_display_units["currency"]
+        / model.unscaled_model_display_units["volume_time"]
+    )
+
+    # Create dictionary to map model units to user units to assist generating results in the user units
+    model.model_to_user_units = {}
+    for unit in model.model_units:
+        model_unit = model.model_units[unit].to_string()
+        if "/" in model_unit:
+            model_unit = "(" + model_unit + ")"
+        user_unit = model.user_units[unit]
+        model.model_to_user_units[model_unit] = user_unit
+
+    # Create dictionary to map model units to user units to assist generating results in units relative to time discretization
+    model.model_to_unscaled_model_display_units = {}
+    for unit in model.model_units:
+        model_unit = model.model_units[unit].to_string()
+        if "/" in model_unit:
+            model_unit = "(" + model_unit + ")"
+        developer_output = model.unscaled_model_display_units[unit]
+        model.model_to_unscaled_model_display_units[model_unit] = developer_output
 
 
 class PintUnitExtractionVisitor(EXPR.StreamBasedExpressionVisitor):
