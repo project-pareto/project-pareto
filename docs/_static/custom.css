@@ -2,3 +2,15 @@
 .wy-nav-content {
     max-width: 95%; /* default=800px */
 }
+
+.screenshot-div {
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.screenshot {
+    max-width: 75%;
+    box-shadow: 0px 5px 10px 0px rgba(0, 0, 0, 0.5);
+}
