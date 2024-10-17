@@ -435,31 +435,6 @@ def create_model(df_sets, df_parameters, default={}):
         units=model.model_units["volume_time"],
         doc="Treatment capacity installation/expansion increments [volume/time]",
     )
-    model.p_tau_Disposal = Param(
-        model.s_K,
-        default=pyunits.convert_value(
-            12, from_units=pyunits.week, to_units=model.decision_period
-        ),
-        units=model.decision_period,
-        doc="Disposal construction/expansion lead time [time]",
-    )
-    model.p_tau_Storage = Param(
-        model.s_S,
-        default=pyunits.convert_value(
-            12, from_units=pyunits.week, to_units=model.decision_period
-        ),
-        units=model.decision_period,
-        doc="Storage construction/expansion lead time [time]",
-    )
-    model.p_tau_Pipeline = Param(
-        model.s_L,
-        model.s_L,
-        default=pyunits.convert_value(
-            12, from_units=pyunits.week, to_units=model.decision_period
-        ),
-        units=model.decision_period,
-        doc="Pipeline construction/expansion lead time [time]",
-    )
     model.p_theta_Storage = Param(
         model.s_S,
         default=0,
@@ -547,62 +522,92 @@ def create_model(df_sets, df_parameters, default={}):
         doc="Treatment construction/expansion capital cost for selected increment [currency/(volume/time)]",
     )
 
-    model.p_tau_TreatmentExpansionLeadTime = Param(
-        model.s_R,
-        model.s_WT,
-        model.s_J,
-        default=0,
-        # input units are already model units (decision period), so do not need to be converted
-        initialize=model.df_parameters["TreatmentExpansionLeadTime"],
-        units=model.model_units["time"],
-        doc="Treatment construction/expansion lead time for selected site, treatment type, and size [time]",
-    )
-
-    model.p_tau_DisposalExpansionLeadTime = Param(
-        model.s_K,
-        model.s_I,
-        default=0,
-        # input units are already model units (decision period), so do not need to be converted
-        initialize=model.df_parameters["DisposalExpansionLeadTime"],
-        units=model.model_units["time"],
-        doc="Disposal construction/expansion lead time for selected site and size [time]",
-    )
-
-    model.p_tau_StorageExpansionLeadTime = Param(
-        model.s_S,
-        model.s_C,
-        default=0,
-        # input units are already model units (decision period), so do not need to be converted
-        initialize=model.df_parameters["StorageExpansionLeadTime"],
-        units=model.model_units["time"],
-        doc="Storage construction/expansion lead time for selected site and size [time]",
-    )
-
-    if model.config.pipeline_cost == PipelineCost.distance_based:
-        model.p_tau_PipelineExpansionLeadTime = Param(
-            default=0,
-            # distance units need to be converted
-            initialize=pyunits.convert_value(
-                model.df_parameters["PipelineExpansionLeadTime_Dist"][
-                    "pipeline_expansion_lead_time"
-                ],
-                from_units=model.model_units["time"] / model.user_units["distance"],
-                to_units=model.model_units["time"] / model.model_units["distance"],
+    if model.config.infrastructure_timing == InfrastructureTiming.true:
+        model.p_tau_Disposal = Param(
+            model.s_K,
+            default=pyunits.convert_value(
+                12, from_units=pyunits.week, to_units=model.decision_period
             ),
-            units=model.model_units["time"] / model.model_units["distance"],
-            doc="Pipeline construction/expansion lead time [time/distance]",
+            units=model.decision_period,
+            doc="Disposal construction/expansion lead time [time]",
         )
-    elif model.config.pipeline_cost == PipelineCost.capacity_based:
-        model.p_tau_PipelineExpansionLeadTime = Param(
+
+        model.p_tau_Storage = Param(
+            model.s_S,
+            default=pyunits.convert_value(
+                12, from_units=pyunits.week, to_units=model.decision_period
+            ),
+            units=model.decision_period,
+            doc="Storage construction/expansion lead time [time]",
+        )
+
+        model.p_tau_Pipeline = Param(
             model.s_L,
             model.s_L,
-            model.s_D,
-            default=0,
-            # input units are already model units (decision period), so do not need to be converted
-            initialize=model.df_parameters["PipelineExpansionLeadTime_Capac"],
-            units=model.model_units["time"],
+            default=pyunits.convert_value(
+                12, from_units=pyunits.week, to_units=model.decision_period
+            ),
+            units=model.decision_period,
             doc="Pipeline construction/expansion lead time [time]",
         )
+
+        model.p_tau_TreatmentExpansionLeadTime = Param(
+            model.s_R,
+            model.s_WT,
+            model.s_J,
+            default=0,
+            # input units are already model units (decision period), so do not need to be converted
+            initialize=model.df_parameters["TreatmentExpansionLeadTime"],
+            units=model.model_units["time"],
+            doc="Treatment construction/expansion lead time for selected site, treatment type, and size [time]",
+        )
+
+        model.p_tau_DisposalExpansionLeadTime = Param(
+            model.s_K,
+            model.s_I,
+            default=0,
+            # input units are already model units (decision period), so do not need to be converted
+            initialize=model.df_parameters["DisposalExpansionLeadTime"],
+            units=model.model_units["time"],
+            doc="Disposal construction/expansion lead time for selected site and size [time]",
+        )
+
+        model.p_tau_StorageExpansionLeadTime = Param(
+            model.s_S,
+            model.s_C,
+            default=0,
+            # input units are already model units (decision period), so do not need to be converted
+            initialize=model.df_parameters["StorageExpansionLeadTime"],
+            units=model.model_units["time"],
+            doc="Storage construction/expansion lead time for selected site and size [time]",
+        )
+
+        if model.config.pipeline_cost == PipelineCost.distance_based:
+            model.p_tau_PipelineExpansionLeadTime = Param(
+                default=0,
+                # distance units need to be converted
+                initialize=pyunits.convert_value(
+                    model.df_parameters["PipelineExpansionLeadTime_Dist"][
+                        "pipeline_expansion_lead_time"
+                    ],
+                    from_units=model.model_units["time"] / model.user_units["distance"],
+                    to_units=model.model_units["time"] / model.model_units["distance"],
+                ),
+                units=model.model_units["time"] / model.model_units["distance"],
+                doc="Pipeline construction/expansion lead time [time/distance]",
+            )
+        elif model.config.pipeline_cost == PipelineCost.capacity_based:
+            model.p_tau_PipelineExpansionLeadTime = Param(
+                model.s_L,
+                model.s_L,
+                model.s_D,
+                default=0,
+                # input units are already model units (decision period), so do not need to be converted
+                initialize=model.df_parameters["PipelineExpansionLeadTime_Capac"],
+                units=model.model_units["time"],
+                doc="Pipeline construction/expansion lead time [time]",
+            )
+
     model.p_omega_EvaporationRate = Param(
         default=pyunits.convert_value(
             3000,
