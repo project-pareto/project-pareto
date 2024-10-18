@@ -1411,7 +1411,7 @@ def test_infrastructure_buildout(build_toy_strategic_model):
             "objective": Objectives.cost,
             "pipeline_cost": PipelineCost.distance_based,  # distance_based
             "pipeline_capacity": PipelineCapacity.calculated,
-            "infrastructure_timing": InfrastructureTiming.false,
+            "infrastructure_timing": InfrastructureTiming.true,
         }
     )
 
