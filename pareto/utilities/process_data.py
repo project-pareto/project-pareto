@@ -28,8 +28,8 @@ from pareto.utilities.get_data import (
 from pyomo.environ import Expression, value
 
 
-# Returns a list of all valid trucking arcs.
 def get_valid_trucking_arc_list():
+    """Returns a list of all valid trucking arcs."""
     return [
         "PCT",
         "PKT",
@@ -50,8 +50,8 @@ def get_valid_trucking_arc_list():
     ]
 
 
-# Returns a list of all valid trucking arcs.
 def get_valid_piping_arc_list():
+    """Returns a list of all valid piping arcs."""
     return [
         "PCA",
         "PNA",

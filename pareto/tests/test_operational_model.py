@@ -23,10 +23,9 @@ from pyomo.environ import Constraint
 from pareto.utilities.solvers import get_solver
 from pareto.operational_water_management.operational_produced_water_optimization_model import (
     create_model,
-    ProdTank,
-    WaterQuality,
-    get_operational_model_unit_container,
 )
+from pareto.utilities.enums import ProdTank, WaterQuality
+from pareto.utilities.units_support import get_model_unit_container
 from pareto.utilities.get_data import (
     get_data,
     get_display_units,
@@ -78,7 +77,7 @@ def test_basic_build(build_operational_model):
             "water_quality": WaterQuality.false,
         },
     )
-    assert degrees_of_freedom(m) == 135
+    assert degrees_of_freedom(m) == 130
     # Check unit config arguments
     assert len(m.config) == 3
     assert m.config.production_tanks
@@ -108,7 +107,7 @@ def test_operational_model_unit_consistency(build_operational_model):
         },
     )
     # Create an instance of PintUnitExtractionVisitor that can assist with getting units from constraints
-    visitor = PintUnitExtractionVisitor(get_operational_model_unit_container())
+    visitor = PintUnitExtractionVisitor(get_model_unit_container())
     # Iterate through all Constraints
     for c in m.component_objects(Constraint):
         # If indexed, iterate through Constraint indexes
@@ -169,7 +168,7 @@ def test_run_operational_model(build_operational_model):
     results = solver.solve(m, tee=True)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 135
+    assert degrees_of_freedom(m) == 130
     # solutions obtained from running the generic case study
     assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
     assert pytest.approx(0.993, abs=1e-6) == pyo.value(
@@ -189,7 +188,7 @@ def test_run_operational_model_ProdTank_individual(build_operational_model):
     results = solver.solve(m, tee=True)
     assert results.solver.termination_condition == pyo.TerminationCondition.optimal
     assert results.solver.status == pyo.SolverStatus.ok
-    assert degrees_of_freedom(m) == 175
+    assert degrees_of_freedom(m) == 170
     # solutions obtained from running the generic case study
     assert pytest.approx(253.32225, abs=1e-6) == pyo.value(m.v_Objective)
     assert pytest.approx(0.500, abs=1e-6) == pyo.value(
@@ -211,7 +210,7 @@ def test_operational_model_discrete_water_quality_build(build_operational_model)
             "water_quality": WaterQuality.discrete,
         },
     )
-    assert degrees_of_freedom(m) == 335
+    assert degrees_of_freedom(m) == 330
     # Check unit config arguments
     assert len(m.config) == 3
     assert m.config.water_quality
