@@ -2,6 +2,11 @@
 
 Binder (https://mybinder.org) provides a **short-lived temporary sandbox environment on public cloud resources** where Jupyter notebooks can be run without having to install any software locally.
 
+> [!WARNING]
+> Binder is no longer supported and known to not work.  Any fixes are welcomed by opening an issue
+> or PR.  Meanwhile the latest Desktop GUI release are available at the [Project Pareto Software
+> Download page](https://www.project-pareto.org/software/).
+
 ## Quickstart
 
 Click on this button to launch an environment pointing to the current `main` branch of this repository: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/project-pareto/project-pareto/HEAD)
