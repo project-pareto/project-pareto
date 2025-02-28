@@ -64,6 +64,7 @@ Contents
     case_studies/index
     tutorials_examples/index
     utilities/index
+    user_interface/index
     faq
     citing
     license

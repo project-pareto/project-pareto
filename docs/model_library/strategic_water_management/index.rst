@@ -120,6 +120,8 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(r,s) \in RSA}`     Treatment-to-storage pipeline arcs
 
+:math:`\textcolor{blue}{(r,o) \in ROA}`     Treatment-to-reuse pipeline arcs
+
 :math:`\textcolor{blue}{(s,n) \in SNA}`     Storage-to-node pipeline arcs
 
 :math:`\textcolor{blue}{(s,p) \in SCA}`     Storage-to-completions pipeline arcs
@@ -156,7 +158,13 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{blue}{(s,k) \in SKT}`     Storage-to-disposal trucking arcs
 
+:math:`\textcolor{blue}{(s,o) \in SOT}`     Storage-to-reuse trucking arcs
+
 :math:`\textcolor{blue}{(r,k) \in RKT}`     Treatment-to-disposal trucking arcs
+
+:math:`\textcolor{blue}{(r,s) \in RST}`     Treatment-to-storage trucking arcs
+
+:math:`\textcolor{blue}{(r,o) \in ROT}`     Treatment-to-reuse trucking arcs
 
 :math:`\textcolor{blue}{(l,\tilde{l}) \in LLT}`     All valid trucking arcs
 
@@ -273,7 +281,7 @@ Strategic Model Mathematical Notation
 
 :math:`\textcolor{red}{S_{k}^{DisposalCapacity}}` =                 Slack variable to provide necessary disposal capacity
 
-:math:`\textcolor{red}{S_{r}^{TreamentCapacity}}` =                 Slack variable to provide necessary treatment capacity
+:math:`\textcolor{red}{S_{r}^{TreatmentCapacity}}` =                 Slack variable to provide necessary treatment capacity
 
 :math:`\textcolor{red}{S_{o}^{BeneficialResueCapacity}}` =          Slack variable to provide necessary beneficial reuse capacity
 
@@ -331,8 +339,6 @@ Strategic Model Mathematical Notation
 :math:`\textcolor{green}{\sigma_{p}^{Offloading,Pad}}` =        Truck offloading sourcing capacity per pad
 
 :math:`\textcolor{green}{\sigma_{s}^{Offloading,Storage}}` =    Truck offloading sourcing capacity per storage site
-
-:math:`\textcolor{green}{\sigma_{p}^{Processing,Pad}}` =        Processing (e.g. clarification) capacity per pad
 
 :math:`\textcolor{green}{\sigma_{s}^{Processing,Storage}}` =    Processing (e.g. clarification) capacity at storage site
 
@@ -577,28 +583,6 @@ For each completions pad and time period, the volume of water being trucked into
         \leq \textcolor{green}{\sigma_{p}^{Offloading,Pad}}
 
 
-**Completions Pad Processing Capacity:** :math:`\forall \textcolor{blue}{p \in CP}, \textcolor{blue}{t \in T}`
-
-For each completions pad and time period, the volume of water (excluding externally sourced water) coming in must be below the processing limit.
-
-.. math::
-
-    \sum_{n \in N | (n, p) \in NCA}\textcolor{red}{F_{n,p,t}^{Piped}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}
-        + \sum_{s \in S | (s, p) \in SCA}\textcolor{red}{F_{s,p,t}^{Piped}}
-
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCA}\textcolor{red}{F_{\tilde{p},p,t}^{Piped}}
-        + \sum_{r \in R | (r, p) \in RCA}\textcolor{red}{F_{r,p,t}^{Piped}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in PCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}}
-
-        + \sum_{s \in S | (s, p) \in SCT}\textcolor{red}{F_{s,p,t}^{Trucked}}
-        + \sum_{\tilde{p} \in P | (\tilde{p}, p) \in CCT}\textcolor{red}{F_{\tilde{p},p,t}^{Trucked}}
-        \leq \textcolor{green}{\sigma_{p}^{Processing,Pad}}
-
-
-.. note:: The above constraint has not been implemented yet.
-
-
 **Storage Site Truck Offloading Capacity:** :math:`\forall \textcolor{blue}{s \in S}, \textcolor{blue}{t \in T}`
 
 For each storage site and each time period, the volume of water being trucked into the storage site must be below the trucking offloading capacity for that storage site.
@@ -654,15 +638,17 @@ Flow balance constraint (i.e., inputs are equal to outputs). For each pipeline n
         = \sum_{l \in L | (n, l) \in LLA}\textcolor{red}{F_{n,l,t}^{Piped}}
 
 
-**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{l \in (L-F-O)}, \textcolor{blue}{\tilde{l} \in (L-F)}, \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{t \in T}`
+**Bi-Directional Flow:** :math:`\forall \textcolor{blue}{l \in (L-F-O)}, \textcolor{blue}{\tilde{l} \in (L-F)}, \textcolor{blue}{(l, \tilde{l}) \in LLA}, \textcolor{blue}{(\tilde{l}, l) \in LLA}, \textcolor{blue}{t \in T}`
 
-There can only be flow in one direction for a given pipeline arc in a given time period. Flow is only allowed in a given direction if the binary indicator for that direction is "on".
+There can only be flow in one direction for a given pipeline arc in a given time period.
 
 .. math::
 
     \textcolor{red}{y_{l,\tilde{l},t}^{Flow}}+\textcolor{red}{y_{\tilde{l},l,t}^{Flow}} = 1
 
-.. note:: Technically the above constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined per one reversible arc (e.g. NCA only and not NCA and CNA).
+.. note:: Technically the above constraint should only be enforced for truly reversible arcs (e.g. NCA and CNA); and even then it only needs to be defined once per reversible arc (e.g. NCA only and not NCA and CNA).
+
+Flow is only allowed in a given direction if the binary indicator for that direction is "on".
 
 .. math::
 
@@ -816,7 +802,7 @@ The set :math:`\textcolor{blue}{J}` should also include the 0th case (e.g. 0 bbl
 
     \sum_{l \in L | (l, r) \in LLA}\textcolor{red}{F_{l,r,t}^{Piped}}
         + \sum_{l \in L | (l, r) \in LLT}\textcolor{red}{F_{l,r,t}^{Trucked}}
-        \leq \textcolor{red}{T_{r,[t]}^{Capacity}}
+        \leq \textcolor{red}{T_{r,[t]}^{Capacity}} + \textcolor{red}{S_{r}^{TreatmentCapacity}}
 
 
 **Treatment Feed Balance:** :math:`\forall \textcolor{blue}{r \in R}, \textcolor{blue}{t \in T}`

@@ -598,7 +598,7 @@ def get_data(
 
     Similarly, the Set for Water Quality Index "model.s_QC" is derived by the method based
     on the input tab: PadWaterQuality which is indexed by QC and the Set for Air Quality Index
-    "model.s_AQ" is derived by the method based on the input tab AirEmissionCoefficients.
+    "model.s_AC" is derived by the method based on the input tab AirEmissionCoefficients.
     """
     # Call _read_data with the correct model type
     if model_type in ["strategic", "operational", "critical_mineral", "none"]:
