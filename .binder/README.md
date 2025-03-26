@@ -4,7 +4,7 @@ Binder (https://mybinder.org) provides a **short-lived temporary sandbox environ
 
 > [!WARNING]
 > Binder is no longer supported and known to not work.  Any fixes are welcomed by opening an issue
-> or PR.  Meanwhile the latest Desktop GUI release are available at the [Project Pareto Software
+> or PR.  Meanwhile the latest Desktop GUI release is available at the [Project Pareto Software
 > Download page](https://www.project-pareto.org/software/).
 
 ## Quickstart
