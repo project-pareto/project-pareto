@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "PARETO"
-copyright = "2021-2024, PARETO"
+copyright = "2021-2025, PARETO"
 author = "The PARETO Project"
 
 # we set release and version to be the same, using the value from the installed project-pareto package
