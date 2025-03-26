@@ -15,16 +15,18 @@ Test utilities
 """
 
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
-    WaterQuality,
     create_model,
-    Objectives,
     solve_model,
+    CONFIG,
+)
+from pareto.utilities.enums import (
+    WaterQuality,
+    Objectives,
     PipelineCost,
     PipelineCapacity,
     Hydraulics,
     RemovalEfficiencyMethod,
     InfrastructureTiming,
-    CONFIG,
 )
 from pareto.utilities.get_data import get_data
 from pareto.utilities.results import is_feasible, nostdout
@@ -44,6 +46,8 @@ from pareto.utilities.process_data import (
     MissingDataError,
     DataInfeasibilityError,
 )
+from pareto.utilities.visualize import plot_network
+from contextlib import nullcontext as does_not_raise
 
 
 ############################
@@ -77,7 +81,7 @@ def fetch_strategic_model(config_dict):
         "deactivate_slacks": True,
         "scale_model": False,
         "scaling_factor": 1000,
-        "running_time": 300,
+        "running_time": 600,
         "gap": 0,
     }
 
@@ -458,3 +462,69 @@ def test_infeasibility_check():
             "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand vs 756 koil_bbls available water)"
             == str(error_record.value)
         )
+
+
+def test_plot_network():
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_toy_case_study.xlsx",
+    ) as fpath:
+        # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
+        [df_sets, df_parameters] = get_data(fpath, model_type="strategic")
+    strategic_model = create_model(
+        df_sets,
+        df_parameters,
+        default={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "hydraulics": Hydraulics.false,
+            "node_capacity": True,
+            "water_quality": WaterQuality.false,
+            "removal_efficiency_method": RemovalEfficiencyMethod.concentration_based,
+            "infrastructure_timing": InfrastructureTiming.true,
+        },
+    )
+
+    # Positions for the toy case study
+    pos = {
+        "PP01": (20, 20),
+        "PP02": (45, 20),
+        "PP03": (50, 50),
+        "PP04": (80, 40),
+        "CP01": (65, 20),
+        "F01": (75, 15),
+        "F02": (75, 25),
+        "K01": (30, 10),
+        "K02": (40, 50),
+        "S02": (60, 50),
+        "S03": (10, 44),
+        "S04": (10, 36),
+        "R01": (20, 40),
+        "R02": (70, 50),
+        "O01": (1, 55),
+        "O02": (1, 40),
+        "O03": (1, 25),
+        "N01": (30, 20),
+        "N02": (30, 30),
+        "N03": (30, 40),
+        "N04": (40, 40),
+        "N05": (45, 30),
+        "N06": (50, 40),
+        "N07": (60, 40),
+        "N08": (60, 30),
+        "N09": (70, 40),
+    }
+
+    # Run the plot_network function with several different sets of input arguments
+    try:
+        plot_network(strategic_model, pos=pos)
+        plot_network(strategic_model, show_piping=True, show_trucking=True)
+        plot_network(
+            strategic_model,
+            show_results=True,
+            save_fig="test_network.png",
+            show_fig=True,
+        )
+    except Exception as e:
+        pytest.fail(f"Plot network feature fails with the following exception {e}")
