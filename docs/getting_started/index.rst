@@ -37,16 +37,15 @@ repo (even occasionally) - needs approval from PhD. Markus Drouven
 | Hybrid           | :ref:`min_install_hybrid`   |
 +------------------+-----------------------------+
 
-**Install Miniconda (optional)**
+**Install Conda via Miniforge (optional)**
 
-1. Download: https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
-2. Install anaconda from the downloaded file in (1).
-3. Open the Anaconda Prompt (Start -> "Anaconda Prompt").
+.. note:: If you are using Python for other complex projects, you may want to
+          consider using environments of some sort to avoid conflicting
+          dependencies.  Conda via Miniforge is one such tool.
 
-.. warning:: If you are using Python for other complex projects, you may want to
-            consider using environments of some sort to avoid conflicting
-            dependencies.  There are several good options including conda
-            environments if you use Anaconda.
+1. Download the Miniforge installer for your OS: https://github.com/conda-forge/miniforge/releases
+2. Install Miniforge from the downloaded file in (1).
+3. Open a terminal to run the below commands.
 
 .. _min_install_users:
 
