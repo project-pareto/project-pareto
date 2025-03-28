@@ -799,8 +799,34 @@ def model_infeasibility_detection(strategic_model):
     strategic_model.e_TimePeriodDemand = Expression(
         strategic_model.s_T,
         rule=total_water_demand_rule,
-        doc="Total water demand at each time period [volume]",
+        doc="Total completions demand at each time period [volume]",
     )
+
+    def capacity_check_rule(model, t):
+        return model.e_TotalPW[t] - model.e_MaxPWCapacity[t]
+
+    strategic_model.e_capacity_check = Expression(
+        strategic_model.s_T,
+        rule=capacity_check_rule,
+        doc="Compare total water supply with total system water capacity [volume]",
+    )
+
+    # Check capacity feasibility
+    for t in strategic_model.s_T:
+        if value(strategic_model.e_capacity_check[t]) > 0:
+            capacity_feasibility_message.append(
+                f"{t} ({round(value(strategic_model.e_TotalPW[t]))} total {strategic_model.model_units['volume']}s PW vs {round(value(strategic_model.e_MaxPWCapacity[t]))} {strategic_model.model_units['volume']}s PW capacity)"
+            )
+
+    if capacity_feasibility_message:
+        error_message = ", ".join(capacity_feasibility_message)
+        raise DataInfeasibilityError(
+            "An infeasibility in the input data has been detected. Produced water volumes exceeds total system capacity for time periods: "
+            + error_message
+        )
+
+    # 2) INCREMENTAL STORAGE-BASED DEMAND CHECK
+    sorted_times = sorted(strategic_model.s_T)
 
     def total_water_available_rule(model, t):
         return (
@@ -815,51 +841,67 @@ def model_infeasibility_detection(strategic_model):
         doc="Total PW and external water available [volume]",
     )
 
-    def capacity_check_rule(model, t):
-        return model.e_TotalPW[t] - model.e_MaxPWCapacity[t]
+    # Gather maximum possible storage capacity (base + expansions).
+    max_storage_capacity = 0
 
-    strategic_model.e_capacity_check = Expression(
-        strategic_model.s_T,
-        rule=capacity_check_rule,
-        doc="Compare total water supply with total system water capacity [volume]",
+    for s in strategic_model.s_S:
+        base_cap = value(strategic_model.p_sigma_Storage[s])
+        expansions_for_site = {
+            k: v for (k, v) in strategic_model.p_delta_Storage.items() if k[0] == s
+        }
+        expansion = (
+            _get_max_value_for_parameter(expansions_for_site)
+            if expansions_for_site
+            else 0
+        )
+        max_storage_capacity += base_cap + expansion
+
+    for cp in strategic_model.s_CP:
+        pad_storage_value = value(strategic_model.p_sigma_PadStorage[cp])
+        max_storage_capacity += pad_storage_value
+
+    # Initial water level at storage sites and pad storage sites.
+    initial_storage = 0
+
+    initial_storage = sum(
+        value(strategic_model.p_lambda_Storage[s]) for s in strategic_model.s_S
+    ) + sum(
+        value(strategic_model.p_lambda_PadStorage[cp]) for cp in strategic_model.s_CP
     )
+    # Leftover refers to the excess water stored from previous periods that will be added to produced water and external source water to calculate the total available water in the current time period.
+    leftover = initial_storage
 
-    def demand_check_rule(model, t):
-        return model.e_TimePeriodDemand[t] - model.e_WaterAvailable[t]
+    for t in sorted_times:
+        # Add PW and external water this period to total water available in storage
+        leftover += value(strategic_model.e_WaterAvailable[t])
 
-    strategic_model.e_demand_check = Expression(
-        strategic_model.s_T,
-        rule=demand_check_rule,
-        doc="Compare total water demand with total amount of water available [volume]",
-    )
+        # Keep track of water available before subtracting demand
+        leftover_before_demand = leftover
 
-    # For each time period, check for infeasibilities
-    for t in strategic_model.s_T:
-        # If volume of produced water is greater than capacity, raise an infeasibility error
-        if value(strategic_model.e_capacity_check[t]) > 0:
-            capacity_feasibility_message.append(
-                f"{t} ({round(value(strategic_model.e_TotalPW[t]))} total {strategic_model.model_units['volume']}s PW vs {round(value(strategic_model.e_MaxPWCapacity[t]))} {strategic_model.model_units['volume']}s PW capacity)"
-            )
+        demand_t = value(strategic_model.e_TimePeriodDemand[t])
 
-        # If completions demand is greater than combined water in system and external water available, raise an infeasibility error
-        if value(strategic_model.e_demand_check[t]) > 0:
+        # Subtract demand
+        leftover -= demand_t
+
+        # If leftover is now negative, record infeasibility and reset leftover to 0 (storage cannot be negative)
+        if leftover < 0:
             demand_feasibility_message.append(
-                f"{t} ({round(value(strategic_model.e_TimePeriodDemand[t]))} {strategic_model.model_units['volume']}s demand vs {round(value(strategic_model.e_WaterAvailable[t]))} {strategic_model.model_units['volume']}s available water)"
+                f"{t} ({round(demand_t)} {strategic_model.model_units['volume']}s demand vs "
+                f"{round(leftover_before_demand)} {strategic_model.model_units['volume']}s available water)"
             )
+            # no negative carryover
+            leftover = 0
 
-    if len(capacity_feasibility_message) > 0:
-        error_message = ", ".join(capacity_feasibility_message)
-        raise DataInfeasibilityError(
-            "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: "
-            + error_message
-        )
+        # Storage cannot exceed total capacity
+        if leftover > max_storage_capacity:
+            leftover = max_storage_capacity
 
-    if len(demand_feasibility_message) > 0:
-        error_message = ", ".join(demand_feasibility_message)
-        raise DataInfeasibilityError(
-            "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: "
-            + error_message
-        )
+        if demand_feasibility_message:
+            error_message = ", ".join(str(tp) for tp in demand_feasibility_message)
+            raise DataInfeasibilityError(
+                "An infeasibility in the input data has been detected. Completion demand volume exceeds the total of produced water, external sources, and stored water in the following time periods: "
+                + error_message
+            )
 
     return strategic_model
 
