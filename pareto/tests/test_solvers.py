@@ -106,16 +106,18 @@ def nonexisting_solver_name():
 
 class TestMultipleSolverChoices:
     _VALID_NAME = "ipopt"
+    _VALID_SCIP = "scip"
 
     @pytest.mark.parametrize(
         "names,expectation",
         [
             (("bogus1", _VALID_NAME, "bogus2"), does_not_raise()),
             (("bogus1", "bogus2"), pytest.raises(SolverError)),
+            (("bogus1", _VALID_SCIP), does_not_raise()),
         ],
         ids=get_readable_param,
     )
     def test_valid_choice_is_instantiated(self, names, expectation):
         with expectation:
             # using the name to compare since different solver objects for the same name are not considered equal
-            assert get_solver(*names).name == self._VALID_NAME
+            assert get_solver(*names).name == self._VALID_NAME or self._VALID_SCIP

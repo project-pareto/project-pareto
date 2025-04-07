@@ -6376,6 +6376,7 @@ def solve_model(model, options=None):
         "gurobi_direct",
         "gurobi",
         "gams:CPLEX",
+        "scip",
         "cbc",
     )  # solvers to try and load in order
 
@@ -6408,26 +6409,32 @@ def solve_model(model, options=None):
     # Load solver
     opt = get_solver(*solver) if type(solver) is tuple else get_solver(solver)
 
+    print("OPT")
+    print(opt.options)
     # The below code is not the best way to check for solver but this works.
     # Checks for CPLEX using gams.
+
     if opt.options["solver"] == "CPLEX":
+        # Set maximum running time and mipgap for solver
         with open(f"{opt.options['solver']}.opt", "w") as f:
             f.write(
                 f"$onecho > {opt.options['solver']}.opt\n optcr={gap}\n running_time={running_time} $offecho"
             )
-
-    # Set maximum running time for solver
-    set_timeout(opt, timeout_s=running_time)
-
+    elif opt.type in ("scip"):
+        opt.options["limits/time"] = running_time
+        opt.options["limits/gap"] = gap
     # Set solver gap
-    if opt.type in ("gurobi_direct", "gurobi"):
+    elif opt.type in ("gurobi_direct", "gurobi"):
         # Apply Gurobi specific options
         opt.options["mipgap"] = gap
         opt.options["NumericFocus"] = gurobi_numeric_focus
+        # Set maximum running time for solver
+        set_timeout(opt, timeout_s=running_time)
     elif opt.type in ("cbc"):
         # Apply CBC specific option
         opt.options["ratioGap"] = gap
-
+        # Set maximum running time for solver
+        set_timeout(opt, timeout_s=running_time)
     # Deactivate slack variables if necessary
     if deactivate_slacks:
         model.v_C_Slack.fix(0)
@@ -6513,6 +6520,7 @@ def solve_model(model, options=None):
                     tee=True,
                     add_options=["gams_model.optfile=1;"],
                 )
+
             else:
                 opt.options["DualReductions"] = 0
                 results = opt.solve(scaled_model, tee=True)
@@ -6550,6 +6558,7 @@ def solve_model(model, options=None):
                 model = postprocess_water_quality_calculation(model, opt)
         else:
             # option 2.1:
+
             if opt.options["solver"] == "CPLEX":
                 results = opt.solve(
                     model,
@@ -6657,7 +6666,7 @@ def solve_model(model, options=None):
                 except:
                     print(
                         "A second solve with SCIP cannot be executed as SCIP was not found. Please add it to Path. \
-                          If you do not haev SCIP, proceed with caution when using solution obtain from first solve using BARON"
+                          If you do not have SCIP, proceed with caution when using solution obtain from first solve using BARON"
                     )
                 else:
                     results_2 = solver2.solve(

@@ -72,6 +72,7 @@ jobs:
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install ${{ matrix.pip-install-target }}
+          pip install --index-url https://pypi.ampl.com ampl-module-scip
           idaes get-extensions --verbose
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
