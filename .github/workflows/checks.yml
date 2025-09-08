@@ -54,7 +54,7 @@ jobs:
           # - os: linux
           #   os-version: ubuntu-20.04
           - os: win64
-            os-version: windows-2019
+            os-version: windows-2022
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
           - install-mode: user
