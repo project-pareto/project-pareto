@@ -10,7 +10,8 @@
 # the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
-
+import pandas as pd
+import pyomo.environ as pyo
 from pareto.strategic_water_management.strategic_produced_water_optimization import (
     WaterQuality,
     create_model,
@@ -47,9 +48,10 @@ strategic_toy_case_study.xlsx
 workshop_baseline_all_data.xlsx
 strategic_treatment_demo_surrogates.xlsx
 """
+
 with resources.path(
     "pareto.case_studies",
-    "strategic_toy_case_study.xlsx",
+    "strategic_demsch_sc3.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets, df_parameters] = get_data(fpath, model_type="strategic")
@@ -67,6 +69,7 @@ with resources.path(
  infrastructure_timing: [InfrastructureTiming.false, InfrastructureTiming.true]
  subsurface_risk: [SubsurfaceRisk.false, SubsurfaceRisk.exclude_over_and_under_pressured_wells, SubsurfaceRisk.calculate_risk_metrics]
  """
+
 
 strategic_model = create_model(
     df_sets,
@@ -89,8 +92,8 @@ options = {
     "deactivate_slacks": True,
     "scale_model": False,
     "scaling_factor": 1000,
-    "running_time": 200,
-    "gap": 0,
+    "running_time": 10000,
+    "gap": 0.01,
 }
 
 results = solve_model(model=strategic_model, options=options)
@@ -117,42 +120,42 @@ print("\nConverting to Output Units and Displaying Solution\n" + "-" * 60)
     fname="strategic_optimization_results.xlsx",
 )
 
-# Positions for the toy case study
-pos = {
-    "PP01": (20, 20),
-    "PP02": (45, 20),
-    "PP03": (50, 50),
-    "PP04": (80, 40),
-    "CP01": (65, 20),
-    "F01": (75, 15),
-    "F02": (75, 25),
-    "K01": (30, 10),
-    "K02": (40, 50),
-    "S02": (60, 50),
-    "S03": (10, 44),
-    "S04": (10, 36),
-    "R01": (20, 40),
-    "R02": (70, 50),
-    "O01": (1, 55),
-    "O02": (1, 40),
-    "O03": (1, 25),
-    "N01": (30, 20),
-    "N02": (30, 30),
-    "N03": (30, 40),
-    "N04": (40, 40),
-    "N05": (45, 30),
-    "N06": (50, 40),
-    "N07": (60, 40),
-    "N08": (60, 30),
-    "N09": (70, 40),
-}
+# # Positions for the toy case study
+# pos = {
+#     "PP01": (20, 20),
+#     "PP02": (45, 20),
+#     "PP03": (50, 50),
+#     "PP04": (80, 40),
+#     "CP01": (65, 20),
+#     "F01": (75, 15),
+#     "F02": (75, 25),
+#     "K01": (30, 10),
+#     "K02": (40, 50),
+#     "S02": (60, 50),
+#     "S03": (10, 44),
+#     "S04": (10, 36),
+#     "R01": (20, 40),
+#     "R02": (70, 50),
+#     "O01": (1, 55),
+#     "O02": (1, 40),
+#     "O03": (1, 25),
+#     "N01": (30, 20),
+#     "N02": (30, 30),
+#     "N03": (30, 40),
+#     "N04": (40, 40),
+#     "N05": (45, 30),
+#     "N06": (50, 40),
+#     "N07": (60, 40),
+#     "N08": (60, 30),
+#     "N09": (70, 40),
+# }
 
-# Network visualization feature
-plot_network(
-    strategic_model,
-    show_piping=True,
-    show_trucking=True,
-    show_results=False,
-    save_fig="network.png",
-    pos=pos,
-)
+# # Network visualization feature
+# plot_network(
+#     strategic_model,
+#     show_piping=True,
+#     show_trucking=True,
+#     show_results=False,
+#     save_fig="network.png",
+#     pos=pos,
+# )

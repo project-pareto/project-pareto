@@ -60,7 +60,22 @@ def get_solver(*solver_names: Iterable[str]) -> OptSolver:
     for name in solver_names:
         # Checks for solver is available and then for valid license
         try:
-            solver = SolverFactory(name)
+            if name.lower().startswith("gams"):
+                solver = SolverFactory("gams")  # Use modern interface
+                if ":" in name:
+                    # e.g., "gams:CPLEX" -> extract "CPLEX"
+                    gams_solver = name.split(":")[1]
+                    solver.options["solver"] = gams_solver
+            else:
+                solver = SolverFactory(name)
+
+            # Add name attribute for compatibility with timeout code
+            if not hasattr(solver, "name"):
+                if name.lower().startswith("gams"):
+                    solver.name = "gams:CPLEX" if ":" in name else "gams"
+            else:
+                solver.name = name
+
             if solver.available(exception_flag=True):
                 if solver.license_is_valid():
                     print(f"Model solved using {name}")
@@ -86,11 +101,18 @@ def set_timeout(solver: OptSolver, timeout_s: Number) -> OptSolver:
     Raises:
         SolverError if no mapping for the option key is found for the given solver.
     """
+    if solver.__class__.__name__.lower().startswith("gams") or getattr(
+        solver, "name", ""
+    ).lower().startswith("gams"):
+        return
+
     name_key_mapping = {
         "gurobi": "timeLimit",
         "gurobi_direct": "timeLimit",
+        "cplex": "timelimit",
+        "highs": "time_limit",
         "cbc": "seconds",
-        "gams:CPLEX": "resLim",
+        # "gams:CPLEX": "resLim",
     }
     option_key = name_key_mapping.get(solver.name, None)
     if option_key is None:
