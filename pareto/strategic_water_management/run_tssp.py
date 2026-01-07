@@ -1,9 +1,23 @@
+#####################################################################################################
+# PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
+# All rights reserved.
+#
+# NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S.
+# Government consequently retains certain rights. As such, the U.S. Government has been granted for
+# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
+# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
+# publicly and display publicly, and to permit others to do so.
+#####################################################################################################
+
+
 """
-This code is developed to run the stochastic version of the strategic water management
-model in PARETO. It builds three scenarios from separate case study Excel files,
-enforces non-anticipativity on first-stage decisions across scenarios, and updates
-the objective function. It then solves the expected-cost problem directly on the
-wrapper model and generates per-scenario Excel reports with results.
+This code is developed to run the stochastic version of the strategic water management model in
+PARETO. It builds three scenarios from separate case study Excel files, enforces non-anticipativity
+on first-stage decisions across scenarios, and updates the objective function. It then solves the
+expected-cost problem directly on the wrapper model and generates per-scenario Excel reports with
+results.
 """
 
 import pyomo.environ as pyo
@@ -40,21 +54,21 @@ from importlib import resources
 # ---- Load Data ---- #
 with resources.path(
     "pareto.case_studies",
-    "strategic_demsch_sc1.xlsx",
+    "strategic_discap_sc1.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets_sc1, df_parameters_sc1] = get_data(fpath, model_type="strategic")
 
 with resources.path(
     "pareto.case_studies",
-    "strategic_demsch_sc2.xlsx",
+    "strategic_discap_sc2.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets_sc2, df_parameters_sc2] = get_data(fpath, model_type="strategic")
 
 with resources.path(
     "pareto.case_studies",
-    "strategic_demsch_sc3.xlsx",
+    "strategic_discap_sc3.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets_sc3, df_parameters_sc3] = get_data(fpath, model_type="strategic")
