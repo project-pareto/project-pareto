@@ -54,21 +54,21 @@ from importlib import resources
 # ---- Load Data ---- #
 with resources.path(
     "pareto.case_studies",
-    "strategic_discap_sc1.xlsx",
+    "tssp_discap_sc1.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets_sc1, df_parameters_sc1] = get_data(fpath, model_type="strategic")
 
 with resources.path(
     "pareto.case_studies",
-    "strategic_discap_sc2.xlsx",
+    "tssp_discap_sc2.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets_sc2, df_parameters_sc2] = get_data(fpath, model_type="strategic")
 
 with resources.path(
     "pareto.case_studies",
-    "strategic_discap_sc3.xlsx",
+    "tssp_discap_sc3.xlsx",
 ) as fpath:
     # When set_list and parameter_list are not specified to get_data(), all tabs with valid PARETO input names are read
     [df_sets_sc3, df_parameters_sc3] = get_data(fpath, model_type="strategic")
