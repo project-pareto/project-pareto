@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2024 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -429,7 +429,7 @@ def test_infeasibility_check():
             )
 
         assert (
-            "An infeasibility in the input data has been detected. The following time periods have larger volumes of produced water than capacity in the system: T01 (700196 total koil_bbls PW vs 3089 koil_bbls PW capacity)"
+            "An infeasibility in the input data has been detected. Produced water volumes exceeds total system capacity for time periods: T01 (700196 total koil_bbls PW vs 3089 koil_bbls PW capacity)"
             == str(error_record.value)
         )
 
@@ -459,7 +459,7 @@ def test_infeasibility_check():
             )
 
         assert (
-            "An infeasibility in the input data has been detected. The following time periods have higher demand than volume of produced water and externally sourced water available: T01 (70000 koil_bbls demand vs 756 koil_bbls available water)"
+            "An infeasibility in the input data has been detected. Completion demand volume exceeds the total of produced water, external sources, and stored water in the following time periods: T01 (70000 koil_bbls demand vs 756 koil_bbls available water)"
             == str(error_record.value)
         )
 
