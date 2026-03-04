@@ -76,7 +76,6 @@ from pareto.utilities.enums import (
     DesalinationModel,
 )
 
-
 # create config dictionary
 CONFIG = ConfigBlock()
 

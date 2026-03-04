@@ -12,7 +12,6 @@
 #####################################################################################################
 from setuptools import setup, find_packages
 
-
 NAME = "project-pareto"
 VERSION = "1.2.dev0"
 

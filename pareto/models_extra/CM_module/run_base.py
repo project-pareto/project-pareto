@@ -25,7 +25,6 @@ from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 from pareto.models_extra.CM_module.cm_utils.run_utils import solving
 from importlib import resources
 
-
 # -------------------------Loading data and model------------------------------
 """
 Purpose of each of the files:

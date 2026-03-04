@@ -13,6 +13,7 @@
 """
 Test the earthquake distance calculator
 """
+
 import pytest
 
 # pyproj is only supported for Python 3.9+, so skip this module if we cannot
@@ -20,7 +21,6 @@ import pytest
 pytest.importorskip("pyproj")
 
 from pareto.utilities.earthquake_distance import calculate_earthquake_distances, main
-
 
 swd_latlons = [
     {"swd_id": 1, "lat": 32.251, "lon": -101.940},

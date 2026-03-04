@@ -17,6 +17,7 @@ non dimensionless units of all elements in a given expression.
 The class PintUnitExtractionVisitor is an altered version of the class of the
 same name from pyomo.core.base.units_container.
 """
+
 from pyomo.core.expr.numvalue import (
     native_types,
     pyomo_constant_types,
