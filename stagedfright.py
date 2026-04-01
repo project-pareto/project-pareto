@@ -24,7 +24,6 @@ from typing import Callable, Optional, Union, Iterable, Iterator, List, Tuple
 import pytest
 from _pytest.terminal import TerminalReporter
 
-
 NAME = "stagedfright"
 __version__ = "2021.12.20"
 __author__ = "Ludovico Bianchi <lbianchi@lbl.gov>"

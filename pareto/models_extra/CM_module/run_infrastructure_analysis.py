@@ -29,7 +29,6 @@ from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 
 from importlib import resources
 
-
 # load the case study
 case_study_name = "CM_small_permian"
 

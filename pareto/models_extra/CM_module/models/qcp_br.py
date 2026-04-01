@@ -14,6 +14,7 @@
 Qudratically-Constrained Program (QCP) to find the optimal operational conditions
 to meet minimum critical mineral requirements within a produced water network.
 """
+
 import sys
 import pyomo.environ as pyo
 

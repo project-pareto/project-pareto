@@ -17,6 +17,7 @@ non dimensionless units of all elements in a given expression.
 The class PintUnitExtractionVisitor is an altered version of the class of the
 same name from pyomo.core.base.units_container.
 """
+
 from pyomo.core.expr.numvalue import (
     native_types,
     pyomo_constant_types,
@@ -157,10 +158,9 @@ def units_setup(model):
         model.unscaled_model_display_units["diameter"]
         * model.unscaled_model_display_units["distance"]
     )
-    model.unscaled_model_display_units[
-        "pipe_cost_capacity"
-    ] = model.unscaled_model_display_units["currency"] / (
-        model.unscaled_model_display_units["volume"] / model.decision_period
+    model.unscaled_model_display_units["pipe_cost_capacity"] = (
+        model.unscaled_model_display_units["currency"]
+        / (model.unscaled_model_display_units["volume"] / model.decision_period)
     )
     model.unscaled_model_display_units["currency_volume"] = (
         model.unscaled_model_display_units["currency"]
