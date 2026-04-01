@@ -19,6 +19,7 @@ basic infeasibility testing.
 
 Authors: PARETO Team
 """
+
 # Imports
 import warnings
 from pareto.utilities.get_data import (
@@ -347,7 +348,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         or config.water_quality is WaterQuality.post_process
     ):
         # Check if storage sites are given. If so, check for storage initial water quality.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="StorageSites",
@@ -356,7 +357,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             requires_at_least_one=[],
         )
         # Check if external water sources are given. If so, check for external water source quality.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="ExternalWaterSources",
@@ -365,7 +366,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             requires_at_least_one=[],
         )
         # Check if production pads are given. If so, check for production pad water quality.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="ProductionPads",
@@ -374,7 +375,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             requires_at_least_one=[],
         )
         # Check if completions pads are given. If so, check for completions pad water quality.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="CompletionsPads",
@@ -385,7 +386,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
 
     if config.infrastructure_timing is InfrastructureTiming.true:
         # Check if disposal capex is considered. If so, check for lead time.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="InjectionCapacities",
@@ -395,7 +396,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         )
 
         # Check if treatment capex is considered. If so, check for lead time.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="TreatmentCapacities",
@@ -405,7 +406,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         )
 
         # Check if storage capex is considered. If so, check for lead time.
-        (df_sets, df_parameters) = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data(
             df_sets,
             df_parameters,
             optional_set_name="StorageCapacities",
@@ -416,7 +417,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
 
         # Check if pipeline capex is considered. Check for relevant lead time type.
         if config.pipeline_cost is PipelineCost.distance_based:
-            (df_sets, df_parameters) = _check_optional_data(
+            df_sets, df_parameters = _check_optional_data(
                 df_sets,
                 df_parameters,
                 optional_set_name="PipelineDiameters",
@@ -425,7 +426,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
                 requires_at_least_one=[],
             )
         elif config.pipeline_cost is PipelineCost.capacity_based:
-            (df_sets, df_parameters) = _check_optional_data(
+            df_sets, df_parameters = _check_optional_data(
                 df_sets,
                 df_parameters,
                 optional_set_name="PipelineDiameters",
@@ -448,7 +449,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     # Call _check_optional_data function. This returns modified df_sets and df_parameters that
     # include empty dictionaries for missing data, so the parameters can be defined without error
     # when building the PARETO model.
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="CompletionsPads",
@@ -484,7 +485,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # ProductionPads
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="ProductionPads",
@@ -496,7 +497,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # SWDs
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="SWDSites",
@@ -511,7 +512,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Treatment Sites.
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="TreatmentSites",
@@ -531,7 +532,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Beneficial Reuse
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="ReuseOptions",
@@ -547,7 +548,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # StorageSites
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="StorageSites",
@@ -565,7 +566,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # FreshwaterSources
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="ExternalWaterSources",
@@ -581,7 +582,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
 
     # NetworkNodes
     piping_arcs = get_valid_piping_arc_list()
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="NetworkNodes",
@@ -591,7 +592,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Treatment Capacity Expansion
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="TreatmentCapacities",
@@ -604,7 +605,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Disposal Capacity Expansion
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="InjectionCapacities",
@@ -617,7 +618,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Storage Capacity Expansion
-    (df_sets, df_parameters) = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data(
         df_sets,
         df_parameters,
         optional_set_name="StorageCapacities",

@@ -13,6 +13,7 @@
 """
 Test strategic model
 """
+
 # Import Pyomo libraries
 import pyomo.environ as pyo
 from pyomo.util.check_units import assert_units_consistent
