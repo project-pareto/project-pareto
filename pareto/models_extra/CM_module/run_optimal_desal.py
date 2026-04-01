@@ -21,6 +21,7 @@ This file runs the model in the following order:
 2. Display cost results plots
 3. Display cost summary for best network
 """
+
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
 from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel

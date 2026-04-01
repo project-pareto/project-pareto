@@ -43,7 +43,6 @@ from pareto.utilities.enums import (
     WaterQuality,
 )
 
-
 # create config dictionary
 CONFIG = ConfigBlock()
 
