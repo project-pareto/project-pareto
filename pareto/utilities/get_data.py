@@ -42,6 +42,9 @@ set_tabs_strategic_model = [
     "TreatmentCapacities",
     "TreatmentTechnologies",
     "AirEmissionsComponents",
+    # Midstream custody-transfer MVC contract (optional)
+    "MidstreamReceiptNodes",
+    "MidstreamContracts",
 ]
 set_tabs_all_models = [
     "ProductionPads",
@@ -123,6 +126,15 @@ parameter_tabs_strategic_model = [
     "DesalinationSurrogate",
     "AirEmissionCoefficients",
     "TreatmentEmissionCoefficients",
+    # Midstream custody-transfer MVC contract (optional)
+    "MidstreamContractNode",
+    "MidstreamMVC_Min",
+    "MidstreamMVC_Max",
+    "MidstreamMVC_Tariff",
+    "MidstreamMVC_Penalty",
+    "MidstreamContractDuration",
+    "MidstreamMakeupAlpha",
+    "MidstreamMakeupCreditCap",
 ]
 parameter_tabs_critical_mineral_model = [
     "ComponentPrice",

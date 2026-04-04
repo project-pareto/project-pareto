@@ -230,6 +230,568 @@ CONFIG.declare(
 )
 
 
+def _build_midstream_module(model):
+    """Optional midstream custody-transfer / MVC contract module.
+
+    Activated when the input workbook has "MidstreamReceiptNodes" and
+    "MidstreamContracts" tabs. Otherwise this is a no-op.
+    """
+    import pandas as pd
+
+    _mid_receipt = model.df_sets.get("MidstreamReceiptNodes", None)
+    _mid_contracts = model.df_sets.get("MidstreamContracts", None)
+
+    def _is_empty(obj):
+        if obj is None:
+            return True
+        if isinstance(obj, pd.Series):
+            return obj.dropna().empty
+        if isinstance(obj, dict):
+            return len(obj) == 0
+        # list or other iterable
+        return len(list(obj)) == 0
+
+    if _is_empty(_mid_receipt) or _is_empty(_mid_contracts):
+        return
+
+    from pyomo.environ import (
+        Set, Param, Var, Constraint, Expression,
+        NonNegativeReals, Binary, Any, value,
+        units as pyunits,
+    )
+
+    # Sets
+    model.s_MidstreamReceipt = Set(
+        initialize=model.df_sets["MidstreamReceiptNodes"],
+        within=model.s_N,
+        doc="Midstream custody-transfer receipt nodes (subset of NetworkNodes)",
+    )
+
+    model.s_MidContract = Set(
+        initialize=model.df_sets["MidstreamContracts"],
+        doc="Midstream contract option IDs",
+    )
+
+    # Contract -> receipt node mapping (with validation)
+    _contract_node_map = model.df_parameters.get("MidstreamContractNode", {})
+    _receipt_set = set(model.s_MidstreamReceipt)
+    _unmapped = [c for c in model.s_MidContract
+                 if _contract_node_map.get(c) is None]
+    _bad_node = [(c, _contract_node_map[c]) for c in model.s_MidContract
+                 if _contract_node_map.get(c) is not None
+                 and _contract_node_map[c] not in _receipt_set]
+    if _unmapped:
+        raise ValueError(f"MidstreamContractNode: no receipt node for: {_unmapped}")
+    if _bad_node:
+        raise ValueError(f"MidstreamContractNode: invalid node mapping: {_bad_node}")
+
+    model.p_MidContractNode = Param(
+        model.s_MidContract,
+        within=model.s_MidstreamReceipt,
+        initialize=_contract_node_map,
+        doc="Receipt node for each midstream contract",
+    )
+
+    # Which contracts are available at each receipt node
+    _contracts_at = {}
+    for c in model.s_MidContract:
+        m_node = _contract_node_map.get(c)
+        if m_node is not None:
+            _contracts_at.setdefault(m_node, []).append(c)
+
+    model.s_MidContractAt = Set(
+        model.s_MidstreamReceipt,
+        initialize=_contracts_at,
+        within=model.s_MidContract,
+        doc="Contracts available at each midstream receipt node",
+    )
+
+    # Parameters
+    _cv = pyunits.convert_value
+
+    _mvc_min_raw = model.df_parameters.get("MidstreamMVC_Min", {})
+    model.p_MidMVC_Min = Param(
+        model.s_MidContract,
+        default=0,
+        initialize={
+            k: _cv(v, from_units=model.user_units["volume_time"],
+                   to_units=model.model_units["volume_time"])
+            for k, v in _mvc_min_raw.items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Minimum volume commitment per time step [volume/time]",
+    )
+
+    _mvc_max_raw = model.df_parameters.get("MidstreamMVC_Max", {})
+    model.p_MidMVC_Max = Param(
+        model.s_MidContract,
+        default=0,
+        initialize={
+            k: _cv(v, from_units=model.user_units["volume_time"],
+                   to_units=model.model_units["volume_time"])
+            for k, v in _mvc_max_raw.items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Maximum deliverable volume per time step [volume/time]",
+    )
+
+    _tariff_raw = model.df_parameters.get("MidstreamMVC_Tariff", {})
+    model.p_MidTariff = Param(
+        model.s_MidContract,
+        default=0,
+        initialize={
+            k: _cv(v, from_units=model.user_units["currency_volume"],
+                   to_units=model.model_units["currency_volume"])
+            for k, v in _tariff_raw.items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Per-bbl tariff on delivered volume [currency/volume]",
+    )
+
+    _penalty_raw = model.df_parameters.get("MidstreamMVC_Penalty", {})
+    model.p_MidPenalty = Param(
+        model.s_MidContract,
+        default=0,
+        initialize={
+            k: _cv(v, from_units=model.user_units["currency_volume"],
+                   to_units=model.model_units["currency_volume"])
+            for k, v in _penalty_raw.items()
+        },
+        units=model.model_units["currency_volume"],
+        doc="Take-or-pay penalty per bbl of net shortfall [currency/volume]",
+    )
+
+    _dur_raw = model.df_parameters.get("MidstreamContractDuration", {})
+    model.p_MidDuration = Param(
+        model.s_MidContract,
+        default=0,
+        initialize=_dur_raw,
+        within=Reals,
+        doc="Contract duration in number of time steps (<=0 means forever)",
+    )
+
+    _alpha_raw = model.df_parameters.get("MidstreamMakeupAlpha", {})
+    _alpha_val = 1.0  # default
+    if isinstance(_alpha_raw, dict):
+        for v in _alpha_raw.values():
+            try: _alpha_val = float(v); break
+            except (TypeError, ValueError): continue
+    elif _alpha_raw is not None:
+        try: _alpha_val = float(_alpha_raw)
+        except (TypeError, ValueError): pass
+    model.p_MidAlpha = Param(
+        initialize=_alpha_val,
+        doc="Make-up credit accrual factor (0 to 1)",
+    )
+
+    _cap_raw = model.df_parameters.get("MidstreamMakeupCreditCap", {})
+    model.p_MidCreditCap = Param(
+        model.s_MidstreamReceipt,
+        default=0,
+        initialize={
+            k: _cv(v, from_units=model.user_units["volume_time"],
+                   to_units=model.model_units["volume_time"])
+            for k, v in _cap_raw.items()
+        },
+        units=model.model_units["volume_time"],
+        doc="Optional cap on banked make-up credit per receipt node [volume/time] (0=no cap)",
+    )
+
+    # Ordinal time-step mapping for duration arithmetic
+    _t_list = list(model.s_T.ordered_data())
+    _t_ord = {t: i for i, t in enumerate(_t_list)}
+    _T_len = len(_t_list)
+
+    # Variables
+    model.vb_y_MidStart = Var(
+        model.s_MidContract, model.s_T, within=Binary, initialize=0,
+        doc="1 if contract c starts at time t")
+    model.vb_y_MidActive = Var(
+        model.s_MidContract, model.s_T, within=Binary, initialize=0,
+        doc="1 if contract c is active at time t")
+    model.vb_y_MidAnyActive = Var(
+        model.s_MidstreamReceipt, model.s_T, within=Binary, initialize=0,
+        doc="1 if any contract active at node m at time t")
+
+    model.v_Mid_Over = Var(
+        model.s_MidstreamReceipt, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Volume above MVC_min [volume/time]")
+    model.v_Mid_Under = Var(
+        model.s_MidstreamReceipt, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Volume below MVC_min [volume/time]")
+    model.v_Mid_Credit = Var(
+        model.s_MidstreamReceipt, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Banked make-up credit [volume/time]")
+    model.v_Mid_UseCredit = Var(
+        model.s_MidstreamReceipt, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Credit applied to offset shortfall [volume/time]")
+    model.v_Mid_ShortNet = Var(
+        model.s_MidstreamReceipt, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Net shortfall after credit [volume/time]")
+
+    model.v_C_Midstream = Var(
+        model.s_MidstreamReceipt, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["currency_time"],
+        doc="Midstream cost per node per period [currency/time]")
+    model.v_C_TotalMidstream = Var(
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["currency"],
+        doc="Total midstream cost [currency]")
+
+    # Total flow into receipt node (piped + trucked)
+    def MidReceiptFlowRule(model, m, t):
+        return (
+            sum(model.v_F_Piped[l, m, t]
+                for l in model.s_L if (l, m) in model.s_LLA)
+            + sum(model.v_F_Trucked[l, m, t]
+                  for l in model.s_L if (l, m) in model.s_LLT)
+        )
+
+    model.e_F_MidReceipt = Expression(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidReceiptFlowRule,
+        doc="Total flow delivered to midstream receipt node [volume/time]",
+    )
+
+    # At most one contract per node, one start per contract
+    def MidOneContractPerNodeRule(model, m):
+        return (
+            sum(model.vb_y_MidStart[c, t]
+                for c in model.s_MidContractAt[m]
+                for t in model.s_T)
+            <= 1
+        )
+
+    model.MidOneContractPerNode = Constraint(
+        model.s_MidstreamReceipt,
+        rule=MidOneContractPerNodeRule,
+        doc="At most one contract signed at each receipt node",
+    )
+
+    def MidOneStartPerContractRule(model, c):
+        return sum(model.vb_y_MidStart[c, t] for t in model.s_T) <= 1
+
+    model.MidOneStartPerContract = Constraint(
+        model.s_MidContract,
+        rule=MidOneStartPerContractRule,
+        doc="Each contract can start at most once",
+    )
+
+    # Active window: contract is active from start through start + duration
+    def MidActiveWindowRule(model, c, t):
+        dur = int(value(model.p_MidDuration[c]))
+        t_idx = _t_ord[t]
+        if dur <= 0:  # forever
+            valid_taus = [_t_list[i] for i in range(_T_len) if i <= t_idx]
+        else:
+            valid_taus = [_t_list[i] for i in range(_T_len)
+                          if i <= t_idx < i + dur]
+        return model.vb_y_MidActive[c, t] == sum(
+            model.vb_y_MidStart[c, tau] for tau in valid_taus
+        )
+
+    model.MidActiveWindow = Constraint(
+        model.s_MidContract, model.s_T,
+        rule=MidActiveWindowRule,
+        doc="Contract c is active at t iff started within its duration window",
+    )
+
+    # Any-active indicator at node
+    def MidAnyActiveRule(model, m, t):
+        return model.vb_y_MidAnyActive[m, t] == sum(
+            model.vb_y_MidActive[c, t] for c in model.s_MidContractAt[m]
+        )
+
+    model.MidAnyActive = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidAnyActiveRule,
+        doc="Any-active indicator at receipt node",
+    )
+
+    # Capacity cap (forces flow to 0 when inactive)
+    def MidCapacityCapRule(model, m, t):
+        return model.e_F_MidReceipt[m, t] <= sum(
+            model.p_MidMVC_Max[c] * model.vb_y_MidActive[c, t]
+            for c in model.s_MidContractAt[m]
+        )
+
+    model.MidCapacityCap = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidCapacityCapRule,
+        doc="Delivered volume capped at MVC_max (0 when inactive)",
+    )
+
+    # Deviation split: delivered - MVC_min = over - under
+    def MidDeviationSplitRule(model, m, t):
+        return (
+            model.e_F_MidReceipt[m, t]
+            - sum(model.p_MidMVC_Min[c] * model.vb_y_MidActive[c, t]
+                  for c in model.s_MidContractAt[m])
+            == model.v_Mid_Over[m, t] - model.v_Mid_Under[m, t]
+        )
+
+    model.MidDeviationSplit = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidDeviationSplitRule,
+        doc="Split delivered volume deviation around MVC_min into over and under",
+    )
+
+    # Credit recursion (make-up / true-up)
+    # Big-M bounds tightened per node: flow <= MVC_Max, credit <= alpha * MVC_Max * duration
+    _bigM_credit_at = {}
+    _bigM_flow_at = {}
+    for m in model.s_MidstreamReceipt:
+        max_mvc = max((value(model.p_MidMVC_Max[c])
+                       for c in model.s_MidContractAt[m]), default=0)
+        _bigM_flow_at[m] = max_mvc
+        max_dur = 0
+        for c in model.s_MidContractAt[m]:
+            dur = int(value(model.p_MidDuration[c]))
+            if dur <= 0: max_dur = _T_len; break
+            max_dur = max(max_dur, dur)
+        _bigM_credit_at[m] = value(model.p_MidAlpha) * max_mvc * max(max_dur, 1)
+
+    def MidCreditRecursionRule(model, m, t):
+        t_idx = _t_ord[t]
+        if t_idx == 0:  # first period, no prior credit
+            return (
+                model.v_Mid_Credit[m, t]
+                == model.p_MidAlpha * model.v_Mid_Over[m, t]
+                - model.v_Mid_UseCredit[m, t]
+            )
+        else:
+            t_prev = _t_list[t_idx - 1]
+            return (
+                model.v_Mid_Credit[m, t]
+                == model.v_Mid_Credit[m, t_prev]
+                + model.p_MidAlpha * model.v_Mid_Over[m, t]
+                - model.v_Mid_UseCredit[m, t]
+            )
+
+    model.MidCreditRecursion = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidCreditRecursionRule,
+        doc="Make-up credit balance recursion",
+    )
+
+    # Can't use more credit than what's banked from prior period
+    def MidUseCreditLimitRule(model, m, t):
+        t_idx = _t_ord[t]
+        if t_idx == 0:
+            return model.v_Mid_UseCredit[m, t] == 0
+        else:
+            t_prev = _t_list[t_idx - 1]
+            return model.v_Mid_UseCredit[m, t] <= model.v_Mid_Credit[m, t_prev]
+
+    model.MidUseCreditLimit = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidUseCreditLimitRule,
+        doc="Credit used cannot exceed banked credit from previous period",
+    )
+
+    # Credit use can't exceed actual under-delivery (no phantom spending)
+    def MidUseCreditShortfallRule(model, m, t):
+        return model.v_Mid_UseCredit[m, t] <= model.v_Mid_Under[m, t]
+
+    model.MidUseCreditShortfall = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidUseCreditShortfallRule,
+        doc="Credit used cannot exceed under-delivery in the same period",
+    )
+
+    # Force credit to 0 when inactive (credit expires at contract end)
+    def MidCreditInactiveRule(model, m, t):
+        bigM = _bigM_credit_at.get(m, 0)
+        if bigM > 0:
+            return (
+                model.v_Mid_Credit[m, t] <= bigM * model.vb_y_MidAnyActive[m, t]
+            )
+        else:
+            return Constraint.Skip
+
+    model.MidCreditInactive = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidCreditInactiveRule,
+        doc="Reset banked credit to 0 when no contract is active (credit expires at contract end)",
+    )
+
+    def MidUseCreditInactiveRule(model, m, t):
+        bigM = _bigM_credit_at.get(m, 0)
+        if bigM > 0:
+            return (
+                model.v_Mid_UseCredit[m, t]
+                <= bigM * model.vb_y_MidAnyActive[m, t]
+            )
+        else:
+            return Constraint.Skip
+
+    model.MidUseCreditInactive = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidUseCreditInactiveRule,
+        doc="No credit use when inactive",
+    )
+
+    # Net shortfall = under-delivery minus any credit used
+    def MidNetShortfallRule(model, m, t):
+        return (
+            model.v_Mid_ShortNet[m, t]
+            >= model.v_Mid_Under[m, t] - model.v_Mid_UseCredit[m, t]
+        )
+
+    model.MidNetShortfall = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidNetShortfallRule,
+        doc="Net shortfall >= under-delivery minus credit used",
+    )
+
+    # Optional cap on banked credit
+    def MidCreditCapRule(model, m, t):
+        cap_val = value(model.p_MidCreditCap[m])
+        if cap_val > 0:
+            return model.v_Mid_Credit[m, t] <= model.p_MidCreditCap[m]
+        else:
+            return Constraint.Skip
+
+    model.MidCreditCapConstraint = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidCreditCapRule,
+        doc="Optional upper bound on banked make-up credit",
+    )
+
+    # Costing via McCormick linearization
+    # Tariff * Flow is bilinear (tariff depends on which contract is active).
+    # Since at most one contract is active per node, we use auxiliary variables
+    # FlowActive and ShortActive linked to the binary via big-M.
+    model.v_Mid_FlowActive = Var(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Receipt flow when contract c active (McCormick aux)")
+    model.v_Mid_ShortActive = Var(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        within=NonNegativeReals, initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Net shortfall when contract c active (McCormick aux)")
+
+    # McCormick envelope for FlowActive
+    def MidFlowActiveLinkUBRule(model, m, c, t):
+        if c not in model.s_MidContractAt[m]:
+            return model.v_Mid_FlowActive[m, c, t] == 0
+        return (
+            model.v_Mid_FlowActive[m, c, t]
+            <= _bigM_flow_at[m] * model.vb_y_MidActive[c, t]
+        )
+
+    model.MidFlowActiveLinkUB = Constraint(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        rule=MidFlowActiveLinkUBRule,
+        doc="FlowActive upper bounded by big-M * Active",
+    )
+
+    def MidFlowActiveLinkLB1Rule(model, m, c, t):
+        if c not in model.s_MidContractAt[m]:
+            return Constraint.Skip
+        return (
+            model.v_Mid_FlowActive[m, c, t]
+            >= model.e_F_MidReceipt[m, t]
+            - _bigM_flow_at[m] * (1 - model.vb_y_MidActive[c, t])
+        )
+
+    model.MidFlowActiveLinkLB1 = Constraint(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        rule=MidFlowActiveLinkLB1Rule,
+        doc="FlowActive >= Receipt - bigM*(1-Active)",
+    )
+
+    def MidFlowActiveLinkLB2Rule(model, m, c, t):
+        if c not in model.s_MidContractAt[m]:
+            return Constraint.Skip
+        return model.v_Mid_FlowActive[m, c, t] <= model.e_F_MidReceipt[m, t]
+
+    model.MidFlowActiveLinkLB2 = Constraint(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        rule=MidFlowActiveLinkLB2Rule,
+        doc="FlowActive <= Receipt",
+    )
+
+    # McCormick envelope for ShortActive
+    def MidShortActiveLinkUBRule(model, m, c, t):
+        if c not in model.s_MidContractAt[m]:
+            return model.v_Mid_ShortActive[m, c, t] == 0
+        return (
+            model.v_Mid_ShortActive[m, c, t]
+            <= _bigM_flow_at[m] * model.vb_y_MidActive[c, t]
+        )
+
+    model.MidShortActiveLinkUB = Constraint(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        rule=MidShortActiveLinkUBRule,
+        doc="ShortActive upper bounded by big-M * Active",
+    )
+
+    def MidShortActiveLinkLB1Rule(model, m, c, t):
+        if c not in model.s_MidContractAt[m]:
+            return Constraint.Skip
+        return (
+            model.v_Mid_ShortActive[m, c, t]
+            >= model.v_Mid_ShortNet[m, t]
+            - _bigM_flow_at[m] * (1 - model.vb_y_MidActive[c, t])
+        )
+
+    model.MidShortActiveLinkLB1 = Constraint(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        rule=MidShortActiveLinkLB1Rule,
+        doc="ShortActive >= ShortNet - bigM*(1-Active)",
+    )
+
+    def MidShortActiveLinkLB2Rule(model, m, c, t):
+        if c not in model.s_MidContractAt[m]:
+            return Constraint.Skip
+        return model.v_Mid_ShortActive[m, c, t] <= model.v_Mid_ShortNet[m, t]
+
+    model.MidShortActiveLinkLB2 = Constraint(
+        model.s_MidstreamReceipt, model.s_MidContract, model.s_T,
+        rule=MidShortActiveLinkLB2Rule,
+        doc="ShortActive <= ShortNet",
+    )
+
+    # Cost = tariff * delivered + penalty * net shortfall
+    def MidCostRule(model, m, t):
+        return model.v_C_Midstream[m, t] == (
+            sum(
+                model.p_MidTariff[c] * model.v_Mid_FlowActive[m, c, t]
+                + model.p_MidPenalty[c] * model.v_Mid_ShortActive[m, c, t]
+                for c in model.s_MidContractAt[m]
+            )
+        )
+
+    model.MidCostCalc = Constraint(
+        model.s_MidstreamReceipt, model.s_T,
+        rule=MidCostRule,
+        doc="Midstream cost = tariff on delivered + penalty on net shortfall",
+    )
+
+    model.MidTotalCostCalc = Constraint(
+        expr=model.v_C_TotalMidstream == sum(
+            model.v_C_Midstream[m, t] * model.model_units["time"]
+            for m in model.s_MidstreamReceipt
+            for t in model.s_T
+        ),
+        doc="Total midstream custody-transfer cost [currency]",
+    )
+
+
 def create_model(df_sets, df_parameters, default={}):
     model = ConcreteModel()
 
@@ -1288,6 +1850,9 @@ def create_model(df_sets, df_parameters, default={}):
     if model.do_subsurface_risk_calcs:
         subsurface_risk(model)
 
+    # Build optional midstream custody-transfer module (no-op if input tabs absent)
+    _build_midstream_module(model)
+
     # For each possible objective function, create a corresponding variable and constrain it with the correct expression #
 
     ####### Minimum cost objective #######
@@ -1295,6 +1860,11 @@ def create_model(df_sets, df_parameters, default={}):
         within=Reals,
         units=model.model_units["currency"],
         doc="Objective function variable - minimize cost [currency]",
+    )
+
+    # Include midstream cost only when the module is active
+    _mid_cost = (
+        model.v_C_TotalMidstream if hasattr(model, "v_C_TotalMidstream") else 0
     )
 
     model.ObjectiveFunctionCost = Constraint(
@@ -1315,6 +1885,7 @@ def create_model(df_sets, df_parameters, default={}):
             + model.v_C_PipelineCapEx
         )
         + model.v_C_Slack
+        + _mid_cost
         - model.v_R_TotalStorage
         - model.v_R_TotalBeneficialReuse,
         doc="Objective function constraint - minimize cost",
@@ -1495,6 +2066,7 @@ def create_model(df_sets, df_parameters, default={}):
                 + model.v_C_TreatmentCapEx
             )
             + model.v_C_Slack
+            + _mid_cost
             - model.v_R_TotalStorage
             - model.v_R_TotalBeneficialReuse,
             doc="Objective function constraint - minimize cost with surrogate",
@@ -1701,6 +2273,9 @@ def create_model(df_sets, df_parameters, default={}):
     if model.config.node_capacity == True:
 
         def NetworkNodeCapacityRule(model, n, t):
+            # Skip midstream receipt nodes to avoid unintended throttling
+            if hasattr(model, "s_MidstreamReceipt") and n in model.s_MidstreamReceipt:
+                return Constraint.Skip
             if value(model.p_sigma_NetworkNode[n]) > 0:
                 constraint = (
                     sum(
