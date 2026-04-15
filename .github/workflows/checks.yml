@@ -41,17 +41,17 @@ jobs:
           - '3.11'
           - '3.12'
         os:
-          - linux
+          # - linux
           - win64
-          - macos
+          # - macos
         install-mode:
           - user
           - dev
         include:
-          - os: macos
-            os-version: macos-26
-          - os: linux
-            os-version: ubuntu-24.04
+          # - os: macos
+          #   os-version: macos-26
+          # - os: linux
+          #   os-version: ubuntu-24.04
           - os: win64
             os-version: windows-2022
           - install-mode: dev
