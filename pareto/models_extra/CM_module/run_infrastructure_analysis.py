@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -28,7 +28,6 @@ from pareto.models_extra.CM_module.cm_utils.run_utils import print_results_summa
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 
 from importlib import resources
-
 
 # load the case study
 case_study_name = "CM_small_permian"
