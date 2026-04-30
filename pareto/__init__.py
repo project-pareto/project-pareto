@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -11,6 +11,5 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 from importlib import metadata
-
 
 __version__ = metadata.version("project-pareto")

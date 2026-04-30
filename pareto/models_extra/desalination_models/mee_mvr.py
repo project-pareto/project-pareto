@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -966,9 +966,7 @@ def make_mee_mvr_model(N_evap=1, inputs_variables=False):
 
     # All costs are in kUS$
     def _compressor_capex_con(m):
-        return m.compressor_capex == m.cepci_ratio * (
-            7.9 * m.compressor_capacity**0.62
-        )
+        return m.compressor_capex == m.cepci_ratio * (7.9 * m.compressor_capacity**0.62)
 
     m.compressor_capex_con = pyo.Constraint(rule=_compressor_capex_con)
 

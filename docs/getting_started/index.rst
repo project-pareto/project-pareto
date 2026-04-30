@@ -55,7 +55,7 @@ Users
 
 1. Create a Conda environment, named e.g. ``pareto-env``::
 
-    conda create --yes --name pareto-env python=3.9
+    conda create --yes --name pareto-env python=3.10
 
 2. Activate the ``pareto-env`` Conda environment. This command must be run every time a new console/terminal window is opened::
 
@@ -100,7 +100,7 @@ Core-dev
 
 3. Create a dedicated Conda environment for development work::
 
-    conda create --name pareto-dev python=3.9 --yes
+    conda create --name pareto-dev python=3.10 --yes
 
 4. Activate the ``pareto-dev`` Conda environment. This command must be run every time a new console/terminal window is opened::
 
@@ -133,7 +133,7 @@ Hybrid
 
 1. Create and activate environment::
 
-    conda create -n pareto-env python=3.9 pip --yes
+    conda create -n pareto-env python=3.10 pip --yes
     conda activate pareto-env
 
 2. Download a ZIP file containing a snapshot of the ``main`` branch of the repository by navigating to the following URL: ``https://github.com/project-pareto/project-pareto/archive/refs/heads/main.zip``

@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -11,7 +11,6 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 from setuptools import setup, find_packages
-
 
 NAME = "project-pareto"
 VERSION = "1.2.dev0"
@@ -51,8 +50,6 @@ setup(
         "Operating System :: Unix",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
@@ -65,7 +62,7 @@ setup(
         "windows",
         "linux",
     ],
-    python_requires=">=3.8, <4",
+    python_requires=">=3.10, <4",
     packages=find_packages(),
     py_modules=["stagedfright"],
     install_requires=[
@@ -82,8 +79,7 @@ setup(
         "ipywidgets>=8.0.0",
         "tensorflow==2.13.0",
         "omlt==1.1",
-        # pyproj requires python >= 3.9
-        "pyproj ; python_version >= '3.9'",
+        "pyproj",
     ],
     extras_require={
         "testing": [

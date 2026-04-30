@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -24,7 +24,6 @@ from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_e
 from pareto.models_extra.CM_module.cm_utils.data_parser import data_parser
 from pareto.models_extra.CM_module.cm_utils.run_utils import solving
 from importlib import resources
-
 
 # -------------------------Loading data and model------------------------------
 """
