@@ -23,7 +23,7 @@ readme = { text = """The Produced Water Application for Beneficial Reuse, Enviro
 is specifically designed for produced water management and beneficial reuse. \
 The major deliverable of this project will be an open-source, optimization-based, downloadable and executable produced water decision-support application, PARETO, \
 that can be run by upstream operators, midstream companies, technology providers, water end users, research organizations and regulators.""", content-type = "text/plain" }
-license = "BSD"
+license = "BSD-3-Clause-LBNL"
 authors = [
     { name = "PARETO team" },
 ]
