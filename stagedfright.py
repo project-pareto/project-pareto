@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -23,7 +23,6 @@ from typing import Callable, Optional, Union, Iterable, Iterator, List, Tuple
 
 import pytest
 from _pytest.terminal import TerminalReporter
-
 
 NAME = "stagedfright"
 __version__ = "2021.12.20"

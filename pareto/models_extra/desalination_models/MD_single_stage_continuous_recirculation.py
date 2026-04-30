@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -419,9 +419,9 @@ def set_operating_conditions(
     m.fs.chiller.control_volume.properties_out[0].flow_mass_phase_comp[
         "Liq", "NaCl"
     ].value = 0
-    m.fs.chiller.control_volume.properties_out[0].flow_mass_phase_comp[
-        "Liq", "H2O"
-    ] = m.fs.heater.control_volume.properties_out[0].flow_mass_phase_comp["Liq", "H2O"]
+    m.fs.chiller.control_volume.properties_out[0].flow_mass_phase_comp["Liq", "H2O"] = (
+        m.fs.heater.control_volume.properties_out[0].flow_mass_phase_comp["Liq", "H2O"]
+    )
 
     # check degrees of freedom
     if degrees_of_freedom(m) != 0:
