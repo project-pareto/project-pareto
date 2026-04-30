@@ -72,12 +72,12 @@ setup(
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
         # https://peps.python.org/pep-0440/#compatible-release
-        "idaes-pse >= 2.5",
+        "idaes-pse >= 2.10",
         "requests",
         "plotly>=5.18.0",
         "kaleido",
         "ipywidgets>=8.0.0",
-        "tensorflow",
+        "tensorflow>=2.16",
         "omlt>=1.2",
         "pyproj",
     ],
