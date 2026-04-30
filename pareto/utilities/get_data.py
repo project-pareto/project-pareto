@@ -867,6 +867,17 @@ def get_display_units(input_sheet_name_list, user_units):
         "TreatmentCapacities": "",
         "TreatmentTechnologies": "",
         "AirEmissionsComponents": "",
+        # midstream custody-transfer tabs
+        "MidstreamReceiptNodes": "",
+        "MidstreamContracts": "",
+        "MidstreamContractNode": "",
+        "MidstreamMVC_Min": user_units["volume"] + "/" + user_units["time"],
+        "MidstreamMVC_Max": user_units["volume"] + "/" + user_units["time"],
+        "MidstreamMVC_Tariff": user_units["currency"] + "/" + user_units["volume"],
+        "MidstreamMVC_Penalty": user_units["currency"] + "/" + user_units["volume"],
+        "MidstreamContractDuration": "",
+        "MidstreamMakeupAlpha": "fraction",
+        "MidstreamMakeupCreditCap": user_units["volume"] + "/" + user_units["time"],
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],

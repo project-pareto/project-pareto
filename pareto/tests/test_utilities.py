@@ -394,10 +394,19 @@ def test_data_check():
             warning_record[3].message.args[0]
             == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values: {'TruckingTime'}"
         )
+        _msg = warning_record[4].message.args[0]
         assert (
-            "The following parameters were missing and default values were substituted: ['AirEmissionsComponents', 'Economics', 'DesalinationSurrogate', 'AirEmissionCoefficients', 'TreatmentEmissionCoefficients']"
-            in warning_record[4].message.args[0]
+            "The following parameters were missing and default values were substituted:"
+            in _msg
         )
+        for _key in [
+            "AirEmissionsComponents",
+            "Economics",
+            "DesalinationSurrogate",
+            "AirEmissionCoefficients",
+            "TreatmentEmissionCoefficients",
+        ]:
+            assert _key in _msg
 
 
 ############################

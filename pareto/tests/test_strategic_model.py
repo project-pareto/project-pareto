@@ -1609,3 +1609,99 @@ def test_exceptions(build_toy_strategic_model):
         )
         set_objective(m, Objectives.subsurface_risk)
         assert "Subsurface risk objective has not been created" in str(excinfo.value)
+
+
+@pytest.fixture(scope="module")
+def build_midstream_strategic_model():
+    with resources.path(
+        "pareto.case_studies",
+        "strategic_small_case_study_midstream.xlsx",
+    ) as fpath:
+        [df_sets, df_parameters] = get_data(fpath)
+
+        def _call_model_with_config(config_dict):
+            return create_model(df_sets, df_parameters, config_dict)
+
+    return _call_model_with_config
+
+
+@pytest.mark.unit
+def test_basic_midstream_build(build_midstream_strategic_model):
+    m = build_midstream_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    assert hasattr(m, "s_MidstreamReceipt") and len(m.s_MidstreamReceipt) > 0
+    assert hasattr(m, "s_MidContract") and len(m.s_MidContract) > 0
+    assert hasattr(m, "vb_y_MidActive")
+    assert hasattr(m, "v_C_TotalMidstream")
+    assert hasattr(m, "p_MidMVC_Min")
+    assert hasattr(m, "p_MidTariff")
+    assert hasattr(m, "p_MidPenalty")
+
+
+@pytest.mark.component
+def test_run_midstream_strategic_model(build_midstream_strategic_model):
+    m = build_midstream_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    if hasattr(m, "p_beta_TotalProd") and m.p_beta_TotalProd.value == 0:
+        m.p_beta_TotalProd.set_value(1e-6)
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": True,
+        "scaling_factor": 1000,
+        "running_time": 300,
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+    assert results.solver.status == pyo.SolverStatus.ok
+    with nostdout():
+        assert is_feasible(m, cons_tol=5e-3)
+    assert pyo.value(m.v_C_TotalMidstream) >= 0
+
+
+@pytest.mark.component
+def test_midstream_contract_selection(build_midstream_strategic_model):
+    m = build_midstream_strategic_model(
+        config_dict={
+            "objective": Objectives.cost,
+            "pipeline_cost": PipelineCost.distance_based,
+            "pipeline_capacity": PipelineCapacity.input,
+            "water_quality": WaterQuality.false,
+        }
+    )
+    if hasattr(m, "p_beta_TotalProd") and m.p_beta_TotalProd.value == 0:
+        m.p_beta_TotalProd.set_value(1e-6)
+
+    options = {
+        "deactivate_slacks": True,
+        "scale_model": True,
+        "scaling_factor": 1000,
+        "running_time": 300,
+        "gap": 0,
+    }
+    results = solve_model(model=m, options=options)
+    assert results.solver.termination_condition == pyo.TerminationCondition.optimal
+
+    any_active = False
+    for c in m.s_MidContract:
+        for t in m.s_T:
+            if pyo.value(m.vb_y_MidActive[c, t]) > 0.5:
+                any_active = True
+                break
+        if any_active:
+            break
+    assert any_active
