@@ -1270,9 +1270,11 @@ with tabs[5]:
     with d3:
         st.metric(
             "Required Tariff",
-            "N/A"
-            if mvc["required_tariff"] is None
-            else f"${mvc['required_tariff']:.2f}/bbl",
+            (
+                "N/A"
+                if mvc["required_tariff"] is None
+                else f"${mvc['required_tariff']:.2f}/bbl"
+            ),
         )
     with d4:
         st.metric("Candidate Tariff", f"${candidate_tariff:.2f}/bbl")
