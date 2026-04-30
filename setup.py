@@ -72,13 +72,13 @@ setup(
         "openpyxl",
         # for the moment mainly for getting solvers with `idaes get-extensions`
         # https://peps.python.org/pep-0440/#compatible-release
-        "idaes-pse == 2.5",
+        "idaes-pse >= 2.5",
         "requests",
-        "plotly==5.11.0",
+        "plotly>=5.18.0",
         "kaleido",
         "ipywidgets>=8.0.0",
-        "tensorflow==2.13.0",
-        "omlt==1.1",
+        "tensorflow",
+        "omlt>=1.2",
         "pyproj",
     ],
     extras_require={
@@ -95,12 +95,10 @@ setup(
             "*.xlsx",
         ],
         "pareto.strategic_water_management": [
-            "mvc_keras/*.pb",
+            "mvc_keras/*.keras",
             "mvc_keras/*.json",
-            "mvc_keras/variables/variables.*",
-            "md_keras/*.pb",
+            "md_keras/*.keras",
             "md_keras/*.json",
-            "md_keras/variables/variables.*",
         ],
     },
     entry_points={
