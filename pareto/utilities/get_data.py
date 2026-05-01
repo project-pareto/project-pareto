@@ -1186,9 +1186,7 @@ def od_matrix(inputs):
     elif output == "time_distance":
         return_output = [output_times, output_distance]
     else:
-        raise Warning(
-            "Provide a valid type of output, valid options are:\
-                        time, distance, time_distance"
-        )
+        raise Warning("Provide a valid type of output, valid options are:\
+                        time, distance, time_distance")
 
     return return_output
