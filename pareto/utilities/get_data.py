@@ -18,6 +18,7 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
 import logging
+import time
 import warnings
 from pathlib import Path
 from typing import Dict
@@ -1020,18 +1021,18 @@ def od_matrix(inputs):
         # Building strings for coordinates, source indices, and destination indices
         for index, location in enumerate(origin.keys()):
             coordinates += (
-                str(origin[location]["longitude"])
+                str(float(origin[location]["longitude"]))
                 + ","
-                + str(origin[location]["latitude"])
+                + str(float(origin[location]["latitude"]))
                 + ";"
             )
             origin_index += str(index) + ";"
 
         for index, location in enumerate(destination.keys()):
             coordinates += (
-                str(destination[location]["longitude"])
+                str(float(destination[location]["longitude"]))
                 + ","
-                + str(destination[location]["latitude"])
+                + str(float(destination[location]["latitude"]))
                 + ";"
             )
             destination_index += str(index + len(origin)) + ";"
@@ -1040,7 +1041,7 @@ def od_matrix(inputs):
         coordinates = coordinates[:-1]
         origin_index = origin_index[:-1]
         destination_index = destination_index[:-1]
-        response = requests.get(
+        url = (
             api_url_base
             + coordinates
             + "?sources="
@@ -1049,6 +1050,12 @@ def od_matrix(inputs):
             + destination_index
             + "&annotations=duration,distance"
         )
+        response = requests.get(url, timeout=30)
+        retries = 0
+        while not response.ok and retries < 2:
+            time.sleep(2 ** retries)
+            response = requests.get(url, timeout=30)
+            retries += 1
         if response.ok:
             # Ensure HTTP Status code is less than 400
             response_json = response.json()
