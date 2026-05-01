@@ -1052,7 +1052,7 @@ def od_matrix(inputs):
         response = requests.get(url, timeout=30)
         retries = 0
         while not response.ok and retries < 2:
-            time.sleep(2 ** retries)
+            time.sleep(2**retries)
             response = requests.get(url, timeout=30)
             retries += 1
         if response.ok:
@@ -1186,7 +1186,9 @@ def od_matrix(inputs):
     elif output == "time_distance":
         return_output = [output_times, output_distance]
     else:
-        raise Warning("Provide a valid type of output, valid options are:\
-                        time, distance, time_distance")
+        raise Warning(
+            "Provide a valid type of output, valid options are:\
+                        time, distance, time_distance"
+        )
 
     return return_output
