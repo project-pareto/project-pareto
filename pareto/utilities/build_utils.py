@@ -1338,6 +1338,11 @@ def build_common_constraints(model):
     )
 
     def NetworkNodeBalanceRule(model, n, t):
+        # Skip midstream receipt nodes – they are custody-transfer sinks
+        # whose balance is handled by the midstream MVC contract module.
+        if hasattr(model, "s_MidstreamReceipt") and n in model.s_MidstreamReceipt:
+            return Constraint.Skip
+
         constraint = sum(
             model.v_F_Piped[l, n, t] for l in model.s_L if (l, n) in model.s_LLA
         ) == sum(model.v_F_Piped[n, l, t] for l in model.s_L if (n, l) in model.s_LLA)
