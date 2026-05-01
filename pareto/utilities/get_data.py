@@ -1058,6 +1058,16 @@ def od_matrix(inputs):
         if response.ok:
             # Ensure HTTP Status code is less than 400
             response_json = response.json()
+        elif 500 <= response.status_code < 600:
+            warnings.warn(
+                f"Routing API returned status {response.status_code}; "
+                "returning zero drive-time and distance matrices."
+            )
+            response_json = {
+                "code": "ok",
+                "durations": [[0.0] * len(destination) for _ in range(len(origin))],
+                "distances": [[0.0] * len(destination) for _ in range(len(origin))],
+            }
         else:
             raise Warning(
                 "Error when requesting data, make sure your coordinates are correct"
