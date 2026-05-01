@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "PARETO"
-copyright = "2021-2025, PARETO"
+copyright = "2021-2026, PARETO"
 author = "The PARETO Project"
 
 # we set release and version to be the same, using the value from the installed project-pareto package
@@ -100,11 +100,9 @@ html_favicon = "_static/favicon.ico"
 # change default engine (pdflatex) to correctly display Unicode characters in source
 # https://docs.readthedocs.io/en/stable/guides/pdf-non-ascii-languages.html#sphinx-pdfs-with-unicode
 latex_engine = "xelatex"
-latex_elements = {
-    "preamble": r"""
+latex_elements = {"preamble": r"""
 \usepackage[mono=false]{libertinus-otf}
-"""
-}
+"""}
 
 ## for MyST (Markdown)
 
