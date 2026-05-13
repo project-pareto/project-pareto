@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -13,6 +13,7 @@
 """
 Test the earthquake distance calculator
 """
+
 import pytest
 
 # pyproj is only supported for Python 3.9+, so skip this module if we cannot
@@ -20,7 +21,6 @@ import pytest
 pytest.importorskip("pyproj")
 
 from pareto.utilities.earthquake_distance import calculate_earthquake_distances, main
-
 
 swd_latlons = [
     {"swd_id": 1, "lat": 32.251, "lon": -101.940},

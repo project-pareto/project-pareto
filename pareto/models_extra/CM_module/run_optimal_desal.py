@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -21,6 +21,7 @@ This file runs the model in the following order:
 2. Display cost results plots
 3. Display cost summary for best network
 """
+
 import pyomo.environ as pyo
 from pareto.utilities.get_data import get_data
 from pareto.models_extra.CM_module.cm_utils.gen_utils import report_results_to_excel

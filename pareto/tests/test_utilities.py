@@ -1,6 +1,6 @@
 #####################################################################################################
 # PARETO was produced under the DOE Produced Water Application for Beneficial Reuse Environmental
-# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2025 by the software owners:
+# Impact and Treatment Optimization (PARETO), and is copyright (c) 2021-2026 by the software owners:
 # The Regents of the University of California, through Lawrence Berkeley National Laboratory, et al.
 # All rights reserved.
 #
@@ -394,10 +394,19 @@ def test_data_check():
             warning_record[3].message.args[0]
             == "Trucking arcs are given, but some trucking parameters are missing. The following missing parameters have been set to default values: {'TruckingTime'}"
         )
+        _msg = warning_record[4].message.args[0]
         assert (
-            "The following parameters were missing and default values were substituted: ['AirEmissionsComponents', 'Economics', 'DesalinationSurrogate', 'AirEmissionCoefficients', 'TreatmentEmissionCoefficients']"
-            in warning_record[4].message.args[0]
+            "The following parameters were missing and default values were substituted:"
+            in _msg
         )
+        for _key in [
+            "AirEmissionsComponents",
+            "Economics",
+            "DesalinationSurrogate",
+            "AirEmissionCoefficients",
+            "TreatmentEmissionCoefficients",
+        ]:
+            assert _key in _msg
 
 
 ############################
