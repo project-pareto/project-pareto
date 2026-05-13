@@ -37,8 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - '3.8'
-          - '3.9'
           - '3.10'
           - '3.11'
         os:
@@ -61,7 +59,7 @@ jobs:
             pip-install-target: >-
               "project-pareto[testing] @ git+${{ format('{0}/{1}@{2}', github.server_url, github.repository, github.ref) }}"
           - install-mode: dev
-            python-version: '3.9'
+            python-version: '3.10'
             cov-report: true
     steps:
       - uses: actions/checkout@v4
@@ -113,12 +111,12 @@ jobs:
 
   black:
     name: Run Black to verify that committed code is formatted
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Install (dev mode)
         run: |
           pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
