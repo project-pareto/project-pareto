@@ -18,6 +18,7 @@ Authors: PARETO Team (Andres J. Calderon, Markus G. Drouven)
 """
 
 import logging
+import time
 import warnings
 from pathlib import Path
 from typing import Dict
@@ -42,6 +43,9 @@ set_tabs_strategic_model = [
     "TreatmentCapacities",
     "TreatmentTechnologies",
     "AirEmissionsComponents",
+    # Midstream custody-transfer MVC contract (optional)
+    "MidstreamReceiptNodes",
+    "MidstreamContracts",
 ]
 set_tabs_all_models = [
     "ProductionPads",
@@ -123,6 +127,15 @@ parameter_tabs_strategic_model = [
     "DesalinationSurrogate",
     "AirEmissionCoefficients",
     "TreatmentEmissionCoefficients",
+    # Midstream custody-transfer MVC contract (optional)
+    "MidstreamContractNode",
+    "MidstreamMVC_Min",
+    "MidstreamMVC_Max",
+    "MidstreamMVC_Tariff",
+    "MidstreamMVC_Penalty",
+    "MidstreamContractDuration",
+    "MidstreamMakeupAlpha",
+    "MidstreamMakeupCreditCap",
 ]
 parameter_tabs_critical_mineral_model = [
     "ComponentPrice",
@@ -854,6 +867,17 @@ def get_display_units(input_sheet_name_list, user_units):
         "TreatmentCapacities": "",
         "TreatmentTechnologies": "",
         "AirEmissionsComponents": "",
+        # midstream custody-transfer tabs
+        "MidstreamReceiptNodes": "",
+        "MidstreamContracts": "",
+        "MidstreamContractNode": "",
+        "MidstreamMVC_Min": user_units["volume"] + "/" + user_units["time"],
+        "MidstreamMVC_Max": user_units["volume"] + "/" + user_units["time"],
+        "MidstreamMVC_Tariff": user_units["currency"] + "/" + user_units["volume"],
+        "MidstreamMVC_Penalty": user_units["currency"] + "/" + user_units["volume"],
+        "MidstreamContractDuration": "",
+        "MidstreamMakeupAlpha": "fraction",
+        "MidstreamMakeupCreditCap": user_units["volume"] + "/" + user_units["time"],
         # additional operational model tabs
         "DisposalCapacity": user_units["volume"] + "/" + user_units["time"],
         "TreatmentCapacity": user_units["volume"] + "/" + user_units["time"],
@@ -996,18 +1020,18 @@ def od_matrix(inputs):
         # Building strings for coordinates, source indices, and destination indices
         for index, location in enumerate(origin.keys()):
             coordinates += (
-                str(origin[location]["longitude"])
+                str(float(origin[location]["longitude"]))
                 + ","
-                + str(origin[location]["latitude"])
+                + str(float(origin[location]["latitude"]))
                 + ";"
             )
             origin_index += str(index) + ";"
 
         for index, location in enumerate(destination.keys()):
             coordinates += (
-                str(destination[location]["longitude"])
+                str(float(destination[location]["longitude"]))
                 + ","
-                + str(destination[location]["latitude"])
+                + str(float(destination[location]["latitude"]))
                 + ";"
             )
             destination_index += str(index + len(origin)) + ";"
@@ -1016,7 +1040,7 @@ def od_matrix(inputs):
         coordinates = coordinates[:-1]
         origin_index = origin_index[:-1]
         destination_index = destination_index[:-1]
-        response = requests.get(
+        url = (
             api_url_base
             + coordinates
             + "?sources="
@@ -1025,9 +1049,25 @@ def od_matrix(inputs):
             + destination_index
             + "&annotations=duration,distance"
         )
+        response = requests.get(url, timeout=30)
+        retries = 0
+        while not response.ok and retries < 2:
+            time.sleep(2**retries)
+            response = requests.get(url, timeout=30)
+            retries += 1
         if response.ok:
             # Ensure HTTP Status code is less than 400
             response_json = response.json()
+        elif 500 <= response.status_code < 600:
+            warnings.warn(
+                f"Routing API returned status {response.status_code}; "
+                "returning zero drive-time and distance matrices."
+            )
+            response_json = {
+                "code": "ok",
+                "durations": [[0.0] * len(destination) for _ in range(len(origin))],
+                "distances": [[0.0] * len(destination) for _ in range(len(origin))],
+            }
         else:
             raise Warning(
                 "Error when requesting data, make sure your coordinates are correct"
