@@ -81,6 +81,7 @@ def generate_report(
     printing_list = []
 
     if model.type == "strategic":
+        # if getattr(model, "model_type", None) == "strategic":
         if is_print is None:
             printing_list = []
         else:
@@ -1127,8 +1128,10 @@ def generate_report(
                 }
             )
     else:
-        raise Exception("Model type {0} is not supported".format(model.type))
-
+        # raise Exception("Model type {0} is not supported".format(model.type))
+        raise Exception(
+            "Model type {0} is not supported".format(getattr(model, "model_type", None))
+        )
     # Loop through all the variables in the model
     for variable in model.component_objects(Var):
         # we may also choose to not convert, additionally not all of our variables have units (binary variables),
