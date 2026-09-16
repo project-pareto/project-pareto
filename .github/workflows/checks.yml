@@ -63,9 +63,9 @@ jobs:
             python-version: '3.10'
             cov-report: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: matrix.install-mode == 'dev'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Set up package (install-mode=${{ matrix.install-mode }})
@@ -83,7 +83,7 @@ jobs:
           python -m pareto.tests.toy_case_study
       - name: Upload coverage report as job artifact
         if: matrix.cov-report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage.xml
@@ -95,12 +95,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # the checkout step is needed to have access to codecov.yml
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: coverage-report
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: true
           verbose: true
@@ -114,8 +114,8 @@ jobs:
     name: Run Black to verify that committed code is formatted
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.10'
       - name: Install (dev mode)
