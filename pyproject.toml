@@ -42,7 +42,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: Unix",
@@ -79,6 +78,17 @@ testing = [
     "pyyaml",
 ]
 
+dev = [
+    "black[jupyter]==26.3.1",
+    "pytest-cov",
+    "pre-commit==2.16.*",
+    "sphinx",
+    "myst-parser[linkify]",
+    "sphinx_rtd_theme",
+    "nbsphinx",
+    "addheader",
+]
+
 [project.urls]
 Homepage = "https://www.project-pareto.org"
 
@@ -101,3 +111,6 @@ include-package-data = true
     "md_keras/*.json",
     "md_keras/variables/variables.*",
 ]
+
+[tool.black]
+target-version = ['py310', 'py311']
