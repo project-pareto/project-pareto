@@ -63,11 +63,11 @@ dependencies = [
     "openpyxl",
     "idaes-pse",
     "requests",
-    "plotly==5.11.0",
+    "plotly>=5.18.0",
     "kaleido",
     "ipywidgets>=8.0.0",
-    "tensorflow",
-    "omlt==1.1",
+    "tensorflow>=2.16",
+    "omlt>=1.2",
     "pyproj",
 ]
 
