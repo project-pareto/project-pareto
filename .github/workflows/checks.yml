@@ -55,7 +55,7 @@ jobs:
           - os: win64
             os-version: windows-2022
           - install-mode: dev
-            pip-install-target: -r requirements-dev.txt
+            pip-install-target: '-e ".[dev]"'
           - install-mode: user
             pip-install-target: >-
               "project-pareto[testing] @ git+${{ format('{0}/{1}@{2}', github.server_url, github.repository, github.ref) }}"
@@ -112,15 +112,15 @@ jobs:
 
   black:
     name: Run Black to verify that committed code is formatted
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Install (dev mode)
         run: |
-          pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
+          pip --no-cache-dir install --progress-bar off $(grep -oE '"black[^"]*"' pyproject.toml | tr -d '"')
       - name: Run Black to verify that committed code is formatted
         run: |
           black --check .
