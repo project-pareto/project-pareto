@@ -100,7 +100,7 @@ Core-dev
 
 3. Create a dedicated Conda environment for development work::
 
-    conda create --name pareto-dev python=3.10 --yes
+    conda create --name pareto-dev python=3.12 --yes
 
 4. Activate the ``pareto-dev`` Conda environment. This command must be run every time a new console/terminal window is opened::
 
@@ -109,7 +109,7 @@ Core-dev
 5. Navigate into the new ``project-pareto`` directory, then run the following command to install 
    PARETO in editable mode and the development-only dependencies::
 
-    pip install -r requirements-dev.txt
+    pip install -e .[dev]
 
 6. After installing PARETO, install the open-source solvers provided by the IDAES project::
 
@@ -133,7 +133,7 @@ Hybrid
 
 1. Create and activate environment::
 
-    conda create -n pareto-env python=3.10 pip --yes
+    conda create -n pareto-env python=3.12 pip --yes
     conda activate pareto-env
 
 2. Download a ZIP file containing a snapshot of the ``main`` branch of the repository by navigating to the following URL: ``https://github.com/project-pareto/project-pareto/archive/refs/heads/main.zip``
@@ -147,7 +147,7 @@ Hybrid
 
 5. Install pareto-project (non-git tracked repo)::
 
-    pip install -r requirements-dev.txt
+    pip install -e .[dev]
 
 6. After installing PARETO, install the open-source solvers provided by the IDAES project::
 
