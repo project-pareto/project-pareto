@@ -62,7 +62,7 @@ dependencies = [
     "numpy",
     "pandas>=2,<3",
     "openpyxl",
-    "idaes-pse",
+    "idaes-pse >= 2.10",
     "requests",
     "plotly>=5.18.0",
     "kaleido",
