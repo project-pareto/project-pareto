@@ -98,6 +98,7 @@ stagedfright = "stagedfright:main"
 
 [tool.setuptools]
 include-package-data = true
+py-modules = ["stagedfright"]
 
 [tool.setuptools.packages.find]
 # Equivalent to find_packages() — searches current directory by default
