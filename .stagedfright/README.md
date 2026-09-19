@@ -30,7 +30,7 @@ For a more detailed breakdown of this script's limitations and capabilities, con
 
 stagedfright is installed automatically as part of the `project-pareto` Python installation.
 
-To use stagedfright as a pre-commit hook, PARETO developers can run this command in their developer environment after installing the developer dependencies defined in `requirements-dev.txt`:
+To use stagedfright as a pre-commit hook, PARETO developers can run this command in their developer environment after installing the developer dependencies defined in `pyproject.toml`:
 
 ```sh
 pre-commit install
