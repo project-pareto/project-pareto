@@ -81,7 +81,7 @@ texnet_api_url = (
 )
 mi_per_m = 0.000621371  # mi/m
 date_re = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
-save_re = re.compile("^.*\.(csv|xlsx)$", re.IGNORECASE)
+save_re = re.compile(r"^.*\.(csv|xlsx)$", re.IGNORECASE)
 geod = pyproj.Geod(ellps="WGS84")
 
 
