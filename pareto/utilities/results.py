@@ -2937,22 +2937,32 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
         val = var.value
         if _check_infeasible(var, val, bound_tol):
             print(
-                "Variable violated bounds or no value found",
-                var,
-                val,
-                var.lower,
-                var.upper,
+                f"Result feasibility problem: variable {var} has the value {val}, "
+                f"which is outside its allowed bounds [{var.lower}, {var.upper}] "
+                "(or no value was found). To fix: re-solve the model and, if this "
+                "persists, check the model formulation and solver settings for "
+                "this variable."
             )
 
         if var.is_binary():
             if not is_binary_value(val, bound_tol):
-                print("Variable took a non-binary value", var, val)
+                print(
+                    f"Result feasibility problem: binary variable {var} took the "
+                    f"non-binary value {val}, so the model's yes/no decisions "
+                    "cannot be trusted. To fix: re-solve the model and, if this "
+                    "persists, check the solver's integrality settings."
+                )
                 return False
 
         # check for integer requirements
         elif var.is_integer():
             if not is_integer_value(val, bound_tol):
-                print("Variable took a non-integer value", var, val)
+                print(
+                    f"Result feasibility problem: integer variable {var} took the "
+                    f"non-integer value {val}, so decisions that must be whole "
+                    "numbers cannot be trusted. To fix: re-solve the model and, "
+                    "if this persists, check the solver's integrality settings."
+                )
                 return False
 
     for con in model.component_data_objects(
@@ -2961,11 +2971,10 @@ def is_feasible(model, bound_tol=1e-3, cons_tol=1e-3):
         body_value = value(con.body, exception=False)
         if _check_infeasible(con, body_value, cons_tol):
             print(
-                "Constraint not satisfied or no value found",
-                con,
-                body_value,
-                con.lower,
-                con.upper,
+                f"Result feasibility problem: constraint {con} is not satisfied "
+                f"(value {body_value}, bounds [{con.lower}, {con.upper}]), so the "
+                "solution should not be trusted. To fix: check the inputs that "
+                "feed this constraint, then re-solve the model."
             )
             return False
     print("All tests passed!")

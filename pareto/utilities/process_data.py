@@ -339,6 +339,14 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
     data_error_items.extend(water_quality_config_errors)
 
+    # Collect set-tab findings (deleted or present-but-empty) from every
+    # optional-set check below, so one consolidated error can list all
+    # affected sets at once instead of only the first one hit.
+    set_findings = []
+
+    def _check_optional_data_accumulating(*args, **kwargs):
+        return _check_optional_data(*args, set_findings=set_findings, **kwargs)
+
     # If either post_process or discrete config option is selected for water
     # quality, then additional data may be needed, depending on what node types
     # are used in the system. For example, If external water sources are used,
@@ -348,7 +356,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         or config.water_quality is WaterQuality.post_process
     ):
         # Check if storage sites are given. If so, check for storage initial water quality.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="StorageSites",
@@ -357,7 +365,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             requires_at_least_one=[],
         )
         # Check if external water sources are given. If so, check for external water source quality.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="ExternalWaterSources",
@@ -366,7 +374,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             requires_at_least_one=[],
         )
         # Check if production pads are given. If so, check for production pad water quality.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="ProductionPads",
@@ -375,7 +383,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             requires_at_least_one=[],
         )
         # Check if completions pads are given. If so, check for completions pad water quality.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="CompletionsPads",
@@ -386,7 +394,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
 
     if config.infrastructure_timing is InfrastructureTiming.true:
         # Check if disposal capex is considered. If so, check for lead time.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="InjectionCapacities",
@@ -396,7 +404,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         )
 
         # Check if treatment capex is considered. If so, check for lead time.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="TreatmentCapacities",
@@ -406,7 +414,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         )
 
         # Check if storage capex is considered. If so, check for lead time.
-        df_sets, df_parameters = _check_optional_data(
+        df_sets, df_parameters = _check_optional_data_accumulating(
             df_sets,
             df_parameters,
             optional_set_name="StorageCapacities",
@@ -417,7 +425,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
 
         # Check if pipeline capex is considered. Check for relevant lead time type.
         if config.pipeline_cost is PipelineCost.distance_based:
-            df_sets, df_parameters = _check_optional_data(
+            df_sets, df_parameters = _check_optional_data_accumulating(
                 df_sets,
                 df_parameters,
                 optional_set_name="PipelineDiameters",
@@ -426,7 +434,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
                 requires_at_least_one=[],
             )
         elif config.pipeline_cost is PipelineCost.capacity_based:
-            df_sets, df_parameters = _check_optional_data(
+            df_sets, df_parameters = _check_optional_data_accumulating(
                 df_sets,
                 df_parameters,
                 optional_set_name="PipelineDiameters",
@@ -441,6 +449,16 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
         raise MissingDataError(
             "Essential data is incomplete. Please add the following missing data tabs: "
             + error_message
+            + "\n\n"
+            "Every strategic model needs:\n"
+            "  - a 'Units' tab (volume, distance, time, pressure, and currency units),\n"
+            "  - at least one water source tab (ProductionPads, CompletionsPads, or ExternalWaterSources),\n"
+            "  - at least one water sink tab (CompletionsPads, SWDSites, ReuseOptions, or StorageSites).\n\n"
+            + "-" * 60
+            + "\n"
+            "To fix: re-add the missing tab(s) from the PARETO input template, including their header rows. "
+            "If a tab exists in the workbook but did not load, scroll up for a warning starting with "
+            "'Data loading failed for the following sheets': it names the broken tab."
         )
 
     # Optional Data: If data is not given, create empty dictionaries and raise a warning to the user
@@ -449,7 +467,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     # Call _check_optional_data function. This returns modified df_sets and df_parameters that
     # include empty dictionaries for missing data, so the parameters can be defined without error
     # when building the PARETO model.
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="CompletionsPads",
@@ -485,7 +503,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # ProductionPads
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="ProductionPads",
@@ -497,7 +515,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # SWDs
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="SWDSites",
@@ -512,7 +530,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Treatment Sites.
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="TreatmentSites",
@@ -532,7 +550,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Beneficial Reuse
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="ReuseOptions",
@@ -542,13 +560,12 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             "BeneficialReuseCredit",
             "ReuseMinimum",
             "ReuseCapacity",
-            "ReuseOperationalCost",
         },
         requires_at_least_one=[["ROA", "SOA", "NOA", "ROT", "SOT", "POT"]],
     )
 
     # StorageSites
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="StorageSites",
@@ -566,7 +583,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # FreshwaterSources
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="ExternalWaterSources",
@@ -582,7 +599,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
 
     # NetworkNodes
     piping_arcs = get_valid_piping_arc_list()
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="NetworkNodes",
@@ -592,7 +609,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Treatment Capacity Expansion
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="TreatmentCapacities",
@@ -605,7 +622,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Disposal Capacity Expansion
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="InjectionCapacities",
@@ -618,7 +635,7 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
     )
 
     # Storage Capacity Expansion
-    df_sets, df_parameters = _check_optional_data(
+    df_sets, df_parameters = _check_optional_data_accumulating(
         df_sets,
         df_parameters,
         optional_set_name="StorageCapacities",
@@ -686,6 +703,113 @@ def check_required_data(df_sets, df_parameters, config, model_type="strategic"):
             + str(default_used)
         )
         warnings.warn(warning_message, stacklevel=3)
+
+    # One consolidated error for every set tab that is present but empty while
+    # parameter tabs referencing it still contain entries: building the model
+    # would index those parameters over the now-empty sets, so construction
+    # fails with an internal error such as "Index '('CP01', 'N08')' is not
+    # valid for indexed component 'p_CNA'".
+    if set_findings:
+        findings_by_set = {}
+        for set_name, kind, tabs in set_findings:
+            existing = findings_by_set.setdefault(
+                set_name, {"kind": kind, "tabs": set()}
+            )
+            existing["tabs"].update(tabs)
+
+        # Role of each affected set, from the authors' source/sink groups
+        # (set_list_require_at_least_one): a set that is the scenario's only
+        # remaining water source or sink cannot be left empty or deleted, so
+        # "delete the referencing tabs" is not a viable fix for it.
+        def _set_is_nonempty(name):
+            return name in df_sets and len(df_sets[name]) > 0
+
+        def _describe_role(name):
+            for label, group in (
+                ("water source", set_list_require_at_least_one[0]),
+                ("water sink", set_list_require_at_least_one[1]),
+            ):
+                if name in group:
+                    others = [s for s in group if s != name and _set_is_nonempty(s)]
+                    if not others:
+                        return (
+                            f"the scenario's only remaining {label}: it must "
+                            "list at least one facility, or another set in the "
+                            f"same group ({', '.join(s for s in group if s != name)}) "
+                            "must be filled instead"
+                        )
+                    return f"a {label} set"
+            return None
+
+        refs_by_set = {
+            set_name: ", ".join(sorted(info["tabs"]))
+            for set_name, info in findings_by_set.items()
+        }
+
+        # One finding: lead with the plain per-set sentence (referencing tabs
+        # listed there). Several findings: skip the repeated sentences and let
+        # the bullets below carry kind, role, and referencing tabs.
+        old_style_head = ""
+        if len(findings_by_set) == 1:
+            set_name, info = next(iter(findings_by_set.items()))
+            if info["kind"] == "missing":
+                old_style_head = (
+                    f"Essential data is incomplete. Parameter data for {set_name} "
+                    f'is given, but the "{set_name}" Set is missing. Please add '
+                    f"and complete the following tab(s): {set_name}, or remove "
+                    f"the following Parameters: {refs_by_set[set_name]}"
+                )
+            else:
+                old_style_head = (
+                    f'Essential data is incomplete. The "{set_name}" Set tab is '
+                    "present but contains no facility names, while parameter "
+                    f"data for {set_name} is given. Please list the facility "
+                    f'names in the "{set_name}" tab, or remove the following '
+                    f"Parameters: {refs_by_set[set_name]}"
+                )
+            old_style_head += "\n\n"
+
+        findings_lines_list = []
+        for set_name, info in findings_by_set.items():
+            role = _describe_role(set_name)
+            kind_text = (
+                "tab deleted or renamed"
+                if info["kind"] == "missing"
+                else "tab present but empty"
+            )
+            line = f"  - '{set_name}' ({kind_text}"
+            if role:
+                line += f"; {role}"
+            line += ")"
+            if len(findings_by_set) > 1:
+                line += f": referenced by {refs_by_set[set_name]}"
+            findings_lines_list.append(line)
+        findings_lines = "\n".join(findings_lines_list)
+        raise MissingDataError(
+            old_style_head + f"Summary: {len(findings_by_set)} set tab(s) "
+            "are missing from the workbook or contain no facility names, "
+            "while parameter tabs that reference them still contain entries. "
+            "The model would be built with zero facilities for these sets, so "
+            "every referencing entry is invalid; this surfaces as internal "
+            "errors such as \"Index '('CP01', 'N08')' is not valid for "
+            "indexed component 'p_CNA'\".\n"
+            + findings_lines
+            + "\n\nNote: a tab listed as deleted was removed from the workbook "
+            "(or its name is not a valid PARETO set tab name); a tab listed as "
+            "present but empty had its rows deleted or its contents cleared. A "
+            "sheet that exists but fails to parse is reported by the 'Data "
+            "loading failed' warning and does not trigger this error."
+            "\n\n" + "-" * 60 + "\n"
+            "To fix, either:\n"
+            "  - restore the deleted set tabs from the PARETO input template "
+            "(a set tab needs its header row), or\n"
+            "  - list the facility names in the set tabs that are present but "
+            "empty (one row per facility below the header row), or\n"
+            "  - if those facilities are not part of this scenario, delete "
+            "the parameter tabs that reference them — but sets marked as the "
+            "scenario's only remaining water source or sink must list at "
+            "least one facility instead."
+        )
 
     return (df_sets, df_parameters)
 
@@ -821,6 +945,17 @@ def model_infeasibility_detection(strategic_model):
 
     if capacity_feasibility_message:
         error_message = ", ".join(capacity_feasibility_message)
+        print("-" * 60)
+        print(
+            "To fix: increase system capacity for the affected periods (e.g. "
+            "InitialDisposalCapacity, InitialStorageCapacity, ReuseCapacity, or "
+            "pipeline capacity) or reduce produced water (PadRates) in those periods."
+        )
+        print(
+            "Note: this check is aggregate only; passing it does not guarantee the "
+            "network itself is feasible."
+        )
+        print("-" * 60)
         raise DataInfeasibilityError(
             "An infeasibility in the input data has been detected. Produced water volumes exceeds total system capacity for time periods: "
             + error_message
@@ -899,6 +1034,17 @@ def model_infeasibility_detection(strategic_model):
 
         if demand_feasibility_message:
             error_message = ", ".join(str(tp) for tp in demand_feasibility_message)
+            print("-" * 60)
+            print(
+                "To fix: increase supply or storage for the affected periods "
+                "(e.g. PadRates, ExtWaterSourcingAvailability, InitialStorageCapacity) "
+                "or reduce CompletionsDemand in those periods."
+            )
+            print(
+                "Note: this check stops at the first deficient period, so later "
+                "deficient periods are not listed; re-run after fixing to reveal any."
+            )
+            print("-" * 60)
             raise DataInfeasibilityError(
                 "An infeasibility in the input data has been detected. Completion demand volume exceeds the total of produced water, external sources, and stored water in the following time periods: "
                 + error_message
@@ -932,6 +1078,7 @@ def _check_optional_data(
     required_sets_with_option,  # []
     required_parameters_with_option,  # ["BeneficialReuseCost","BeneficialReuseCredit"]
     requires_at_least_one=[],  # ["ROA", "SOA", "NOA", "ROT", "SOT"]
+    set_findings=None,
 ):
     # create set object for df_sets and df_parameters for simpler list comparison
     _df_sets_set = set(df_sets)
@@ -974,13 +1121,130 @@ def _check_optional_data(
     _input_parameters_dependent_on_optional_set = (
         set(required_parameters_with_option) & _df_parameters_set
     )
-    if optional_set_name not in df_sets and (
-        len(_input_parameters_dependent_on_optional_set) > 0
-    ):
-        raise MissingDataError(
-            f'Essential data is incomplete. Parameter data for {optional_set_name} is given, but the "{optional_set_name}" Set is missing. Please add and complete the following tab(s): {optional_set_name}, or remove the following Parameters:'
-            + str(_input_parameters_dependent_on_optional_set)
+    # Arc tabs matching the set's node-letter naming convention (e.g. CNA,
+    # CCT for CompletionsPads) also reference the set and are reported too.
+    node_letter = {
+        "ProductionPads": "P",
+        "CompletionsPads": "C",
+        "SWDSites": "K",
+        "ExternalWaterSources": "F",
+        "StorageSites": "S",
+        "TreatmentSites": "R",
+        "ReuseOptions": "O",
+        "NetworkNodes": "N",
+    }.get(optional_set_name)
+
+    # Function that extracts the arc tabs (network-connection tabs, e.g. CNA,
+    # CKT, PCA) that reference the optional set, matched by the node-letter
+    # naming convention in the tab name, and actually contain data. These tabs
+    # are not in required_parameters_with_option, but their entries index over
+    # the set and crash the build the same way when it is missing or emptied.
+
+    def _tab_has_entries(tab):
+        data = df_parameters.get(tab)
+        if data is None:
+            return False
+        if hasattr(data, "empty"):
+            return not data.empty
+        return len(data) > 0
+
+    def _nonempty_arc_tabs():
+        return sorted(
+            arc_tab
+            for arc_tab in df_parameters
+            if node_letter
+            and isinstance(arc_tab, str)
+            and len(arc_tab) == 3
+            and (arc_tab[0] == node_letter or arc_tab[1] == node_letter)
+            and arc_tab[-1] in ("A", "T")
+            and _tab_has_entries(arc_tab)
         )
+
+    # Here we check if 1) the set tab is missing (optional_set_name not in
+    # df_sets: deleted from the workbook, or renamed/misspelled) and 2) something
+    # still depends on it: dependent parameter tabs included, or non-empty arc
+    # tabs referencing it.
+
+    if optional_set_name not in df_sets and (
+        len(_input_parameters_dependent_on_optional_set) > 0 or _nonempty_arc_tabs()
+    ):
+        # We construct a tabs set that is based on the input parameters dependent on the optional set
+        # and the network-connection tabs
+        tabs = (
+            sorted(_input_parameters_dependent_on_optional_set) + _nonempty_arc_tabs()
+        )
+        if set_findings is None:
+            raise MissingDataError(
+                f"Essential data is incomplete: the workbook contains parameter or "
+                f"network-connection tabs referencing "
+                f"'{optional_set_name}' ({', '.join(tabs)}), but the "
+                f'"{optional_set_name}" set tab itself was not found in the workbook. '
+                f"Without that set, the model has no {optional_set_name} facilities and "
+                "the parameter tabs cannot be used."
+                f"\n\nNote: reaching this error means the '{optional_set_name}' tab is not "
+                "present in the workbook at all (or its name is not a valid PARETO set "
+                "tab name). A sheet that exists but fails to parse is reported by the "
+                "'Data loading failed' warning and does not trigger this error."
+                f"\n\nIf the tab was renamed or misspelled, scroll up for the warning "
+                "starting with 'Invalid PARETO input': it lists tab names that are not "
+                "standard PARETO inputs."
+                f"\n\n" + "-" * 60 + "\n"
+                "To fix, either:\n"
+                f"  - restore the '{optional_set_name}' tab from the PARETO input template "
+                "(a set tab needs its header row), or\n"
+                f"  - if {optional_set_name} facilities are not part of this scenario, "
+                "delete the dependent parameter tabs listed above."
+            )
+        set_findings.append((optional_set_name, "missing", tabs))
+
+    # If the optional set is present but contains no facility names, while
+    # parameter or arc tabs that reference it still contain entries, the model
+    # cannot be built: the referencing parameters are indexed over the
+    # now-empty set, so construction fails with an internal error such as
+    # "Index '('CP01', 'N08')' is not valid for indexed component 'p_CNA'".
+    # Raise a plain-language error instead, before the model is built.
+    if (
+        optional_set_name in df_sets
+        and len(df_sets[optional_set_name]) == 0
+        and (
+            len(_input_parameters_dependent_on_optional_set) > 0 or _nonempty_arc_tabs()
+        )
+    ):
+        referencing_tabs = (
+            sorted(
+                tab
+                for tab in _input_parameters_dependent_on_optional_set
+                if _tab_has_entries(tab)
+            )
+            + _nonempty_arc_tabs()
+        )
+        if referencing_tabs:
+            if set_findings is None:
+                raise MissingDataError(
+                    f"Essential data is incomplete: the '{optional_set_name}' "
+                    "tab is present but contains no facility names, while "
+                    "parameter tabs that reference "
+                    f"{optional_set_name} facilities still contain "
+                    f"entries: {', '.join(referencing_tabs)}. The model would "
+                    f"be built with zero {optional_set_name} facilities, so "
+                    "every referencing entry is invalid; this surfaces as an "
+                    "internal error such as \"Index '('CP01', 'N08')' is not "
+                    "valid for indexed component 'p_CNA'\"."
+                    "\n\nNote: this is different from the tab being missing "
+                    "entirely: here the tab exists, but its rows were deleted "
+                    "or its contents were cleared."
+                    "\n\n" + "-" * 60 + "\n"
+                    "To fix, either:\n"
+                    f"  - list the {optional_set_name} facility names in the "
+                    f"'{optional_set_name}' tab (one row per facility below "
+                    "the header row), or\n"
+                    f"  - if {optional_set_name} facilities are not part of "
+                    "this scenario, also empty or delete the parameter tabs "
+                    "listed above, or\n"
+                    f"  - restore the '{optional_set_name}' tab from the "
+                    "PARETO input template."
+                )
+            set_findings.append((optional_set_name, "empty", referencing_tabs))
     return (df_sets, df_parameters)
 
 
