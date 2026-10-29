@@ -75,6 +75,7 @@ from pareto.utilities.enums import (
     SubsurfaceRisk,
     DesalinationModel,
 )
+from pareto.tests.test_solvers import solver_name
 
 # create config dictionary
 CONFIG = ConfigBlock()
@@ -7075,14 +7076,27 @@ def solve_model(model, options=None):
     # Set maximum running time for solver
     set_timeout(opt, timeout_s=running_time)
 
-    # Set solver gap
-    if opt.type in ("gurobi_direct", "gurobi"):
-        # Apply Gurobi specific options
+    # # Set solver gap
+    # if opt.type in ("gurobi_direct", "gurobi"):
+    #     # Apply Gurobi specific options
+    #     opt.options["mipgap"] = gap
+    #     opt.options["NumericFocus"] = gurobi_numeric_focus
+    # elif opt.type in ("cbc"):
+    #     # Apply CBC specific option
+    #     opt.options["ratioGap"] = gap
+
+    solver_name = opt.options.get("solver", "").lower()
+
+    if solver_name == "gurobi":
         opt.options["mipgap"] = gap
         opt.options["NumericFocus"] = gurobi_numeric_focus
-    elif opt.type in ("cbc"):
-        # Apply CBC specific option
+
+    elif solver_name == "cbc":
         opt.options["ratioGap"] = gap
+
+    elif solver_name == "cplex":
+        # CPLEX options already handled via .opt file
+        pass
 
     # Deactivate slack variables if necessary
     if deactivate_slacks:
