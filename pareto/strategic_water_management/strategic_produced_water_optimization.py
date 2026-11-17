@@ -474,6 +474,14 @@ def _build_midstream_module(model):
         units=model.model_units["volume_time"],
         doc="Credit applied to offset shortfall [volume/time]",
     )
+    model.v_Mid_Expired = Var(
+        model.s_MidstreamReceipt,
+        model.s_T,
+        within=NonNegativeReals,
+        initialize=0,
+        units=model.model_units["volume_time"],
+        doc="Unused banked credit expiring when a contract ends [volume/time]",
+    )
     model.v_Mid_ShortNet = Var(
         model.s_MidstreamReceipt,
         model.s_T,
@@ -611,6 +619,34 @@ def _build_midstream_module(model):
             max_dur = max(max_dur, dur)
         _bigM_credit_at[m] = value(model.p_MidAlpha) * max_mvc * max(max_dur, 1)
 
+    def MidExpiredCreditLimitRule(model, m, t):
+        t_idx = _t_ord[t]
+        if t_idx == 0:
+            return model.v_Mid_Expired[m, t] == 0
+        t_prev = _t_list[t_idx - 1]
+        return model.v_Mid_Expired[m, t] <= model.v_Mid_Credit[m, t_prev]
+
+    model.MidExpiredCreditLimit = Constraint(
+        model.s_MidstreamReceipt,
+        model.s_T,
+        rule=MidExpiredCreditLimitRule,
+        doc="Only previously banked credit can expire; none exists initially",
+    )
+
+    def MidExpiredCreditInactiveRule(model, m, t):
+        return model.v_Mid_Expired[m, t] <= (
+            _bigM_credit_at.get(m, 0)
+            * model.model_units["volume_time"]
+            * (1 - model.vb_y_MidAnyActive[m, t])
+        )
+
+    model.MidExpiredCreditInactive = Constraint(
+        model.s_MidstreamReceipt,
+        model.s_T,
+        rule=MidExpiredCreditInactiveRule,
+        doc="Credit can expire only when no contract is active",
+    )
+
     def MidCreditRecursionRule(model, m, t):
         t_idx = _t_ord[t]
         if t_idx == 0:  # first period, no prior credit
@@ -618,6 +654,7 @@ def _build_midstream_module(model):
                 model.v_Mid_Credit[m, t]
                 == model.p_MidAlpha * model.v_Mid_Over[m, t]
                 - model.v_Mid_UseCredit[m, t]
+                - model.v_Mid_Expired[m, t]
             )
         else:
             t_prev = _t_list[t_idx - 1]
@@ -626,6 +663,7 @@ def _build_midstream_module(model):
                 == model.v_Mid_Credit[m, t_prev]
                 + model.p_MidAlpha * model.v_Mid_Over[m, t]
                 - model.v_Mid_UseCredit[m, t]
+                - model.v_Mid_Expired[m, t]
             )
 
     model.MidCreditRecursion = Constraint(
@@ -6402,6 +6440,7 @@ def scale_model(model, scaling_factor=1000000):
         model.scaling_factor[model.v_Mid_Under] = 1 / scaling_factor
         model.scaling_factor[model.v_Mid_Credit] = 1 / scaling_factor
         model.scaling_factor[model.v_Mid_UseCredit] = 1 / scaling_factor
+        model.scaling_factor[model.v_Mid_Expired] = 1 / scaling_factor
         model.scaling_factor[model.v_Mid_ShortNet] = 1 / scaling_factor
         model.scaling_factor[model.MidOneContractPerNode] = 1
         model.scaling_factor[model.MidOneStartPerContract] = 1
@@ -6410,6 +6449,8 @@ def scale_model(model, scaling_factor=1000000):
         model.scaling_factor[model.MidCapacityCap] = 1 / scaling_factor
         model.scaling_factor[model.MidDeviationSplit] = 1 / scaling_factor
         model.scaling_factor[model.MidCreditRecursion] = 1 / scaling_factor
+        model.scaling_factor[model.MidExpiredCreditLimit] = 1 / scaling_factor
+        model.scaling_factor[model.MidExpiredCreditInactive] = 1 / scaling_factor
         model.scaling_factor[model.MidUseCreditLimit] = 1 / scaling_factor
         model.scaling_factor[model.MidUseCreditShortfall] = 1 / scaling_factor
         model.scaling_factor[model.MidCreditInactive] = 1 / scaling_factor
